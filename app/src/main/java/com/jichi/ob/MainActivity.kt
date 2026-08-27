@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "JichiOB"
-        private const val APP_VERSION = "v6.1.4"
+        private const val APP_VERSION = "v6.1.5"
     }
 
     private lateinit var prefs: PrefsManager
