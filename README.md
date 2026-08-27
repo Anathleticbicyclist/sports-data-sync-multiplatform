@@ -1,8 +1,14 @@
-# 鸡翅幸哲迈进OB（开发体验版）
+# 🚴 鸡翅幸哲迈进OB(开发体验版)
+**让运动数据自由流动 — 六平台运动数据互传工具**
+[![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
+[![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-v6.1.8-brightgreen)]()
+[![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-> **Slogan：让运动数据自由流动**
+一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
 
-一款支持多平台运动数据互传的 Android 工具。iGPSPORT、行者、迈金、黑鸟单车、百锐腾、Outbase 六大平台数据自由同步，打破平台壁垒。
+> ⚠️ **开发版不稳定且用且珍惜**，仅供测试体验，正式版请使用 [sync-igpsport-magene-onelap-xingzhe-data-to-outbase](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)。
 
 ---
 
@@ -12,27 +18,32 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.1.3 |
+| 当前版本 | v6.1.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
-| 构建工具 | Gradle 8.13 + AGP 8.7.3 |
+| 构建工具 | Gradle 8.13 + AGP 8.13.0 |
 
 ---
 
-## ✨ 核心功能
+## ✨ 功能特性
 
-### 1. 六平台数据互传
-支持以下平台之间的运动数据（FIT/GPX）双向同步：
+### 1. 六平台数据互传（逆向流动）
 
-| 平台 | 下载 | 上传 | 备注 |
-|------|------|------|------|
-| **iGPSPORT** | ✅ | ✅ | 迹驰码表数据 |
-| **行者** | ✅ | ✅ | 行者APP数据 |
-| **迈金** | ✅ | ✅ | 迈金/Onelap数据，支持GCJ-02→WGS84坐标转换 |
-| **黑鸟单车** | ✅ | ⚠️开发中 | 黑鸟单车数据 |
-| **百锐腾** | ✅ | ⚠️开发中 | Bryton码表数据 |
-| **Outbase** | ✅ | ✅ | 目标平台，支持活动上传 |
+> **注意**：Outbase 为聚合平台，**仅支持上传（作为同步目标），不支持作为数据来源下载**。其余五个平台均可作为来源下载，也可作为目标上传。
+
+| 平台 | 下载(源) | 上传(目标) | 说明 |
+|------|:---:|:---:|------|
+| **iGPSPORT** | ✅ | ✅ | 迹驰码表数据，OSS直传上传 |
+| **行者** | ✅ | ✅ | 行者APP数据，官方开放API |
+| **迈金** | ✅ | ⏳开发中 | 迈金/Onelap数据，支持GCJ-02→WGS84坐标转换 |
+| **黑鸟单车** | ✅ | ✅ | 黑鸟单车数据 |
+| **百锐腾** | ✅ | ✅ | Bryton码表数据 |
+| **Outbase** | ❌ | ✅ | **仅目标平台**，支持活动上传，不可作为来源 |
+
+**可同步的组合**（来源 → 目标）：
+- iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 → Outbase（上传）
+- 上述五个平台之间任意互传（如 iGPSPORT → 行者、迈金 → 黑鸟单车）
 
 ### 2. 数据来源记忆
 自动记住上次选择的同步来源，重启APP后自动恢复，无需重复选择。
@@ -58,30 +69,31 @@
 - 内置后台常驻指引：锁定后台步骤、电池优化白名单、各品牌自启动设置路径
 
 ### 7. 测试下载功能
-在停止和复制按钮之间增加「测试」按钮，下载1条记录保存到本地，验证下载功能是否正常，并有成功提示。
+在停止和复制按钮之间提供「测试」按钮，下载1条记录保存到本地，验证下载功能是否正常，并有成功提示。
 
 ### 8. 登录状态显示
 登录后显示账户名称，已登录状态一目了然。
 
 ---
 
-## 🏗️ 项目架构
+## 🏗️ 项目结构
 
 ```
 app/src/main/java/com/jichi/ob/
 ├── MainActivity.kt              # 主界面，同步逻辑核心
+├── AutoSyncService.kt           # 后台自动同步服务（常驻通知+电源保护）
 ├── api/
-│   ├── IgpsportApi.kt          # iGPSPORT API
+│   ├── IgpsportApi.kt          # iGPSPORT API（含OSS直传上传）
 │   ├── XingzheApi.kt           # 行者 API
-│   ├── MageneApi.kt            # 迈金 API（含七牛云/fit_content双路径下载）
+│   ├── MageneApi.kt            # 迈金 API（含七牛云/fit_content双路径下载+坐标转换）
 │   ├── BlackbirdApi.kt         # 黑鸟单车 API
 │   ├── BrytonApi.kt            # 百锐腾 API
-│   ├── OutbaseApi.kt           # Outbase API
-│   └── UploadEngine.kt         # 通用上传引擎
+│   ├── OutbaseApi.kt           # Outbase API（仅上传）
+│   └── UploadEngine.kt         # 通用上传引擎（六平台分发）
 ├── model/
-│   └── Activity.kt              # 数据模型（活动记录、数据源枚举）
+│   └── Activity.kt              # 数据模型（活动记录、数据源枚举、上传可用性）
 ├── ui/
-│   └── LoginWebActivity.kt      # WebView登录页（各平台OAuth登录）
+│   └── LoginWebActivity.kt      # WebView登录页（各平台登录）
 └── util/
     ├── PrefsManager.kt          # 偏好设置管理（登录态、同步记忆、设置项）
     └── WebBridge.kt             # WebView JS桥接
@@ -89,16 +101,19 @@ app/src/main/java/com/jichi/ob/
 app/src/main/assets/
 ├── magene_fix.js                # 迈金FIT坐标转换核心（移植自开源验证方案）
 ├── magene_fix.html              # 坐标转换WebView容器
-└── bridge.html                   # 通用JS桥接页
+└── bridge.html                  # 通用JS桥接页
 ```
 
-### 关键技术点
+---
 
-1. **WebView登录**：各平台均通过WebView加载官方登录页，拦截登录回调获取Token，无需逆向账号密码
+## 🔧 关键技术点
+
+1. **WebView登录**：各平台均通过WebView加载官方登录页，拦截登录回调获取Token/Cookie，无需逆向账号密码
 2. **FIT坐标转换**：通过隐藏WebView执行JavaScript，解析FIT二进制文件中的record消息，修正经纬度坐标
 3. **迈金下载双路径**：优先七牛云直链（durl），失败回退fit_content接口（官方网页端同款）
-4. **协程异步**：全部网络请求使用Kotlin Coroutines，主线程安全
-5. **本地持久化**：SharedPreferences存储登录态、同步记录、设置项
+4. **逆向流动上传引擎**：`UploadEngine.kt` 统一分发，每平台独立适配官方上传通道（iGPSPORT OSS直传 / 行者官方API / 黑鸟/百锐腾官方上传）
+5. **协程异步**：全部网络请求使用Kotlin Coroutines，主线程安全
+6. **本地持久化**：SharedPreferences存储登录态、同步记录、设置项
 
 ---
 
@@ -106,15 +121,14 @@ app/src/main/assets/
 
 ### 环境要求
 - JDK 17
-- Android SDK Platform 36
-- Android Build Tools 36.0.0
+- Android SDK Platform 36 + Build Tools 35.0.0
+- Gradle 8.13（项目自带wrapper）
 
 ### 构建步骤
-
 ```bash
 # 克隆项目
-git clone <repo-url>
-cd <project-dir>
+git clone https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform.git
+cd sports-data-sync-multiplatform
 
 # 配置local.properties
 echo "sdk.dir=/path/to/android-sdk" > local.properties
@@ -133,7 +147,32 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
-### v6.1.3（开发体验版）
+### v6.1.8 (2026-08-27)
+1. **底部更新链接修正** — 更新链接指向开发测试版仓库 `sports-data-sync-multiplatform`（此前误指向正式版仓库）
+
+### v6.1.7 (2026-08-27)
+1. **iGPSPORT上传修复** — 修复 getSignedUrl 响应解析：signedUrl/ossId 在 data 子对象中（原代码从顶层读取导致"未获取到上传地址"），OSS直传流程恢复
+2. **黑鸟活动列表修复** — 黑鸟列表接口返回 content 数组（原代码只读 data/records 导致"未获取到活动"），已修复并格式化毫秒时间戳为可读时间
+3. **黑鸟登录检测修复** — 黑鸟登录后 cookie 仅含 JSESSIONID（原检测逻辑只认不存在的cookie名导致登录成功不识别），已加入 JSESSIONID 检测
+4. **黑鸟上传错误提示优化** — 上传失败返回具体原因（登录失效/认证过期/FIT_FILE_ERROR 平台限制），界面直接显示
+5. **百锐腾登录检测优化** — 增加 Meteor 框架 cookie 特征（meteor_login_token 等）检测
+6. **底部更新链接** — 增加"鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜"
+
+### v6.1.6 (2026-08-27)
+1. 行者下载修复 — GPX下载URL增加尾斜杠（/gpx/），修复401下载失败
+2. 黑鸟用户名修复 — 用户信息接口改为 /api/user（content.nickname）
+3. 黑鸟上传实测 — iGPSPORT标准FIT可上传成功；迈金室内骑行台（无GPS）FIT被黑鸟拒绝（平台限制）
+4. iGPSPORT上传重写 — 失效的uploadFit改为官方OSS直传流程（getSignedUrl→PUT→uploadByOss）
+5. 迈金上传标注开发中 — 已研究确认顽鹿无公开第三方FIT导入API，目标按钮置灰
+6. 自动同步卡顿修复
+
+### v6.1.5
+- 修复按钮布局：开始同步独占整行，停止/测试/复制等宽对齐
+
+### v6.1.4
+- 修复用户名显示/电源保护/前台服务通知/黑鸟百锐腾上传
+
+### v6.1.3（开发体验版首版）
 - 修复迈金GCJ-02→WGS84坐标转换：区分七牛云直链（WGS84不转换）和fit_content接口（GCJ-02需转换）
 - 登录检测严格化，增加手动确认登录按钮
 - 增加测试下载按钮（停止和复制之间）
@@ -162,18 +201,29 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ---
 
-## ⚠️ 已知问题
+## ⚠️ 已知限制
 
-1. **黑鸟单车上传**：开发中，当前仅支持下载
-2. **百锐腾上传**：开发中，当前仅支持下载
-3. **部分平台登录**：如遇登录后显示未登录，请点击「确认登录」按钮手动确认
+1. **迈金上传**：顽鹿无公开第三方FIT导入API，目标按钮置灰标注"开发中"，招募测试人员
+2. **迈金→黑鸟上传**：黑鸟解析器较旧，拒绝含大量开发者字段的迈金FIT（FIT_FILE_ERROR），属平台限制，建议经行者/iGPSPORT中转
+3. **黑鸟FIT解析**：室内骑行台（无GPS）FIT会被黑鸟服务器拒绝（平台限制）
+4. **Outbase**：仅支持上传，不可作为数据来源下载
 
 ---
 
-## 🤝 参与开发
+## 🙏 鸣谢
+
+感谢 **iGPSPORT、迈金、黑鸟单车、百锐腾、行者、Outbase** 为运动用户提供的数据记录与存储服务。
+
+感谢以下人员（均为骑行爱称）为软件测试提供的帮助：**素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参**
+
+感谢开源项目 [magene-fit-strava-fix](https://github.com/dwmer0308-a11y/magene-fit-strava-fix) 提供的迈金坐标修正算法参考。
+
+---
+
+## 📞 联系方式
 
 - **开发者俱乐部**：[鸡翅幸哲迈进OB同步工具开发者俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)
-- **软件更新地址**：[GitHub - Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)
+- **软件更新地址**：[GitHub - sports-data-sync-multiplatform（开发测试版）](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform)
 - **问题反馈**：欢迎加入俱乐部跟主理人反馈，开发中功能招募测试人员，欢迎联系主理人~
 
 ---
@@ -183,23 +233,4 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 本项目仅供学习交流使用，各平台数据版权归原平台所有。使用本软件产生的一切后果由使用者自行承担。
 
 ---
-## 更新日志
-### v6.1.7 (2026-08-27)
-1. **iGPSPORT上传修复** — 修复 getSignedUrl 响应解析：signedUrl/ossId 在 data 子对象中（原代码从顶层读取导致"未获取到上传地址"），OSS直传流程恢复
-2. **黑鸟活动列表修复** — 黑鸟列表接口返回 content 数组（原代码只读 data/records 导致"未获取到活动"），已修复并格式化毫秒时间戳为可读时间
-3. **黑鸟登录检测修复** — 黑鸟登录后 cookie 仅含 JSESSIONID（原检测逻辑只认不存在的cookie名导致登录成功不识别），已加入 JSESSIONID 检测
-4. **黑鸟上传错误提示优化** — 上传失败返回具体原因（登录失效/认证过期/FIT_FILE_ERROR 平台限制），界面直接显示
-5. **百锐腾登录检测优化** — 增加 Meteor 框架 cookie 特征（meteor_login_token 等）检测
-6. **底部更新链接** — 增加"鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜"
-7. **说明** — 迈金→黑鸟上传：黑鸟解析器较旧拒绝含大量开发者字段的迈金FIT（FIT_FILE_ERROR），属平台限制，建议经行者/iGPSPORT中转
-
-### v6.1.6 (2026-08-27)
-1. 行者下载修复 — GPX下载URL增加尾斜杠（/gpx/），修复401下载失败
-2. 黑鸟用户名修复 — 用户信息接口改为 /api/user（content.nickname）
-3. 黑鸟上传实测 — iGPSPORT标准FIT可上传成功；迈金室内骑行台（无GPS）FIT被黑鸟拒绝（平台限制）
-4. iGPSPORT上传重写 — 失效的uploadFit改为官方OSS直传流程（getSignedUrl→PUT→uploadByOss）
-5. 迈金上传标注开发中 — 已研究确认顽鹿无公开第三方FIT导入API，目标按钮置灰
-6. 自动同步卡顿修复
-
-### v6.1.8 (2026-08-27)
-1. **底部更新链接修正** — 更新链接指向开发测试版仓库 sports-data-sync-multiplatform（此前误指向正式版仓库），文案"鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜"
+**鸡翅幸哲迈进OB(开发体验版)** — 让运动数据自由流动 🚴♂️
