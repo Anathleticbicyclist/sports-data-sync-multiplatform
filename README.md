@@ -200,3 +200,6 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 4. iGPSPORT上传重写 — 失效的uploadFit改为官方OSS直传流程（getSignedUrl→PUT→uploadByOss）
 5. 迈金上传标注开发中 — 已研究确认顽鹿无公开第三方FIT导入API，目标按钮置灰
 6. 自动同步卡顿修复
+
+### v6.1.8 (2026-08-27)
+1. **底部更新链接修正** — 更新链接指向开发测试版仓库 sports-data-sync-multiplatform（此前误指向正式版仓库），文案"鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜"
