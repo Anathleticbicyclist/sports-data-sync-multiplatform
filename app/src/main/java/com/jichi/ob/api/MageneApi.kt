@@ -120,23 +120,42 @@ class MageneApi {
      * @param limit 需要的条数
      */
     suspend fun getUsername(token: String): String? = withContext(Dispatchers.IO) {
+        // 优先解析JWT payload（迈金token是JWT，内含用户信息）
         try {
-            val req = Request.Builder().url("$BASE/api/otm/user/info")
-                .addHeader("Authorization", token)
-                .addHeader("User-Agent", "Mozilla/5.0")
-                .addHeader("Origin", BASE)
-                .addHeader("Referer", "$BASE/calendar")
-                .get().build()
-            val resp = client.newCall(req).execute()
-            val body = resp.body?.string() ?: ""
-            val json = JSONObject(body)
-            if (json.optInt("code", -1) == 200) {
-                val data = json.optJSONObject("data")
-                data?.optString("nickname")?.takeIf { it.isNotEmpty() }
-                    ?: data?.optString("userName")?.takeIf { it.isNotEmpty() }
-                    ?: data?.optString("name")?.takeIf { it.isNotEmpty() }
+            val parts = token.split(".")
+            if (parts.size >= 2) {
+                val payloadB64 = parts[1].replace('-', '+').replace('_', '/')
+                val padded = payloadB64 + "=".repeat((4 - payloadB64.length % 4) % 4)
+                val decoded = String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                val payload = JSONObject(decoded)
+                payload.optString("nickname")?.takeIf { it.isNotEmpty() }
+                    ?: payload.optString("userName")?.takeIf { it.isNotEmpty() }
+                    ?: payload.optString("name")?.takeIf { it.isNotEmpty() }
+                    ?: payload.optString("username")?.takeIf { it.isNotEmpty() }
+                    ?: payload.optString("account")?.takeIf { it.isNotEmpty() }
+                    ?: payload.optString("mobile")?.takeIf { it.isNotEmpty() }
+                    ?: "用户${payload.optString("uid").take(6)}"
             } else null
-        } catch (e: Exception) { Log.w(TAG, "getUsername: ${e.message}"); null }
+        } catch (e: Exception) {
+            // JWT解析失败，回退到API
+            try {
+                val req = Request.Builder().url("$BASE/api/otm/user/info")
+                    .addHeader("Authorization", token)
+                    .addHeader("User-Agent", "Mozilla/5.0")
+                    .addHeader("Origin", BASE)
+                    .addHeader("Referer", "$BASE/calendar")
+                    .get().build()
+                val resp = client.newCall(req).execute()
+                val body = resp.body?.string() ?: ""
+                val json = JSONObject(body)
+                if (json.optInt("code", -1) == 200) {
+                    val data = json.optJSONObject("data")
+                    data?.optString("nickname")?.takeIf { it.isNotEmpty() }
+                        ?: data?.optString("userName")?.takeIf { it.isNotEmpty() }
+                        ?: data?.optString("name")?.takeIf { it.isNotEmpty() }
+                } else null
+            } catch (e2: Exception) { Log.w(TAG, "getUsername fallback: ${e2.message}"); null }
+        }
     }
 
     suspend fun getActivities(token: String, skip: Int, limit: Int): List<ActivityRecord> =

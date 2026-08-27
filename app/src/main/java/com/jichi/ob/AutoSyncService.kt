@@ -125,13 +125,23 @@ class AutoSyncService : Service() {
         var synced = 0
         var lastMsg = ""
         for (record in activities.take(5)) {
-            if (prefs.isSynced(record.id)) continue
-            val data = downloadActivity(source, sourceCred, record) ?: continue
-            val result = uploadEngine.upload(target, targetCred, data, record)
-            if (result.success) {
-                prefs.addSyncedId(record.id)
-                synced++
-                lastMsg = record.title.take(15)
+            try {
+                val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
+                if (prefs.isSynced(syncKey)) continue
+                val data = downloadActivity(source, sourceCred, record) ?: continue
+                val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
+                val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+                val result = uploadEngine.upload(target, targetCred, data, record, upExtra)
+                if (result.success) {
+                    prefs.addSyncedId(syncKey)
+                    synced++
+                    lastMsg = record.title.take(15)
+                } else {
+                    Log.w(TAG, "AutoSync upload failed: ${result.message}")
+                }
+                delay(300)
+            } catch (e: Exception) {
+                Log.w(TAG, "AutoSync item error", e)
             }
         }
         return Pair(synced, lastMsg)

@@ -39,7 +39,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     OUTBASE(true, ""),
     IGPSPORT(true, "官方第三方上传API"),
     XINGZHE(true, "官方开放API"),
-    MAGENE(false, "开发中"),
+    MAGENE(false, "开发中：迈金(顽鹿)暂无公开第三方FIT导入接口，已研究确认无先例"),
     BLACKBIRD(true, ""),
     BRYTON(true, "");
 

@@ -125,9 +125,9 @@ class XingzheApi {
         withContext(Dispatchers.IO) {
             val headers = authHeaders(sessionId)
  
-            // 方式1: GPX（优先）
+            // 方式1: GPX（优先）——注意必须带尾斜杠，否则Django返回401
             try {
-                val req = Request.Builder().url("$BASE_URL/pgworkout/$workoutId/gpx")
+                val req = Request.Builder().url("$BASE_URL/pgworkout/$workoutId/gpx/")
                     .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
                     .get().build()
                 val resp = client.newCall(req).execute()

@@ -41,6 +41,8 @@ class PrefsManager(context: Context) {
         prefs.edit().putString("xingzhe_session_id", sid).apply()
     }
     fun getXingzheSessionId(): String? = prefs.getString("xingzhe_session_id", null)
+    fun saveXingzheCsrf(csrf: String) { prefs.edit().putString("xingzhe_csrf", csrf).apply() }
+    fun getXingzheCsrf(): String? = prefs.getString("xingzhe_csrf", null)
     fun isXingzheLoggedIn(): Boolean = !getXingzheSessionId().isNullOrEmpty()
 
     // ===== 迈金: OTM token (JWT) =====
@@ -108,19 +110,26 @@ class PrefsManager(context: Context) {
     fun getUsername(ds: DataSource): String? = prefs.getString("username_${ds.shortName}", null)
 
     // ===== 同步记忆（已同步记录ID）=====
-    fun getSyncedIds(): MutableSet<String> {
-        val json = prefs.getString(KEY_SYNCED_IDS, null) ?: return mutableSetOf()
-        return try {
+    // 内存缓存，避免每次全量解析JSONArray导致卡顿
+    private var syncedCache: MutableSet<String>? = null
+    private fun getSyncedIdsInternal(): MutableSet<String> {
+        syncedCache?.let { return it }
+        val json = prefs.getString(KEY_SYNCED_IDS, null) ?: run {
+            syncedCache = mutableSetOf()
+            return syncedCache!!
+        }
+        syncedCache = try {
             val arr = JSONArray(json)
             val set = mutableSetOf<String>()
             for (i in 0 until arr.length()) set.add(arr.getString(i))
             set
         } catch (e: Exception) { mutableSetOf() }
+        return syncedCache!!
     }
+    fun getSyncedIds(): MutableSet<String> = getSyncedIdsInternal()
     fun addSyncedId(id: String) {
-        val set = getSyncedIds()
+        val set = getSyncedIdsInternal()
         if (set.size >= 10000) {
-            // 超过上限，移除最早的
             val iter = set.iterator()
             if (iter.hasNext()) { iter.next(); iter.remove() }
         }
@@ -128,8 +137,8 @@ class PrefsManager(context: Context) {
         val arr = JSONArray(set.toList())
         prefs.edit().putString(KEY_SYNCED_IDS, arr.toString()).apply()
     }
-    fun isSynced(id: String): Boolean = getSyncedIds().contains(id)
-    fun getSyncedCount(): Int = getSyncedIds().size
+    fun isSynced(id: String): Boolean = getSyncedIdsInternal().contains(id)
+    fun getSyncedCount(): Int = getSyncedIdsInternal().size
 
     // ===== 设置记忆 =====
     fun getLastSource(): String = prefs.getString(KEY_LAST_SOURCE, DataSource.XINGZHE.shortName) ?: DataSource.XINGZHE.shortName

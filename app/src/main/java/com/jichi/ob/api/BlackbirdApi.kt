@@ -41,17 +41,28 @@ class BlackbirdApi {
         "Accept" to "application/json, text/plain, */*"
     )
 
+    /** 黑鸟startTime为毫秒时间戳，格式化为可读时间 */
+    private fun formatStartTime(ts: Long): String {
+        if (ts <= 0) return ""
+        return try {
+            val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+            fmt.format(java.util.Date(ts))
+        } catch (_: Exception) { ts.toString() }
+    }
+
     suspend fun getUsername(cookie: String): String? = withContext(Dispatchers.IO) {
         try {
-            val req = Request.Builder().url("$BASE/user/info")
+            // 黑鸟用户接口: GET /api/user → content.nickname (已验证)
+            val req = Request.Builder().url("$BASE/user")
                 .addHeader("Cookie", cookie)
                 .addHeader("User-Agent", "Mozilla/5.0")
                 .get().build()
             val resp = client.newCall(req).execute()
             val body = resp.body?.string() ?: ""
+            Log.d(TAG, "Blackbird user info: HTTP ${resp.code} ${body.take(120)}")
             val json = JSONObject(body)
-            if (json.optInt("code", -1) == 200 || json.optString("status") == "ok") {
-                val data = json.optJSONObject("data") ?: json
+            if (json.optString("status") == "ok") {
+                val data = json.optJSONObject("content") ?: json.optJSONObject("data") ?: json
                 data.optString("nickname")?.takeIf { it.isNotEmpty() }
                     ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
                     ?: data.optString("name")?.takeIf { it.isNotEmpty() }
@@ -77,7 +88,8 @@ class BlackbirdApi {
                 if (code != 200) throw Exception("黑鸟 HTTP $code: ${body.take(200)}")
 
                 val json = JSONObject(body)
-                val rows = json.optJSONArray("data") ?: json.optJSONArray("records") ?: break
+                // 黑鸟返回结构: {"status":"ok","content":[{recordId,title,startTime,distance,duration}]}
+                val rows = json.optJSONArray("content") ?: json.optJSONArray("data") ?: json.optJSONArray("records") ?: break
                 if (rows.length() == 0) break
 
                 for (i in 0 until rows.length()) {
@@ -91,7 +103,7 @@ class BlackbirdApi {
                         ActivityRecord(
                             id = id.toString(),
                             title = item.optString("title", "骑行"),
-                            startTime = item.optString("startTime", item.optString("start_time", "")),
+                            startTime = formatStartTime(item.optLong("startTime", 0)),
                             distance = item.optDouble("distance", 0.0) / 1000.0,
                             duration = item.optInt("duration", 0),
                             source = DataSource.BLACKBIRD
@@ -171,7 +183,8 @@ class BlackbirdApi {
     /**
      * 上传FIT/GPX文件到黑鸟单车
      */
-    suspend fun uploadActivity(cookie: String, fitData: ByteArray, fileName: String): Boolean = withContext(Dispatchers.IO) {
+    /** 黑鸟上传：返回 null=成功；非null=失败原因 */
+    suspend fun uploadActivity(cookie: String, fitData: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
         try {
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -185,11 +198,25 @@ class BlackbirdApi {
                 .build()
             val resp = client.newCall(req).execute()
             val bodyStr = resp.body?.string() ?: ""
-            Log.d(TAG, "Blackbird upload response: ${resp.code} ${bodyStr.take(200)}")
-            resp.code == 200 && (bodyStr.contains("\"code\":0") || bodyStr.contains("\"code\":200") || bodyStr.contains("success"))
+            Log.d(TAG, "Blackbird upload: HTTP ${resp.code} resp=${bodyStr.take(300)}")
+            if (resp.code in 301..308) {
+                Log.w(TAG, "黑鸟上传被重定向(可能未登录): ${resp.header("Location")}")
+                return@withContext "黑鸟上传失败: 登录已失效(被重定向)，请重新登录黑鸟"
+            }
+            if (resp.code in 401..403) {
+                Log.w(TAG, "黑鸟上传认证失败: HTTP ${resp.code}")
+                return@withContext "黑鸟上传失败: 登录已过期(HTTP ${resp.code})，请重新登录黑鸟"
+            }
+            if (bodyStr.contains("FIT_FILE_ERROR") || bodyStr.contains("FIT file integrity")) {
+                Log.w(TAG, "黑鸟接口已连通但FIT校验被拒：黑鸟解析器较旧")
+                return@withContext "黑鸟拒绝该FIT(FIT_FILE_ERROR)：黑鸟解析器较旧，无法解析迈金等含大量开发者字段的FIT；室内无GPS的FIT必被拒。建议用iGPSPORT/行者记录或户外含GPS数据"
+            }
+            val ok = resp.code == 200 && (bodyStr.contains("\"status\":\"ok\"") || bodyStr.contains("\"code\":0") ||
+                    bodyStr.contains("\"code\":200") || bodyStr.contains("success"))
+            if (ok) null else "黑鸟上传失败(HTTP ${resp.code}): ${bodyStr.take(120)}"
         } catch (e: Exception) {
             Log.e(TAG, "Blackbird upload error", e)
-            false
+            "黑鸟上传失败: ${e.message}"
         }
     }
 }

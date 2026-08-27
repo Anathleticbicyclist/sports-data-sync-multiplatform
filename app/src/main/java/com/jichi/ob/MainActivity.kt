@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "JichiOB"
-        private const val APP_VERSION = "v6.1.5"
+        private const val APP_VERSION = "v6.1.6"
     }
 
     private lateinit var prefs: PrefsManager
@@ -127,19 +127,21 @@ class MainActivity : AppCompatActivity() {
                         prefs.saveIgpsportToken(token); appendLog("✅ iGPSPORT登录成功"); fetchUsernameAfterLogin(DataSource.IGPSPORT)
                     }
                     LoginWebActivity.TYPE_XINGZHE -> if (sid.length > 10) {
-                        prefs.saveXingzheSessionId(sid); appendLog("✅ 行者登录成功"); fetchUsernameAfterLogin(DataSource.XINGZHE)
+                        prefs.saveXingzheSessionId(sid)
+                        if (extra.isNotEmpty()) prefs.saveXingzheCsrf(extra)
+                        appendLog("✅ 行者登录成功"); fetchUsernameAfterLogin(DataSource.XINGZHE)
                     }
                     LoginWebActivity.TYPE_MAGENE -> if (token.length > 20) {
                         prefs.saveMageneToken(token)
                         if (extra.isNotEmpty()) prefs.saveMageneRefreshToken(extra)
                         appendLog("✅ 迈金登录成功"); fetchUsernameAfterLogin(DataSource.MAGENE)
                     }
-                    LoginWebActivity.TYPE_BLACKBIRD -> if (sid.length > 20) {
-                        prefs.saveBlackbirdCookie(sid); appendLog("✅ 黑鸟单车登录成功"); fetchUsernameAfterLogin(DataSource.BLACKBIRD)
-                    }
-                    LoginWebActivity.TYPE_BRYTON -> if (sid.length > 20) {
-                        prefs.saveBrytonCookie(sid); appendLog("✅ 百锐腾登录成功"); fetchUsernameAfterLogin(DataSource.BRYTON)
-                    }
+                    LoginWebActivity.TYPE_BLACKBIRD -> if (sid.length > 5) {
+                        prefs.saveBlackbirdCookie(sid); appendLog("✅ 黑鸟单车登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.BLACKBIRD)
+                    } else appendLog("⚠️ 黑鸟单车cookie异常，请重新登录")
+                    LoginWebActivity.TYPE_BRYTON -> if (sid.length > 5) {
+                        prefs.saveBrytonCookie(sid); appendLog("✅ 百锐腾登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.BRYTON)
+                    } else appendLog("⚠️ 百锐腾cookie异常，请重新登录")
                     LoginWebActivity.TYPE_OUTBASE -> if (sid.length > 10) {
                         prefs.saveOutbaseSessionId(sid)
                         prefs.saveGatewayCookies(extra)
@@ -414,7 +416,7 @@ class MainActivity : AppCompatActivity() {
                         skipped++; appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
                     }
-                    appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} (${"%.1f".format(act.distance)}km)")
+                    appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
                     val fileData = try { downloadActivity(source, act) } catch (e: Exception) {
                         appendLog("❌ 下载失败: ${e.message}"); failed++
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
@@ -427,13 +429,18 @@ class MainActivity : AppCompatActivity() {
                         val ext = if (isFit(fileData)) "fit" else "gpx"
                         val localFile = File(saveDir, "${source.shortName}_${act.id}.$ext")
                         FileOutputStream(localFile).use { it.write(fileData) }
+                        appendLog("💾 已存: ${localFile.name} (${fileData.size}字节)")
                     } catch (_: Exception) {}
-                    appendLog("📤 上传到 ${target.displayName}...")
+                    val t0 = System.currentTimeMillis()
+                    appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
                     val targetCred = prefs.getCredential(target) ?: ""
-                    val result = uploadEngine.upload(target, targetCred, fileData, act)
-                    if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功: ${result.message}") }
+                    val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
+                    val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+                    val result = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                    val tCost = System.currentTimeMillis() - t0
+                    if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
                     else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
-                    else { failed++; appendLog("❌ 上传失败: ${result.message}") }
+                    else { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
                     withContext(Dispatchers.Main) { progressBar.progress = i + 1; tvSyncedCount.text = "已同步: ${prefs.getSyncedCount()} 条" }
                     delay(300)
                 }
@@ -536,14 +543,31 @@ class MainActivity : AppCompatActivity() {
                 deferred.complete(result)
             }
             val result = deferred.await()
-            if (result == null || result == "null") return@withContext fitData
-            val json = org.json.JSONObject(result.replace("^\"|\"$".toRegex(), ""))
+            if (result == null || result == "null" || result.isBlank()) {
+                appendLog("⚠️ 坐标转换返回空结果")
+                return@withContext fitData
+            }
+            // evaluateJavascript 返回的是JSON编码字符串，需要解码一层
+            // 若JS返回对象 => result 直接是 {"ok":...}
+            // 若JS返回JSON字符串 => result 是 "{\"ok\":...}"（带转义），需先解析字符串再解析JSON
+            val json = try {
+                val first = org.json.JSONTokener(result).nextValue()
+                when (first) {
+                    is org.json.JSONObject -> first
+                    is String -> org.json.JSONObject(first)
+                    else -> { appendLog("⚠️ 坐标转换返回格式异常"); return@withContext fitData }
+                }
+            } catch (e: Exception) {
+                appendLog("❌ 坐标转换响应解析失败: ${e.message}")
+                return@withContext fitData
+            }
             if (json.optBoolean("ok")) {
                 val fixedBase64 = json.optString("base64")
                 val summary = json.optJSONObject("summary")
                 val changed = summary?.optInt("changedRecords", 0) ?: 0
                 val avgShift = summary?.optDouble("averageShiftM", 0.0) ?: 0.0
                 appendLog("🔄 坐标转换完成: $changed 个坐标点修正，平均偏移 ${avgShift}m")
+                if (fixedBase64.isEmpty()) { appendLog("⚠️ 坐标转换结果为空"); return@withContext fitData }
                 return@withContext android.util.Base64.decode(fixedBase64, android.util.Base64.NO_WRAP)
             } else {
                 appendLog("❌ 坐标转换失败: ${json.optString("error")}")
