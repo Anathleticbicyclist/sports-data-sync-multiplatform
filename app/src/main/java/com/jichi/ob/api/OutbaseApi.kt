@@ -53,6 +53,24 @@ class OutbaseApi {
     }
  
     /** 会话校验: POST upload/list */
+    suspend fun getUsername(sessionId: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("https://melon-gateway.immomo.com/zeusfit/api/h5/user/info")
+                .addHeader("Sessionid", sessionId)
+                .addHeader("Uagent", "Mozilla/5.0")
+                .get().build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            val json = JSONObject(body)
+            if (json.optInt("code", -1) == 0 || json.optInt("status", -1) == 0) {
+                val data = json.optJSONObject("data") ?: json
+                data.optString("nickname")?.takeIf { it.isNotEmpty() }
+                    ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
+                    ?: data.optString("name")?.takeIf { it.isNotEmpty() }
+            } else null
+        } catch (e: Exception) { Log.w(TAG, "getUsername: ${e.message}"); null }
+    }
+
     suspend fun warmUp(sessionId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val body = JSONObject().apply { put("index", 0); put("count", 20) }

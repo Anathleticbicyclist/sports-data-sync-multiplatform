@@ -119,6 +119,26 @@ class MageneApi {
      * @param skip 跳过前skip条
      * @param limit 需要的条数
      */
+    suspend fun getUsername(token: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$BASE/api/otm/user/info")
+                .addHeader("Authorization", token)
+                .addHeader("User-Agent", "Mozilla/5.0")
+                .addHeader("Origin", BASE)
+                .addHeader("Referer", "$BASE/calendar")
+                .get().build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            val json = JSONObject(body)
+            if (json.optInt("code", -1) == 200) {
+                val data = json.optJSONObject("data")
+                data?.optString("nickname")?.takeIf { it.isNotEmpty() }
+                    ?: data?.optString("userName")?.takeIf { it.isNotEmpty() }
+                    ?: data?.optString("name")?.takeIf { it.isNotEmpty() }
+            } else null
+        } catch (e: Exception) { Log.w(TAG, "getUsername: ${e.message}"); null }
+    }
+
     suspend fun getActivities(token: String, skip: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             val result = mutableListOf<ActivityRecord>()

@@ -57,6 +57,22 @@ class XingzheApi {
         }
     }
  
+    suspend fun getUsername(sessionId: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$BASE_URL/user/user_info/")
+                .apply { authHeaders(sessionId).forEach { (k, v) -> addHeader(k, v) } }
+                .get().build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            val json = JSONObject(body)
+            if (json.optInt("code", -1) == 0) {
+                val data = json.optJSONObject("data")
+                data?.optString("nickname")?.takeIf { it.isNotEmpty() }
+                    ?: data?.optString("username")?.takeIf { it.isNotEmpty() }
+            } else null
+        } catch (e: Exception) { Log.e(TAG, "getUsername error", e); null }
+    }
+
     suspend fun getActivities(sessionId: String, offset: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             val result = mutableListOf<ActivityRecord>()

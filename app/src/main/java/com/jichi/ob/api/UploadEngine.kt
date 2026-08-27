@@ -2,6 +2,8 @@ package com.jichi.ob.api
 
 import android.util.Log
 import com.jichi.ob.model.ActivityRecord
+import com.jichi.ob.api.BlackbirdApi
+import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.model.DataSource
 import com.jichi.ob.model.UploadSupport
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +36,8 @@ class UploadEngine {
         .build()
 
     private val outbaseApi = OutbaseApi()
+    private val blackbirdApi = BlackbirdApi()
+    private val brytonApi = BrytonApi()
 
     data class UploadResult(
         val success: Boolean,
@@ -62,6 +66,8 @@ class UploadEngine {
             DataSource.IGPSPORT -> uploadToIgpsport(credential, fitData, record, extra)
             DataSource.XINGZHE -> uploadToXingzhe(credential, fitData, record, extra)
             DataSource.MAGENE -> uploadToMagene(credential, fitData, record, extra)
+            DataSource.BLACKBIRD -> uploadToBlackbird(credential, fitData, record, extra)
+            DataSource.BRYTON -> uploadToBryton(credential, fitData, record, extra)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
@@ -208,6 +214,37 @@ class UploadEngine {
         } catch (e: Exception) {
             Log.e(TAG, "Magene upload error", e)
             UploadResult(false, message = "迈金上传失败: ${e.message}")
+        }
+    }
+
+
+    // ===== 黑鸟单车 上传 =====
+    private suspend fun uploadToBlackbird(
+        cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
+    ): UploadResult {
+        return try {
+            val fileName = "${record.source.shortName}_${record.id}.fit"
+            val ok = blackbirdApi.uploadActivity(cookie, fitData, fileName)
+            if (ok) UploadResult(true, message = "黑鸟单车上传成功")
+            else UploadResult(false, message = "黑鸟单车上传失败")
+        } catch (e: Exception) {
+            Log.e(TAG, "Blackbird upload error", e)
+            UploadResult(false, message = "黑鸟单车上传失败: ${e.message}")
+        }
+    }
+
+    // ===== 百锐腾 上传 =====
+    private suspend fun uploadToBryton(
+        cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
+    ): UploadResult {
+        return try {
+            val fileName = "${record.source.shortName}_${record.id}.fit"
+            val ok = brytonApi.uploadActivity(cookie, fitData, fileName)
+            if (ok) UploadResult(true, message = "百锐腾上传成功")
+            else UploadResult(false, message = "百锐腾上传失败")
+        } catch (e: Exception) {
+            Log.e(TAG, "Bryton upload error", e)
+            UploadResult(false, message = "百锐腾上传失败: ${e.message}")
         }
     }
 }

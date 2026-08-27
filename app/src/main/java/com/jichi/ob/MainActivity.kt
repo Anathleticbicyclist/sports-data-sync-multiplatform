@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "JichiOB"
-        private const val APP_VERSION = "v6.1.3"
+        private const val APP_VERSION = "v6.1.4"
     }
 
     private lateinit var prefs: PrefsManager
@@ -106,6 +106,12 @@ class MainActivity : AppCompatActivity() {
         File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "鸡翅幸哲迈进OB")
     }
 
+    private val notifPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) appendLog("✅ 通知权限已授予") else appendLog("⚠️ 通知权限被拒绝，后台同步通知可能不显示")
+    }
+
     private val loginLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -118,26 +124,26 @@ class MainActivity : AppCompatActivity() {
                 val extra = data.getStringExtra(LoginWebActivity.RESULT_EXTRA) ?: ""
                 when (type) {
                     LoginWebActivity.TYPE_IGPSPORT -> if (token.length > 20) {
-                        prefs.saveIgpsportToken(token); appendLog("✅ iGPSPORT登录成功")
+                        prefs.saveIgpsportToken(token); appendLog("✅ iGPSPORT登录成功"); fetchUsernameAfterLogin(DataSource.IGPSPORT)
                     }
                     LoginWebActivity.TYPE_XINGZHE -> if (sid.length > 10) {
-                        prefs.saveXingzheSessionId(sid); appendLog("✅ 行者登录成功")
+                        prefs.saveXingzheSessionId(sid); appendLog("✅ 行者登录成功"); fetchUsernameAfterLogin(DataSource.XINGZHE)
                     }
                     LoginWebActivity.TYPE_MAGENE -> if (token.length > 20) {
                         prefs.saveMageneToken(token)
                         if (extra.isNotEmpty()) prefs.saveMageneRefreshToken(extra)
-                        appendLog("✅ 迈金登录成功")
+                        appendLog("✅ 迈金登录成功"); fetchUsernameAfterLogin(DataSource.MAGENE)
                     }
                     LoginWebActivity.TYPE_BLACKBIRD -> if (sid.length > 20) {
-                        prefs.saveBlackbirdCookie(sid); appendLog("✅ 黑鸟单车登录成功")
+                        prefs.saveBlackbirdCookie(sid); appendLog("✅ 黑鸟单车登录成功"); fetchUsernameAfterLogin(DataSource.BLACKBIRD)
                     }
                     LoginWebActivity.TYPE_BRYTON -> if (sid.length > 20) {
-                        prefs.saveBrytonCookie(sid); appendLog("✅ 百锐腾登录成功")
+                        prefs.saveBrytonCookie(sid); appendLog("✅ 百锐腾登录成功"); fetchUsernameAfterLogin(DataSource.BRYTON)
                     }
                     LoginWebActivity.TYPE_OUTBASE -> if (sid.length > 10) {
                         prefs.saveOutbaseSessionId(sid)
                         prefs.saveGatewayCookies(extra)
-                        appendLog("✅ Outbase登录成功")
+                        appendLog("✅ Outbase登录成功"); fetchUsernameAfterLogin(DataSource.OUTBASE)
                     }
                 }
                 updateStatusUI()
@@ -166,6 +172,7 @@ class MainActivity : AppCompatActivity() {
             updateStatusUI()
             updateTargetChips()
             initFixWebView()
+            requestNotificationPermission()
             appendLog("🚴 鸡翅幸哲迈进OB $APP_VERSION 启动")
             appendLog("🎯 让运动数据自由流动")
             appendLog("📱 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
@@ -314,18 +321,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatusUI() {
-        setStatus(tvIgpStatus, btnIgpLogin, prefs.isIgpsportLoggedIn(), "iGPSPORT")
-        setStatus(tvXingzheStatus, btnXingzheLogin, prefs.isXingzheLoggedIn(), "行者")
-        setStatus(tvMageneStatus, btnMageneLogin, prefs.isMageneLoggedIn(), "迈金")
-        setStatus(tvBlackbirdStatus, btnBlackbirdLogin, prefs.isBlackbirdLoggedIn(), "黑鸟单车")
-        setStatus(tvBrytonStatus, btnBrytonLogin, prefs.isBrytonLoggedIn(), "百锐腾")
-        setStatus(tvOutbaseStatus, btnOutbaseLogin, prefs.isOutbaseLoggedIn(), "Outbase")
+        setStatus(tvIgpStatus, btnIgpLogin, DataSource.IGPSPORT)
+        setStatus(tvXingzheStatus, btnXingzheLogin, DataSource.XINGZHE)
+        setStatus(tvMageneStatus, btnMageneLogin, DataSource.MAGENE)
+        setStatus(tvBlackbirdStatus, btnBlackbirdLogin, DataSource.BLACKBIRD)
+        setStatus(tvBrytonStatus, btnBrytonLogin, DataSource.BRYTON)
+        setStatus(tvOutbaseStatus, btnOutbaseLogin, DataSource.OUTBASE)
     }
 
-    private fun setStatus(tv: TextView, btn: MaterialButton, logged: Boolean, name: String) {
-        tv.text = if (logged) "✅ 已登录" else "❌ 未登录"
+    private fun setStatus(tv: TextView, btn: MaterialButton, ds: DataSource) {
+        val logged = prefs.isLoggedIn(ds)
+        val username = prefs.getUsername(ds)
+        tv.text = if (logged) {
+            if (username != null) "✅ $username" else "✅ 已登录"
+        } else "❌ 未登录"
         tv.setTextColor(getColor(if (logged) R.color.green else R.color.red))
-        btn.text = if (logged) "重新登录" else "登录$name"
+        btn.text = if (logged) "重新登录" else "登录${ds.displayName}"
+    }
+
+    /** 登录后异步获取用户名并保存 */
+    private fun fetchUsernameAfterLogin(ds: DataSource) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val cred = prefs.getCredential(ds) ?: return@launch
+            val name = when (ds) {
+                DataSource.IGPSPORT -> igpsportApi.getUsername(cred)
+                DataSource.XINGZHE -> xingzheApi.getUsername(cred)
+                DataSource.MAGENE -> mageneApi.getUsername(cred)
+                DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
+                DataSource.BRYTON -> brytonApi.getUsername(cred)
+                DataSource.OUTBASE -> outbaseApi.getUsername(cred)
+            }
+            if (name != null) {
+                prefs.saveUsername(ds, name)
+                appendLog("👤 ${ds.displayName}用户: $name")
+                runOnUiThread { updateStatusUI() }
+            }
+        }
     }
 
     private fun appendLog(message: String) {
@@ -418,20 +449,13 @@ class MainActivity : AppCompatActivity() {
     private fun startAutoSync() {
         val interval = prefs.getAutoInterval()
         appendLog("⏰ 后台自动同步已开启，间隔 ${if (interval >= 60) "${interval/60}分钟" else "${interval}秒"}")
-        showAutoSyncNotification("自动同步已开启，间隔${if (interval >= 60) "${interval/60}分钟" else "${interval}秒"}")
-        autoSyncJob = lifecycleScope.launch(Dispatchers.IO) {
-            while (isActive) {
-                delay(interval * 1000L)
-                if (isActive && syncJob?.isActive != true) {
-                    appendLog("🔄 自动同步检测...")
-                    showAutoSyncNotification("正在检测新数据...")
-                    withContext(Dispatchers.Main) { startSync() }
-                }
-            }
-        }
+        AutoSyncService.start(this, interval)
     }
 
-    private fun stopAutoSync() { autoSyncJob?.cancel(); cancelAutoSyncNotification(); appendLog("⏰ 后台自动同步已关闭") }
+    private fun stopAutoSync() {
+        AutoSyncService.stop(this)
+        appendLog("⏰ 后台自动同步已关闭")
+    }
 
     private suspend fun fetchActivities(source: DataSource, skip: Int, limit: Int): List<ActivityRecord> {
         val cred = prefs.getCredential(source) ?: return emptyList()
@@ -474,6 +498,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isFit(bytes: ByteArray): Boolean = bytes.size >= 14 && bytes[8] == '.'.code.toByte() && bytes[9] == 'F'.code.toByte()
+
+    /** 申请通知权限（Android 13+）*/
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 
     /** 初始化坐标转换WebView (加载magene_fix.js) */
     @SuppressLint("SetJavaScriptEnabled")

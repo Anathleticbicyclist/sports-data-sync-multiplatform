@@ -6,7 +6,10 @@ import com.jichi.ob.model.DataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -37,6 +40,24 @@ class BlackbirdApi {
         "Referer" to "https://www.blackbirdsport.com/",
         "Accept" to "application/json, text/plain, */*"
     )
+
+    suspend fun getUsername(cookie: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$BASE/user/info")
+                .addHeader("Cookie", cookie)
+                .addHeader("User-Agent", "Mozilla/5.0")
+                .get().build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            val json = JSONObject(body)
+            if (json.optInt("code", -1) == 200 || json.optString("status") == "ok") {
+                val data = json.optJSONObject("data") ?: json
+                data.optString("nickname")?.takeIf { it.isNotEmpty() }
+                    ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
+                    ?: data.optString("name")?.takeIf { it.isNotEmpty() }
+            } else null
+        } catch (e: Exception) { Log.w(TAG, "getUsername: ${e.message}"); null }
+    }
 
     suspend fun getActivities(cookie: String, offset: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
@@ -144,5 +165,31 @@ class BlackbirdApi {
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>")
         return sb.toString().toByteArray()
+    }
+
+
+    /**
+     * 上传FIT/GPX文件到黑鸟单车
+     */
+    suspend fun uploadActivity(cookie: String, fitData: ByteArray, fileName: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val body = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
+                .build()
+            val req = Request.Builder()
+                .url("$BASE/records/upload")
+                .addHeader("Cookie", cookie)
+                .addHeader("User-Agent", "Mozilla/5.0")
+                .post(body)
+                .build()
+            val resp = client.newCall(req).execute()
+            val bodyStr = resp.body?.string() ?: ""
+            Log.d(TAG, "Blackbird upload response: ${resp.code} ${bodyStr.take(200)}")
+            resp.code == 200 && (bodyStr.contains("\"code\":0") || bodyStr.contains("\"code\":200") || bodyStr.contains("success"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Blackbird upload error", e)
+            false
+        }
     }
 }

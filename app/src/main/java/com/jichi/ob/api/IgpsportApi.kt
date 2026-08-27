@@ -40,6 +40,23 @@ class IgpsportApi {
         "Referer" to "https://app.igpsport.cn/"
     )
  
+    suspend fun getUsername(token: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$BASE/web-gateway/web-user/user/info")
+                .apply { authHeaders(token).forEach { (k, v) -> addHeader(k, v) } }
+                .get().build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            val json = JSONObject(body)
+            if (json.optInt("code", -1) == 200 || json.optString("status") == "success") {
+                val data = json.optJSONObject("data") ?: json
+                data.optString("nickname")?.takeIf { it.isNotEmpty() }
+                    ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
+                    ?: data.optString("username")?.takeIf { it.isNotEmpty() }
+            } else null
+        } catch (e: Exception) { Log.e(TAG, "getUsername error", e); null }
+    }
+
     suspend fun getActivities(token: String, offset: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             val result = mutableListOf<ActivityRecord>()

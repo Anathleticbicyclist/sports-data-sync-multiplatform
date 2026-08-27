@@ -101,6 +101,12 @@ class PrefsManager(context: Context) {
         DataSource.OUTBASE -> isOutbaseLoggedIn()
     }
 
+    // ===== 用户名存储 =====
+    fun saveUsername(ds: DataSource, name: String) {
+        prefs.edit().putString("username_${ds.shortName}", name).apply()
+    }
+    fun getUsername(ds: DataSource): String? = prefs.getString("username_${ds.shortName}", null)
+
     // ===== 同步记忆（已同步记录ID）=====
     fun getSyncedIds(): MutableSet<String> {
         val json = prefs.getString(KEY_SYNCED_IDS, null) ?: return mutableSetOf()
