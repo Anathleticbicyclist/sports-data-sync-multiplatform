@@ -213,10 +213,43 @@ class BlackbirdApi {
             }
             val ok = resp.code == 200 && (bodyStr.contains("\"status\":\"ok\"") || bodyStr.contains("\"code\":0") ||
                     bodyStr.contains("\"code\":200") || bodyStr.contains("success"))
-            if (ok) null else "黑鸟上传失败(HTTP ${resp.code}): ${bodyStr.take(120)}"
+            if (ok) return@withContext null
+            // 错误码翻译，方便用户理解
+            return@withContext translateBlackbirdError(bodyStr, resp.code)
         } catch (e: Exception) {
             Log.e(TAG, "Blackbird upload error", e)
             "黑鸟上传失败: ${e.message}"
+        }
+    }
+
+    /** 黑鸟上传错误响应翻译（2026-08-27 实测验证） */
+    private fun translateBlackbirdError(bodyStr: String, httpCode: Int): String {
+        val raw = "黑鸟上传失败(HTTP $httpCode): ${bodyStr.take(160)}"
+        return when {
+            bodyStr.contains("DUPLICATE") ->
+                "黑鸟提示该记录已存在(重复上传)：此活动之前已同步过黑鸟，跳过即可"
+            bodyStr.contains("010001") ->
+                "黑鸟无法入库该活动(010001)：多为该FIT无有效GPS轨迹（如0km空活动/室内骑行）或格式黑鸟不认。真实户外骑行记录可正常上传"
+            bodyStr.contains("errorCode") || bodyStr.contains("\"status\":\"error\"") ->
+                "黑鸟上传被拒：${extractBlackbirdMsg(bodyStr)}"
+            else -> raw
+        }
+    }
+
+    /** 提取黑鸟错误响应中的可读信息 */
+    private fun extractBlackbirdMsg(bodyStr: String): String {
+        // 尝试从JSON取 errorCode/msg
+        return try {
+            val j = org.json.JSONObject(bodyStr)
+            val code = j.optString("errorCode", "")
+            val msg = j.optString("msg", "")
+            when {
+                code.isNotEmpty() && msg.isNotEmpty() -> "$code($msg)"
+                code.isNotEmpty() -> code
+                else -> msg.ifEmpty { bodyStr.take(80) }
+            }
+        } catch (e: Exception) {
+            bodyStr.take(80)
         }
     }
 }
