@@ -161,8 +161,8 @@ class LoginWebActivity : AppCompatActivity() {
             cm.getCookie("blackbirdsport.com")
         ).filterNotNull().joinToString("; ")
         if (all.length < 20) return
-        // 黑鸟登录后会有用户相关cookie，检测是否包含登录标识
-        if (all.contains("blackbird_token") || all.contains("bb_user") || all.contains("userInfo") || all.contains("login_token") || all.contains("blackbird_user") || all.contains("session_id")) {
+        // 黑鸟登录后 cookie 为 JSESSIONID（实测），检测登录标识
+        if (all.contains("JSESSIONID") || all.contains("blackbird_token") || all.contains("bb_user") || all.contains("userInfo") || all.contains("login_token") || all.contains("blackbird_user") || all.contains("session_id")) {
             detected = true
             Log.i(TAG, "✅ 黑鸟单车登录成功, cookie len=${all.length}")
             setResult(Activity.RESULT_OK, Intent()
@@ -178,10 +178,16 @@ class LoginWebActivity : AppCompatActivity() {
         val all = listOf(
             cm.getCookie("https://active.brytonsport.com"),
             cm.getCookie("active.brytonsport.com"),
-            cm.getCookie("brytonsport.com")
+            cm.getCookie("brytonsport.com"),
+            cm.getCookie(".brytonsport.com"),
+            cm.getCookie("https://www.brytonsport.com")
         ).filterNotNull().joinToString("; ")
-        if (all.length < 20) return
-        if (all.contains("bryton_session") || all.contains("user_session") || all.contains("auth_token") || all.contains("bryton_user") || all.contains("loginState") || all.contains("access_token")) {
+        if (all.length < 5) return
+        // 宽松判定：cookie包含任一会话/认证标记，或cookie足够长且含会话特征
+        // 百锐腾使用 Meteor 框架，登录后 cookie 常见为 meteor_login_token / Meteor.loginToken 等
+        val sessionLike = listOf("session", "token", "auth", "login", "user", "sessid", "SESS", "PHPSESSID", "user_id", "uid", "member", "meteor", "Meteor", "accounts", "loginToken", "meteor_login")
+        val hasSessionMark = sessionLike.any { all.contains(it, ignoreCase = true) }
+        if (hasSessionMark || all.length >= 20) {
             detected = true
             Log.i(TAG, "✅ 百锐腾登录成功, cookie len=${all.length}")
             setResult(Activity.RESULT_OK, Intent()
@@ -301,9 +307,11 @@ class LoginWebActivity : AppCompatActivity() {
                 verifying.set(false)
                 if (ok && !detected && !isFinishing) {
                     detected = true
-                    Log.i(TAG, "✅ 行者登录成功")
+                    val csrf = extractCookieValue(all, "csrftoken")
+                    Log.i(TAG, "✅ 行者登录成功, csrf=${csrf.take(8)}...")
                     setResult(Activity.RESULT_OK, Intent()
                         .putExtra(RESULT_SESSION_ID, sessionId)
+                        .putExtra(RESULT_EXTRA, csrf)
                         .putExtra(RESULT_LOGIN_TYPE, TYPE_XINGZHE))
                     finish()
                 }

@@ -42,21 +42,39 @@ class BrytonApi {
     )
 
     suspend fun getUsername(cookie: String): String? = withContext(Dispatchers.IO) {
+        // 1) 先从cookie中解析可能的用户标识（uid/email/username）
+        cookie.split(";").forEach { pair ->
+            val kv = pair.trim().split("=", limit = 2)
+            if (kv.size == 2) {
+                val k = kv[0].lowercase()
+                val v = kv[1].trim()
+                if ((k.contains("uid") || k.contains("user_id") || k.contains("member") || k.contains("account")) && v.isNotBlank() && !v.contains("{")) {
+                    Log.i(TAG, "Bryton username from cookie[$k]=$v")
+                    return@withContext v
+                }
+            }
+        }
+        // 2) 尝试 Meteor REST 用户接口（需 X-User-Id/X-Auth-Token 或 cookie 会话）
         try {
-            val req = Request.Builder().url("$BASE/user/info")
+            val req = Request.Builder().url("https://active.brytonsport.com/api/users/me")
                 .addHeader("Cookie", cookie)
                 .addHeader("User-Agent", "Mozilla/5.0")
                 .get().build()
             val resp = client.newCall(req).execute()
-            val body = resp.body?.string() ?: ""
-            val json = JSONObject(body)
-            if (json.optInt("code", -1) == 200 || json.optString("status") == "ok") {
-                val data = json.optJSONObject("data") ?: json
-                data.optString("nickname")?.takeIf { it.isNotEmpty() }
-                    ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
-                    ?: data.optString("name")?.takeIf { it.isNotEmpty() }
-            } else null
-        } catch (e: Exception) { Log.w(TAG, "getUsername: ${e.message}"); null }
+            if (resp.code == 200) {
+                val body = resp.body?.string() ?: ""
+                val json = try { JSONObject(body) } catch (_: Exception) { null }
+                json?.let {
+                    it.optString("username")?.takeIf { n -> n.isNotEmpty() }?.let { return@withContext it }
+                    it.optString("emails")?.let { return@withContext it.take(30) }
+                    it.optJSONObject("profile")?.optString("name")?.takeIf { n -> n.isNotEmpty() }?.let { return@withContext it }
+                }
+            } else {
+                Log.d(TAG, "Bryton users/me HTTP ${resp.code}")
+            }
+        } catch (e: Exception) { Log.w(TAG, "Bryton getUsername api: ${e.message}") }
+        // 3) 兜底返回
+        null
     }
 
     suspend fun getActivities(cookie: String, offset: Int, limit: Int): List<ActivityRecord> =
@@ -163,7 +181,15 @@ class BrytonApi {
                 .build()
             val resp = client.newCall(req).execute()
             val bodyStr = resp.body?.string() ?: ""
-            Log.d(TAG, "Bryton upload response: ${resp.code} ${bodyStr.take(200)}")
+            Log.d(TAG, "Bryton upload: HTTP ${resp.code} resp=${bodyStr.take(300)}")
+            if (resp.code in 301..308) {
+                Log.w(TAG, "百锐腾上传被重定向(可能未登录): ${resp.header("Location")}")
+                return@withContext false
+            }
+            if (resp.code in 401..403) {
+                Log.w(TAG, "百锐腾上传认证失败: HTTP ${resp.code}")
+                return@withContext false
+            }
             resp.code == 200 && (bodyStr.contains("\"code\":0") || bodyStr.contains("\"code\":200") || bodyStr.contains("success"))
         } catch (e: Exception) {
             Log.e(TAG, "Bryton upload error", e)

@@ -86,36 +86,84 @@ class UploadEngine {
         }
     }
 
-    // ===== iGPSPORT 上传（官方第三方API）=====
+    // ===== iGPSPORT 上传（OSS直传流程，经网页版逆向验证：getSignedUrl→PUT→uploadByOss）=====
     private fun uploadToIgpsport(
         token: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
+        val start = System.currentTimeMillis()
         return try {
-            val memberId = extra["memberid"] ?: ""
-            val appId = extra["appid"] ?: "jichiob"
             val fileName = "${record.source.shortName}_${record.id}.fit"
+            val authHeaders = mapOf(
+                "Authorization" to "Bearer $token",
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                "Origin" to "https://app.igpsport.cn",
+                "Referer" to "https://app.igpsport.cn/"
+            )
 
-            val body = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
-                .addFormDataPart("memberid", memberId)
-                .addFormDataPart("appid", appId)
-                .addFormDataPart("token", token)
-                .build()
+            // 1) 获取OSS签名URL（已验证接口）
+            val signedReq = Request.Builder()
+                .url("https://prod.zh.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=.fit")
+                .apply { authHeaders.forEach { (k, v) -> addHeader(k, v) } }
+                .get().build()
+            client.newCall(signedReq).execute().use { resp ->
+                val bodyStr = resp.body?.string()?.trim() ?: ""
+                Log.d(TAG, "iGPSPORT getSignedUrl HTTP ${resp.code}: ${bodyStr.take(200)}")
+                if (resp.code == 401 || resp.code == 403) {
+                    return UploadResult(false, message = "iGPSPORT上传失败: 登录已过期(HTTP ${resp.code})，请重新登录igp")
+                }
+                if (resp.code != 200) {
+                    return UploadResult(false, message = "iGPSPORT上传失败: 获取上传地址HTTP ${resp.code}")
+                }
+                val json = try { JSONObject(bodyStr) } catch (_: Exception) { null }
+                // 返回结构: {"code":0,"message":"success","data":{"ossId":"...","signedUrl":"https://..."}}
+                val dataObj = json?.optJSONObject("data")
+                val signedUrl = dataObj?.optString("signedUrl", "") ?: ""
+                val ossId = dataObj?.optString("ossId", "") ?: ""
+                if (signedUrl.isEmpty()) {
+                    return UploadResult(false, message = "iGPSPORT上传失败: 未获取到上传地址 ${bodyStr.take(100)}")
+                }
 
-            val req = Request.Builder()
-                .url("http://my.igpsport.com/Partner/UplodFit")
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .post(body)
-                .build()
+                // 2) PUT 文件到OSS
+                val putReq = Request.Builder()
+                    .url(signedUrl)
+                    .addHeader("Content-Type", "application/octet-stream")
+                    .put(fitData.toRequestBody("application/octet-stream".toMediaType()))
+                    .build()
+                val putResp = client.newCall(putReq).execute()
+                val putCode = putResp.code
+                putResp.close()
+                if (putCode !in 200..299) {
+                    return UploadResult(false, message = "iGPSPORT上传失败: OSS上传HTTP $putCode")
+                }
 
-            client.newCall(req).execute().use { resp ->
-                val result = resp.body?.string()?.trim() ?: ""
-                val code = result.toIntOrNull()
-                if (code != null && code > 0) {
-                    UploadResult(true, targetId = code.toString(), message = "iGPSPORT上传成功")
-                } else {
-                    UploadResult(false, message = "iGPSPORT上传失败: code=$result")
+                // 3) 通知iGPSPORT解析（uploadByOss）
+                val body = JSONObject()
+                    .put("fileName", fileName)
+                    .put("ossName", ossId)
+                val notifyReq = Request.Builder()
+                    .url("https://prod.zh.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss")
+                    .apply { authHeaders.forEach { (k, v) -> addHeader(k, v) } }
+                    .addHeader("Content-Type", "application/json")
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                client.newCall(notifyReq).execute().use { resp2 ->
+                    val result = resp2.body?.string()?.trim() ?: ""
+                    val cost = System.currentTimeMillis() - start
+                    Log.d(TAG, "iGPSPORT uploadByOss HTTP ${resp2.code} (${cost}ms): ${result.take(300)}")
+                    if (resp2.code == 200) {
+                        val j2 = try { JSONObject(result) } catch (_: Exception) { null }
+                        val code = j2?.optInt("code", -1) ?: -1
+                        if (code == 200 || code == 0) {
+                            val id = j2?.optString("data", "") ?: ""
+                            UploadResult(true, targetId = id, message = "iGPSPORT上传成功(id=$id)")
+                        } else {
+                            UploadResult(false, message = "iGPSPORT上传失败: ${result.take(150)}")
+                        }
+                    } else if (resp2.code == 401 || resp2.code == 403) {
+                        UploadResult(false, message = "iGPSPORT上传失败: 登录已过期(HTTP ${resp2.code})")
+                    } else {
+                        UploadResult(false, message = "iGPSPORT上传失败: HTTP ${resp2.code} ${result.take(100)}")
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -124,54 +172,52 @@ class UploadEngine {
         }
     }
 
-    // ===== 行者 上传（官方开放API）=====
+    // ===== 行者 上传（网页版上传接口 api/v4/upload_fits）=====
     private fun uploadToXingzhe(
         sessionId: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
+        val start = System.currentTimeMillis()
         return try {
-            val md5 = MessageDigest.getInstance("MD5").digest(fitData)
-                .joinToString("") { "%02x".format(it) }
             val fileName = "${record.source.shortName}_${record.id}.fit"
-            val title = record.title.take(32)
+            val csrf = extra["csrf"] ?: ""
+            val uuid = java.util.UUID.randomUUID().toString()
 
-            // 第一步：获取上传凭证
-            val metaBody = JSONObject().apply {
-                put("name", title)
-                put("detail", "")
-                put("fit_filename", fileName)
-                put("file_type", "fit")
-                put("md5", md5)
-            }.toString()
-
-            val metaReq = Request.Builder()
-                .url("https://www.imxingzhe.com/openapi/v1/uploads/")
-                .addHeader("Cookie", "sessionid=$sessionId")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .post(metaBody.toRequestBody("application/json".toMediaType()))
+            // 行者网页版上传接口（已验证）：POST /api/v1/workout/upload/
+            // multipart: file + uuid(随机) ; Cookie: sessionid+csrftoken ; X-CSRFToken
+            val body = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
+                .addFormDataPart("uuid", uuid)
                 .build()
 
-            client.newCall(metaReq).execute().use { resp ->
-                val body = resp.body?.string() ?: ""
-                val json = JSONObject(body)
-                if (json.optInt("code", -1) != 0) {
-                    return UploadResult(false, message = "行者上传失败: ${json.optString("msg")}")
-                }
-                val data = json.optJSONObject("data") ?: JSONObject()
-                val uploadUrl = data.optString("upload_url", "")
-                val workoutId = data.optInt("workout_id", 0)
+            val reqBuilder = Request.Builder()
+                .url("https://www.imxingzhe.com/api/v1/workout/upload/")
+                .addHeader("Cookie", "sessionid=$sessionId${if (csrf.isNotEmpty()) "; csrftoken=$csrf" else ""}")
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                .addHeader("Referer", "https://www.imxingzhe.com/upload/fit")
+                .addHeader("Accept", "application/json")
+            if (csrf.isNotEmpty()) reqBuilder.addHeader("X-CSRFToken", csrf)
+            val req = reqBuilder.post(body).build()
 
-                // 如果有上传URL，上传文件
-                if (uploadUrl.isNotEmpty()) {
-                    val uploadBody = MultipartBody.Builder()
-                        .setType(MultipartBody.FORM)
-                        .addFormDataPart("file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
-                        .build()
-                    val uploadReq = Request.Builder().url(uploadUrl).post(uploadBody).build()
-                    client.newCall(uploadReq).execute().close()
+            client.newCall(req).execute().use { resp ->
+                val result = resp.body?.string()?.trim() ?: ""
+                val cost = System.currentTimeMillis() - start
+                Log.d(TAG, "Xingzhe upload HTTP ${resp.code} (${cost}ms): ${result.take(300)}")
+                when {
+                    resp.code == 200 -> {
+                        val json = try { JSONObject(result) } catch (_: Exception) { null }
+                        val code = json?.optInt("code", -1) ?: -1
+                        val dataId = json?.optJSONObject("data")?.optLong("id", 0L) ?: 0L
+                        if (code == 0 && dataId > 0) {
+                            UploadResult(true, targetId = dataId.toString(), message = "行者上传成功(id=$dataId)")
+                        } else {
+                            UploadResult(false, message = "行者上传失败: ${json?.optString("msg") ?: result.take(100)}")
+                        }
+                    }
+                    resp.code == 401 || resp.code == 403 ->
+                        UploadResult(false, message = "行者上传失败: 登录已过期(HTTP ${resp.code})，请重新登录行者")
+                    else -> UploadResult(false, message = "行者上传失败: HTTP ${resp.code} ${result.take(100)}")
                 }
-
-                UploadResult(true, targetId = workoutId.toString(), message = "行者上传成功")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Xingzhe upload error", e)
@@ -179,10 +225,10 @@ class UploadEngine {
         }
     }
 
-    // ===== 迈金 上传（u.onelap.cn/upload/fit）=====
     private fun uploadToMagene(
         cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
+        val start = System.currentTimeMillis()
         return try {
             val token = extra["_token"] ?: ""
             val fileName = "${record.source.shortName}_${record.id}.fit"
@@ -194,39 +240,54 @@ class UploadEngine {
                 .addFormDataPart("_token", token)
                 .build()
 
-            val req = Request.Builder()
-                .url("http://u.onelap.cn/upload/fit")
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                .addHeader("Cookie", cookie)
-                .addHeader("Referer", "https://www.onelap.cn/")
-                .post(body)
-                .build()
-
-            client.newCall(req).execute().use { resp ->
-                val result = resp.body?.string() ?: ""
-                Log.d(TAG, "Magene upload response: $result")
-                if (resp.code == 200 && (result.contains("成功") || result.contains("success") || result.contains("\"code\":0") || result.contains("\"code\":200"))) {
-                    UploadResult(true, message = "迈金上传成功")
-                } else {
-                    UploadResult(false, message = "迈金上传失败: ${result.take(100)}")
+            // 尝试多个候选上传接口，迈金(顽鹿)网页版上传
+            val candidates = listOf(
+                "https://u.onelap.cn/upload/fit",
+                "https://www.onelap.cn/upload/fit"
+            )
+            var lastError = "无候选接口"
+            for (url in candidates) {
+                try {
+                    val req = Request.Builder()
+                        .url(url)
+                        .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                        .addHeader("Cookie", cookie)
+                        .addHeader("Origin", "https://www.onelap.cn")
+                        .addHeader("Referer", "https://www.onelap.cn/")
+                        .addHeader("Authorization", if (token.isNotEmpty()) token else "")
+                        .post(body)
+                        .build()
+                    client.newCall(req).execute().use { resp ->
+                        val result = resp.body?.string() ?: ""
+                        val cost = System.currentTimeMillis() - start
+                        Log.d(TAG, "Magene upload ${url} HTTP ${resp.code} (${cost}ms): ${result.take(200)}")
+                        if (resp.code == 200 && (result.contains("成功") || result.contains("success") || result.contains("\"code\":0") || result.contains("\"code\":200") || result.contains("\"id\""))) {
+                            return UploadResult(true, message = "迈金上传成功")
+                        }
+                        lastError = "HTTP ${resp.code} ${result.take(100)}"
+                    }
+                } catch (e: Exception) {
+                    lastError = e.message ?: "网络错误"
                 }
             }
+            UploadResult(false, message = "迈金上传失败: $lastError")
         } catch (e: Exception) {
             Log.e(TAG, "Magene upload error", e)
             UploadResult(false, message = "迈金上传失败: ${e.message}")
         }
     }
 
-
     // ===== 黑鸟单车 上传 =====
     private suspend fun uploadToBlackbird(
         cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
+        val start = System.currentTimeMillis()
         return try {
             val fileName = "${record.source.shortName}_${record.id}.fit"
-            val ok = blackbirdApi.uploadActivity(cookie, fitData, fileName)
-            if (ok) UploadResult(true, message = "黑鸟单车上传成功")
-            else UploadResult(false, message = "黑鸟单车上传失败")
+            val err = blackbirdApi.uploadActivity(cookie, fitData, fileName)
+            Log.d(TAG, "Blackbird upload result: ${err ?: "ok"} (${System.currentTimeMillis() - start}ms)")
+            if (err == null) UploadResult(true, message = "黑鸟单车上传成功")
+            else UploadResult(false, message = err)
         } catch (e: Exception) {
             Log.e(TAG, "Blackbird upload error", e)
             UploadResult(false, message = "黑鸟单车上传失败: ${e.message}")
@@ -237,11 +298,13 @@ class UploadEngine {
     private suspend fun uploadToBryton(
         cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
+        val start = System.currentTimeMillis()
         return try {
             val fileName = "${record.source.shortName}_${record.id}.fit"
             val ok = brytonApi.uploadActivity(cookie, fitData, fileName)
+            Log.d(TAG, "Bryton upload result: $ok (${System.currentTimeMillis() - start}ms)")
             if (ok) UploadResult(true, message = "百锐腾上传成功")
-            else UploadResult(false, message = "百锐腾上传失败")
+            else UploadResult(false, message = "百锐腾上传失败（HTTP详见日志）")
         } catch (e: Exception) {
             Log.e(TAG, "Bryton upload error", e)
             UploadResult(false, message = "百锐腾上传失败: ${e.message}")

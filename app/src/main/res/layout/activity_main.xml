@@ -228,7 +228,7 @@
 
             <!-- 底部信息 -->
             <TextView android:id="@+id/tvClubLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="🏠 鸡翅幸哲迈进OB同步工具开发者俱乐部" android:textColor="@color/primary" android:textSize="11sp" android:padding="2dp" />
-            <TextView android:id="@+id/tvUpdateLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="📦 软件更新 / 开源项目: GitHub" android:textColor="@color/primary" android:textSize="11sp" android:padding="2dp" />
+            <TextView android:id="@+id/tvUpdateLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="📦 鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜" android:textColor="@color/primary" android:textSize="11sp" android:padding="2dp" />
             <!-- 鸣谢 -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:layout_marginTop="4dp" android:text="🙏 鸣谢" android:textColor="@color/text_primary" android:textSize="11sp" android:textStyle="bold" android:padding="2dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、Outbase 为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />

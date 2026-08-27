@@ -181,3 +181,22 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ## 📄 许可证
 
 本项目仅供学习交流使用，各平台数据版权归原平台所有。使用本软件产生的一切后果由使用者自行承担。
+
+---
+## 更新日志
+### v6.1.7 (2026-08-27)
+1. **iGPSPORT上传修复** — 修复 getSignedUrl 响应解析：signedUrl/ossId 在 data 子对象中（原代码从顶层读取导致"未获取到上传地址"），OSS直传流程恢复
+2. **黑鸟活动列表修复** — 黑鸟列表接口返回 content 数组（原代码只读 data/records 导致"未获取到活动"），已修复并格式化毫秒时间戳为可读时间
+3. **黑鸟登录检测修复** — 黑鸟登录后 cookie 仅含 JSESSIONID（原检测逻辑只认不存在的cookie名导致登录成功不识别），已加入 JSESSIONID 检测
+4. **黑鸟上传错误提示优化** — 上传失败返回具体原因（登录失效/认证过期/FIT_FILE_ERROR 平台限制），界面直接显示
+5. **百锐腾登录检测优化** — 增加 Meteor 框架 cookie 特征（meteor_login_token 等）检测
+6. **底部更新链接** — 增加"鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜"
+7. **说明** — 迈金→黑鸟上传：黑鸟解析器较旧拒绝含大量开发者字段的迈金FIT（FIT_FILE_ERROR），属平台限制，建议经行者/iGPSPORT中转
+
+### v6.1.6 (2026-08-27)
+1. 行者下载修复 — GPX下载URL增加尾斜杠（/gpx/），修复401下载失败
+2. 黑鸟用户名修复 — 用户信息接口改为 /api/user（content.nickname）
+3. 黑鸟上传实测 — iGPSPORT标准FIT可上传成功；迈金室内骑行台（无GPS）FIT被黑鸟拒绝（平台限制）
+4. iGPSPORT上传重写 — 失效的uploadFit改为官方OSS直传流程（getSignedUrl→PUT→uploadByOss）
+5. 迈金上传标注开发中 — 已研究确认顽鹿无公开第三方FIT导入API，目标按钮置灰
+6. 自动同步卡顿修复
