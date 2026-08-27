@@ -234,3 +234,8 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ---
 **鸡翅幸哲迈进OB(开发体验版)** — 让运动数据自由流动 🚴♂️
+
+### v6.1.9 (2026-08-27)
+1. **恢复底部正式版更新链接** — 底部新增"鸡翅幸哲迈进OB正式版更新链接"，指向正式版仓库 sync-igpsport-magene-onelap-xingzhe-data-to-outbase；开发版不稳定时提示下载正式版（开发版+正式版两个链接并存）
+2. **黑鸟上传错误码翻译** — 实测黑鸟接口：DUPLICATE=记录已存在(重复)；010001=无有效GPS轨迹(0km空活动/室内骑行)或格式不认；FIT_FILE_ERROR=迈金等含开发者字段FIT。失败时给出可读提示
+3. **黑鸟上传实测验证** — 沙箱真实登录黑鸟验证：有GPS的iGPSPORT标准FIT可被黑鸟解析（重复识别正常）；迈金C606室内骑行台(无GPS)被黑鸟FIT_FILE_ERROR拒绝（平台限制）

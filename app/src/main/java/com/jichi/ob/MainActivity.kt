@@ -261,6 +261,11 @@ class MainActivity : AppCompatActivity() {
                 "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform"
             )))
         }
+        findViewById<TextView>(R.id.tvOfficialLink)?.setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
+                "https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase"
+            )))
+        }
     }
 
     private fun restoreSettings() {
