@@ -11,8 +11,8 @@ android {
         applicationId "com.jichi.ob.dev"
         minSdk 26
         targetSdk 36
-        versionCode 617
-        versionName "6.1.7"
+        versionCode 618
+        versionName "6.1.8"
     }
 
     signingConfigs {

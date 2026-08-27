@@ -258,7 +258,7 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<TextView>(R.id.tvUpdateLink)?.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                "https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase"
+                "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform"
             )))
         }
     }
