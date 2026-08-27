@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>bridge</title>
+</head>
+<body>
+<script>
+// ===== webpack chunk 捕获 shim =====
+window.__modules = null;
+window.webpackJsonp = { push: function(arr) { window.__modules = arr[1]; } };
+</script>
+<script src="gpx2fit.js"></script>
+<script>
+// ===== 实例化 gpx2fit 模块 =====
+window.__api = null;
+try {
+  var cache = {};
+  var req = function(id) {
+    if (cache[id]) return cache[id].exports;
+    var m = { exports: {} };
+    cache[id] = m;
+    window.__modules[id](m, m.exports, req);
+    return m.exports;
+  };
+  var ex = req('1134');
+  window.__api = ex.parseGpx ? ex : ex.default;
+} catch (e) {
+  window.__apiError = String(e);
+}
+ 
+// ===== 文件块注入 =====
+window.__chunks = [];
+window.__injectChunk = function(idx, b64) {
+  window.__chunks[idx] = b64;
+  return 'ok';
+};
+ 
+function chunksToBytes(count) {
+  var b64 = window.__chunks.slice(0, count).join('');
+  var bin = atob(b64);
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+ 
+function bytesToB64(bytes) {
+  var bin = '';
+  var step = 8192;
+  for (var i = 0; i < bytes.length; i += step) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
+  }
+  return btoa(bin);
+}
+ 
+// ===== GPX → FIT 转换（用 Outbase 官方 gpx2fit 库，注意 gpx2fitEncoder 是异步函数） =====
+window.__resultB64 = null;
+window.__convertError = null;
+window.__convertGpx = function(count) {
+  try {
+    var bytes = chunksToBytes(count);
+    var gpxText = new TextDecoder('utf-8').decode(bytes);
+    window.__chunks = [];
+    window.__convertError = null;
+    // GPX为UTC时间，Outbase按UTC展示 → +8小时对齐北京时间
+    gpxText = gpxText.replace(/<time>([^<]+)<\/time>/g, function(m, t) {
+      var d = new Date(t);
+      if (!isNaN(d.getTime())) {
+        d.setTime(d.getTime() + 8 * 3600 * 1000);
+        return '<time>' + d.toISOString().replace(/\.\d{3}Z$/, 'Z') + '</time>';
+      }
+      return m;
+    });
+    Promise.resolve(window.__api.gpx2fitEncoder(gpxText)).then(function(enc) {
+      try {
+        var bufs = enc.dataArrayBuffer;
+        var total = 0;
+        for (var i = 0; i < bufs.length; i++) total += bufs[i].byteLength;
+        var out = new Uint8Array(total);
+        var off = 0;
+        for (var j = 0; j < bufs.length; j++) {
+          out.set(new Uint8Array(bufs[j]), off);
+          off += bufs[j].byteLength;
+        }
+        window.__resultB64 = bytesToB64(out);
+        if (window.JsBridge) window.JsBridge.onConvertDone(out.length, window.__resultB64.length);
+      } catch (e2) {
+        window.__convertError = 'encode:' + e2; if (window.JsBridge) window.JsBridge.onConvertError(window.__convertError);
+      }
+    }).catch(function(e) {
+      window.__convertError = 'promise:' + e; if (window.JsBridge) window.JsBridge.onConvertError(window.__convertError);
+    });
+    return 'started';
+  } catch (e) {
+    window.__convertError = String(e); if (window.JsBridge) window.JsBridge.onConvertError(window.__convertError);
+    return 'err:' + e;
+  }
+};
+ 
+window.__getResultChunk = function(start, len) {
+  if (!window.__resultB64) return '';
+  return window.__resultB64.substr(start, len);
+};
+ 
+window.__clearResult = function() { window.__resultB64 = null; return 'ok'; };
+ 
+// ===== CDN 上传回退（fetch + credentials:'include'） =====
+window.__uploadCdn = function(url, fileName, count) {
+  try {
+    var bytes = chunksToBytes(count);
+    window.__chunks = [];
+    var blob = new Blob([bytes], { type: 'application/octet-stream' });
+    var fd = new FormData();
+    fd.append('file', blob, fileName);
+    fetch(url, { method: 'POST', credentials: 'include', body: fd })
+      .then(function(r) { return r.text().then(function(t) { return { status: r.status, body: t }; }); })
+      .then(function(res) {
+        if (window.JsBridge) window.JsBridge.onUploadResult(res.status, res.body.substring(0, 500));
+      })
+      .catch(function(e) {
+        if (window.JsBridge) window.JsBridge.onUploadResult(-1, String(e));
+      });
+    return 'started';
+  } catch (e) {
+    if (window.JsBridge) window.JsBridge.onUploadResult(-1, String(e));
+    return 'err:' + e;
+  }
+};
+ 
+window.__bridgeReady = function() { return window.__api ? 'ready' : ('api_error:' + (window.__apiError || 'unknown')); };
+</script>
+</body>
+</html>
+ 
+
+gpx2fit.js 为 Outbase 官方前端转换库（约130KB），来源于 https://g.momocdn.com/fep/momo/zeusfit/official-website/static/gpx2fit.*.js ，版权归原作者所有，本项目仅作本地调用。
