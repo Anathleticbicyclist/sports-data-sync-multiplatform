@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
  
     <application
         android:allowBackup="true"
@@ -36,5 +37,10 @@
             android:name=".ui.LoginWebActivity"
             android:label="登录"
             android:theme="@style/Theme.JichiOB" />
+
+        <service
+            android:name=".AutoSyncService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>
