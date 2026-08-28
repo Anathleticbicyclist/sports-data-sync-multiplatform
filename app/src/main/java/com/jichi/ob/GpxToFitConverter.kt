@@ -69,14 +69,13 @@ object GpxToFitConverter {
             var ts = 0L
             TIME_RE.matcher(inner).let {
                 if (it.find()) {
-                    val t = it.group(1).trim().removeSuffix("Z")
+                    // 兼容多种格式: "2026-08-25T12:00:00Z" / "2026-08-25 12:00:00" / "2026-08-25T12:00:00.123Z"
+                    var t = it.group(1).trim().replace(" ", "T")
+                    if (!t.endsWith("Z")) t += "Z"
                     try {
-                        val p = java.time.Instant.parse(t + "Z")
+                        val p = java.time.Instant.parse(t)
                         ts = p.epochSecond
-                    } catch (_: Exception) {
-                        // 兼容无时区格式
-                        try { ts = java.time.Instant.parse(t).epochSecond } catch (_: Exception) {}
-                    }
+                    } catch (_: Exception) {}
                 }
             }
             pts.add(TrackPoint(lat, lon, ele, ts))
@@ -152,8 +151,10 @@ object GpxToFitConverter {
 
     private fun buildFitBody(pts: List<TrackPoint>, startUnix: Long): ByteArray {
         val out = ByteArrayOutputStream()
+        // v6.2.7: 若无有效时间戳(行者等GPX time格式不兼容/缺失)，生成递增时间戳避免FIT时间异常被黑鸟拒
+        val hasTime = pts[0].ts > 0 && pts.last().ts > 0
         val fit0 = pts[0].ts.takeIf { it > 0 } ?: startUnix
-        val fitLast = pts.last().ts.takeIf { it > 0 } ?: (startUnix + 1)
+        val fitLast = pts.last().ts.takeIf { it > 0 } ?: (startUnix + Math.max(1L, (pts.size - 1).toLong()))
 
         // --- file_id (local 0) ---
         out.write(DefBuilder(0, 0).f(0, 1, 0x00).f(1, 2, 0x84).f(2, 2, 0x84).f(4, 4, 0x86).build())
@@ -175,8 +176,10 @@ object GpxToFitConverter {
 
         // --- 统计 ---
         val n = pts.size
-        val durationS = if (pts[0].ts > 0 && pts.last().ts > 0)
-            Math.max(1L, pts.last().ts - pts[0].ts) else 1L
+        val durationS = if (hasTime)
+            Math.max(1L, pts.last().ts - pts[0].ts)
+        else
+            Math.max(1L, (n - 1).toLong()) // 无有效时间，按点估算每秒一点
         var distM = 0.0; var ascent = 0.0; var descent = 0.0
         for (i in 1 until n) {
             distM += haversineM(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon)
@@ -240,7 +243,7 @@ object GpxToFitConverter {
             val p = pts[i]
             if (i > 0) cum += haversineM(prev.lat, prev.lon, p.lat, p.lon)
             prev = p
-            val ts = p.ts.takeIf { it > 0 } ?: fit0
+            val ts = p.ts.takeIf { it > 0 } ?: (startUnix + i) // 无time: 按索引递增每秒一点
             var spd = 0.0
             if (i > 0 && pts[i].ts > 0 && pts[i - 1].ts > 0) {
                 val dt = pts[i].ts - pts[i - 1].ts

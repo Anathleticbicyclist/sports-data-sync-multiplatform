@@ -23,6 +23,31 @@ try {
     window.__modules[id](m, m.exports, req);
     return m.exports;
   };
+  // webpack runtime 辅助方法（完整版 gpx2fit 依赖 s.o/s.d/s.r/s.n 等）
+  req.o = function(obj, prop) { return Object.prototype.hasOwnProperty.call(obj, prop); };
+  req.d = function(exports, name, getter) {
+    if (!req.o(exports, name)) Object.defineProperty(exports, name, { enumerable: true, get: getter });
+  };
+  req.r = function(exports) {
+    if (typeof Symbol !== 'undefined' && Symbol.toStringTag) Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+    Object.defineProperty(exports, '__esModule', { value: true });
+  };
+  req.n = function(module) {
+    var getter = module && module.__esModule ? function() { return module['default']; } : function() { return module; };
+    req.d(getter, 'a', getter);
+    return getter;
+  };
+  req.t = function(value, mode) {
+    if (mode & 1) value = req(value);
+    if (mode & 8) return value;
+    if (mode & 4 && typeof value === 'object' && value && value.__esModule) return value;
+    var ns = Object.create(null);
+    req.r(ns);
+    Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+    if (mode & 2 && typeof value != 'string') for (var key in value) req.d(ns, key, function(k) { return value[k]; }.bind(null, key));
+    return ns;
+  };
+  req.p = '';
   var ex = req('1134');
   window.__api = ex.parseGpx ? ex : ex.default;
 } catch (e) {
