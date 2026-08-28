@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 顽鹿WebView上传：暴露下载目录中的FIT文件给WebView (content:// Uri) -->
+    <external-path name="downloads" path="Download/" />
+    <cache-path name="cache_fit" path="fit/" />
+    <files-path name="files" path="." />
+</paths>

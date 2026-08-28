@@ -42,7 +42,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -446,9 +448,9 @@ class MainActivity : AppCompatActivity() {
                         appendLog("❌ 文件数据无效"); failed++
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
                     }
+                    val ext = if (isFit(fileData)) "fit" else "gpx"
+                    val localFile = File(saveDir, "${source.shortName}_${act.id}.$ext")
                     try {
-                        val ext = if (isFit(fileData)) "fit" else "gpx"
-                        val localFile = File(saveDir, "${source.shortName}_${act.id}.$ext")
                         FileOutputStream(localFile).use { it.write(fileData) }
                         appendLog("💾 已存: ${localFile.name} (${fileData.size}字节)")
                     } catch (_: Exception) {}
@@ -457,7 +459,13 @@ class MainActivity : AppCompatActivity() {
                     val targetCred = prefs.getCredential(target) ?: ""
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                    val result = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                    // v6.2.3: 顽鹿OTM上传必须走WebView真实文件选择（程序化multipart被422拒绝），详见 MageneWebUploader
+                    val result = if (target == DataSource.MAGENE) {
+                        val mToken = prefs.getCredential(DataSource.MAGENE) ?: ""
+                        uploadToMageneViaWebView(localFile.absolutePath, mToken)
+                    } else {
+                        uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                    }
                     val tCost = System.currentTimeMillis() - t0
                     if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
                     else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
@@ -473,6 +481,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
+
+    /**
+     * v6.2.3: 顽鹿(迈金OTM)上传 —— WebView 真实文件选择通道
+     *
+     * 逆向结论：顽鹿 POST /api/otm/ride_record/upload/fit 对"程序化构造的File"一律返回
+     * 422 {"code":422,"message":"没有上传文件"}；只有"真实文件选择"（浏览器原生input[type=file]）
+     * 才能成功落库。故 Android 端用隐藏 WebView + onShowFileChooser 把本地FIT喂给页面，
+     * 等价用户手动在顽鹿网页上选择文件上传。
+     */
+    private suspend fun uploadToMageneViaWebView(fitPath: String, token: String): com.jichi.ob.api.UploadEngine.UploadResult =
+        suspendCancellableCoroutine { cont ->
+            val uploader = MageneWebUploader(this, token)
+            uploader.upload(fitPath) { ok, msg ->
+                uploader.destroy()
+                if (ok) {
+                    cont.resume(com.jichi.ob.api.UploadEngine.UploadResult(true, message = msg))
+                } else {
+                    cont.resume(com.jichi.ob.api.UploadEngine.UploadResult(false, message = msg))
+                }
+            }
+            cont.invokeOnCancellation { uploader.destroy() }
+        }
 
     /**
      * 清除上传记忆：删除全部已同步记录ID，下次同步将重新全量上传（便于频繁测试）
