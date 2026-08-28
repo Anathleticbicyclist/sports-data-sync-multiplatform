@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.9 |
+| 当前版本 | v6.3.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -153,6 +153,10 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.3.0 (2026-08-28)
+1. **底部更新链接排版调整** — 标题去掉"更新链接"和冒号，改为蓝色（与俱乐部链接大小一致 11sp）、无下划线；说明注释另起一行灰色小字
+2. **版本号更新** — v6.3.0 (versionCode 630)
 
 ### v6.2.9 (2026-08-28)
 1. **底部更新链接排版调整** — 标题与说明改为两行显示（标题另起一行），标题灰色小字、取消下划线；说明为灰色注释
