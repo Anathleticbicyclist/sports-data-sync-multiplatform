@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -18,7 +18,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.1 |
+| 当前版本 | v6.2.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -146,6 +146,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.2 (2026-08-28)
+1. **UI首页标题修正** — 顶栏标题统一为"鸡翅幸哲迈进OB(开发体验版)"，去除旧版"v6.1.1"标识
+2. **黑鸟GPX文件标识动态化** — GPX creator 字段改用 BuildConfig 版本号（此前硬编码 v6.1.1）
+3. **版本号更新** — v6.2.2 (versionCode 622)
 
 ### v6.2.1 (2026-08-28)
 1. **行者上传接口修复（关键）** — 实测发现原 `workout/upload`（file+随机uuid）接口只存文件不解析，返回 `is_valid:0`，导致"提示上传成功但平台看不到记录"。已切换到行者官方上传接口 `fit/upload`（字段 `fit_file`+`md5`），实测迈金FIT上传返回 `workout_id` 且 `is_valid:1`、数据完整解析（距离/时长/配速正常入库）

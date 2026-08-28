@@ -1,6 +1,7 @@
 package com.jichi.ob.api
 
 import android.util.Log
+import com.jichi.ob.BuildConfig
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.model.DataSource
 import kotlinx.coroutines.Dispatchers
@@ -164,7 +165,7 @@ class BlackbirdApi {
     private fun buildGpx(track: org.json.JSONArray, recordId: String): ByteArray {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-v6.1.1\">\n")
+        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\">\n")
         sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         for (i in 0 until track.length()) {
             val pt = track.optJSONObject(i) ?: continue
