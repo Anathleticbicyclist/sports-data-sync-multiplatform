@@ -296,7 +296,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    /** 底部更新链接：仅标题部分可点击跳转，冒号后说明为普通注释（不含在超链接内） */
+    /** 底部更新链接：标题灰色小字可点击(无下划线)、说明注释另起一行 */
     private fun setupLinkWithNote(tv: TextView?, link: String, note: String, url: String) {
         if (tv == null) return
         val sb = SpannableStringBuilder()
@@ -307,12 +307,17 @@ class MainActivity : AppCompatActivity() {
             }
             override fun updateDrawState(ds: TextPaint) {
                 super.updateDrawState(ds)
-                ds.color = Color.parseColor("#1E88E5")
-                ds.isUnderlineText = true
+                ds.color = Color.parseColor("#999999") // 灰色
+                ds.isUnderlineText = false // 取消下划线
             }
         }, 0, link.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.append("\n")
         sb.append(note)
+        // 注释部分也设灰色（小字）
+        sb.setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#999999")),
+            link.length + 1, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         tv.text = sb
+        tv.textSize = 9f
         tv.movementMethod = LinkMovementMethod.getInstance()
         tv.highlightColor = Color.TRANSPARENT
     }
