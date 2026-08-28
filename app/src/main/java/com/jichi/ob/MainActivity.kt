@@ -144,9 +144,21 @@ class MainActivity : AppCompatActivity() {
                     LoginWebActivity.TYPE_BLACKBIRD -> if (sid.length > 5) {
                         prefs.saveBlackbirdCookie(sid); appendLog("✅ 黑鸟单车登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.BLACKBIRD)
                     } else appendLog("⚠️ 黑鸟单车cookie异常，请重新登录")
-                    LoginWebActivity.TYPE_BRYTON -> if (sid.length > 5) {
-                        prefs.saveBrytonCookie(sid); appendLog("✅ 百锐腾登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.BRYTON)
-                    } else appendLog("⚠️ 百锐腾cookie异常，请重新登录")
+                    LoginWebActivity.TYPE_BRYTON -> {
+                        // v6.2.4: 百锐腾凭证格式 token;userId;cookie（Meteor登录态在localStorage）
+                        val parts = sid.split(";")
+                        val tok = parts.getOrNull(0) ?: ""
+                        val uid = parts.getOrNull(1) ?: ""
+                        val ck = parts.drop(2).joinToString(";")
+                        if (tok.length > 10 && uid.isNotEmpty()) {
+                            prefs.saveBrytonToken(tok); prefs.saveBrytonUserId(uid); prefs.saveBrytonCookie(ck)
+                            appendLog("✅ 百锐腾登录成功(Meteor token ${tok.length}B, userId=$uid)")
+                            fetchUsernameAfterLogin(DataSource.BRYTON)
+                        } else if (ck.length > 5) {
+                            prefs.saveBrytonCookie(ck); appendLog("✅ 百锐腾登录成功(cookie ${ck.length}字节)")
+                            fetchUsernameAfterLogin(DataSource.BRYTON)
+                        } else appendLog("⚠️ 百锐腾cookie异常，请重新登录")
+                    }
                     LoginWebActivity.TYPE_OUTBASE -> if (sid.length > 10) {
                         prefs.saveOutbaseSessionId(sid)
                         prefs.saveGatewayCookies(extra)
@@ -459,10 +471,13 @@ class MainActivity : AppCompatActivity() {
                     val targetCred = prefs.getCredential(target) ?: ""
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                    // v6.2.3: 顽鹿OTM上传必须走WebView真实文件选择（程序化multipart被422拒绝），详见 MageneWebUploader
+                    // v6.2.3: 顽鹿OTM上传必须走WebView真实文件选择（程序化multipart被422拒绝）
+                    // v6.2.4: 百锐腾同为Meteor无REST上传，走WebView真实文件选择（/activities 页"+"→file input）
                     val result = if (target == DataSource.MAGENE) {
                         val mToken = prefs.getCredential(DataSource.MAGENE) ?: ""
                         uploadToMageneViaWebView(localFile.absolutePath, mToken)
+                    } else if (target == DataSource.BRYTON) {
+                        uploadToBrytonViaWebView(localFile.absolutePath)
                     } else {
                         uploadEngine.upload(target, targetCred, fileData, act, upExtra)
                     }
@@ -493,6 +508,30 @@ class MainActivity : AppCompatActivity() {
     private suspend fun uploadToMageneViaWebView(fitPath: String, token: String): com.jichi.ob.api.UploadEngine.UploadResult =
         suspendCancellableCoroutine { cont ->
             val uploader = MageneWebUploader(this, token)
+            uploader.upload(fitPath) { ok, msg ->
+                uploader.destroy()
+                if (ok) {
+                    cont.resume(com.jichi.ob.api.UploadEngine.UploadResult(true, message = msg))
+                } else {
+                    cont.resume(com.jichi.ob.api.UploadEngine.UploadResult(false, message = msg))
+                }
+            }
+            cont.invokeOnCancellation { uploader.destroy() }
+        }
+
+    /**
+     * v6.2.4: 百锐腾上传 —— WebView 真实文件选择通道
+     *
+     * 逆向结论：百锐腾(Bryton Active) 是 Meteor(DDP) 应用，无公开 REST 上传接口；
+     * 网页 /activities 页右上角"+"→ 上传弹窗 input[type=file] → 真实文件选择可成功落库
+     * （已在浏览器实测：上传后 userActivities collection 新增记录）。故用 WebView +
+     * onShowFileChooser 把本地FIT/GPX喂给页面，等价用户手动上传。
+     */
+    private suspend fun uploadToBrytonViaWebView(fitPath: String): com.jichi.ob.api.UploadEngine.UploadResult =
+        suspendCancellableCoroutine { cont ->
+            val token = prefs.getBrytonToken() ?: ""
+            val userId = prefs.getBrytonUserId() ?: ""
+            val uploader = BrytonWebUploader(this, token, userId)
             uploader.upload(fitPath) { ok, msg ->
                 uploader.destroy()
                 if (ok) {
@@ -538,7 +577,12 @@ class MainActivity : AppCompatActivity() {
             DataSource.XINGZHE -> xingzheApi.getActivities(cred, skip, limit)
             DataSource.MAGENE -> mageneApi.getActivities(cred, skip, limit)
             DataSource.BLACKBIRD -> blackbirdApi.getActivities(cred, skip, limit)
-            DataSource.BRYTON -> brytonApi.getActivities(cred, skip, limit)
+            DataSource.BRYTON -> {
+                // v6.2.4: 百锐腾无REST列表，走WebView读 Meteor userActivities collection
+                val tok = prefs.getBrytonToken() ?: return emptyList()
+                val uid = prefs.getBrytonUserId() ?: return emptyList()
+                BrytonWebApi(this, tok, uid).getActivities(skip, limit)
+            }
             else -> emptyList()
         }
     }
@@ -565,7 +609,11 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: MageneApi.NoFileException) { null }
             }
             DataSource.BLACKBIRD -> blackbirdApi.downloadActivity(cred, record.id)
-            DataSource.BRYTON -> { try { brytonApi.downloadFit(cred, record.id) } catch (_: Exception) { brytonApi.downloadGpx(cred, record.id) } }
+            DataSource.BRYTON -> {
+                // v6.2.4: 百锐腾官方未开放FIT/GPX下载接口（网页仅展示summary，CDP实测全部下载路径返回SPA HTML），
+                // 从百锐腾下载原始轨迹不可行；仅支持将其他平台数据上传到百锐腾
+                null
+            }
             else -> null
         }
         return data

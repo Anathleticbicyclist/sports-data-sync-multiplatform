@@ -141,6 +141,16 @@ class AutoSyncService : Service() {
                     val data = downloadActivity(source, sourceCred, record) ?: continue
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+                    // 顽鹿OTM/百锐腾上传必须走WebView真实文件选择（需前台Activity），后台Service无法执行，
+                    // 此处直接跳过并提示，避免误走已废弃的旧接口静默失败
+                    if (target == DataSource.MAGENE) {
+                        lastMsg = "迈金上传需前台同步(WebView)"
+                        continue
+                    }
+                    if (target == DataSource.BRYTON) {
+                        lastMsg = "百锐腾上传需前台同步(WebView)"
+                        continue
+                    }
                     val result = uploadEngine.upload(target, targetCred, data, record, upExtra)
                     if (result.success) {
                         prefs.addSyncedId(syncKey)

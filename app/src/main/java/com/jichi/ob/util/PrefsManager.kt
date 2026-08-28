@@ -65,13 +65,23 @@ class PrefsManager(context: Context) {
     fun getBlackbirdCookie(): String? = prefs.getString("blackbird_cookie", null)
     fun isBlackbirdLoggedIn(): Boolean = !getBlackbirdCookie().isNullOrEmpty()
 
-    // ===== 百锐腾: cookie =====
+    // ===== 百锐腾: Meteor token + userId + cookie =====
     fun saveBrytonCookie(cookie: String) {
         Log.d(TAG, "saveBrytonCookie: ${cookie.length}")
         prefs.edit().putString("bryton_cookie", cookie).apply()
     }
     fun getBrytonCookie(): String? = prefs.getString("bryton_cookie", null)
-    fun isBrytonLoggedIn(): Boolean = !getBrytonCookie().isNullOrEmpty()
+    /** v6.2.4: 百锐腾是Meteor应用，登录态主要存localStorage(Meteor.loginToken/Meteor.userId)，cookie仅辅助 */
+    fun saveBrytonToken(token: String) {
+        Log.d(TAG, "saveBrytonToken: ${token.length}")
+        prefs.edit().putString("bryton_token", token).apply()
+    }
+    fun getBrytonToken(): String? = prefs.getString("bryton_token", null)
+    fun saveBrytonUserId(userId: String) {
+        prefs.edit().putString("bryton_user_id", userId).apply()
+    }
+    fun getBrytonUserId(): String? = prefs.getString("bryton_user_id", null)
+    fun isBrytonLoggedIn(): Boolean = !getBrytonToken().isNullOrEmpty() || !getBrytonCookie().isNullOrEmpty()
 
     // ===== Outbase: sessionId + 网关cookie =====
     fun saveOutbaseSessionId(sid: String) {

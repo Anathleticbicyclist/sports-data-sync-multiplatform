@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.3 |
+| 当前版本 | v6.2.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -41,9 +41,9 @@
 |------|:---:|:---:|------|
 | **iGPSPORT** | ✅ | ✅ | 迹驰码表数据，OSS直传上传 |
 | **行者** | ✅ | ✅ | 行者APP数据，官方开放API |
-| **迈金** | ✅ | ✅ | 迈金/顽鹿OTM数据，支持GCJ-02→WGS84坐标转换；上传走顽鹿WebView真实文件选择通道（v6.2.3） |
-| **黑鸟单车** | ✅ | ✅ | 黑鸟单车数据 |
-| **百锐腾** | ✅ | ✅ | Bryton码表数据 |
+| **迈金** | ✅ | ✅ | 迈金/顽鹿OTM数据，支持GCJ-02→WGS84坐标转换；上传走顽鹿WebView真实文件选择通道（v6.2.3+） |
+| **黑鸟单车** | ✅ | ✅ | 黑鸟单车数据；行者等GPX源自动转FIT后上传（v6.2.4） |
+| **百锐腾** | ⚠️ | ✅ | Bryton Active数据；登录走Meteor localStorage、上传走WebView真实文件选择（v6.2.4）；**官方未开放FIT下载接口，不可作为来源下载轨迹** |
 | **Outbase** | ❌ | ✅ | **仅目标平台**，支持活动上传，不可作为来源 |
 
 **可同步的组合**（来源 → 目标）：
@@ -153,6 +153,16 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.4 (2026-08-28)
+1. **黑鸟上传修复（关键）** — 实测"行者→黑鸟"上传被拒 `FIT decode error: Unexpected end of input stream`：黑鸟 `POST /api/records/upload` 只接受 FIT，而行者下载的是 GPX，被黑鸟当 FIT 解析必然失败。已实现 **GPX→FIT 转换器**（`GpxToFitConverter`，定义消息 header=0x40、record 消息按黑鸟 base_type 编码、坐标 semicircles、时间 unix-631065600 等，格式已在黑鸟实测落库成功 recordId=113833851）。上传前按文件头自动识别：非 FIT 先转 FIT 再上传
+2. **黑鸟下载修复（关键）** — 根因是 `GET /api/records/{id}/data` 返回的 `content.track` 是**字符串**（`lat,lon,ele,...;lat,lon,...` 分号分隔），旧代码按 JSONArray 解析必失败。已改为识别字符串格式并重建 GPX 文件
+3. **百锐腾登录修复（关键）** — 逆向确认 Bryton Active 是 Meteor(DDP) 应用，登录态存 **localStorage(Meteor.loginToken/Meteor.userId)** 而非 cookie。登录检测改为读取 localStorage，并将 token+userId 落盘
+4. **百锐腾上传实现** — 百锐腾无公开 REST 上传接口（`POST /user/upload/{userId}` 需真实文件选择，已实测落库成功）。实现 `BrytonWebUploader`：WebView 加载 /activities 页 + 注入 Meteor token + 点"+"上传按钮 + `onShowFileChooser` 返回本地 FIT/GPX + 前端落库确认
+5. **百锐腾列表实现** — 无 REST 列表接口，实现 `BrytonWebApi`：WebView 读 Meteor `userActivities` collection 获取活动列表
+6. **百锐腾下载受限说明** — 官方未开放 FIT/GPX 下载接口（CDP 实测全部下载路径返回 SPA HTML、DDP 方法不存在），**百锐腾仅可作同步目标上传，不可作来源下载轨迹**
+7. **UI 迈金"开发中"标签解除** — 迈金上传功能已真实关联（UploadSupport.MAGENE 置可用），不再显示"(开发中)"
+8. **版本号更新** — v6.2.4 (versionCode 624)
 
 ### v6.2.3 (2026-08-28)
 1. **迈金(顽鹿OTM)上传功能实现（核心新功能）** — 逆向确认顽鹿 `upload/fit` 接口对程序化构造的 multipart 一律返回 `422 没有上传文件`，仅接受"真实文件选择"；已实现 **WebView 真实文件选择上传通道**（`MageneWebUploader`：WebView 加载顽鹿页 + 注入登录 token + `onShowFileChooser` 返回本地 FIT 文件），迈金由"仅下载"升级为"可上传"，六平台数据流向补齐为「五平台互传 + Outbase 单向接收」

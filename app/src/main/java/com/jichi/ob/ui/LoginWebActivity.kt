@@ -173,27 +173,42 @@ class LoginWebActivity : AppCompatActivity() {
     }
 
     /** 百锐腾: 检测登录态cookie */
+    /** 百锐腾: 检测登录态 —— Meteor应用登录态存 localStorage(Meteor.loginToken/Meteor.userId) */
     private fun detectBryton() {
         val cm = CookieManager.getInstance()
-        val all = listOf(
+        val cookie = listOf(
             cm.getCookie("https://active.brytonsport.com"),
             cm.getCookie("active.brytonsport.com"),
             cm.getCookie("brytonsport.com"),
             cm.getCookie(".brytonsport.com"),
             cm.getCookie("https://www.brytonsport.com")
         ).filterNotNull().joinToString("; ")
-        if (all.length < 5) return
-        // 宽松判定：cookie包含任一会话/认证标记，或cookie足够长且含会话特征
-        // 百锐腾使用 Meteor 框架，登录后 cookie 常见为 meteor_login_token / Meteor.loginToken 等
-        val sessionLike = listOf("session", "token", "auth", "login", "user", "sessid", "SESS", "PHPSESSID", "user_id", "uid", "member", "meteor", "Meteor", "accounts", "loginToken", "meteor_login")
-        val hasSessionMark = sessionLike.any { all.contains(it, ignoreCase = true) }
-        if (hasSessionMark || all.length >= 20) {
-            detected = true
-            Log.i(TAG, "✅ 百锐腾登录成功, cookie len=${all.length}")
-            setResult(Activity.RESULT_OK, Intent()
-                .putExtra(RESULT_SESSION_ID, all)
-                .putExtra(RESULT_LOGIN_TYPE, TYPE_BRYTON))
-            finish()
+        // Meteor 登录后 token/userId 在 localStorage，必须读取（cookie 可能为空）
+        webView.evaluateJavascript(
+            "(function(){return JSON.stringify({t:localStorage.getItem('Meteor.loginToken')||'',u:localStorage.getItem('Meteor.userId')||''});})()"
+        ) { res ->
+            if (detected || isFinishing) return@evaluateJavascript
+            try {
+                val clean = res?.removePrefix("\"")?.removeSuffix("\"")?.replace("\\\"", "\"").orEmpty()
+                val json = org.json.JSONObject(clean)
+                val token = json.optString("t", "")
+                val userId = json.optString("u", "")
+                if (token.length > 10 && userId.isNotEmpty()) {
+                    detected = true
+                    Log.i(TAG, "✅ 百锐腾登录成功 (Meteor token len=${token.length}, userId=$userId)")
+                    setResult(Activity.RESULT_OK, Intent()
+                        .putExtra(RESULT_SESSION_ID, "$token;$userId;$cookie")
+                        .putExtra(RESULT_LOGIN_TYPE, TYPE_BRYTON))
+                    finish()
+                } else if (cookie.length >= 20) {
+                    detected = true
+                    Log.i(TAG, "✅ 百锐腾登录成功 (cookie len=${cookie.length})")
+                    setResult(Activity.RESULT_OK, Intent()
+                        .putExtra(RESULT_SESSION_ID, ";;$cookie")
+                        .putExtra(RESULT_LOGIN_TYPE, TYPE_BRYTON))
+                    finish()
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -210,8 +225,23 @@ class LoginWebActivity : AppCompatActivity() {
             }
             TYPE_BRYTON -> {
                 val all = listOf(cm.getCookie("https://active.brytonsport.com"), cm.getCookie("active.brytonsport.com"), cm.getCookie("brytonsport.com")).filterNotNull().joinToString("; ")
-                Log.i(TAG, "✅ 百锐腾手动确认登录, cookie len=${all.length}")
-                setResult(Activity.RESULT_OK, Intent().putExtra(RESULT_SESSION_ID, all).putExtra(RESULT_LOGIN_TYPE, TYPE_BRYTON))
+                // Meteor 登录态在 localStorage，读取后一并返回
+                webView.evaluateJavascript(
+                    "(function(){return JSON.stringify({t:localStorage.getItem('Meteor.loginToken')||'',u:localStorage.getItem('Meteor.userId')||''});})()"
+                ) { res ->
+                    try {
+                        val clean = res?.removePrefix("\"")?.removeSuffix("\"")?.replace("\\\"", "\"").orEmpty()
+                        val json = org.json.JSONObject(clean)
+                        val token = json.optString("t", "")
+                        val userId = json.optString("u", "")
+                        Log.i(TAG, "✅ 百锐腾手动确认登录, cookie len=${all.length}, token=${token.length}, userId=$userId")
+                        setResult(Activity.RESULT_OK, Intent()
+                            .putExtra(RESULT_SESSION_ID, "$token;$userId;$all")
+                            .putExtra(RESULT_LOGIN_TYPE, TYPE_BRYTON))
+                    } catch (_: Exception) {
+                        setResult(Activity.RESULT_OK, Intent().putExtra(RESULT_SESSION_ID, ";;$all").putExtra(RESULT_LOGIN_TYPE, TYPE_BRYTON))
+                    }
+                }
             }
             TYPE_IGPSPORT -> {
                 webView.evaluateJavascript("(function(){try{return JSON.parse(localStorage.getItem('persist:app-store')).global.token;}catch(e){return '';}})()") { token ->

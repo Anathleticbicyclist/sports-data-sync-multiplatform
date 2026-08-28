@@ -132,7 +132,8 @@ class BlackbirdApi {
             if (resp.code != 200) throw Exception("黑鸟数据 HTTP ${resp.code}")
 
             val json = JSONObject(body)
-            val data = json.optJSONObject("data") ?: json
+            // v6.2.4: 黑鸟 /records/{id}/data 返回 content.track 为"lat,lon,ele,...;lat,lon,..."字符串
+            val data = json.optJSONObject("content") ?: json.optJSONObject("data") ?: json
 
             // 尝试直接下载FIT
             val fitUrl = data.optString("fitUrl", data.optString("fit_url", ""))
@@ -151,11 +152,17 @@ class BlackbirdApi {
                 }
             }
 
-            // 从轨迹点构建GPX
-            val track = data.optJSONArray("track") ?: data.optJSONArray("points")
-            if (track != null && track.length() > 0) {
-                val gpx = buildGpx(track, recordId)
-                Log.d(TAG, "GPX built: ${gpx.size} bytes from ${track.length()} points")
+            // 从轨迹点构建GPX：track可能是JSONArray（旧格式）或分号分隔字符串（实际格式）
+            val trackArr = data.optJSONArray("track") ?: data.optJSONArray("points")
+            if (trackArr != null && trackArr.length() > 0) {
+                val gpx = buildGpx(trackArr, recordId)
+                Log.d(TAG, "GPX built: ${gpx.size} bytes from ${trackArr.length()} points")
+                return@withContext gpx
+            }
+            val trackStr = data.optString("track", data.optString("points", ""))
+            if (trackStr.isNotBlank()) {
+                val gpx = buildGpxFromTrackString(trackStr, recordId)
+                Log.d(TAG, "GPX built from track string: ${gpx.size} bytes")
                 return@withContext gpx
             }
 
@@ -180,6 +187,29 @@ class BlackbirdApi {
         return sb.toString().toByteArray()
     }
 
+
+    /** 从黑鸟 track 字符串（"lat,lon,ele,dist,...;lat,lon,..."）构建GPX */
+    private fun buildGpxFromTrackString(trackStr: String, recordId: String): ByteArray {
+        val sb = StringBuilder()
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\">\n")
+        sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
+        var count = 0
+        for (segment in trackStr.split(";")) {
+            val f = segment.split(",")
+            if (f.size < 2) continue
+            val lat = f[0].trim().toDoubleOrNull() ?: continue
+            val lon = f[1].trim().toDoubleOrNull() ?: continue
+            val ele = if (f.size >= 3) (f[2].trim().toDoubleOrNull() ?: 0.0) else 0.0
+            sb.append("      <trkpt lat=\"$lat\" lon=\"$lon\">\n")
+            if (ele != 0.0) sb.append("        <ele>$ele</ele>\n")
+            sb.append("      </trkpt>\n")
+            count++
+        }
+        sb.append("    </trkseg>\n  </trk>\n</gpx>")
+        Log.d(TAG, "buildGpxFromTrackString: $count points")
+        return sb.toString().toByteArray()
+    }
 
     /**
      * 上传FIT/GPX文件到黑鸟单车
