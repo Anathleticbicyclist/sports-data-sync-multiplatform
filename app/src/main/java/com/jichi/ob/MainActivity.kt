@@ -10,6 +10,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.graphics.Color
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.util.Log
 import android.view.View
 import android.widget.ScrollView
@@ -275,16 +281,40 @@ class MainActivity : AppCompatActivity() {
                 "https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f"
             )))
         }
-        findViewById<TextView>(R.id.tvUpdateLink)?.setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform"
-            )))
-        }
-        findViewById<TextView>(R.id.tvOfficialLink)?.setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                "https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase"
-            )))
-        }
+        // v6.2.8: 更新链接改为"标题可点、冒号后说明为注释不可点"
+        setupLinkWithNote(
+            findViewById(R.id.tvUpdateLink),
+            "📦 鸡翅幸哲迈进OB(开发体验版)更新链接:",
+            " 开发版不稳定且用且珍惜",
+            "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform"
+        )
+        setupLinkWithNote(
+            findViewById(R.id.tvOfficialLink),
+            "🚴 鸡翅幸哲迈进OB正式版更新链接:",
+            " 正式版稳定可用，开发版不稳定请下载正式版",
+            "https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase"
+        )
+    }
+
+    /** 底部更新链接：仅标题部分可点击跳转，冒号后说明为普通注释（不含在超链接内） */
+    private fun setupLinkWithNote(tv: TextView?, link: String, note: String, url: String) {
+        if (tv == null) return
+        val sb = SpannableStringBuilder()
+        sb.append(link)
+        sb.setSpan(object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }
+            override fun updateDrawState(ds: TextPaint) {
+                super.updateDrawState(ds)
+                ds.color = Color.parseColor("#1E88E5")
+                ds.isUnderlineText = true
+            }
+        }, 0, link.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.append(note)
+        tv.text = sb
+        tv.movementMethod = LinkMovementMethod.getInstance()
+        tv.highlightColor = Color.TRANSPARENT
     }
 
     private fun restoreSettings() {

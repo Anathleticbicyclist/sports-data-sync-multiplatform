@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.7 |
+| 当前版本 | v6.2.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -153,6 +153,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.8 (2026-08-28)
+1. **同步目标(逆向流动)调整** — 迈金/黑鸟单车/百锐腾标为"开发中"并禁用（UploadSupport.available=false，UI自动显示"XX(开发中)"）
+2. **UI重排** — 停止/测试/复制/清记忆四按钮等高单行、防换行对齐（修复"清记忆"按钮文字换行、图标错位）
+3. **底部更新链接优化** — 更新链接仅标题部分可点击跳转，冒号后的说明文字为普通注释（不含在超链接内）
+4. **版本号更新** — v6.2.8 (versionCode 628)
 
 ### v6.2.7 (2026-08-28)
 1. **黑鸟上传FIT_FILE_ERROR修复（关键）** — 根因：Kotlin时间解析用Instant.parse只认ISO "T"格式，行者GPX的`<time>`若是空格格式("2026-08-25 12:00:00")解析失败→所有record时间戳相同→FIT时间不递增被黑鸟拒。已修复：①时间解析兼容空格/无Z/毫秒格式；②即使完全无time也按索引生成递增时间戳(每秒一点)，保证FIT时间序列合理
