@@ -203,7 +203,16 @@ class UploadEngine {
                 val result = resp.body?.string()?.trim() ?: ""
                 val cost = System.currentTimeMillis() - start
                 Log.d(TAG, "Xingzhe upload HTTP ${resp.code} (${cost}ms): ${result.take(300)}")
+                // 行者认证失败返回特征：HTTP 401/403，或 body 含 "Authentication credentials / not provided"，
+                // 或 body.code == 401（曾出现 HTTP 200 + code:401 的情况），统一识别为"登录已过期"
+                val authFail = resp.code == 401 || resp.code == 403 ||
+                    result.contains("Authentication credentials") ||
+                    result.contains("credentials were not provided") ||
+                    result.contains("not provided") ||
+                    (try { JSONObject(result).optInt("code", -1) == 401 } catch (_: Exception) { false })
                 when {
+                    authFail ->
+                        UploadResult(false, message = "行者上传失败: 行者登录已过期或失效，请重新登录行者")
                     resp.code == 200 -> {
                         val json = try { JSONObject(result) } catch (_: Exception) { null }
                         val code = json?.optInt("code", -1) ?: -1
@@ -214,8 +223,6 @@ class UploadEngine {
                             UploadResult(false, message = "行者上传失败: ${json?.optString("msg") ?: result.take(100)}")
                         }
                     }
-                    resp.code == 401 || resp.code == 403 ->
-                        UploadResult(false, message = "行者上传失败: 登录已过期(HTTP ${resp.code})，请重新登录行者")
                     else -> UploadResult(false, message = "行者上传失败: HTTP ${resp.code} ${result.take(100)}")
                 }
             }
