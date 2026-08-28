@@ -87,12 +87,19 @@ class UploadEngine {
     }
 
     // ===== iGPSPORT 上传（OSS直传流程，经网页版逆向验证：getSignedUrl→PUT→uploadByOss）=====
+    // v6.2.3 修复：按文件类型选择扩展名（FIT用.fit，GPX用.gpx）。行者等来源下载的是GPX，
+    // 若仍以.fit上传，iGPSPORT按FIT解析GPX会失败→不落库但接口返回success→误报"成功(id=null)"。
+    // 同时OSS PUT 不能携带 Content-Type（否则OSS签名校验403 SignatureDoesNotMatch→文件未上传）。
     private fun uploadToIgpsport(
         token: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            val fileName = "${record.source.shortName}_${record.id}.fit"
+            // 按文件头判断真实类型：FIT以 .FIT 开头（offset 8-9）
+            val isFitFile = fitData.size >= 14 &&
+                fitData[8] == '.'.code.toByte() && fitData[9] == 'F'.code.toByte()
+            val ext = if (isFitFile) "fit" else "gpx"
+            val fileName = "${record.source.shortName}_${record.id}.$ext"
             val authHeaders = mapOf(
                 "Authorization" to "Bearer $token",
                 "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -100,9 +107,9 @@ class UploadEngine {
                 "Referer" to "https://app.igpsport.cn/"
             )
 
-            // 1) 获取OSS签名URL（已验证接口）
+            // 1) 获取OSS签名URL（扩展名须与文件类型一致，GPX用.gpx否则解析失败）
             val signedReq = Request.Builder()
-                .url("https://prod.zh.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=.fit")
+                .url("https://prod.zh.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=.$ext")
                 .apply { authHeaders.forEach { (k, v) -> addHeader(k, v) } }
                 .get().build()
             client.newCall(signedReq).execute().use { resp ->
@@ -123,14 +130,14 @@ class UploadEngine {
                     return UploadResult(false, message = "iGPSPORT上传失败: 未获取到上传地址 ${bodyStr.take(100)}")
                 }
 
-                // 2) PUT 文件到OSS（v6.2.1: 403时自动降级不带Content-Type重试 + 记录OSS错误详情）
+                // 2) PUT 文件到OSS（v6.2.3: OSS签名URL绑定Content-Type校验，携带Content-Type会403
+                //    SignatureDoesNotMatch→文件未上传。故先不带Content-Type直传，403/400时再尝试带Content-Type）
                 val ossError = StringBuilder()
                 var putCode: Int? = null
-                // 尝试①：带 Content-Type: application/octet-stream（标准OSS直传）
+                // 尝试①：不带 Content-Type（OSS签名URL的标准直传方式，已验证HTTP 200）
                 val putReq1 = Request.Builder()
                     .url(signedUrl)
-                    .addHeader("Content-Type", "application/octet-stream")
-                    .put(fitData.toRequestBody("application/octet-stream".toMediaType()))
+                    .put(fitData.toRequestBody(null))
                     .build()
                 client.newCall(putReq1).execute().use { pr ->
                     putCode = pr.code
@@ -140,11 +147,12 @@ class UploadEngine {
                         val errBody = pr.body?.string()?.trim() ?: ""
                         Log.w(TAG, "iGPSPORT OSS PUT#1 HTTP ${pr.code}: $errBody")
                         ossError.append("PUT#$putCode $errBody")
-                        // 尝试②：不带 Content-Type（部分OSS签名URL绑定Content-Type时带错误头会403）
+                        // 尝试②：带 Content-Type（兼容部分绑定Content-Type的签名URL）
                         if (pr.code == 403 || pr.code == 400) {
                             val putReq2 = Request.Builder()
                                 .url(signedUrl)
-                                .put(fitData.toRequestBody(null))
+                                .addHeader("Content-Type", "application/octet-stream")
+                                .put(fitData.toRequestBody("application/octet-stream".toMediaType()))
                                 .build()
                             client.newCall(putReq2).execute().use { pr2 ->
                                 if (pr2.code in 200..299) {

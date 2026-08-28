@@ -1,9 +1,14 @@
 # 🚴 鸡翅幸哲迈进OB(开发体验版)
+
+<p align="center"><img src="app_icon/app_icon_512.png" width="128" alt="App图标"/></p>
+
 **让运动数据自由流动 — 六平台运动数据互传工具**
+
+> 📱 **App图标**：位于 `app_icon/` 目录（512/192/144px），供开发者/分发平台使用。
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -18,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.2 |
+| 当前版本 | v6.2.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -36,7 +41,7 @@
 |------|:---:|:---:|------|
 | **iGPSPORT** | ✅ | ✅ | 迹驰码表数据，OSS直传上传 |
 | **行者** | ✅ | ✅ | 行者APP数据，官方开放API |
-| **迈金** | ✅ | ⏳开发中 | 迈金/Onelap数据，支持GCJ-02→WGS84坐标转换 |
+| **迈金** | ✅ | ✅ | 迈金/顽鹿OTM数据，支持GCJ-02→WGS84坐标转换；上传走顽鹿WebView真实文件选择通道（v6.2.3） |
 | **黑鸟单车** | ✅ | ✅ | 黑鸟单车数据 |
 | **百锐腾** | ✅ | ✅ | Bryton码表数据 |
 | **Outbase** | ❌ | ✅ | **仅目标平台**，支持活动上传，不可作为来源 |
@@ -81,6 +86,7 @@
 ```
 app/src/main/java/com/jichi/ob/
 ├── MainActivity.kt              # 主界面，同步逻辑核心
+├── MageneWebUploader.kt         # 迈金(顽鹿OTM)WebView上传器（v6.2.3）
 ├── AutoSyncService.kt           # 后台自动同步服务（常驻通知+电源保护）
 ├── api/
 │   ├── IgpsportApi.kt          # iGPSPORT API（含OSS直传上传）
@@ -112,7 +118,8 @@ app/src/main/assets/
 2. **FIT坐标转换**：通过隐藏WebView执行JavaScript，解析FIT二进制文件中的record消息，修正经纬度坐标
 3. **迈金下载双路径**：优先七牛云直链（durl），失败回退fit_content接口（官方网页端同款）
 4. **逆向流动上传引擎**：`UploadEngine.kt` 统一分发，每平台独立适配官方上传通道（iGPSPORT OSS直传 / 行者官方API / 黑鸟/百锐腾官方上传）
-5. **协程异步**：全部网络请求使用Kotlin Coroutines，主线程安全
+5. **顽鹿WebView上传通道**：顽鹿 `upload/fit` 拒绝程序化multipart，`MageneWebUploader` 用隐藏WebView加载顽鹿页+注入API token（localStorage）保持登录态，`onShowFileChooser` 通过 FileProvider 返回本地FIT，由WebView赋给页面input.files，等价用户手动选择上传
+6. **协程异步**：全部网络请求使用Kotlin Coroutines，主线程安全
 6. **本地持久化**：SharedPreferences存储登录态、同步记录、设置项
 
 ---
@@ -146,6 +153,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.3 (2026-08-28)
+1. **迈金(顽鹿OTM)上传功能实现（核心新功能）** — 逆向确认顽鹿 `upload/fit` 接口对程序化构造的 multipart 一律返回 `422 没有上传文件`，仅接受"真实文件选择"；已实现 **WebView 真实文件选择上传通道**（`MageneWebUploader`：WebView 加载顽鹿页 + 注入登录 token + `onShowFileChooser` 返回本地 FIT 文件），迈金由"仅下载"升级为"可上传"，六平台数据流向补齐为「五平台互传 + Outbase 单向接收」
+2. **iGPSPORT 上传落库修复（关键）** — 修复"行者→iGPSPORT 提示上传成功但平台无记录"：根因是硬编码 `.fit` 扩展名，而行者下载的是 GPX 文件，iGPSPORT 按 FIT 解析 GPX 失败不建记录、但接口仍返回 success 导致误判。现按文件头自动识别 `.fit/.gpx`，`getSignedUrl?fileExtension` 与 `fileName` 同步使用真实扩展名；OSS PUT 改为先不带 `Content-Type`（标准直传，实测 200），403/400 时降级带 `application/octet-stream`
+3. **版本号更新** — v6.2.3 (versionCode 623)
 
 ### v6.2.2 (2026-08-28)
 1. **UI首页标题修正** — 顶栏标题统一为"鸡翅幸哲迈进OB(开发体验版)"，去除旧版"v6.1.1"标识
@@ -222,7 +234,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## ⚠️ 已知限制
 
-1. **迈金上传**：顽鹿无公开第三方FIT导入API，目标按钮置灰标注"开发中"，招募测试人员
+1. **迈金上传走WebView**：顽鹿无公开第三方FIT导入API，且 `upload/fit` 接口拒绝程序化构造的 multipart（422"没有上传文件"），仅接受真实文件选择。v6.2.3 已通过隐藏 WebView + `onShowFileChooser` 返回本地FIT实现等价上传；该通道依赖顽鹿网页前端行为，建议真机实测后使用
 2. **迈金→黑鸟上传**：黑鸟解析器较旧，拒绝含大量开发者字段的迈金FIT（FIT_FILE_ERROR），属平台限制，建议经行者/iGPSPORT中转
 3. **黑鸟FIT解析**：室内骑行台（无GPS）FIT会被黑鸟服务器拒绝（平台限制）
 4. **Outbase**：仅支持上传，不可作为数据来源下载
