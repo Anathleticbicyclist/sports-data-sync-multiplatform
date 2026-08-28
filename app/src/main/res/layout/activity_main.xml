@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
-        app:title="鸡翅幸哲迈进OB v6.1.1"
+        app:title="鸡翅幸哲迈进OB(开发体验版)"
         app:titleTextColor="@color/white" />
 
     <ScrollView
