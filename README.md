@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.5 |
+| 当前版本 | v6.2.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -153,6 +153,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.6 (2026-08-28)
+1. **Outbase上传解析失败修复（关键）** — 实测"行者→Outbase"返回"上传成功[待处理]"但Outbase内记录解析失败。根因：Outbase只接受真正的FIT文件，而行者下载的是GPX，旧代码直接把GPX以`.fit`扩展名上传，Outbase按FIT解析GPX必失败→记录永远"待处理"。已对齐正式版项目(sync-igpsport-magene-onelap-xingzhe-data-to-outbase)方案：**用Outbase官方gpx2fit库先转GPX→FIT再上传**（WebBridge/bridge.html/gpx2fit.js，含UTC+8时间对齐）
+2. **补齐gpx2fit.js** — 从Outbase官网下载官方前端转换库 gpx2fit.88f62f1a.js(130KB) 放入 assets（此前bridge.html引用但文件缺失，转换桥无法初始化）
+3. **迈金/百锐腾WebView上传提速** — blockNetworkImage+禁自动加载图片（页面图片是加载慢主因之一）
+4. **版本号更新** — v6.2.6 (versionCode 626)
 
 ### v6.2.5 (2026-08-28)
 1. **迈金上传卡顿修复（关键）** — 实测 v6.2.4 上传迈金卡 281s 后超时失败。根因：v6.2.4 重构 MageneWebUploader 时改为**无条件 `location.reload()`**（v6.2.3 是"token 已存在则不 reload，直接触发上传"），导致每次上传完整加载顽鹿页面×2（VPN下每页100s+），主线程被页面加载长期占用、60s 超时任务排不上队 → 表现为"上传到迈金"后长时间卡死。**已恢复 v6.2.3 版 MageneWebUploader**（利用 WebView localStorage 跨实例持久化：token 首次写入后不再 reload）

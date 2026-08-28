@@ -70,6 +70,8 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
             settings.javaScriptCanOpenWindowsAutomatically = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.cacheMode = WebSettings.LOAD_DEFAULT
+            settings.blockNetworkImage = true
+            settings.loadsImagesAutomatically = false
             // 隐藏但保活：加到一个不显示的容器里，避免布局
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
