@@ -31,6 +31,10 @@ class AutoSyncService : Service() {
         const val ACTION_STOP = "com.jichi.ob.STOP_AUTOSYNC"
         const val EXTRA_INTERVAL = "interval_seconds"
 
+        /** 全局同步互斥：避免后台自动同步与前台手动同步并发执行导致卡顿/重复 */
+        @Volatile
+        var syncing: Boolean = false
+
         fun start(context: Context, intervalSeconds: Int) {
             val intent = Intent(context, AutoSyncService::class.java).apply {
                 action = ACTION_START
@@ -90,6 +94,11 @@ class AutoSyncService : Service() {
         syncJob = serviceScope.launch {
             while (isActive) {
                 try {
+                    if (syncing) {
+                        updateNotification("手动同步进行中，稍后自动检测...")
+                        delay(intervalSeconds * 1000L)
+                        continue
+                    }
                     updateNotification("正在检测新数据...")
                     val source = DataSource.fromShortName(prefs.getLastSource()) ?: DataSource.IGPSPORT
                     val target = DataSource.fromShortName(prefs.getLastTarget()) ?: DataSource.OUTBASE
@@ -112,39 +121,43 @@ class AutoSyncService : Service() {
     private suspend fun doSync(source: DataSource, target: DataSource): Pair<Int, String> {
         val sourceCred = prefs.getCredential(source) ?: return Pair(0, "未登录")
         val targetCred = prefs.getCredential(target) ?: return Pair(0, "目标未登录")
-
-        val activities = when (source) {
-            DataSource.IGPSPORT -> igpsportApi.getActivities(sourceCred, 0, 20)
-            DataSource.XINGZHE -> xingzheApi.getActivities(sourceCred, 0, 20)
-            DataSource.MAGENE -> mageneApi.getActivities(sourceCred, 0, 20)
-            DataSource.BLACKBIRD -> blackbirdApi.getActivities(sourceCred, 0, 20)
-            DataSource.BRYTON -> brytonApi.getActivities(sourceCred, 0, 20)
-            else -> emptyList()
-        }
-
-        var synced = 0
-        var lastMsg = ""
-        for (record in activities.take(5)) {
-            try {
-                val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
-                if (prefs.isSynced(syncKey)) continue
-                val data = downloadActivity(source, sourceCred, record) ?: continue
-                val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
-                val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                val result = uploadEngine.upload(target, targetCred, data, record, upExtra)
-                if (result.success) {
-                    prefs.addSyncedId(syncKey)
-                    synced++
-                    lastMsg = record.title.take(15)
-                } else {
-                    Log.w(TAG, "AutoSync upload failed: ${result.message}")
-                }
-                delay(300)
-            } catch (e: Exception) {
-                Log.w(TAG, "AutoSync item error", e)
+        syncing = true
+        try {
+            val activities = when (source) {
+                DataSource.IGPSPORT -> igpsportApi.getActivities(sourceCred, 0, 8)
+                DataSource.XINGZHE -> xingzheApi.getActivities(sourceCred, 0, 8)
+                DataSource.MAGENE -> mageneApi.getActivities(sourceCred, 0, 8)
+                DataSource.BLACKBIRD -> blackbirdApi.getActivities(sourceCred, 0, 8)
+                DataSource.BRYTON -> brytonApi.getActivities(sourceCred, 0, 8)
+                else -> emptyList()
             }
+
+            var synced = 0
+            var lastMsg = ""
+            for (record in activities.take(5)) {
+                try {
+                    val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
+                    if (prefs.isSynced(syncKey)) continue
+                    val data = downloadActivity(source, sourceCred, record) ?: continue
+                    val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
+                    val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+                    val result = uploadEngine.upload(target, targetCred, data, record, upExtra)
+                    if (result.success) {
+                        prefs.addSyncedId(syncKey)
+                        synced++
+                        lastMsg = record.title.take(15)
+                    } else {
+                        Log.w(TAG, "AutoSync upload failed: ${result.message}")
+                    }
+                    delay(200)
+                } catch (e: Exception) {
+                    Log.w(TAG, "AutoSync item error", e)
+                }
+            }
+            return Pair(synced, lastMsg)
+        } finally {
+            syncing = false
         }
-        return Pair(synced, lastMsg)
     }
 
     private suspend fun downloadActivity(source: DataSource, cred: String, record: ActivityRecord): ByteArray? {

@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -18,7 +18,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.0 |
+| 当前版本 | v6.2.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -146,6 +146,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.1 (2026-08-28)
+1. **行者上传接口修复（关键）** — 实测发现原 `workout/upload`（file+随机uuid）接口只存文件不解析，返回 `is_valid:0`，导致"提示上传成功但平台看不到记录"。已切换到行者官方上传接口 `fit/upload`（字段 `fit_file`+`md5`），实测迈金FIT上传返回 `workout_id` 且 `is_valid:1`、数据完整解析（距离/时长/配速正常入库）
+2. **上传记忆清除功能** — 新增「🗑 清记忆」按钮，一键清除全部已同步记录记忆，下次同步重新全量上传（便于频繁测试）
+3. **启动日志版本号动态化** — 版本号改用 BuildConfig.VERSION_NAME 动态读取，启动日志与当前版本一一对应（此前硬编码导致日志版本与实际不符）
+4. **UI首页文案** — 标题统一为"鸡翅幸哲迈进OB(开发体验版)"，去除旧版V6.1.1标识
+5. **iGPSPORT OSS上传加固** — PUT 403/400 时自动降级不带 Content-Type 重试，并记录OSS错误详情便于定位
+6. **自动同步卡顿优化** — 减少单次拉取量（20→8条）、增加全局同步互斥（手动同步时后台自动同步自动等待），避免并发执行导致卡顿
 
 ### v6.2.0 (2026-08-28)
 1. **行者上传认证失败识别修复** — 实测行者接口：认证失败时返回 HTTP 401 + `{"code":401,"msg":"Authentication credentials were not provided."}`，部分场景曾出现 HTTP 200 + code:401。现统一识别（HTTP 401/403 + body特征多维度检测），明确提示"行者登录已过期或失效，请重新登录行者"，不再显示技术性报错
