@@ -195,7 +195,9 @@ class BlackbirdApi {
         sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\">\n")
         sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         var count = 0
+        // v6.2.5: 限制重建点数，避免超大track字符串(数万点)导致生成巨型GPX+上传卡顿
         for (segment in trackStr.split(";")) {
+            if (count >= 3000) break
             val f = segment.split(",")
             if (f.size < 2) continue
             val lat = f[0].trim().toDoubleOrNull() ?: continue

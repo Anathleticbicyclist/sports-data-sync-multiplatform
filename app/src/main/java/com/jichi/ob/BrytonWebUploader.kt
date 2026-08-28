@@ -68,8 +68,8 @@ class BrytonWebUploader(
         confirmTries = 0
         ensureWebView()
         webView?.loadUrl("https://active.brytonsport.com/activities")
-        timeoutTask = Runnable { finish(false, "百锐腾上传超时(60s)：请确认百锐腾网页登录有效") }
-        mainHandler.postDelayed(timeoutTask!!, 60000L)
+        timeoutTask = Runnable { finish(false, "百锐腾上传超时(45s)：请确认百锐腾网页登录有效") }
+        mainHandler.postDelayed(timeoutTask!!, 45000L)
     }
 
     private fun ensureWebView() {
@@ -181,18 +181,13 @@ class BrytonWebUploader(
 
     private fun pollResult() {
         if (done.get()) return
-        webView?.evaluateJavascript("window.__bbUpload || 'pending'") { res ->
-            val v = res?.trim()?.trim('"') ?: "pending"
-            when {
-                v.contains("success") || v.contains("完成") -> confirmByCollection()
-                v.startsWith("fail:") -> finish(false, v.removePrefix("fail:"))
-                v.startsWith("error:") -> finish(false, v.removePrefix("error:"))
-                else -> mainHandler.postDelayed({ pollResult() }, 1200L)
-            }
-        }
+        // v6.2.4 修复(卡顿根因)：此前等待 window.__bbUpload=='success/完成'，但页面JS只设置 pending/fail/error、
+        // 从不设置 success，导致每条上传都卡满60s超时且即使已落库也判定失败。
+        // 现在文件选择后直接轮询 userActivities collection 对比"上传前最新记录id"，检测到新记录即判定成功。
+        confirmByCollection()
     }
 
-    /** 前端提示完成后再用 userActivities collection 确认真实落库 */
+    /** 百锐腾上传结果确认：轮询 userActivities collection 对比上传前最新记录id（不依赖前端success信号） */
     private fun confirmByCollection() {
         if (done.get()) return
         confirmTries++
@@ -216,8 +211,8 @@ class BrytonWebUploader(
             when {
                 v.startsWith("confirmed") -> finish(true, "百锐腾上传成功（已落库 id=${v.removePrefix("confirmed:")}）")
                 v.startsWith("api_err:") -> finish(false, "百锐腾前端提示成功但落库确认失败: ${v.removePrefix("api_err:")}")
-                confirmTries >= 5 -> finish(false, "百锐腾前端提示完成但未检测到新记录（未落库）")
-                else -> mainHandler.postDelayed({ confirmByCollection() }, 1500L)
+                confirmTries >= 28 -> finish(false, "百锐腾上传超时：collection未检测到新记录（未落库或页面上传失败）")
+                else -> mainHandler.postDelayed({ confirmByCollection() }, 2000L)
             }
         }
     }

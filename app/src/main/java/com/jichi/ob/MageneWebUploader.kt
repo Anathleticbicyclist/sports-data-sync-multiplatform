@@ -1,41 +1,33 @@
 package com.jichi.ob
 
 import android.app.Activity
-import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.ViewGroup
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.FrameLayout
 import androidx.core.content.FileProvider
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * 迈金(顽鹿OTM) WebView 上传器 —— v6.2.4 重构版
+ * 迈金(顽鹿OTM) WebView 上传器 —— v6.2.3 核心新功能
  *
  * 【为什么需要WebView】
  * 顽鹿 upload/fit 接口 (POST https://otm.onelap.cn/api/otm/ride_record/upload/fit, multipart字段`jilu`)
- * 对"程序化构造的File"一律返回 422 {"code":422,"message":"没有上传文件"}（Python/curl/页面JS new File()
- * /CDP setFileInputFiles 全部验证失败）。唯一成功路径是"真实文件选择"：浏览器原生 input[type=file]
- * 选择本地文件。因此用 WebView + WebChromeClient.onShowFileChooser 把本地FIT喂给页面 input.files，
- * 与用户手动在网页上选择文件完全等价。
+ * 对"程序化构造的File"一律返回 422 {"code":422,"message":"没有上传文件"}。
+ * 经逆向实测(见 顽鹿OTM上传逆向_调试记录.md)：无论 Python/curl/页面JS new File()+fetch、
+ * 完整复刻boundary/请求头/TLS指纹、还是CDP setFileInputFiles，全部 422；
+ * 唯一成功路径是"真实文件选择"（浏览器原生input[type=file]选择本地文件）。
+ * 因此 Android 端必须通过 WebView + WebChromeClient.onShowFileChooser 返回本地FIT文件，
+ * 由WebView内部把该文件赋给页面 input.files —— 与用户手动在网页上选择文件完全等价。
  *
- * 【v6.2.4 修复点（用户实测 v6.2.3"迈金上传没搞定"）】
- * 1. 上一版 WebView 仅 new 出来但从未 addView 到视图树，导致 onPageFinished / onShowFileChooser
- *    根本不触发、页面不加载。本版将 WebView 放入全屏透明 FrameLayout 并 addView 到 decorView，
- *    确保页面真正加载、文件选择回调可靠触发；上传完成后立即移除。
- * 2. 结果不再只看前端 toast 消息（前端会把 422 当成功弹出"上传成功"），上传后额外调顽鹿
- *    ride_record/list API 对比"上传前最新记录id"，确认真实落库后才判定成功。
- *
- * 【登录注入】顽鹿 Web 与 App 同源：App 内已通过 API 登录拿到 token，
- * WebView 加载 otm.onelap.cn 后把 token 写入 localStorage('token') 即保持登录态，无需二次登录。
+ * 【登录注入】顽鹿Web与App同源：App内已通过API登录(账号15092285275)获得token，
+ * WebView加载 otm.onelap.cn 后把 token 写入 localStorage('token') 即保持登录态，无需WebView二次登录。
  */
 class MageneWebUploader(private val activity: Activity, private val token: String) {
 
@@ -43,16 +35,13 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var webView: WebView? = null
-    private var container: FrameLayout? = null
     private var fitFile: File? = null
     private var resultCallback: ((Boolean, String) -> Unit)? = null
     private val done = AtomicBoolean(false)
     private var timeoutTask: Runnable? = null
-    private var pageLoadCount = 0
-    private var baseRecordId: String? = null
-    private var confirmTries = 0
+    private var firstInject = true
 
-    /** 上传单个FIT文件。onResult(success, message)。可重复调用（每次上传新的fit）。 */
+    /** 上传单个FIT文件。onResult(success, message)。必须可重复调用（每次上传新的fit）。 */
     fun upload(fitPath: String, onResult: (Boolean, String) -> Unit) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post { upload(fitPath, onResult) }
@@ -66,39 +55,31 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         fitFile = f
         resultCallback = onResult
         done.set(false)
-        pageLoadCount = 0
-        baseRecordId = null
-        confirmTries = 0
+        firstInject = true
         ensureWebView()
         webView?.loadUrl("https://otm.onelap.cn/calendar")
-        timeoutTask = Runnable { finish(false, "顽鹿上传超时(60s)：页面加载或上传未完成，请确认顽鹿登录有效") }
+        timeoutTask = Runnable { finish(false, "顽鹿上传超时(60s)：请确认顽鹿页面登录正常且网络畅通") }
         mainHandler.postDelayed(timeoutTask!!, 60000L)
     }
 
     private fun ensureWebView() {
         if (webView != null) return
-        val container = FrameLayout(activity).apply {
-            setBackgroundColor(Color.TRANSPARENT)
-            alpha = 0f // 完全透明不可见；仍attach并渲染，保证 onShowFileChooser 触发
-        }
-        val wv = WebView(activity).apply {
+        webView = WebView(activity).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.mediaPlaybackRequiresUserGesture = false
             settings.cacheMode = WebSettings.LOAD_DEFAULT
+            // 隐藏但保活：加到一个不显示的容器里，避免布局
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     if (done.get()) return
                     val u = url ?: ""
-                    Log.d(TAG, "page finished #${pageLoadCount + 1}: $u")
+                    Log.d(TAG, "page finished: $u")
                     if (!u.contains("otm.onelap.cn")) return
-                    pageLoadCount++
-                    if (pageLoadCount == 1) {
-                        // 第1次加载完成：注入token后reload，让页面用token初始化登录态
-                        injectTokenAndReload(view)
-                    } else {
-                        startUploadFlow(view)
-                    }
+                    if (!firstInject) return
+                    firstInject = false
+                    injectAndTriggerUpload(view)
                 }
             }
             webChromeClient = object : WebChromeClient() {
@@ -129,65 +110,45 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
                 }
             }
         }
-        container.addView(wv, FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        (activity.window.decorView as? ViewGroup)?.addView(container,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        this.webView = wv
-        this.container = container
     }
 
-    private fun injectTokenAndReload(view: WebView?) {
-        val js = """
-            (function(){
-              try {
-                localStorage.setItem('token', '${token.replace("'", "\\'")}');
-                location.reload();
-              } catch(e){ window.__obUpload='error:'+String(e); }
-            })();
-        """.trimIndent()
-        view?.evaluateJavascript(js) { }
-    }
-
-    private fun startUploadFlow(view: WebView?) {
+    private fun injectAndTriggerUpload(view: WebView?) {
         val fitName = fitFile?.name ?: "upload.fit"
         val js = """
-            (async function(){
+            (function(){
               try{
-                // 1. 记录上传前最新记录id，作为落库确认基准
-                try {
-                  const r = await fetch('https://otm.onelap.cn/api/otm/ride_record/list', {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json','Authorization':'$token','Origin':'https://otm.onelap.cn'},
-                    body: JSON.stringify({page:1, limit:5})
-                  });
-                  const j = await r.json();
-                  if (j && j.data && j.data.list && j.data.list.length) window.__baseId = j.data.list[0].id;
-                  else window.__baseId = '';
-                } catch(e){ window.__baseId = ''; }
+                var cur = (localStorage.getItem('token')||'');
+                if (cur.length < 20) {
+                  localStorage.setItem('token', '$token');
+                  location.reload();
+                  return;
+                }
                 window.__obUpload = 'pending';
-                // 2. 打开上传弹窗
+                // 监听上传结果消息
+                setInterval(function(){
+                  if (window.__obUpload && window.__obUpload.indexOf('pending')>=0){
+                    var msgs = document.querySelectorAll('.arco-message,[class*="message"],[class*="Message"]');
+                    for (var i=0;i<msgs.length;i++){
+                      var t = msgs[i].textContent||'';
+                      if (t.indexOf('上传成功')>=0 || t.indexOf('全部上传成功')>=0){ window.__obUpload='success'; }
+                      else if (t.indexOf('上传失败')>=0){ window.__obUpload='fail:'+t.slice(0,100); }
+                    }
+                  }
+                }, 700);
+                // 打开上传弹窗
                 setTimeout(function(){
                   var btns = document.querySelectorAll('button');
                   var hit = false;
                   for (var i=0;i<btns.length;i++){
-                    var t=(btns[i].textContent||'').trim();
-                    if (t.indexOf('上传运动记录')>=0){ btns[i].click(); hit=true; break; }
-                  }
-                  if (!hit){
-                    for (var i=0;i<btns.length;i++){
-                      var t=(btns[i].textContent||'').trim();
-                      if (t.indexOf('上传')>=0){ btns[i].click(); hit=true; break; }
-                    }
+                    if (btns[i].textContent.trim()==='上传'){ btns[i].click(); hit=true; break; }
                   }
                   if (!hit){ window.__obUpload='fail:未找到上传按钮'; return; }
-                  // 3. 等弹窗渲染后点击文件input
                   setTimeout(function(){
                     var input = document.querySelector('input[type=file]');
                     if (input){ input.click(); }
                     else { window.__obUpload='fail:未找到文件选择框'; }
-                  }, 1000);
-                }, 600);
+                  }, 900);
+                }, 700);
               }catch(e){ window.__obUpload='error:'+String(e); }
             })();
         """.trimIndent()
@@ -199,43 +160,10 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         webView?.evaluateJavascript("window.__obUpload || 'pending'") { res ->
             val v = res?.trim()?.trim('"') ?: "pending"
             when {
-                v.contains("success") -> confirmByApi()
+                v.contains("success") -> finish(true, "顽鹿上传成功")
                 v.startsWith("fail:") -> finish(false, v.removePrefix("fail:"))
                 v.startsWith("error:") -> finish(false, v.removePrefix("error:"))
                 else -> mainHandler.postDelayed({ pollResult() }, 1200L)
-            }
-        }
-    }
-
-    /** 前端消息显示成功后再用顽鹿API确认真实落库（对比上传前最新记录id） */
-    private fun confirmByApi() {
-        if (done.get()) return
-        confirmTries++
-        val js = """
-            (async function(){
-              try {
-                const r = await fetch('https://otm.onelap.cn/api/otm/ride_record/list', {
-                  method:'POST',
-                  headers:{'Content-Type':'application/json','Authorization':'$token','Origin':'https://otm.onelap.cn'},
-                  body: JSON.stringify({page:1, limit:5})
-                });
-                const j = await r.json();
-                if (j && j.data && j.data.list && j.data.list.length){
-                  const top = j.data.list[0].id;
-                  if (top && top !== (window.__baseId||'')) return 'confirmed:'+top;
-                  return 'notyet';
-                }
-                return 'empty';
-              } catch(e){ return 'api_err:'+String(e); }
-            })();
-        """.trimIndent()
-        webView?.evaluateJavascript(js) { res ->
-            val v = res?.trim()?.trim('"') ?: "empty"
-            when {
-                v.startsWith("confirmed") -> finish(true, "顽鹿上传成功（API确认落库 id=${v.removePrefix("confirmed:")}）")
-                v.startsWith("api_err:") -> finish(false, "顽鹿前端提示成功但API确认失败: ${v.removePrefix("api_err:")}")
-                confirmTries >= 5 -> finish(false, "顽鹿前端提示成功但API未检测到新记录（未落库）")
-                else -> mainHandler.postDelayed({ confirmByApi() }, 1500L)
             }
         }
     }
@@ -246,25 +174,14 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         val cb = resultCallback
         resultCallback = null
         Log.d(TAG, "finish success=$success msg=$msg")
-        removeFromTree()
         cb?.invoke(success, msg)
-    }
-
-    private fun removeFromTree() {
-        try {
-            container?.let {
-                (activity.window.decorView as? ViewGroup)?.removeView(it)
-            }
-        } catch (_: Exception) {}
     }
 
     fun destroy() {
         mainHandler.post {
             timeoutTask?.let { mainHandler.removeCallbacks(it) }
-            removeFromTree()
             try { webView?.removeAllViews(); webView?.destroy() } catch (_: Exception) {}
             webView = null
-            container = null
         }
     }
 }

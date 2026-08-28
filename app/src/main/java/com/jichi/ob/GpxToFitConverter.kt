@@ -36,6 +36,9 @@ object GpxToFitConverter {
 
     data class TrackPoint(val lat: Double, val lon: Double, val ele: Double, val ts: Long)
 
+    /** v6.2.5: 限制参与转换的轨迹点数，避免超大GPX(数万点)解析+距离计算导致卡顿；3000点足够还原轨迹 */
+    private const val MAX_POINTS = 3000
+
     fun isFit(data: ByteArray): Boolean =
         data.size >= 12 && data[8] == '.'.code.toByte() && data[9] == 'F'.code.toByte() &&
             data[10] == 'I'.code.toByte() && data[11] == 'T'.code.toByte()
@@ -57,7 +60,7 @@ object GpxToFitConverter {
     private fun parseGpx(gpx: String): List<TrackPoint> {
         val pts = mutableListOf<TrackPoint>()
         val m = TRKPT_RE.matcher(gpx)
-        while (m.find()) {
+        while (m.find() && pts.size < MAX_POINTS) {
             val lat = m.group(1).toDoubleOrNull() ?: continue
             val lon = m.group(2).toDoubleOrNull() ?: continue
             val inner = m.group(3)

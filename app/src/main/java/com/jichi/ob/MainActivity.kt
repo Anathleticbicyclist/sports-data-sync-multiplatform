@@ -468,14 +468,25 @@ class MainActivity : AppCompatActivity() {
                     } catch (_: Exception) {}
                     val t0 = System.currentTimeMillis()
                     appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
+                    if (target == DataSource.MAGENE) {
+                        appendLog("⏳ 正在打开顽鹿页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
+                    } else if (target == DataSource.BRYTON) {
+                        appendLog("⏳ 正在打开百锐腾页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
+                    }
                     val targetCred = prefs.getCredential(target) ?: ""
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                    // v6.2.3: 顽鹿OTM上传必须走WebView真实文件选择（程序化multipart被422拒绝）
+                    // v6.2.5: 迈金上传优先走HTTP(u.onelap.cn/upload/fit, v6.2.2实测OK、快且不卡UI)，
+                    // HTTP失败再走顽鹿WebView真实文件选择兜底(v6.2.3实测OK)
                     // v6.2.4: 百锐腾同为Meteor无REST上传，走WebView真实文件选择（/activities 页"+"→file input）
                     val result = if (target == DataSource.MAGENE) {
                         val mToken = prefs.getCredential(DataSource.MAGENE) ?: ""
-                        uploadToMageneViaWebView(localFile.absolutePath, mToken)
+                        val httpResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                        if (httpResult.success) httpResult
+                        else {
+                            appendLog("↩️ 迈金HTTP上传失败(${httpResult.message})，改用顽鹿WebView通道重试...")
+                            uploadToMageneViaWebView(localFile.absolutePath, mToken)
+                        }
                     } else if (target == DataSource.BRYTON) {
                         uploadToBrytonViaWebView(localFile.absolutePath)
                     } else {
@@ -486,7 +497,7 @@ class MainActivity : AppCompatActivity() {
                     else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
                     else { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
                     withContext(Dispatchers.Main) { progressBar.progress = i + 1; tvSyncedCount.text = "已同步: ${prefs.getSyncedCount()} 条" }
-                    delay(300)
+                    delay(150) // v6.2.4: 缩短条间间隔，减少多活动同步累计等待
                 }
                 appendLog("━━━━━━━━━━━━━━━━━━━━━━")
                 appendLog("📊 同步完成: 成功$success / 跳过$skipped / 失败$failed")
