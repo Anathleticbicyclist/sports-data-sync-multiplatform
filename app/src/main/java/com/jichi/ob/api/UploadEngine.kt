@@ -123,17 +123,44 @@ class UploadEngine {
                     return UploadResult(false, message = "iGPSPORT上传失败: 未获取到上传地址 ${bodyStr.take(100)}")
                 }
 
-                // 2) PUT 文件到OSS
-                val putReq = Request.Builder()
+                // 2) PUT 文件到OSS（v6.2.1: 403时自动降级不带Content-Type重试 + 记录OSS错误详情）
+                val ossError = StringBuilder()
+                var putCode: Int? = null
+                // 尝试①：带 Content-Type: application/octet-stream（标准OSS直传）
+                val putReq1 = Request.Builder()
                     .url(signedUrl)
                     .addHeader("Content-Type", "application/octet-stream")
                     .put(fitData.toRequestBody("application/octet-stream".toMediaType()))
                     .build()
-                val putResp = client.newCall(putReq).execute()
-                val putCode = putResp.code
-                putResp.close()
-                if (putCode !in 200..299) {
-                    return UploadResult(false, message = "iGPSPORT上传失败: OSS上传HTTP $putCode")
+                client.newCall(putReq1).execute().use { pr ->
+                    putCode = pr.code
+                    if (pr.code in 200..299) {
+                        // 成功，直接进入第3步
+                    } else {
+                        val errBody = pr.body?.string()?.trim() ?: ""
+                        Log.w(TAG, "iGPSPORT OSS PUT#1 HTTP ${pr.code}: $errBody")
+                        ossError.append("PUT#$putCode $errBody")
+                        // 尝试②：不带 Content-Type（部分OSS签名URL绑定Content-Type时带错误头会403）
+                        if (pr.code == 403 || pr.code == 400) {
+                            val putReq2 = Request.Builder()
+                                .url(signedUrl)
+                                .put(fitData.toRequestBody(null))
+                                .build()
+                            client.newCall(putReq2).execute().use { pr2 ->
+                                if (pr2.code in 200..299) {
+                                    putCode = 200
+                                } else {
+                                    val errBody2 = pr2.body?.string()?.trim() ?: ""
+                                    Log.w(TAG, "iGPSPORT OSS PUT#2 HTTP ${pr2.code}: $errBody2")
+                                    ossError.append(" | PUT2#${pr2.code} $errBody2")
+                                    putCode = pr2.code
+                                }
+                            }
+                        }
+                    }
+                }
+                if (putCode == null || putCode !in 200..299) {
+                    return UploadResult(false, message = "iGPSPORT上传失败: OSS上传HTTP $putCode ${ossError.toString().take(200)}")
                 }
 
                 // 3) 通知iGPSPORT解析（uploadByOss）
@@ -180,18 +207,19 @@ class UploadEngine {
         return try {
             val fileName = "${record.source.shortName}_${record.id}.fit"
             val csrf = extra["csrf"] ?: ""
-            val uuid = java.util.UUID.randomUUID().toString()
 
-            // 行者网页版上传接口（已验证）：POST /api/v1/workout/upload/
-            // multipart: file + uuid(随机) ; Cookie: sessionid+csrftoken ; X-CSRFToken
+            // 行者官方上传接口（v6.2.1 实测修复）：POST /api/v1/fit/upload/
+            // 旧接口 /api/v1/workout/upload/ (file+随机uuid) 只存文件不解析 → 平台不显示(is_valid=0)
+            // 正确接口需字段 fit_file + md5(文件MD5)，返回 data.workout_id 且 handle_msg=ok → 正常入库(is_valid=1)
+            val md5 = MessageDigest.getInstance("MD5").digest(fitData).joinToString("") { "%02x".format(it) }
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
-                .addFormDataPart("uuid", uuid)
+                .addFormDataPart("fit_file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
+                .addFormDataPart("md5", md5)
                 .build()
 
             val reqBuilder = Request.Builder()
-                .url("https://www.imxingzhe.com/api/v1/workout/upload/")
+                .url("https://www.imxingzhe.com/api/v1/fit/upload/")
                 .addHeader("Cookie", "sessionid=$sessionId${if (csrf.isNotEmpty()) "; csrftoken=$csrf" else ""}")
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                 .addHeader("Referer", "https://www.imxingzhe.com/upload/fit")
@@ -216,9 +244,12 @@ class UploadEngine {
                     resp.code == 200 -> {
                         val json = try { JSONObject(result) } catch (_: Exception) { null }
                         val code = json?.optInt("code", -1) ?: -1
-                        val dataId = json?.optJSONObject("data")?.optLong("id", 0L) ?: 0L
-                        if (code == 0 && dataId > 0) {
-                            UploadResult(true, targetId = dataId.toString(), message = "行者上传成功(id=$dataId)")
+                        val dataObj = json?.optJSONObject("data")
+                        val workoutId = dataObj?.optLong("workout_id", 0L) ?: 0L
+                        val handleMsg = dataObj?.optString("handle_msg", "") ?: ""
+                        // 正确解析：返回 workout_id>0 且 handle_msg=ok（或含 msg=上传成功）
+                        if (code == 0 && workoutId > 0) {
+                            UploadResult(true, targetId = workoutId.toString(), message = "行者上传成功(id=$workoutId)")
                         } else {
                             UploadResult(false, message = "行者上传失败: ${json?.optString("msg") ?: result.take(100)}")
                         }

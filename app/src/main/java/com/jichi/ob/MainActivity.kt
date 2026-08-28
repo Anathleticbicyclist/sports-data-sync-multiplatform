@@ -53,7 +53,9 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "JichiOB"
-        private const val APP_VERSION = "v6.1.6"
+        // 动态读取BuildConfig版本号，保证启动日志与当前版本一一对应
+        private val APP_VERSION = "v${BuildConfig.VERSION_NAME}"
+        private const val APP_EDITION = "开发体验版"
     }
 
     private lateinit var prefs: PrefsManager
@@ -82,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnTestDownload: MaterialButton
     private lateinit var btnPowerGuide: MaterialButton
     private lateinit var btnCopyLog: MaterialButton
+    private lateinit var btnClearSync: MaterialButton
     private lateinit var sliderCount: Slider
     private lateinit var tvCount: TextView
     private lateinit var sliderSkip: Slider
@@ -175,7 +178,7 @@ class MainActivity : AppCompatActivity() {
             updateTargetChips()
             initFixWebView()
             requestNotificationPermission()
-            appendLog("🚴 鸡翅幸哲迈进OB $APP_VERSION 启动")
+            appendLog("🚴 鸡翅幸哲迈进OB($APP_EDITION) $APP_VERSION 启动")
             appendLog("🎯 让运动数据自由流动")
             appendLog("📱 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLog("📂 存储目录: ${saveDir.absolutePath}")
@@ -203,6 +206,7 @@ class MainActivity : AppCompatActivity() {
         btnTestDownload = findViewById(R.id.btnTestDownload)
         btnPowerGuide = findViewById(R.id.btnPowerGuide)
         btnCopyLog = findViewById(R.id.btnCopyLog)
+        btnClearSync = findViewById(R.id.btnClearSync)
         sliderCount = findViewById(R.id.sliderCount)
         tvCount = findViewById(R.id.tvCount)
         sliderSkip = findViewById(R.id.sliderSkip)
@@ -238,6 +242,7 @@ class MainActivity : AppCompatActivity() {
         btnStop.setOnClickListener { stopSync() }
         btnTestDownload.setOnClickListener { testDownload() }
         btnPowerGuide.setOnClickListener { showPowerGuide() }
+        btnClearSync.setOnClickListener { clearSyncMemory() }
         btnCopyLog.setOnClickListener {
             val log = tvLog.text?.toString() ?: ""
             if (log.isNotBlank()) {
@@ -377,6 +382,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setSyncing(syncing: Boolean) {
+        AutoSyncService.syncing = syncing
         runOnUiThread {
             btnSync.isEnabled = !syncing
             btnStop.isEnabled = syncing
@@ -467,6 +473,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
+
+    /**
+     * 清除上传记忆：删除全部已同步记录ID，下次同步将重新全量上传（便于频繁测试）
+     */
+    private fun clearSyncMemory() {
+        try {
+            val before = prefs.getSyncedCount()
+            prefs.clearSyncedIds()
+            tvSyncedCount.text = "已同步: 0 条"
+            appendLog("🗑 已清除上传记忆($before 条) → 下次同步将重新全量上传")
+            Toast.makeText(this, "上传记忆已清除($before 条)", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "clearSyncMemory error", e)
+            Toast.makeText(this, "清除失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private fun startAutoSync() {
         val interval = prefs.getAutoInterval()

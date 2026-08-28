@@ -139,6 +139,12 @@ class PrefsManager(context: Context) {
     }
     fun isSynced(id: String): Boolean = getSyncedIdsInternal().contains(id)
     fun getSyncedCount(): Int = getSyncedIdsInternal().size
+    /** 清除全部上传记忆（同步记忆），用于频繁测试时重新全量同步 */
+    fun clearSyncedIds() {
+        syncedCache?.clear()
+        syncedCache = mutableSetOf()
+        prefs.edit().remove(KEY_SYNCED_IDS).apply()
+    }
 
     // ===== 设置记忆 =====
     fun getLastSource(): String = prefs.getString(KEY_LAST_SOURCE, DataSource.XINGZHE.shortName) ?: DataSource.XINGZHE.shortName
