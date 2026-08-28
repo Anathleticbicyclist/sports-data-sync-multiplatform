@@ -284,19 +284,19 @@ class MainActivity : AppCompatActivity() {
         // v6.2.8: 更新链接改为"标题可点、冒号后说明为注释不可点"
         setupLinkWithNote(
             findViewById(R.id.tvUpdateLink),
-            "📦 鸡翅幸哲迈进OB(开发体验版)更新链接:",
-            " 开发版不稳定且用且珍惜",
+            "📦 鸡翅幸哲迈进OB(开发体验版)",
+            "开发版不稳定且用且珍惜",
             "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform"
         )
         setupLinkWithNote(
             findViewById(R.id.tvOfficialLink),
-            "🚴 鸡翅幸哲迈进OB正式版更新链接:",
-            " 正式版稳定可用，开发版不稳定请下载正式版",
+            "🚴 鸡翅幸哲迈进OB正式版",
+            "正式版稳定可用，开发版不稳定请下载正式版",
             "https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase"
         )
     }
 
-    /** 底部更新链接：标题灰色小字可点击(无下划线)、说明注释另起一行 */
+    /** 底部更新链接：标题蓝色可点击(无下划线)、说明注释另起一行灰色 */
     private fun setupLinkWithNote(tv: TextView?, link: String, note: String, url: String) {
         if (tv == null) return
         val sb = SpannableStringBuilder()
@@ -307,17 +307,17 @@ class MainActivity : AppCompatActivity() {
             }
             override fun updateDrawState(ds: TextPaint) {
                 super.updateDrawState(ds)
-                ds.color = Color.parseColor("#999999") // 灰色
+                ds.color = Color.parseColor("#1E88E5") // 蓝色
                 ds.isUnderlineText = false // 取消下划线
             }
         }, 0, link.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         sb.append("\n")
         sb.append(note)
-        // 注释部分也设灰色（小字）
+        // 注释部分灰色
         sb.setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#999999")),
             link.length + 1, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         tv.text = sb
-        tv.textSize = 9f
+        tv.textSize = 11f
         tv.movementMethod = LinkMovementMethod.getInstance()
         tv.highlightColor = Color.TRANSPARENT
     }
