@@ -1,6 +1,7 @@
 package com.jichi.ob.api
 
 import android.util.Log
+import com.jichi.ob.GpxToFitConverter
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.api.BlackbirdApi
 import com.jichi.ob.api.BrytonApi
@@ -329,8 +330,20 @@ class UploadEngine {
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            val fileName = "${record.source.shortName}_${record.id}.fit"
-            val err = blackbirdApi.uploadActivity(cookie, fitData, fileName)
+            // v6.2.4: 黑鸟只接受FIT。行者等来源下载的是GPX，直接上传会被黑鸟当FIT解析而失败，
+            // 必须先把GPX转换为FIT（转换格式已在线验证：黑鸟返回recordId并落库）
+            val uploadBytes: ByteArray
+            val fileName: String
+            if (GpxToFitConverter.isFit(fitData)) {
+                uploadBytes = fitData
+                fileName = "${record.source.shortName}_${record.id}.fit"
+            } else {
+                val fitBytes = GpxToFitConverter.convert(fitData)
+                uploadBytes = fitBytes
+                fileName = "${record.source.shortName}_${record.id}.fit"
+                Log.d(TAG, "GPX->FIT converted: ${fitData.size} -> ${fitBytes.size} bytes")
+            }
+            val err = blackbirdApi.uploadActivity(cookie, uploadBytes, fileName)
             Log.d(TAG, "Blackbird upload result: ${err ?: "ok"} (${System.currentTimeMillis() - start}ms)")
             if (err == null) UploadResult(true, message = "黑鸟单车上传成功")
             else UploadResult(false, message = err)

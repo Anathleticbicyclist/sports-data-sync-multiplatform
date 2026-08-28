@@ -14,32 +14,29 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.core.content.FileProvider
+import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * 迈金(顽鹿OTM) WebView 上传器 —— v6.2.4 重构版
+ * 百锐腾(Bryton Active) WebView 上传器 —— v6.2.4
  *
- * 【为什么需要WebView】
- * 顽鹿 upload/fit 接口 (POST https://otm.onelap.cn/api/otm/ride_record/upload/fit, multipart字段`jilu`)
- * 对"程序化构造的File"一律返回 422 {"code":422,"message":"没有上传文件"}（Python/curl/页面JS new File()
- * /CDP setFileInputFiles 全部验证失败）。唯一成功路径是"真实文件选择"：浏览器原生 input[type=file]
- * 选择本地文件。因此用 WebView + WebChromeClient.onShowFileChooser 把本地FIT喂给页面 input.files，
- * 与用户手动在网页上选择文件完全等价。
+ * 【背景】百锐腾是 Meteor(DDP) 应用，无公开 REST 上传接口（POST /user/upload/{userId} 需真实文件选择）。
+ * 已验证：/activities 页右上角"+"(img src=0_add.png) → 上传弹窗 input[type=file] → 真实文件选择成功落库
+ * （返回记录出现在 userActivities collection，页面显示 "完成"）。
  *
- * 【v6.2.4 修复点（用户实测 v6.2.3"迈金上传没搞定"）】
- * 1. 上一版 WebView 仅 new 出来但从未 addView 到视图树，导致 onPageFinished / onShowFileChooser
- *    根本不触发、页面不加载。本版将 WebView 放入全屏透明 FrameLayout 并 addView 到 decorView，
- *    确保页面真正加载、文件选择回调可靠触发；上传完成后立即移除。
- * 2. 结果不再只看前端 toast 消息（前端会把 422 当成功弹出"上传成功"），上传后额外调顽鹿
- *    ride_record/list API 对比"上传前最新记录id"，确认真实落库后才判定成功。
+ * 【登录态注入】百锐腾 Meteor 登录态在 localStorage(Meteor.loginToken/Meteor.userId)。
+ * WebView 加载 active.brytonsport.com 后先写入这两项再 reload，页面即保持登录态。
  *
- * 【登录注入】顽鹿 Web 与 App 同源：App 内已通过 API 登录拿到 token，
- * WebView 加载 otm.onelap.cn 后把 token 写入 localStorage('token') 即保持登录态，无需二次登录。
+ * 【结果确认】不只看前端 toast，上传后页面内查 userActivities collection 对比"上传前最新 _id"，
+ * 确认真实落库后才判定成功。
  */
-class MageneWebUploader(private val activity: Activity, private val token: String) {
-
-    private val TAG = "MageneWebUploader"
+class BrytonWebUploader(
+    private val activity: Activity,
+    private val token: String,
+    private val userId: String
+) {
+    private val TAG = "BrytonWebUploader"
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var webView: WebView? = null
@@ -52,7 +49,7 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
     private var baseRecordId: String? = null
     private var confirmTries = 0
 
-    /** 上传单个FIT文件。onResult(success, message)。可重复调用（每次上传新的fit）。 */
+    /** 上传单个FIT/GPX文件。onResult(success, message)。可重复调用。 */
     fun upload(fitPath: String, onResult: (Boolean, String) -> Unit) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post { upload(fitPath, onResult) }
@@ -60,7 +57,7 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         }
         val f = File(fitPath)
         if (!f.exists() || f.length() < 100L) {
-            onResult(false, "待上传FIT文件不存在或无效: $fitPath")
+            onResult(false, "待上传文件不存在或无效: $fitPath")
             return
         }
         fitFile = f
@@ -70,8 +67,8 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         baseRecordId = null
         confirmTries = 0
         ensureWebView()
-        webView?.loadUrl("https://otm.onelap.cn/calendar")
-        timeoutTask = Runnable { finish(false, "顽鹿上传超时(60s)：页面加载或上传未完成，请确认顽鹿登录有效") }
+        webView?.loadUrl("https://active.brytonsport.com/activities")
+        timeoutTask = Runnable { finish(false, "百锐腾上传超时(60s)：请确认百锐腾网页登录有效") }
         mainHandler.postDelayed(timeoutTask!!, 60000L)
     }
 
@@ -79,7 +76,7 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         if (webView != null) return
         val container = FrameLayout(activity).apply {
             setBackgroundColor(Color.TRANSPARENT)
-            alpha = 0f // 完全透明不可见；仍attach并渲染，保证 onShowFileChooser 触发
+            alpha = 0f
         }
         val wv = WebView(activity).apply {
             settings.javaScriptEnabled = true
@@ -91,11 +88,10 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
                     if (done.get()) return
                     val u = url ?: ""
                     Log.d(TAG, "page finished #${pageLoadCount + 1}: $u")
-                    if (!u.contains("otm.onelap.cn")) return
+                    if (!u.contains("active.brytonsport.com")) return
                     pageLoadCount++
                     if (pageLoadCount == 1) {
-                        // 第1次加载完成：注入token后reload，让页面用token初始化登录态
-                        injectTokenAndReload(view)
+                        injectAndReload(view)
                     } else {
                         startUploadFlow(view)
                     }
@@ -137,58 +133,47 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         this.container = container
     }
 
-    private fun injectTokenAndReload(view: WebView?) {
+    private fun injectAndReload(view: WebView?) {
         val js = """
             (function(){
               try {
-                localStorage.setItem('token', '${token.replace("'", "\\'")}');
+                localStorage.setItem('Meteor.loginToken', '${token.replace("'", "\\'")}');
+                localStorage.setItem('Meteor.userId', '${userId.replace("'", "\\'")}');
                 location.reload();
-              } catch(e){ window.__obUpload='error:'+String(e); }
+              } catch(e){ window.__bbUpload='error:'+String(e); }
             })();
         """.trimIndent()
         view?.evaluateJavascript(js) { }
     }
 
     private fun startUploadFlow(view: WebView?) {
-        val fitName = fitFile?.name ?: "upload.fit"
         val js = """
             (async function(){
               try{
-                // 1. 记录上传前最新记录id，作为落库确认基准
+                // 1. 记录上传前最新记录id（collection userActivities 需订阅完成）
                 try {
-                  const r = await fetch('https://otm.onelap.cn/api/otm/ride_record/list', {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json','Authorization':'$token','Origin':'https://otm.onelap.cn'},
-                    body: JSON.stringify({page:1, limit:5})
-                  });
-                  const j = await r.json();
-                  if (j && j.data && j.data.list && j.data.list.length) window.__baseId = j.data.list[0].id;
+                  const c = Meteor.connection._mongo_livedata_collections['userActivities'];
+                  if (c){ const all=c.find().fetch(); window.__baseId = all.length?all[0]._id:''; }
                   else window.__baseId = '';
                 } catch(e){ window.__baseId = ''; }
-                window.__obUpload = 'pending';
-                // 2. 打开上传弹窗
+                window.__bbUpload = 'pending';
+                // 2. 点右上角 + 图标
                 setTimeout(function(){
-                  var btns = document.querySelectorAll('button');
-                  var hit = false;
-                  for (var i=0;i<btns.length;i++){
-                    var t=(btns[i].textContent||'').trim();
-                    if (t.indexOf('上传运动记录')>=0){ btns[i].click(); hit=true; break; }
+                  var imgs = document.querySelectorAll('img');
+                  var add = null;
+                  for (var i=0;i<imgs.length;i++){
+                    if ((imgs[i].src||'').indexOf('0_add')>=0){ add=imgs[i]; break; }
                   }
-                  if (!hit){
-                    for (var i=0;i<btns.length;i++){
-                      var t=(btns[i].textContent||'').trim();
-                      if (t.indexOf('上传')>=0){ btns[i].click(); hit=true; break; }
-                    }
-                  }
-                  if (!hit){ window.__obUpload='fail:未找到上传按钮'; return; }
+                  if (!add){ window.__bbUpload='fail:未找到+按钮'; return; }
+                  add.click();
                   // 3. 等弹窗渲染后点击文件input
                   setTimeout(function(){
-                    var input = document.querySelector('input[type=file]');
+                    var input = document.querySelector('#fileInput') || document.querySelector('input[type=file]');
                     if (input){ input.click(); }
-                    else { window.__obUpload='fail:未找到文件选择框'; }
-                  }, 1000);
-                }, 600);
-              }catch(e){ window.__obUpload='error:'+String(e); }
+                    else { window.__bbUpload='fail:未找到文件选择框'; }
+                  }, 1500);
+                }, 1200);
+              }catch(e){ window.__bbUpload='error:'+String(e); }
             })();
         """.trimIndent()
         view?.evaluateJavascript(js) { }
@@ -196,10 +181,10 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
 
     private fun pollResult() {
         if (done.get()) return
-        webView?.evaluateJavascript("window.__obUpload || 'pending'") { res ->
+        webView?.evaluateJavascript("window.__bbUpload || 'pending'") { res ->
             val v = res?.trim()?.trim('"') ?: "pending"
             when {
-                v.contains("success") -> confirmByApi()
+                v.contains("success") || v.contains("完成") -> confirmByCollection()
                 v.startsWith("fail:") -> finish(false, v.removePrefix("fail:"))
                 v.startsWith("error:") -> finish(false, v.removePrefix("error:"))
                 else -> mainHandler.postDelayed({ pollResult() }, 1200L)
@@ -207,21 +192,18 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         }
     }
 
-    /** 前端消息显示成功后再用顽鹿API确认真实落库（对比上传前最新记录id） */
-    private fun confirmByApi() {
+    /** 前端提示完成后再用 userActivities collection 确认真实落库 */
+    private fun confirmByCollection() {
         if (done.get()) return
         confirmTries++
         val js = """
             (async function(){
               try {
-                const r = await fetch('https://otm.onelap.cn/api/otm/ride_record/list', {
-                  method:'POST',
-                  headers:{'Content-Type':'application/json','Authorization':'$token','Origin':'https://otm.onelap.cn'},
-                  body: JSON.stringify({page:1, limit:5})
-                });
-                const j = await r.json();
-                if (j && j.data && j.data.list && j.data.list.length){
-                  const top = j.data.list[0].id;
+                const c = Meteor.connection._mongo_livedata_collections['userActivities'];
+                if (!c) return 'empty';
+                const all = c.find().fetch();
+                if (all.length){
+                  const top = all[0]._id;
                   if (top && top !== (window.__baseId||'')) return 'confirmed:'+top;
                   return 'notyet';
                 }
@@ -232,10 +214,10 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
         webView?.evaluateJavascript(js) { res ->
             val v = res?.trim()?.trim('"') ?: "empty"
             when {
-                v.startsWith("confirmed") -> finish(true, "顽鹿上传成功（API确认落库 id=${v.removePrefix("confirmed:")}）")
-                v.startsWith("api_err:") -> finish(false, "顽鹿前端提示成功但API确认失败: ${v.removePrefix("api_err:")}")
-                confirmTries >= 5 -> finish(false, "顽鹿前端提示成功但API未检测到新记录（未落库）")
-                else -> mainHandler.postDelayed({ confirmByApi() }, 1500L)
+                v.startsWith("confirmed") -> finish(true, "百锐腾上传成功（已落库 id=${v.removePrefix("confirmed:")}）")
+                v.startsWith("api_err:") -> finish(false, "百锐腾前端提示成功但落库确认失败: ${v.removePrefix("api_err:")}")
+                confirmTries >= 5 -> finish(false, "百锐腾前端提示完成但未检测到新记录（未落库）")
+                else -> mainHandler.postDelayed({ confirmByCollection() }, 1500L)
             }
         }
     }
@@ -252,9 +234,7 @@ class MageneWebUploader(private val activity: Activity, private val token: Strin
 
     private fun removeFromTree() {
         try {
-            container?.let {
-                (activity.window.decorView as? ViewGroup)?.removeView(it)
-            }
+            container?.let { (activity.window.decorView as? ViewGroup)?.removeView(it) }
         } catch (_: Exception) {}
     }
 
