@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity() {
             blackbirdApi = BlackbirdApi()
             brytonApi = BrytonApi()
             outbaseApi = OutbaseApi()
-            uploadEngine = UploadEngine()
+            uploadEngine = UploadEngine(this)
             if (!saveDir.exists()) saveDir.mkdirs()
             initViews()
             setupListeners()

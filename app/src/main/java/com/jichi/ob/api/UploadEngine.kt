@@ -23,10 +23,15 @@ import java.util.concurrent.TimeUnit
  * 支持上传到：Outbase / iGPSPORT / 行者 / 迈金
  * 黑鸟单车 / 百锐腾：开发中
  */
-class UploadEngine {
+class UploadEngine(private val context: android.content.Context? = null) {
 
     companion object {
         private const val TAG = "UploadEngine"
+    }
+
+    /** v6.2.6: Outbase GPX→FIT 转换桥（Outbase官方gpx2fit库，复用WebBridge/bridge.html/gpx2fit.js） */
+    private val outbaseBridge: com.jichi.ob.util.WebBridge? by lazy {
+        context?.let { com.jichi.ob.util.WebBridge(it) }
     }
 
     private val client = OkHttpClient.Builder()
@@ -78,8 +83,24 @@ class UploadEngine {
         sessionId: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         return try {
+            // v6.2.6 修复(Outbase解析失败根因)：Outbase只接受真正的FIT。行者等来源下载的是GPX，
+            // 若直接把GPX以.fit扩展名上传，Outbase按FIT解析GPX必失败→记录"待处理"永不解析。
+            // 与正式版项目(sync-igpsport-magene-onelap-xingzhe-data-to-outbase)一致：
+            // 用Outbase官方gpx2fit库先把GPX转成FIT再上传。
+            val uploadData = if (com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
+                fitData
+            } else if (outbaseBridge != null) {
+                try {
+                    val fit = outbaseBridge!!.convertGpxToFit(fitData)
+                    Log.d(TAG, "Outbase GPX->FIT converted: ${fitData.size} -> ${fit.size} bytes")
+                    fit
+                } catch (e: Exception) {
+                    Log.w(TAG, "Outbase GPX->FIT失败，退回原文件: ${e.message}")
+                    fitData
+                }
+            } else fitData
             val fileName = "${record.source.shortName}_${record.id}.fit"
-            val (msg, skipped, _) = outbaseApi.upload(sessionId, null, fitData, fileName)
+            val (msg, skipped, _) = outbaseApi.upload(sessionId, null, uploadData, fileName)
             UploadResult(!skipped && msg.contains("成功"), message = msg, skipped = skipped)
         } catch (e: Exception) {
             Log.e(TAG, "Outbase upload error", e)

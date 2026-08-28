@@ -83,6 +83,8 @@ class BrytonWebUploader(
             settings.domStorageEnabled = true
             settings.javaScriptCanOpenWindowsAutomatically = true
             settings.cacheMode = WebSettings.LOAD_DEFAULT
+            settings.blockNetworkImage = true
+            settings.loadsImagesAutomatically = false
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     if (done.get()) return
