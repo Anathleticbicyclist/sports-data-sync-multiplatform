@@ -412,6 +412,16 @@ class MainActivity : AppCompatActivity() {
                     appendLog("🔍 校验Outbase会话...")
                     if (outbaseApi.warmUp(obSid)) appendLog("✅ Outbase会话有效") else appendLog("⚠️ Outbase会话校验未通过")
                 }
+                if (target == DataSource.XINGZHE) {
+                    val xzSid = prefs.getXingzheSessionId() ?: ""
+                    appendLog("🔍 校验行者会话...")
+                    if (xzSid.isNotEmpty() && xingzheApi.verifySession(xzSid)) {
+                        appendLog("✅ 行者会话有效")
+                    } else {
+                        appendLog("⚠️ 行者登录已过期或未登录，请重新登录行者后重试")
+                        setSyncing(false); return@launch
+                    }
+                }
                 withContext(Dispatchers.Main) { progressBar.isIndeterminate = false; progressBar.max = activities.size; progressBar.progress = 0 }
                 var success = 0; var skipped = 0; var failed = 0
                 for ((i, act) in activities.withIndex()) {

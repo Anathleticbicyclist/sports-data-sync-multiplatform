@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.1.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -18,7 +18,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.1.8 |
+| 当前版本 | v6.2.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -146,6 +146,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.0 (2026-08-28)
+1. **行者上传认证失败识别修复** — 实测行者接口：认证失败时返回 HTTP 401 + `{"code":401,"msg":"Authentication credentials were not provided."}`，部分场景曾出现 HTTP 200 + code:401。现统一识别（HTTP 401/403 + body特征多维度检测），明确提示"行者登录已过期或失效，请重新登录行者"，不再显示技术性报错
+2. **行者会话预检** — 同步开始时先校验行者会话（user_info接口），失效立即中止并提示重新登录，避免20条记录全部报错刷屏
+3. **行者上传实测验证** — 沙箱真实账号登录（account+RSA加密密码）+ 有效sessionid上传FIT成功（code:0），确认行者上传接口与APP代码逻辑正常；失败根因为行者会话过期，需重新登录
+
 
 ### v6.1.8 (2026-08-27)
 1. **底部更新链接修正** — 更新链接指向开发测试版仓库 `sports-data-sync-multiplatform`（此前误指向正式版仓库）
