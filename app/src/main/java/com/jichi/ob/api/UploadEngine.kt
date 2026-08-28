@@ -89,16 +89,27 @@ class UploadEngine(private val context: android.content.Context? = null) {
             // 用Outbase官方gpx2fit库先把GPX转成FIT再上传。
             val uploadData = if (com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
                 fitData
-            } else if (outbaseBridge != null) {
-                try {
-                    val fit = outbaseBridge!!.convertGpxToFit(fitData)
-                    Log.d(TAG, "Outbase GPX->FIT converted: ${fitData.size} -> ${fit.size} bytes")
-                    fit
+            } else {
+                // 优先官方gpx2fit（与正式版一致），失败/无桥时退回自研转换器双保险
+                val officialFit = try {
+                    if (outbaseBridge != null) {
+                        val f = outbaseBridge!!.convertGpxToFit(fitData)
+                        Log.d(TAG, "Outbase GPX->FIT converted(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
+                        f
+                    } else null
                 } catch (e: Exception) {
-                    Log.w(TAG, "Outbase GPX->FIT失败，退回原文件: ${e.message}")
+                    Log.w(TAG, "Outbase 官方gpx2fit转换失败: ${e.message}")
+                    null
+                }
+                officialFit ?: try {
+                    val f = com.jichi.ob.GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "Outbase GPX->FIT converted(自研兜底): ${fitData.size} -> ${f.size} bytes")
+                    f
+                } catch (e: Exception) {
+                    Log.w(TAG, "Outbase 自研转换也失败，退回原文件: ${e.message}")
                     fitData
                 }
-            } else fitData
+            }
             val fileName = "${record.source.shortName}_${record.id}.fit"
             val (msg, skipped, _) = outbaseApi.upload(sessionId, null, uploadData, fileName)
             UploadResult(!skipped && msg.contains("成功"), message = msg, skipped = skipped)

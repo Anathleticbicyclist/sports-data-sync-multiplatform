@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.2.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.2.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.2.6 |
+| 当前版本 | v6.2.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -153,6 +153,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.2.7 (2026-08-28)
+1. **黑鸟上传FIT_FILE_ERROR修复（关键）** — 根因：Kotlin时间解析用Instant.parse只认ISO "T"格式，行者GPX的`<time>`若是空格格式("2026-08-25 12:00:00")解析失败→所有record时间戳相同→FIT时间不递增被黑鸟拒。已修复：①时间解析兼容空格/无Z/毫秒格式；②即使完全无time也按索引生成递增时间戳(每秒一点)，保证FIT时间序列合理
+2. **Outbase官方gpx2fit完整版** — 单独gpx2fit.js缺683等依赖模块(官网动态加载)，转换会失败。已用浏览器提取全部49个依赖模块合并成自包含版本(313KB)放入assets，bridge.html增强webpack运行时辅助方法(req.o/d/r/n/t)，官方转换现在真正可用
+3. **Outbase上传双保险** — 官方gpx2fit优先，失败自动fallback自研GpxToFitConverter（与黑鸟同款，无外部依赖）
+4. **版本号更新** — v6.2.7 (versionCode 627)
 
 ### v6.2.6 (2026-08-28)
 1. **Outbase上传解析失败修复（关键）** — 实测"行者→Outbase"返回"上传成功[待处理]"但Outbase内记录解析失败。根因：Outbase只接受真正的FIT文件，而行者下载的是GPX，旧代码直接把GPX以`.fit`扩展名上传，Outbase按FIT解析GPX必失败→记录永远"待处理"。已对齐正式版项目(sync-igpsport-magene-onelap-xingzhe-data-to-outbase)方案：**用Outbase官方gpx2fit库先转GPX→FIT再上传**（WebBridge/bridge.html/gpx2fit.js，含UTC+8时间对齐）
