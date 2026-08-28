@@ -39,9 +39,9 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     OUTBASE(true, ""),
     IGPSPORT(true, "官方第三方上传API"),
     XINGZHE(true, "官方开放API"),
-    MAGENE(true, "顽鹿OTM WebView真实文件选择上传 (v6.2.3+)"),
-    BLACKBIRD(true, ""),
-    BRYTON(true, "");
+    MAGENE(false, "开发中"),
+    BLACKBIRD(false, "开发中"),
+    BRYTON(false, "开发中");
 
     companion object {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {
