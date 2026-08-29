@@ -241,19 +241,21 @@ class BlackbirdApi {
             val allKeys = data.names()?.let { arr -> (0 until arr.length()).map { arr.optString(it) }.joinToString(",") } ?: "(无)"
             val trackStr = data.optString("track", data.optString("points", ""))
             val firstPoints = trackStr.split(";").take(2).joinToString(" | ")
-            Log.w(TAG, "===== 黑鸟活动调试 ===== keys=$allKeys startTime=$startTime")
+            // v6.3.9: startTime可能是毫秒(13位)或秒(10位)，自动判断
+            val startTimeSec = if (startTime > 1000000000000L) startTime / 1000 else startTime
+            Log.w(TAG, "===== 黑鸟活动调试 ===== keys=$allKeys startTimeRaw=$startTime startTimeSec=$startTimeSec")
             Log.w(TAG, "===== track前2点: $firstPoints =====")
 
             // 从轨迹点构建GPX：track可能是JSONArray（旧格式）或分号分隔字符串（实际格式）
             val trackArr = data.optJSONArray("track") ?: data.optJSONArray("points")
             if (trackArr != null && trackArr.length() > 0) {
-                val gpx = buildGpx(trackArr, recordId, startTime, convertCoord)
+                val gpx = buildGpx(trackArr, recordId, startTimeSec, convertCoord)
                 Log.d(TAG, "GPX built: ${gpx.size} bytes from ${trackArr.length()} points")
                 return@withContext gpx
             }
             if (trackStr.isNotBlank()) {
-                val gpx = buildGpxFromTrackString(trackStr, recordId, startTime, convertCoord)
-                Log.d(TAG, "GPX built from track string: ${gpx.size} bytes (startTime=$startTime)")
+                val gpx = buildGpxFromTrackString(trackStr, recordId, startTimeSec, convertCoord)
+                Log.d(TAG, "GPX built from track string: ${gpx.size} bytes (startTime=$startTimeSec)")
                 return@withContext gpx
             }
 
@@ -374,7 +376,11 @@ class BlackbirdApi {
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>")
         Log.d(TAG, "buildGpxFromTrackString: $count points, time=$hasTime hr=$hasHr power=$hasPower cad=$hasCad")
-        return sb.toString().toByteArray()
+        // v6.3.9调试：输出GPX前3个trkpt完整内容，确认时间/心率/功率/坐标
+        val gpxStr = sb.toString()
+        val firstTrkpts = Regex("<trkpt.*?</trkpt>", RegexOption.DOT_MATCHES_ALL).findAll(gpxStr).take(3).map { it.value.replace("\\s+".toRegex(), " ") }.joinToString(" || ")
+        Log.w(TAG, "===== 黑鸟GPX前3点(startTime=$startTimeSec): $firstTrkpts =====")
+        return gpxStr.toByteArray()
     }
 
     /**
