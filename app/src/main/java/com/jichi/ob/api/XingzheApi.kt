@@ -119,34 +119,13 @@ class XingzheApi {
         }
  
     /**
-     * 下载: GPX优先（稳定），回退FIT
+     * 下载: v6.3.6 FIT优先（保留功率/心率/踏频），FIT失败回退GPX转换
      */
     suspend fun downloadGpxOrFit(sessionId: String, workoutId: String): Pair<ByteArray, FileKind> =
         withContext(Dispatchers.IO) {
             val headers = authHeaders(sessionId)
  
-            // 方式1: GPX（优先）——注意必须带尾斜杠，否则Django返回401
-            try {
-                val req = Request.Builder().url("$BASE_URL/pgworkout/$workoutId/gpx/")
-                    .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
-                    .get().build()
-                val resp = client.newCall(req).execute()
-                if (resp.code == 200) {
-                    val bytes = resp.body?.bytes()
-                    if (bytes != null && bytes.size > 100) {
-                        val head = String(bytes, 0, minOf(60, bytes.size))
-                        if (head.contains("<?xml") || head.contains("<gpx")) {
-                            Log.d(TAG, "✅ GPX: ${bytes.size} bytes (id=$workoutId)")
-                            return@withContext Pair(bytes, FileKind.GPX)
-                        }
-                    }
-                }
-                Log.d(TAG, "GPX不可用 (HTTP ${resp.code})，尝试FIT...")
-            } catch (e: Exception) {
-                Log.w(TAG, "GPX异常: ${e.message}，尝试FIT...")
-            }
- 
-            // 方式2: FIT（回退）
+            // 方式1: FIT（优先）——FIT原生支持功率/心率/踏频等扩展数据
             val req = Request.Builder().url("$BASE_URL/workout/$workoutId/fit/")
                 .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
                 .get().build()
@@ -158,11 +137,32 @@ class XingzheApi {
                     if (bytes != null && bytes.size > 100 && bytes.size >= 14 &&
                         bytes[8] == '.'.code.toByte() && bytes[9] == 'F'.code.toByte()
                     ) {
-                        Log.d(TAG, "✅ FIT: ${bytes.size} bytes (id=$workoutId)")
+                        Log.d(TAG, "✅ FIT优先: ${bytes.size} bytes (id=$workoutId)")
                         return@withContext Pair(bytes, FileKind.FIT)
                     }
                 }
             }
+            // 方式2: GPX（回退）——注意必须带尾斜杠，否则Django返回401。GPX可能丢失功率等扩展数据
+            try {
+                val req = Request.Builder().url("$BASE_URL/pgworkout/$workoutId/gpx/")
+                    .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
+                    .get().build()
+                val resp = client.newCall(req).execute()
+                if (resp.code == 200) {
+                    val bytes = resp.body?.bytes()
+                    if (bytes != null && bytes.size > 100) {
+                        val head = String(bytes, 0, minOf(60, bytes.size))
+                        if (head.contains("<?xml") || head.contains("<gpx")) {
+                            Log.d(TAG, "✅ GPX回退: ${bytes.size} bytes (id=$workoutId)")
+                            return@withContext Pair(bytes, FileKind.GPX)
+                        }
+                    }
+                }
+                Log.d(TAG, "GPX不可用 (HTTP ${resp.code})，尝试GPX...")
+            } catch (e: Exception) {
+                Log.w(TAG, "GPX异常: ${e.message}，尝试GPX...")
+            }
+ 
             throw Exception("GPX/FIT 均下载失败 (id=$workoutId)")
         }
 }

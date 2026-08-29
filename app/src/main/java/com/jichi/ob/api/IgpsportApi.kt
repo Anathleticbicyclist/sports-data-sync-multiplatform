@@ -16,6 +16,19 @@ import java.util.concurrent.TimeUnit
  */
 class IgpsportApi {
  
+    /** v6.3.6: 探测iGPSPORT活动时间字段，支持多种字段名 */
+    private fun probeTimeField(item: org.json.JSONObject): String {
+        val keys = listOf("StartTime","startTime","start_time","RideDate","rideDate","ride_date",
+            "SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime",
+            "createTime","CreateTime","start_date","startDate","Date","date","Time","time",
+            "StartTimeStr","startTimeStr","StartDate")
+        for (k in keys) {
+            val v = item.optString(k, "")
+            if (v.isNotEmpty()) return v
+        }
+        return ""
+    }
+
     companion object {
         private const val TAG = "IgpsportApi"
         const val LOGIN_URL = "https://login.passport.igpsport.cn/login?lang=zh-Hans"
@@ -107,19 +120,35 @@ class IgpsportApi {
                     fetched++
                     if (fetched <= offset) continue
                     val item = rows.getJSONObject(i)
-                    // v6.3.5 调试：输出第一个活动的时间字段实际值，排查文件名时间unknown
+                    // v6.3.6 调试：用Log.w输出第一个活动的所有字段和时间值，排查文件名时间unknown
                     if (fetched == offset + 1) {
-                        val timeKeys = listOf("StartTime","startTime","SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime","createTime","CreateTime","start_date","startDate")
-                        val timeVals = timeKeys.mapNotNull { k -> item.optString(k, "").takeIf { it.isNotEmpty() }?.let { "$k=$it" } }
                         val allKeys = item.names()?.let { arr -> (0 until arr.length()).map { arr.optString(it) }.joinToString(",") } ?: "(无)"
-                        Log.d(TAG, "iGPSPORT首活动时间字段: ${timeVals.joinToString(", ") ?: "(无时间字段)"} | keys=$allKeys")
+                        // 探测所有可能的时间字段
+                        val timeKeys = listOf("StartTime","startTime","start_time","RideDate","rideDate","ride_date",
+                            "SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime",
+                            "createTime","CreateTime","start_date","startDate","Date","date","Time","time",
+                            "StartTimeStr","startTimeStr","startTimeText","StartDate","startDate")
+                        val timeVals = timeKeys.mapNotNull { k -> 
+                            val v = item.optString(k, "")
+                            if (v.isNotEmpty()) "$k=$v" else null 
+                        }
+                        Log.w(TAG, "===== iGPSPORT首活动调试 ===== keys=$allKeys")
+                        Log.w(TAG, "===== 时间字段: ${timeVals.joinToString(", ") ?: "(全部为空)"} =====")
                     }
                     val rideId = item.optString("RideId", item.optString("rideId", item.optString("id", "")))
-                    // v6.3.5 调试：输出iGPSPORT活动原始时间字段，排查文件名时间unknown
-                    if (result.isEmpty() && i == 0) {
-                        val keys = listOf("StartTime","startTime","SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime","createTime","CreateTime","start_time","begin_time","sport_time")
-                        val timeVals = keys.mapNotNull { k -> item.optString(k, "").takeIf { it.isNotEmpty() }?.let { "$k=$it" } }
-                        Log.d(TAG, "iGPSPORT首活动调试: rideId=$rideId title=${item.optString("Title","")} 时间字段=[${timeVals.joinToString(", ")}]")
+                    // v6.3.6 调试：用Log.w输出第一个活动的所有字段和时间值，排查文件名时间unknown
+                    if (fetched == offset + 1) {
+                        val allKeys = item.names()?.let { arr -> (0 until arr.length()).map { arr.optString(it) }.joinToString(",") } ?: "(无)"
+                        val timeKeys = listOf("StartTime","startTime","start_time","RideDate","rideDate","ride_date",
+                            "SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime",
+                            "createTime","CreateTime","start_date","startDate","Date","date","Time","time",
+                            "StartTimeStr","startTimeStr","StartDate","startDate")
+                        val timeVals = timeKeys.mapNotNull { k ->
+                            val v = item.optString(k, "")
+                            if (v.isNotEmpty()) "$k=$v" else null
+                        }
+                        Log.w(TAG, "===== iGPSPORT首活动调试 ===== keys=$allKeys")
+                        Log.w(TAG, "===== 时间字段: ${timeVals.joinToString(", ") ?: "(全部为空)"} =====")
                     }
                     if (rideId.isEmpty()) continue
                     val downloadUrl = item.optString("DownloadUrl",
@@ -130,26 +159,20 @@ class IgpsportApi {
                     if (dist < 0) dist = item.optDouble("distance", -1.0)
                     if (dist < 0) dist = item.optDouble("sportDistance", 0.0)
                     val distKm = if (dist >= 1000) dist / 1000.0 else dist
+                    // v6.3.6: 用辅助函数探测时间字段，避免嵌套括号
+                    val startTime = probeTimeField(item)
                     result.add(
                         ActivityRecord(
                             id = rideId,
                             title = item.optString("Title", item.optString("title", item.optString("name", "骑行"))),
-                            startTime = item.optString("StartTime",
-                                item.optString("startTime",
-                                item.optString("SportTime",
-                                item.optString("sportTime",
-                                item.optString("BeginTime",
-                                item.optString("beginTime",
-                                item.optString("RideTime",
-                                item.optString("rideTime",
-                                item.optString("createTime", ""))))))))),
+                            startTime = startTime,
                             distance = distKm,
                             duration = item.optInt("Duration", item.optInt("duration", item.optInt("movingTime", 0))),
                             source = DataSource.IGPSPORT,
                             extra = downloadUrl.ifEmpty { null }
                         )
                     )
-                    if (result.size >= limit) break
+
                 }
                 if (result.size >= limit || rows.length() < PER_PAGE) break
                 currentPage++

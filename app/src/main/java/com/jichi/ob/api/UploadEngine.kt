@@ -69,13 +69,27 @@ class UploadEngine(private val context: android.content.Context? = null) {
             return@withContext UploadResult(false, message = "${target.displayName}上传功能${support.note}")
         }
 
+        // v6.3.6: 行者GPX时间统一修正（所有目标平台生效）
+        // 行者GPX中<time>是北京时间但错误标注Z(UTC)，各平台解析时当成UTC→显示差8小时。
+        // 修正：减8小时转为正确UTC，这样各平台显示UTC+8→北京时间即正确。
+        val uploadData = if (record.source == DataSource.XINGZHE && !com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
+            try {
+                val fixed = com.jichi.ob.util.GpxTimeFixer.fixXingzheGpx(fitData)
+                if (fixed !== fitData) Log.d(TAG, "行者GPX时间已修正(减8h)，目标=${target.displayName}")
+                fixed
+            } catch (e: Exception) {
+                Log.w(TAG, "行者GPX时间修正失败: ${e.message}")
+                fitData
+            }
+        } else fitData
+
         when (target) {
-            DataSource.OUTBASE -> uploadToOutbase(credential, fitData, record, extra)
-            DataSource.IGPSPORT -> uploadToIgpsport(credential, fitData, record, extra)
-            DataSource.XINGZHE -> uploadToXingzhe(credential, fitData, record, extra)
-            DataSource.MAGENE -> uploadToMagene(credential, fitData, record, extra)
-            DataSource.BLACKBIRD -> uploadToBlackbird(credential, fitData, record, extra)
-            DataSource.BRYTON -> uploadToBryton(credential, fitData, record, extra)
+            DataSource.OUTBASE -> uploadToOutbase(credential, uploadData, record, extra)
+            DataSource.IGPSPORT -> uploadToIgpsport(credential, uploadData, record, extra)
+            DataSource.XINGZHE -> uploadToXingzhe(credential, uploadData, record, extra)
+            DataSource.MAGENE -> uploadToMagene(credential, uploadData, record, extra)
+            DataSource.BLACKBIRD -> uploadToBlackbird(credential, uploadData, record, extra)
+            DataSource.BRYTON -> uploadToBryton(credential, uploadData, record, extra)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
