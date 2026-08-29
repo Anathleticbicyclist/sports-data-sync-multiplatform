@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.5 |
+| 当前版本 | v6.3.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -157,6 +157,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ## 📋 更新日志
 
 
+
+### v6.3.6 (2026-08-30)
+1. **行者下载改为FIT优先（关键）** — 行者下载优先获取FIT文件（`/api/v1/workout/{id}/fit/`），FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失；FIT下载失败时回退GPX（`/api/v1/pgworkout/{id}/gpx/`）再转换
+2. **行者GPX时间统一修正（所有目标平台）** — 在UploadEngine.upload入口处统一对行者GPX做时间修正（减8小时，把本地时间标Z转为正确UTC），覆盖Outbase/iGPSPORT/行者/黑鸟所有上传目标，解决各平台显示时间不是北京时间的问题
+3. **iGPSPORT文件名时间排查** — 增强时间字段探测（增加start_time/RideDate/rideDate/StartDate/startDate等字段），调试日志改为Log.w高优先级输出iGPSPORT首活动所有字段名和时间值，便于定位时间unknown根因
+4. **版本号更新** — v6.3.6 (versionCode 636)
 
 ### v6.3.5 (2026-08-30)
 1. **行者→Outbase时区修复（关键）** — 去掉自研GpxTimeFixer预修正，与正式版项目完全一致：行者GPX直接用Outbase官方gpx2fit转FIT上传。正式版验证官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常
