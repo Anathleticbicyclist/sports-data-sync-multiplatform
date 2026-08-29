@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.6 |
+| 当前版本 | v6.3.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -158,15 +158,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 
 
-### v6.3.6 (2026-08-30)
-1. **行者下载改为FIT优先（关键）** — 行者下载优先获取FIT文件（`/api/v1/workout/{id}/fit/`），FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失；FIT下载失败时回退GPX（`/api/v1/pgworkout/{id}/gpx/`）再转换
-2. **行者GPX时间统一修正（所有目标平台）** — 在UploadEngine.upload入口处统一对行者GPX做时间修正（减8小时，把本地时间标Z转为正确UTC），覆盖Outbase/iGPSPORT/行者/黑鸟所有上传目标，解决各平台显示时间不是北京时间的问题
-3. **iGPSPORT文件名时间排查** — 增强时间字段探测（增加start_time/RideDate/rideDate/StartDate/startDate等字段），调试日志改为Log.w高优先级输出iGPSPORT首活动所有字段名和时间值，便于定位时间unknown根因
-4. **版本号更新** — v6.3.6 (versionCode 636)
+### v6.3.7 (2026-08-30)
+1. **修复iGPSPORT上传数量不生效（关键）** — IgpsportApi.getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致无论选择1-20多少条，for循环都遍历完当前页20条全部添加，实际同步20条。修复：添加limit条后立即break，数量选择1-1000均正确生效
+2. **清理iGPSPORT重复调试代码** — v6.3.6重写时残留重复的调试日志块，已清理
+3. **版本号更新** — v6.3.7 (versionCode 637)
 
 ---
 
-### 📋 全平台功能与实现方法总览（v6.3.6 现状）
+### 📋 全平台功能与实现方法总览（v6.3.7 现状）
 
 #### 一、支持平台矩阵
 
@@ -191,6 +190,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 **2. iGPSPORT**
 - 登录：WebView登录 `login.passport.igpsport.cn`，获取 token（Bearer认证）
 - 活动列表：`POST/GET queryMyActivity` 接口（分页 pageNo/pageSize，服务端不支持offset，拉取后丢弃前offset条）
+- **v6.3.7修复**：getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致数量选择1-20不生效（始终同步20条），已修复
 - 下载：FIT直链，通过 `getDownloadUrl` 接口获取真实下载地址
 - 上传：官方第三方上传API，两步流程：①获取OSS签名URL（`getSignedUrl?fileExtension=.fit/.gpx`）②PUT文件到OSS；扩展名须与文件类型一致（GPX用.gpx否则解析失败）
 - 时间字段：v6.3.6增强探测（StartTime/startTime/start_time/RideDate/rideDate/SportTime/BeginTime/RideTime/createTime/StartDate等15+字段），调试日志Log.w输出首活动所有字段名和时间值
@@ -257,6 +257,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 详细操作日志（下载/上传/转换/跳过/失败原因，带时间戳）
 - 启动日志版本号动态化（BuildConfig.VERSION_NAME）
 - 同步完成统计：成功/跳过/失败数
+
+### v6.3.6 (2026-08-30)
+1. **行者下载改为FIT优先（关键）** — 行者下载优先获取FIT文件（`/api/v1/workout/{id}/fit/`），FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失；FIT下载失败时回退GPX（`/api/v1/pgworkout/{id}/gpx/`）再转换
+2. **行者GPX时间统一修正（所有目标平台）** — 在UploadEngine.upload入口处统一对行者GPX做时间修正（减8小时，把本地时间标Z转为正确UTC），覆盖Outbase/iGPSPORT/行者/黑鸟所有上传目标，解决各平台显示时间不是北京时间的问题
+3. **iGPSPORT文件名时间排查** — 增强时间字段探测（增加start_time/RideDate/rideDate/StartDate/startDate等字段），调试日志改为Log.w高优先级输出iGPSPORT首活动所有字段名和时间值，便于定位时间unknown根因
+4. **版本号更新** — v6.3.6 (versionCode 636)
 
 ### v6.3.5 (2026-08-30)
 1. **行者→Outbase时区修复（关键）** — 去掉自研GpxTimeFixer预修正，与正式版项目完全一致：行者GPX直接用Outbase官方gpx2fit转FIT上传。正式版验证官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常

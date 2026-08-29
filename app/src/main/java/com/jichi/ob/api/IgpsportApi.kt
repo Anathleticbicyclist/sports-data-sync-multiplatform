@@ -120,21 +120,6 @@ class IgpsportApi {
                     fetched++
                     if (fetched <= offset) continue
                     val item = rows.getJSONObject(i)
-                    // v6.3.6 调试：用Log.w输出第一个活动的所有字段和时间值，排查文件名时间unknown
-                    if (fetched == offset + 1) {
-                        val allKeys = item.names()?.let { arr -> (0 until arr.length()).map { arr.optString(it) }.joinToString(",") } ?: "(无)"
-                        // 探测所有可能的时间字段
-                        val timeKeys = listOf("StartTime","startTime","start_time","RideDate","rideDate","ride_date",
-                            "SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime",
-                            "createTime","CreateTime","start_date","startDate","Date","date","Time","time",
-                            "StartTimeStr","startTimeStr","startTimeText","StartDate","startDate")
-                        val timeVals = timeKeys.mapNotNull { k -> 
-                            val v = item.optString(k, "")
-                            if (v.isNotEmpty()) "$k=$v" else null 
-                        }
-                        Log.w(TAG, "===== iGPSPORT首活动调试 ===== keys=$allKeys")
-                        Log.w(TAG, "===== 时间字段: ${timeVals.joinToString(", ") ?: "(全部为空)"} =====")
-                    }
                     val rideId = item.optString("RideId", item.optString("rideId", item.optString("id", "")))
                     // v6.3.6 调试：用Log.w输出第一个活动的所有字段和时间值，排查文件名时间unknown
                     if (fetched == offset + 1) {
@@ -172,6 +157,8 @@ class IgpsportApi {
                             extra = downloadUrl.ifEmpty { null }
                         )
                     )
+                    // v6.3.7 修复：添加limit条后立即break，否则for循环遍历完当前页20条全部添加（limit不生效）
+                    if (result.size >= limit) break
 
                 }
                 if (result.size >= limit || rows.length() < PER_PAGE) break
