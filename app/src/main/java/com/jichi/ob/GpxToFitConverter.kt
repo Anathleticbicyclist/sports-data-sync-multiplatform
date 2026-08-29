@@ -33,8 +33,11 @@ object GpxToFitConverter {
     )
     private val ELE_RE = Pattern.compile("<ele>([-\\d.]+)</ele>")
     private val TIME_RE = Pattern.compile("<time>([^<]+)</time>")
+    private val HR_RE = Pattern.compile("<gpxtpx:hr>(\\d+)</gpxtpx:hr>|<hr>(\\d+)</hr>")
+    private val CAD_RE = Pattern.compile("<gpxtpx:cad>(\\d+)</gpxtpx:cad>|<cadence>(\\d+)</cadence>|<cad>(\\d+)</cad>")
+    private val POWER_RE = Pattern.compile("<gpxtpx:power>(\\d+)</gpxtpx:power>|<power>(\\d+)</power>")
 
-    data class TrackPoint(val lat: Double, val lon: Double, val ele: Double, val ts: Long)
+    data class TrackPoint(val lat: Double, val lon: Double, val ele: Double, val ts: Long, val hr: Int = 0, val cad: Int = 0, val power: Int = 0)
 
     /** v6.2.5: 限制参与转换的轨迹点数，避免超大GPX(数万点)解析+距离计算导致卡顿；3000点足够还原轨迹 */
     private const val MAX_POINTS = 3000
@@ -69,7 +72,6 @@ object GpxToFitConverter {
             var ts = 0L
             TIME_RE.matcher(inner).let {
                 if (it.find()) {
-                    // 兼容多种格式: "2026-08-25T12:00:00Z" / "2026-08-25 12:00:00" / "2026-08-25T12:00:00.123Z"
                     var t = it.group(1).trim().replace(" ", "T")
                     if (!t.endsWith("Z")) t += "Z"
                     try {
@@ -78,7 +80,12 @@ object GpxToFitConverter {
                     } catch (_: Exception) {}
                 }
             }
-            pts.add(TrackPoint(lat, lon, ele, ts))
+            // v6.3.11: 解析Garmin TrackPointExtension中的心率/踏频/功率
+            var hr = 0; var cad = 0; var power = 0
+            HR_RE.matcher(inner).let { if (it.find()) hr = (it.group(1) ?: it.group(2) ?: "0").toIntOrNull() ?: 0 }
+            CAD_RE.matcher(inner).let { if (it.find()) cad = (it.group(1) ?: it.group(2) ?: it.group(3) ?: "0").toIntOrNull() ?: 0 }
+            POWER_RE.matcher(inner).let { if (it.find()) power = (it.group(1) ?: it.group(2) ?: "0").toIntOrNull() ?: 0 }
+            pts.add(TrackPoint(lat, lon, ele, ts, hr, cad, power))
         }
         return pts
     }
@@ -235,7 +242,8 @@ object GpxToFitConverter {
         // --- record (local 6) ---
         out.write(DefBuilder(6, 20)
             .f(253, 4, 0x86).f(0, 4, 0x85).f(1, 4, 0x85)
-            .f(2, 2, 0x84).f(5, 4, 0x86).f(6, 2, 0x84).build())
+            .f(2, 2, 0x84).f(3, 1, 0x02).f(4, 1, 0x02)
+            .f(5, 4, 0x86).f(6, 2, 0x84).f(7, 2, 0x84).build())
         val step = Math.max(1, n / 200)
         var cum = 0.0
         var prev = pts[0]
@@ -253,8 +261,11 @@ object GpxToFitConverter {
                 u32(o, ts - FIT_EPOCH_OFFSET)
                 u32(o, degToSemicircle(p.lat).toLong()); u32(o, degToSemicircle(p.lon).toLong())
                 u16(o, (p.ele * 5).toInt())
+                u8(o, p.hr)  // heart_rate uint8
+                u8(o, p.cad) // cadence uint8
                 u32(o, (cum * 100).toLong())
                 u16(o, (spd * 1000).toInt())
+                u16(o, p.power) // power uint16
             }.toByteArray())
         }
         return out.toByteArray()

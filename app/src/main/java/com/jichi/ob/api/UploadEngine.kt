@@ -69,27 +69,43 @@ class UploadEngine(private val context: android.content.Context? = null) {
             return@withContext UploadResult(false, message = "${target.displayName}上传功能${support.note}")
         }
 
-        // v6.3.6: 行者GPX时间统一修正（所有目标平台生效）
-        // 行者GPX中<time>是北京时间但错误标注Z(UTC)，各平台解析时当成UTC→显示差8小时。
+        // v6.3.6/v6.3.11: 行者/黑鸟GPX时间统一修正（所有目标平台生效）
+        // 行者/黑鸟GPX中<time>是北京时间但错误标注Z(UTC)，各平台解析时当成UTC→显示差8小时。
         // 修正：减8小时转为正确UTC，这样各平台显示UTC+8→北京时间即正确。
-        val uploadData = if (record.source == DataSource.XINGZHE && !com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
+        val needTimeFix = (record.source == DataSource.XINGZHE || record.source == DataSource.BLACKBIRD) &&
+            !com.jichi.ob.GpxToFitConverter.isFit(fitData)
+        val uploadData = if (needTimeFix) {
             try {
                 val fixed = com.jichi.ob.util.GpxTimeFixer.fixXingzheGpx(fitData)
-                if (fixed !== fitData) Log.d(TAG, "行者GPX时间已修正(减8h)，目标=${target.displayName}")
+                if (fixed !== fitData) Log.d(TAG, "${record.source.displayName}GPX时间已修正(减8h)，目标=${target.displayName}")
                 fixed
             } catch (e: Exception) {
-                Log.w(TAG, "行者GPX时间修正失败: ${e.message}")
+                Log.w(TAG, "${record.source.displayName}GPX时间修正失败: ${e.message}")
                 fitData
             }
         } else fitData
 
+        // v6.3.11: 黑鸟GPX对所有平台统一转FIT再上传
+        // 原因：iGPSPORT等平台对GPX时间解析异常（不识别Z/UTC），FIT时间戳是UTC各平台都能正确解析；
+        // 自研GpxToFitConverter已增强支持hr/cad/power，转FIT不丢失扩展数据。
+        val finalData = if (record.source == DataSource.BLACKBIRD && !com.jichi.ob.GpxToFitConverter.isFit(uploadData)) {
+            try {
+                val fit = com.jichi.ob.GpxToFitConverter.convert(uploadData)
+                Log.d(TAG, "黑鸟GPX→FIT(自研): ${uploadData.size} -> ${fit.size} bytes，目标=${target.displayName}")
+                fit
+            } catch (e: Exception) {
+                Log.w(TAG, "黑鸟GPX→FIT转换失败，退回原GPX: ${e.message}")
+                uploadData
+            }
+        } else uploadData
+
         when (target) {
-            DataSource.OUTBASE -> uploadToOutbase(credential, uploadData, record, extra)
-            DataSource.IGPSPORT -> uploadToIgpsport(credential, uploadData, record, extra)
-            DataSource.XINGZHE -> uploadToXingzhe(credential, uploadData, record, extra)
-            DataSource.MAGENE -> uploadToMagene(credential, uploadData, record, extra)
-            DataSource.BLACKBIRD -> uploadToBlackbird(credential, uploadData, record, extra)
-            DataSource.BRYTON -> uploadToBryton(credential, uploadData, record, extra)
+            DataSource.OUTBASE -> uploadToOutbase(credential, finalData, record, extra)
+            DataSource.IGPSPORT -> uploadToIgpsport(credential, finalData, record, extra)
+            DataSource.XINGZHE -> uploadToXingzhe(credential, finalData, record, extra)
+            DataSource.MAGENE -> uploadToMagene(credential, finalData, record, extra)
+            DataSource.BLACKBIRD -> uploadToBlackbird(credential, finalData, record, extra)
+            DataSource.BRYTON -> uploadToBryton(credential, finalData, record, extra)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
