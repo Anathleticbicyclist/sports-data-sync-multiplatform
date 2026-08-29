@@ -658,6 +658,12 @@ class MainActivity : AppCompatActivity() {
             DataSource.BLACKBIRD -> {
                 val bbConvert = prefs.isGcj02Convert()
                 val bbData = blackbirdApi.downloadActivity(cred, record.id, bbConvert)
+                // v6.3.9调试：如果是GPX，输出前3个trkpt到日志界面，确认时间/心率/功率/坐标
+                if (bbData.size >= 14 && !(bbData[8] == '.'.code.toByte() && bbData[9] == 'F'.code.toByte())) {
+                    val gpxStr = String(bbData, 0, minOf(2000, bbData.size))
+                    val trkpts = Regex("<trkpt.*?</trkpt>", RegexOption.DOT_MATCHES_ALL).findAll(gpxStr).take(2).map { it.value.replace("\\s+".toRegex(), " ") }.joinToString(" | ")
+                    appendLog("🔍 黑鸟GPX调试: ${trkpts.take(300)}")
+                }
                 // v6.3.8: 黑鸟FIT坐标也是GCJ-02，复用迈金坐标转换引擎转WGS84（受UI开关控制）
                 if (bbConvert && bbData.size >= 14 && bbData[8] == '.'.code.toByte() && bbData[9] == 'F'.code.toByte()) {
                     appendLog("🔄 黑鸟FIT坐标(GCJ-02)，执行WGS84转换...")
