@@ -164,16 +164,9 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 3. **iGPSPORT文件名时间排查** — 增强时间字段探测（增加start_time/RideDate/rideDate/StartDate/startDate等字段），调试日志改为Log.w高优先级输出iGPSPORT首活动所有字段名和时间值，便于定位时间unknown根因
 4. **版本号更新** — v6.3.6 (versionCode 636)
 
-### v6.3.5 (2026-08-30)
-1. **行者→Outbase时区修复（关键）** — 去掉自研GpxTimeFixer预修正，与正式版项目完全一致：行者GPX直接用Outbase官方gpx2fit转FIT上传。正式版验证官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常
-2. **黑鸟上传GPX→FIT转换修复** — 黑鸟只接受FIT，GPX源必须用Outbase官方gpx2fit转换（自研转换器生成的FIT黑鸟无法解析，返回FIT_FILE_ERROR）。增强转换日志，官方gpx2fit失败时明确告警
-3. **文件名统一用源平台名** — 跨平台同步时文件名前缀用源平台名（如行者数据上传到iGPSPORT/黑鸟/Outbase，文件名均为XingZhe_时间_运动类型_id，而非目标平台名）
-4. **iGPSPORT时间解析增强** — 增强FileNameGenerator时间格式兼容性（支持带时区偏移+08:00/+0800、英文日期格式等），iGPSPORT活动列表增加调试日志输出时间字段实际值
-5. **版本号更新** — v6.3.5 (versionCode 635)
-
 ---
 
-### 📋 全平台功能与实现方法总览（v6.3.5 现状）
+### 📋 全平台功能与实现方法总览（v6.3.6 现状）
 
 #### 一、支持平台矩阵
 
@@ -191,44 +184,47 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 **1. 行者（XingZhe）**
 - 登录：WebView登录 `imxingzhe.com/login`，获取 `sessionid` cookie
 - 活动列表：`GET /api/v1/pgworkout/?offset=&limit=`
-- 下载：GPX优先 `GET /api/v1/pgworkout/{id}/gpx/`，回退FIT `GET /api/v1/workout/{id}/fit/`
-- 上传：官方开放API，支持FIT/GPX，重复上传返回 code=9006"文件已上传"
+- 下载：**v6.3.6起FIT优先** `GET /api/v1/workout/{id}/fit/`（FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失）；FIT下载失败回退GPX `GET /api/v1/pgworkout/{id}/gpx/` 再转换
+- 上传：官方开放API `POST /api/v1/fit/upload/`，字段 fit_file + md5，返回 workout_id 且 handle_msg=ok 即正常入库；重复上传返回 code=9006"文件已上传"
+- 时间修正：行者GPX中`<time>`是北京时间但错误标注Z(UTC)，v6.3.6起在UploadEngine.upload入口统一减8小时转为正确UTC（覆盖所有上传目标）
 
 **2. iGPSPORT**
-- 登录：WebView登录 `login.passport.igpsport.cn`，获取 token
-- 活动列表：`queryMyActivity` 接口（分页 pageNo/pageSize，服务端不支持offset，拉取后丢弃前offset条）
+- 登录：WebView登录 `login.passport.igpsport.cn`，获取 token（Bearer认证）
+- 活动列表：`POST/GET queryMyActivity` 接口（分页 pageNo/pageSize，服务端不支持offset，拉取后丢弃前offset条）
 - 下载：FIT直链，通过 `getDownloadUrl` 接口获取真实下载地址
-- 上传：官方第三方上传API
+- 上传：官方第三方上传API，两步流程：①获取OSS签名URL（`getSignedUrl?fileExtension=.fit/.gpx`）②PUT文件到OSS；扩展名须与文件类型一致（GPX用.gpx否则解析失败）
+- 时间字段：v6.3.6增强探测（StartTime/startTime/start_time/RideDate/rideDate/SportTime/BeginTime/RideTime/createTime/StartDate等15+字段），调试日志Log.w输出首活动所有字段名和时间值
 
 **3. 迈金（Magene/顽鹿）**
 - 登录：WebView登录顽鹿，获取 cookie
 - 下载：FIT直链（七牛云WGS84无需转换，fit_content来源GCJ-02需转WGS84）
-- 坐标转换：GCJ-02（火星坐标）→ WGS84（GPS坐标），批量坐标点修正，自动识别来源
+- 坐标转换：GCJ-02（火星坐标）→ WGS84（GPS坐标）批量转换，自动识别来源，转换日志输出修正坐标点数和平均偏移距离
 - 上传：开发中（WebView通道，HTTP上传404问题待解决）
 
 **4. 黑鸟单车（Blackbird）**
 - 登录：WebView登录 `blackbirdsport.com/auth/login`，`JSESSIONID` cookie
-- 登录防误判：JSESSIONID是访问网站即生成的会话cookie（未登录也有），必须调用 `/api/user` 验证返回有效用户信息（status=ok且有nickname）才算真正登录成功
+- 登录防误判：JSESSIONID是访问网站即生成的会话cookie（未登录也有），必须调用 `/api/user` 验证返回有效用户信息（status=ok且有nickname）才算真正登录成功（v6.3.2修复）
 - 活动列表：`GET /api/records?lastRecordId=&pageSize=`
 - 下载：GPX格式
-- 上传：`POST /api/records/upload`，只接受FIT；GPX源必须用Outbase官方gpx2fit转FIT（自研转换器生成的FIT黑鸟解析器较旧无法解析，返回FIT_FILE_ERROR）
+- 上传：`POST /api/records/upload`，只接受FIT；GPX源必须用Outbase官方gpx2fit转FIT（自研转换器生成的FIT黑鸟解析器较旧无法解析，返回FIT_FILE_ERROR）；v6.3.4启用
 
 **5. Outbase**
 - 登录：WebView登录 `outbase.cn`，获取 `sessionId`
 - 上传流程：CDN h5直连（`melon-gateway /zeusfit/resource/h5/upload`，浏览器风格请求无需鉴权头）→ 注册接口（`POST /api/h5/sport/upload/fit`，带Sessionid/Uagent头）；CDN失败时回退WebView内fetch
 - 会话校验：上传前 `POST /api/h5/sport/upload/list` 验证sessionId有效性
-- GPX→FIT：Outbase官方gpx2fit（WebView注入gpx2fit.js，分块注入+base64读回，与正式版项目一致）
+- GPX→FIT：Outbase官方gpx2fit（WebView注入gpx2fit.js，分块注入+base64读回，与正式版项目一致）；官方转换失败时回退自研GpxToFitConverter
+- 重复检测：注册接口返回"已存在"自动跳过
 
 #### 三、通用核心功能
 
 **1. 统一文件名命名规则**
 - 格式：`源平台名_运动时间_运动类型_来源ID.扩展名`
-- 示例：`XingZhe_20260825_191406_骑行_xz221312982.gpx`
+- 示例：`XingZhe_20260825_191406_骑行_xz221312982.fit`
 - 平台名：iGPSPORT / XingZhe / Magene / Blackbird / Bryton / Outbase
 - 时间：`yyyyMMdd_HHmmss`，支持多种格式解析（.NET `/Date()`/ 秒/毫秒时间戳 / 带时区偏移 `+08:00` / 多种日期格式）
 - 运动类型：从活动标题自动提取（室内骑行/户外骑行/跑步/游泳等20+关键词），无匹配时取标题最后片段
 - 来源ID：平台缩写+活动ID（如 xz221312982 / igp55059252 / mg6a8d8a0d / bb113833851）
-- 跨平台同步时文件名前缀用**源平台名**（如行者数据上传到任何平台都显示 XingZhe_xxx）
+- v6.3.5起跨平台同步时文件名前缀用**源平台名**（如行者数据上传到任何平台都显示 XingZhe_xxx）
 
 **2. GPX→FIT 转换双保险**
 - 优先：Outbase官方gpx2fit（WebView注入JS，与正式版一致，黑鸟/Outbase上传均优先使用）
@@ -262,6 +258,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 启动日志版本号动态化（BuildConfig.VERSION_NAME）
 - 同步完成统计：成功/跳过/失败数
 
+### v6.3.5 (2026-08-30)
+1. **行者→Outbase时区修复（关键）** — 去掉自研GpxTimeFixer预修正，与正式版项目完全一致：行者GPX直接用Outbase官方gpx2fit转FIT上传。正式版验证官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常
+2. **黑鸟上传GPX→FIT转换修复** — 黑鸟只接受FIT，GPX源必须用Outbase官方gpx2fit转换（自研转换器生成的FIT黑鸟无法解析，返回FIT_FILE_ERROR）。增强转换日志，官方gpx2fit失败时明确告警
+3. **文件名统一用源平台名** — 跨平台同步时文件名前缀用源平台名（如行者数据上传到iGPSPORT/黑鸟/Outbase，文件名均为XingZhe_时间_运动类型_id，而非目标平台名）
+4. **iGPSPORT时间解析增强** — 增强FileNameGenerator时间格式兼容性（支持带时区偏移+08:00/+0800、英文日期格式等），iGPSPORT活动列表增加调试日志输出时间字段实际值
+5. **版本号更新** — v6.3.5 (versionCode 635)
 
 ### v6.3.4 (2026-08-29)
 1. **黑鸟上传功能开发完成（启用）** — 黑鸟作为同步目标从"开发中"改为可用。上传地址为 /api/records/upload（已实测连通，FIT校验正常）；GPX源优先用Outbase官方gpx2fit转FIT，失败回退自研转换器。UI取消"开发中"标识
