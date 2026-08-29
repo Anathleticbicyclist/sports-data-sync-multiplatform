@@ -177,7 +177,7 @@ class BlackbirdApi {
      *   构建带时间戳/心率/功率/踏频的完整GPX，不再只存lat/lon/ele
      * - 坐标：黑鸟为GCJ-02(火星坐标)，构建GPX时根据UI开关决定是否转WGS84（实测Outbase偏移修复）
      */
-    suspend fun downloadActivity(cookie: String, recordId: String, convertCoord: Boolean = true): ByteArray =
+    suspend fun downloadActivity(cookie: String, recordId: String, convertCoord: Boolean = false): ByteArray =
         withContext(Dispatchers.IO) {
             val req = Request.Builder().url("$BASE/records/$recordId/data")
                 .apply { authHeaders(cookie).forEach { (k, v) -> addHeader(k, v) } }
@@ -329,8 +329,9 @@ class BlackbirdApi {
         var hasHr = false
         var hasPower = false
         var hasCad = false
+        var firstTimeStr = ""  // v6.3.14: 记录首个点时间用于metadata
         for (segment in trackStr.split(";")) {
-            if (count >= 5000) break
+            if (count >= 50000) break  // v6.3.14: 5000→50000，长距离骑行不再截断轨迹
             val f = segment.split(",")
             if (f.size < 2) continue
             val gcjLat = f[0].trim().toDoubleOrNull() ?: continue
@@ -351,6 +352,7 @@ class BlackbirdApi {
                 val instant = java.time.Instant.ofEpochMilli(ts)
                 timeStr = java.time.format.DateTimeFormatter.ISO_INSTANT.format(instant)
                 hasTime = true
+                if (firstTimeStr.isEmpty()) firstTimeStr = timeStr  // v6.3.14: 记录首点时间
             }
 
             // 中间字段尝试解析心率/功率/踏频（f[3]到f[size-2]）
@@ -383,6 +385,11 @@ class BlackbirdApi {
             count++
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>")
+        // v6.3.14: 补metadata time（官方gpx2fit需要活动级开始时间，否则FIT时间戳为0→1989/1970年）
+        if (firstTimeStr.isNotEmpty()) {
+            val idx = sb.indexOf("<gpx ")
+            if (idx >= 0) sb.insert(sb.indexOf(">", idx) + 1, "\n  <metadata><time>$firstTimeStr</time></metadata>")
+        }
         Log.d(TAG, "buildGpxFromTrackString: $count points, time=$hasTime hr=$hasHr power=$hasPower cad=$hasCad")
         // v6.3.9调试：输出GPX前3个trkpt完整内容，确认时间/心率/功率/坐标
         val gpxStr = sb.toString()
