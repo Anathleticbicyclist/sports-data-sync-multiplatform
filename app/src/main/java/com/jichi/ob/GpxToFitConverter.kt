@@ -40,7 +40,7 @@ object GpxToFitConverter {
     data class TrackPoint(val lat: Double, val lon: Double, val ele: Double, val ts: Long, val hr: Int = 0, val cad: Int = 0, val power: Int = 0)
 
     /** v6.2.5: 限制参与转换的轨迹点数，避免超大GPX(数万点)解析+距离计算导致卡顿；3000点足够还原轨迹 */
-    private const val MAX_POINTS = 3000
+    private const val MAX_POINTS = 50000  // v6.3.14: 3000→50000，长距离骑行不截断
 
     fun isFit(data: ByteArray): Boolean =
         data.size >= 12 && data[8] == '.'.code.toByte() && data[9] == 'F'.code.toByte() &&
@@ -244,7 +244,7 @@ object GpxToFitConverter {
             .f(253, 4, 0x86).f(0, 4, 0x85).f(1, 4, 0x85)
             .f(2, 2, 0x84).f(3, 1, 0x02).f(4, 1, 0x02)
             .f(5, 4, 0x86).f(6, 2, 0x84).f(7, 2, 0x84).build())
-        val step = Math.max(1, n / 200)
+        val step = 1  // v6.3.14: 不再抽稀到200点，保留全部轨迹点
         var cum = 0.0
         var prev = pts[0]
         for (i in 0 until n step step) {

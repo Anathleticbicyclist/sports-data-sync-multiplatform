@@ -217,10 +217,14 @@ class UploadEngine(private val context: android.content.Context? = null) {
                     return UploadResult(false, message = "iGPSPORT上传失败: OSS上传HTTP $putCode ${ossError.toString().take(200)}")
                 }
 
-                // 3) 通知iGPSPORT解析（uploadByOss）
+                // 3) 通知iGPSPORT解析（uploadByOss）；v6.3.14补充title/name活动标题
+                val actTitle = record.title.ifBlank { "骑行" }
                 val body = JSONObject()
                     .put("fileName", fileName)
                     .put("ossName", ossId)
+                    .put("title", actTitle)
+                    .put("name", actTitle)
+                    .put("activityName", actTitle)
                 val notifyReq = Request.Builder()
                     .url("https://prod.zh.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss")
                     .apply { authHeaders.forEach { (k, v) -> addHeader(k, v) } }
