@@ -42,6 +42,7 @@ import com.jichi.ob.model.DataSource
 import com.jichi.ob.model.UploadSupport
 import com.jichi.ob.ui.LoginWebActivity
 import com.jichi.ob.util.PrefsManager
+import com.jichi.ob.util.FileNameGenerator
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -496,7 +497,7 @@ class MainActivity : AppCompatActivity() {
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
                     }
                     val ext = if (isFit(fileData)) "fit" else "gpx"
-                    val localFile = File(saveDir, "${source.shortName}_${act.id}.$ext")
+                    val localFile = File(saveDir, FileNameGenerator.generate(source, act, ext))
                     try {
                         FileOutputStream(localFile).use { it.write(fileData) }
                         appendLog("💾 已存: ${localFile.name} (${fileData.size}字节)")
@@ -757,7 +758,7 @@ class MainActivity : AppCompatActivity() {
                 val data = downloadActivity(source, act)
                 if (data == null || data.size < 100) { appendLog("❌ 下载失败: 数据无效"); return@launch }
                 val ext = if (isFit(data)) "fit" else "gpx"
-                val file = File(saveDir, "test_${source.shortName}_${act.id}.$ext")
+                val file = File(saveDir, "test_" + FileNameGenerator.generate(source, act, ext))
                 FileOutputStream(file).use { it.write(data) }
                 appendLog("✅ 测试下载成功! 文件: ${file.name} (${data.size} bytes)")
                 appendLog("📂 保存路径: ${file.absolutePath}")

@@ -152,7 +152,7 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
-    /** 黑鸟单车: 检测登录态cookie */
+    /** 黑鸟单车: 检测登录态cookie + 异步调用/api/user验证（JSESSIONID未登录也有，必须验证） */
     private fun detectBlackbird() {
         val cm = CookieManager.getInstance()
         val all = listOf(
@@ -161,15 +161,41 @@ class LoginWebActivity : AppCompatActivity() {
             cm.getCookie("blackbirdsport.com")
         ).filterNotNull().joinToString("; ")
         if (all.length < 20) return
-        // 黑鸟登录后 cookie 为 JSESSIONID（实测），检测登录标识
-        if (all.contains("JSESSIONID") || all.contains("blackbird_token") || all.contains("bb_user") || all.contains("userInfo") || all.contains("login_token") || all.contains("blackbird_user") || all.contains("session_id")) {
-            detected = true
-            Log.i(TAG, "✅ 黑鸟单车登录成功, cookie len=${all.length}")
-            setResult(Activity.RESULT_OK, Intent()
-                .putExtra(RESULT_SESSION_ID, all)
-                .putExtra(RESULT_LOGIN_TYPE, TYPE_BLACKBIRD))
-            finish()
-        }
+        if (!all.contains("JSESSIONID")) return
+        if (!verifying.compareAndSet(false, true)) return
+        // 异步验证：调用/api/user，返回有效用户信息才算真正登录
+        Thread {
+            try {
+                val req = okhttp3.Request.Builder()
+                    .url("https://www.blackbirdsport.com/api/user")
+                    .addHeader("Cookie", all)
+                    .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                    .get().build()
+                val resp = okhttp3.OkHttpClient().newCall(req).execute()
+                val body = resp.body?.string() ?: ""
+                val json = org.json.JSONObject(body)
+                val ok = json.optString("status") == "ok"
+                val data = json.optJSONObject("content") ?: json.optJSONObject("data")
+                val hasUser = data?.optString("nickname")?.isNotEmpty() == true ||
+                        data?.optString("userName")?.isNotEmpty() == true
+                if (ok && hasUser) {
+                    detected = true
+                    Log.i(TAG, "✅ 黑鸟单车登录验证通过, cookie len=${all.length}")
+                    runOnUiThread {
+                        setResult(Activity.RESULT_OK, Intent()
+                            .putExtra(RESULT_SESSION_ID, all)
+                            .putExtra(RESULT_LOGIN_TYPE, TYPE_BLACKBIRD))
+                        finish()
+                    }
+                } else {
+                    Log.d(TAG, "黑鸟cookie验证未通过(未登录), 继续检测: ${body.take(80)}")
+                    verifying.set(false)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "黑鸟验证异常: ${e.message}")
+                verifying.set(false)
+            }
+        }.start()
     }
 
     /** 百锐腾: 检测登录态cookie */

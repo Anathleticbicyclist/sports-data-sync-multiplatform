@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.1 |
+| 当前版本 | v6.3.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -154,6 +154,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.3.2 (2026-08-29)
+1. **黑鸟登录误判修复（关键）** — 根因：detectBlackbird() 只要 cookie 含 JSESSIONID 就判登录成功，但 JSESSIONID 是访问网站即生成的会话 cookie（未登录也有），导致用户未输入账号密码就误判"已登录"，后续下载/上传因 cookie 无效全部失败。修复：检测到 JSESSIONID 后异步调用 /api/user 接口验证，返回有效用户信息（status=ok 且有 nickname）才算真正登录成功，验证不通过则继续轮询
+2. **文件名统一规则全覆盖** — v6.3.1 只改了上传到目标平台的文件名，本次补充：①普通下载保存到本地的文件名；②测试下载保存的文件名（加 test_ 前缀）。全部统一为 `平台_运动时间_运动类型_来源ID.扩展名`
+3. **版本号更新** — v6.3.2 (versionCode 632)
 
 ### v6.3.1 (2026-08-29)
 1. **统一上传文件名命名规则** — 此前各平台上传文件名混乱（如 xz_221312982.fit、mg_6a8d8a0d.fit）。统一为：`目标平台_运动时间_运动类型_来源ID.扩展名`，示例：`iGPSPORT_20260825_120000_骑行_xz221312982.fit`。运动类型从活动标题自动提取（如室内骑行/户外骑行/跑步等），时间统一为 yyyyMMdd_HHmmss
