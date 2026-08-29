@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.3 |
+| 当前版本 | v6.3.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -156,18 +156,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
-### v6.3.3 (2026-08-29)
-1. **行者→Outbase时区偏移修复（关键）** — 根因：行者GPX中<time>是本地时间但错误标注了Z(UTC)，Outbase解析时双重时区转换导致时间偏移16小时（如行者19:14→Outbase次日11:14）。修复：上传前对行者GPX执行时间修正（所有<time>减8小时变为正确UTC），新增 GpxTimeFixer 工具类
-2. **iGPSPORT文件名时间修复** — 根因：iGPSPORT的StartTime字段格式（时间戳/.NET日期等）未被识别，文件名时间显示unknown。修复：增强FileNameGenerator时间解析兼容性（支持.NET /Date()/格式、毫秒时间戳、带小数时间戳、更多日期格式），同时iGPSPORT字段探测增加SportTime/BeginTime/RideTime等
-3. **黑鸟title为null修复** — 根因：JSON中title字段为null时，optString返回字符串"null"而非默认值，导致文件名运动类型显示null。修复：过滤"null"字符串和空值，默认用"骑行"
-4. **版本号更新** — v6.3.3 (versionCode 633)
 
-### v6.3.4 (2026-08-29)
-1. **黑鸟单车上传功能正式开放** — 此前标为"开发中"已禁用，本次启用：①上传地址修正为 http://www.blackbirdsport.com/user/records/upload（仅接受FIT）；②GPX源优先用Outbase官方gpx2fit转换（与正式版一致），失败回退自研转换器；③UI自动取消"开发中"标识
-2. **行者→Outbase时区偏移修复（关键）** — 根因：行者GPX中<time>是本地时间但错误标注Z(UTC)，Outbase双重时区转换导致差16小时（如19:14→次日11:14）。修复：上传前自动修正行者GPX时间（减8小时转为正确UTC）
-3. **iGPSPORT文件名时间修复** — 此前iGPSPORT活动时间解析为unknown，增强时间格式兼容性（支持.NET日期/Date()、毫秒时间戳、更多日期格式），并扩展StartTime字段探测（SportTime/BeginTime/RideTime等）
-4. **黑鸟活动title为null修复** — JSON中title为null时optString返回"null"字符串，导致文件名运动类型显示null，已过滤
-5. **版本号更新** — v6.3.4 (versionCode 634)
 
 ### v6.3.4 (2026-08-29)
 1. **黑鸟上传功能开发完成（启用）** — 黑鸟作为同步目标从"开发中"改为可用。上传地址为 /api/records/upload（已实测连通，FIT校验正常）；GPX源优先用Outbase官方gpx2fit转FIT，失败回退自研转换器。UI取消"开发中"标识
