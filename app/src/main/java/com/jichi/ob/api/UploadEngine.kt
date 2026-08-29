@@ -17,6 +17,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import com.jichi.ob.util.FileNameGenerator
 
 /**
  * 统一上传引擎（v6.1.1 逆向流动核心）
@@ -110,7 +111,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
                     fitData
                 }
             }
-            val fileName = "${record.source.shortName}_${record.id}.fit"
+            val fileName = FileNameGenerator.generate(DataSource.OUTBASE, record, "fit")
             val (msg, skipped, _) = outbaseApi.upload(sessionId, null, uploadData, fileName)
             UploadResult(!skipped && msg.contains("成功"), message = msg, skipped = skipped)
         } catch (e: Exception) {
@@ -132,7 +133,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
             val isFitFile = fitData.size >= 14 &&
                 fitData[8] == '.'.code.toByte() && fitData[9] == 'F'.code.toByte()
             val ext = if (isFitFile) "fit" else "gpx"
-            val fileName = "${record.source.shortName}_${record.id}.$ext"
+            val fileName = FileNameGenerator.generate(DataSource.IGPSPORT, record, ext)
             val authHeaders = mapOf(
                 "Authorization" to "Bearer $token",
                 "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -246,7 +247,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            val fileName = "${record.source.shortName}_${record.id}.fit"
+            val fileName = FileNameGenerator.generate(DataSource.XINGZHE, record, "fit")
             val csrf = extra["csrf"] ?: ""
 
             // 行者官方上传接口（v6.2.1 实测修复）：POST /api/v1/fit/upload/
@@ -310,7 +311,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
         val start = System.currentTimeMillis()
         return try {
             val token = extra["_token"] ?: ""
-            val fileName = "${record.source.shortName}_${record.id}.fit"
+            val fileName = FileNameGenerator.generate(DataSource.MAGENE, record, "fit")
 
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -364,15 +365,13 @@ class UploadEngine(private val context: android.content.Context? = null) {
         return try {
             // v6.2.4: 黑鸟只接受FIT。行者等来源下载的是GPX，直接上传会被黑鸟当FIT解析而失败，
             // 必须先把GPX转换为FIT（转换格式已在线验证：黑鸟返回recordId并落库）
+            val fileName = FileNameGenerator.generate(DataSource.BLACKBIRD, record, "fit")
             val uploadBytes: ByteArray
-            val fileName: String
             if (GpxToFitConverter.isFit(fitData)) {
                 uploadBytes = fitData
-                fileName = "${record.source.shortName}_${record.id}.fit"
             } else {
                 val fitBytes = GpxToFitConverter.convert(fitData)
                 uploadBytes = fitBytes
-                fileName = "${record.source.shortName}_${record.id}.fit"
                 Log.d(TAG, "GPX->FIT converted: ${fitData.size} -> ${fitBytes.size} bytes")
             }
             val err = blackbirdApi.uploadActivity(cookie, uploadBytes, fileName)
@@ -391,7 +390,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            val fileName = "${record.source.shortName}_${record.id}.fit"
+            val fileName = FileNameGenerator.generate(DataSource.BRYTON, record, "fit")
             val ok = brytonApi.uploadActivity(cookie, fitData, fileName)
             Log.d(TAG, "Bryton upload result: $ok (${System.currentTimeMillis() - start}ms)")
             if (ok) UploadResult(true, message = "百锐腾上传成功")
