@@ -22,6 +22,54 @@ import java.util.concurrent.TimeUnit
  */
 class BlackbirdApi {
 
+    /**
+     * v6.3.8: 黑鸟坐标为GCJ-02(火星坐标)，上传Outbase等WGS84平台必须转换
+     * 算法：迭代近似GCJ-02→WGS84（与blackbird2wgs.py一致）
+     */
+    private val PI = 3.1415926535897932384626
+    private val A = 6378245.0
+    private val EE = 0.00669342162296594323
+
+    private fun transformLat(x: Double, y: Double): Double {
+        var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x))
+        ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0
+        ret += (20.0 * Math.sin(y * PI) + 40.0 * Math.sin(y / 3.0 * PI)) * 2.0 / 3.0
+        ret += (160.0 * Math.sin(y / 12.0 * PI) + 320 * Math.sin(y * PI / 30.0)) * 2.0 / 3.0
+        return ret
+    }
+
+    private fun transformLon(x: Double, y: Double): Double {
+        var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+        ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0
+        ret += (20.0 * Math.sin(x * PI) + 40.0 * Math.sin(x / 3.0 * PI)) * 2.0 / 3.0
+        ret += (150.0 * Math.sin(x / 12.0 * PI) + 300.0 * Math.sin(x / 30.0 * PI)) * 2.0 / 3.0
+        return ret
+    }
+
+    /** GCJ-02 → WGS84，迭代近似（黑鸟轨迹坐标转换） */
+    private fun gcj02ToWgs84(gcjLat: Double, gcjLon: Double): Pair<Double, Double> {
+        if (outOfChina(gcjLat, gcjLon)) return Pair(gcjLat, gcjLon)
+        var wgLat = gcjLat
+        var wgLon = gcjLon
+        for (i in 0 until 100) {
+            val dLat = transformLat(wgLon - 105.0, wgLat - 35.0)
+            val dLon = transformLon(wgLon - 105.0, wgLat - 35.0)
+            val radLat = wgLat / 180.0 * PI
+            var magic = Math.sin(radLat)
+            magic = 1 - EE * magic * magic
+            val sqrtMagic = Math.sqrt(magic)
+            val mgLat = wgLat + (dLat * 180.0) / ((A * (1 - EE)) / (magic * sqrtMagic) * PI)
+            val mgLon = wgLon + (dLon * 180.0) / (A / sqrtMagic * Math.cos(radLat) * PI)
+            if (Math.abs(mgLat - gcjLat) < 1e-8 && Math.abs(mgLon - gcjLon) < 1e-8) break
+            wgLat = gcjLat - (dLat * 180.0) / ((A * (1 - EE)) / (magic * sqrtMagic) * PI)
+            wgLon = gcjLon - (dLon * 180.0) / (A / sqrtMagic * Math.cos(radLat) * PI)
+        }
+        return Pair(wgLat, wgLon)
+    }
+
+    private fun outOfChina(lat: Double, lon: Double): Boolean =
+        lon < 72.004 || lon > 137.8347 || lat < 0.8293 || lat > 55.8271
+
     companion object {
         private const val TAG = "BlackbirdApi"
         const val LOGIN_URL = "https://www.blackbirdsport.com/login"
@@ -122,7 +170,14 @@ class BlackbirdApi {
     /**
      * 下载活动数据（FIT优先，回退GPX构建）
      */
-    suspend fun downloadActivity(cookie: String, recordId: String): ByteArray =
+    /**
+     * v6.3.8: 黑鸟下载重构
+     * - FIT优先：增强字段探测(fitUrl/fit_url/downloadUrl/fileUrl/fitFileUrl等)+cookie认证
+     * - GPX回退：解析content.startTime(Unix秒)+track字符串(lat,lon,ele,...,time_offset_ms)
+     *   构建带时间戳/心率/功率/踏频的完整GPX，不再只存lat/lon/ele
+     * - 坐标：黑鸟为GCJ-02(火星坐标)，构建GPX时根据UI开关决定是否转WGS84（实测Outbase偏移修复）
+     */
+    suspend fun downloadActivity(cookie: String, recordId: String, convertCoord: Boolean = true): ByteArray =
         withContext(Dispatchers.IO) {
             val req = Request.Builder().url("$BASE/records/$recordId/data")
                 .apply { authHeaders(cookie).forEach { (k, v) -> addHeader(k, v) } }
@@ -132,55 +187,93 @@ class BlackbirdApi {
             if (resp.code != 200) throw Exception("黑鸟数据 HTTP ${resp.code}")
 
             val json = JSONObject(body)
-            // v6.2.4: 黑鸟 /records/{id}/data 返回 content.track 为"lat,lon,ele,...;lat,lon,..."字符串
             val data = json.optJSONObject("content") ?: json.optJSONObject("data") ?: json
 
-            // 尝试直接下载FIT
-            val fitUrl = data.optString("fitUrl", data.optString("fit_url", ""))
+            // v6.3.8: 增强FIT下载地址字段探测
+            val fitUrl = listOf("fitUrl", "fit_url", "downloadUrl", "download_url", "fileUrl",
+                "file_url", "fitFileUrl", "fit_file_url", "fitDownloadUrl", "fit_download_url")
+                .map { data.optString(it, "") }
+                .firstOrNull { it.isNotEmpty() && it.startsWith("http") } ?: ""
+
             if (fitUrl.isNotEmpty()) {
                 try {
+                    // v6.3.8: FIT下载带cookie认证+Referer，避免401/403
                     val dlReq = Request.Builder().url(fitUrl)
-                        .addHeader("User-Agent", "Mozilla/5.0").get().build()
+                        .addHeader("User-Agent", "Mozilla/5.0")
+                        .addHeader("Referer", "$BASE/records/$recordId")
+                        .apply { authHeaders(cookie).forEach { (k, v) -> addHeader(k, v) } }
+                        .get().build()
                     val dlResp = client.newCall(dlReq).execute()
                     val bytes = dlResp.body?.bytes()
-                    if (bytes != null && bytes.size > 100) {
-                        Log.d(TAG, "FIT downloaded: ${bytes.size} bytes")
+                    if (bytes != null && bytes.size > 100 &&
+                        bytes.size >= 14 && bytes[8] == '.'.code.toByte() && bytes[9] == 'F'.code.toByte()) {
+                        Log.d(TAG, "✅ 黑鸟FIT下载成功: ${bytes.size} bytes (id=$recordId)")
                         return@withContext bytes
                     }
+                    Log.w(TAG, "黑鸟FIT下载返回非FIT数据(${bytes?.size ?: 0}bytes)，回退GPX构建")
                 } catch (e: Exception) {
-                    Log.w(TAG, "FIT download failed: ${e.message}")
+                    Log.w(TAG, "黑鸟FIT下载异常: ${e.message}，回退GPX构建")
                 }
+            } else {
+                Log.d(TAG, "黑鸟活动无FIT下载地址，使用GPX构建")
             }
+
+            // v6.3.8: 获取开始时间(Unix秒)，用于构建GPX时间戳
+            val startTime = data.optLong("startTime", data.optLong("start_time",
+                data.optLong("beginTime", data.optLong("begin_time", 0L))))
 
             // 从轨迹点构建GPX：track可能是JSONArray（旧格式）或分号分隔字符串（实际格式）
             val trackArr = data.optJSONArray("track") ?: data.optJSONArray("points")
             if (trackArr != null && trackArr.length() > 0) {
-                val gpx = buildGpx(trackArr, recordId)
+                val gpx = buildGpx(trackArr, recordId, startTime, convertCoord)
                 Log.d(TAG, "GPX built: ${gpx.size} bytes from ${trackArr.length()} points")
                 return@withContext gpx
             }
             val trackStr = data.optString("track", data.optString("points", ""))
             if (trackStr.isNotBlank()) {
-                val gpx = buildGpxFromTrackString(trackStr, recordId)
-                Log.d(TAG, "GPX built from track string: ${gpx.size} bytes")
+                val gpx = buildGpxFromTrackString(trackStr, recordId, startTime, convertCoord)
+                Log.d(TAG, "GPX built from track string: ${gpx.size} bytes (startTime=$startTime)")
                 return@withContext gpx
             }
 
             throw Exception("无法获取活动数据 (recordId=$recordId)")
         }
 
-    private fun buildGpx(track: org.json.JSONArray, recordId: String): ByteArray {
+    private fun buildGpx(track: org.json.JSONArray, recordId: String, startTimeSec: Long, convertCoord: Boolean): ByteArray {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\">\n")
+        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\">\n")
         sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         for (i in 0 until track.length()) {
             val pt = track.optJSONObject(i) ?: continue
-            val lat = pt.optDouble("lat", pt.optDouble("latitude", 0.0))
-            val lon = pt.optDouble("lng", pt.optDouble("longitude", 0.0))
+            val gcjLat = pt.optDouble("lat", pt.optDouble("latitude", 0.0))
+            val gcjLon = pt.optDouble("lng", pt.optDouble("longitude", 0.0))
             val ele = pt.optDouble("ele", pt.optDouble("altitude", 0.0))
+            // v6.3.8: 黑鸟坐标GCJ-02→WGS84转换（受UI开关控制）
+            val (lat, lon) = if (convertCoord) gcj02ToWgs84(gcjLat, gcjLon) else Pair(gcjLat, gcjLon)
+            // 时间：优先用点自带的time/timestamp，否则用startTime+索引递增
+            val ptTime = pt.optString("time", pt.optString("timestamp", "")).let {
+                if (it.isNotEmpty()) it else {
+                    val offset = pt.optLong("offset", pt.optLong("time_offset", i.toLong()))
+                    if (startTimeSec > 0) {
+                        val instant = java.time.Instant.ofEpochSecond(startTimeSec + offset)
+                        java.time.format.DateTimeFormatter.ISO_INSTANT.format(instant)
+                    } else ""
+                }
+            }
+            val hr = pt.optInt("hr", pt.optInt("heartRate", pt.optInt("heart_rate", 0)))
+            val power = pt.optInt("power", pt.optInt("watts", 0))
+            val cad = pt.optInt("cad", pt.optInt("cadence", 0))
             sb.append("      <trkpt lat=\"$lat\" lon=\"$lon\">\n")
             if (ele != 0.0) sb.append("        <ele>$ele</ele>\n")
+            if (ptTime.isNotEmpty()) sb.append("        <time>$ptTime</time>\n")
+            if (hr > 0 || power > 0 || cad > 0) {
+                sb.append("        <extensions>\n          <gpxtpx:TrackPointExtension>\n")
+                if (hr > 0) sb.append("            <gpxtpx:hr>$hr</gpxtpx:hr>\n")
+                if (cad > 0) sb.append("            <gpxtpx:cad>$cad</gpxtpx:cad>\n")
+                if (power > 0) sb.append("            <gpxtpx:power>$power</gpxtpx:power>\n")
+                sb.append("          </gpxtpx:TrackPointExtension>\n        </extensions>\n")
+            }
             sb.append("      </trkpt>\n")
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>")
@@ -189,27 +282,72 @@ class BlackbirdApi {
 
 
     /** 从黑鸟 track 字符串（"lat,lon,ele,dist,...;lat,lon,..."）构建GPX */
-    private fun buildGpxFromTrackString(trackStr: String, recordId: String): ByteArray {
+    /**
+     * v6.3.8: 从黑鸟track字符串构建完整GPX
+     * track格式: "lat,lon,ele,[hr?,power?,cad?,]...,time_offset_ms;..."
+     * 最后一个字段是相对于startTime的毫秒偏移(可能为空，需补0)
+     * 中间字段尝试解析为心率/功率/踏频（值在合理范围内才采用）
+     */
+    private fun buildGpxFromTrackString(trackStr: String, recordId: String, startTimeSec: Long, convertCoord: Boolean): ByteArray {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\">\n")
+        sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\">\n")
         sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         var count = 0
-        // v6.2.5: 限制重建点数，避免超大track字符串(数万点)导致生成巨型GPX+上传卡顿
+        var hasTime = false
+        var hasHr = false
+        var hasPower = false
+        var hasCad = false
         for (segment in trackStr.split(";")) {
-            if (count >= 3000) break
+            if (count >= 5000) break
             val f = segment.split(",")
             if (f.size < 2) continue
-            val lat = f[0].trim().toDoubleOrNull() ?: continue
-            val lon = f[1].trim().toDoubleOrNull() ?: continue
+            val gcjLat = f[0].trim().toDoubleOrNull() ?: continue
+            val gcjLon = f[1].trim().toDoubleOrNull() ?: continue
             val ele = if (f.size >= 3) (f[2].trim().toDoubleOrNull() ?: 0.0) else 0.0
+            // v6.3.8: 黑鸟坐标GCJ-02→WGS84转换（受UI开关控制）
+            val (lat, lon) = if (convertCoord) gcj02ToWgs84(gcjLat, gcjLon) else Pair(gcjLat, gcjLon)
+
+            // 时间：最后一个字段是毫秒偏移（可能为空字符串）
+            var timeStr = ""
+            if (startTimeSec > 0 && f.size >= 4) {
+                val offsetMs = f[f.size - 1].trim().let { if (it.isEmpty()) "0" else it }.toLongOrNull() ?: 0L
+                val ts = startTimeSec * 1000 + offsetMs
+                val instant = java.time.Instant.ofEpochMilli(ts)
+                timeStr = java.time.format.DateTimeFormatter.ISO_INSTANT.format(instant)
+                hasTime = true
+            }
+
+            // 中间字段尝试解析心率/功率/踏频（f[3]到f[size-2]）
+            var hr = 0; var power = 0; var cad = 0
+            val midFields = if (f.size >= 5) f.subList(3, f.size - 1) else emptyList()
+            for (v in midFields) {
+                val num = v.trim().toIntOrNull() ?: continue
+                when {
+                    num in 30..250 && hr == 0 -> hr = num  // 心率: 30-250 bpm
+                    num in 0..2000 && power == 0 && num != hr -> power = num  // 功率: 0-2000w
+                    num in 0..200 && cad == 0 && num != hr && num != power -> cad = num  // 踏频: 0-200 rpm
+                }
+            }
+            if (hr > 0) hasHr = true
+            if (power > 0) hasPower = true
+            if (cad > 0) hasCad = true
+
             sb.append("      <trkpt lat=\"$lat\" lon=\"$lon\">\n")
             if (ele != 0.0) sb.append("        <ele>$ele</ele>\n")
+            if (timeStr.isNotEmpty()) sb.append("        <time>$timeStr</time>\n")
+            if (hr > 0 || power > 0 || cad > 0) {
+                sb.append("        <extensions>\n          <gpxtpx:TrackPointExtension>\n")
+                if (hr > 0) sb.append("            <gpxtpx:hr>$hr</gpxtpx:hr>\n")
+                if (cad > 0) sb.append("            <gpxtpx:cad>$cad</gpxtpx:cad>\n")
+                if (power > 0) sb.append("            <gpxtpx:power>$power</gpxtpx:power>\n")
+                sb.append("          </gpxtpx:TrackPointExtension>\n        </extensions>\n")
+            }
             sb.append("      </trkpt>\n")
             count++
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>")
-        Log.d(TAG, "buildGpxFromTrackString: $count points")
+        Log.d(TAG, "buildGpxFromTrackString: $count points, time=$hasTime hr=$hasHr power=$hasPower cad=$hasCad")
         return sb.toString().toByteArray()
     }
 

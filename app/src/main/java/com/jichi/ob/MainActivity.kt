@@ -655,7 +655,16 @@ class MainActivity : AppCompatActivity() {
                     }
                 } catch (e: MageneApi.NoFileException) { null }
             }
-            DataSource.BLACKBIRD -> blackbirdApi.downloadActivity(cred, record.id)
+            DataSource.BLACKBIRD -> {
+                val bbConvert = prefs.isGcj02Convert()
+                val bbData = blackbirdApi.downloadActivity(cred, record.id, bbConvert)
+                // v6.3.8: 黑鸟FIT坐标也是GCJ-02，复用迈金坐标转换引擎转WGS84（受UI开关控制）
+                if (bbConvert && bbData.size >= 14 && bbData[8] == '.'.code.toByte() && bbData[9] == 'F'.code.toByte()) {
+                    appendLog("🔄 黑鸟FIT坐标(GCJ-02)，执行WGS84转换...")
+                    val fixed = convertFitCoordinates(bbData)
+                    if (fixed != null && fixed.isNotEmpty()) fixed else bbData
+                } else bbData
+            }
             DataSource.BRYTON -> {
                 // v6.2.4: 百锐腾官方未开放FIT/GPX下载接口（网页仅展示summary，CDP实测全部下载路径返回SPA HTML），
                 // 从百锐腾下载原始轨迹不可行；仅支持将其他平台数据上传到百锐腾

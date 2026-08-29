@@ -180,7 +180,7 @@
                         <TextView android:id="@+id/tvSkip" android:layout_width="40dp" android:layout_height="wrap_content" android:text="0" android:textSize="14sp" android:textStyle="bold" android:gravity="center" android:textColor="@color/primary" />
                     </LinearLayout>
 
-                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchGcj02" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="迈金 GCJ-02→WGS84 坐标转换" android:textSize="12sp" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchGcj02" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="迈金/黑鸟 GCJ-02→WGS84 坐标转换" android:textSize="12sp" />
 
                     <TextView android:id="@+id/tvSaveDir" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="1" android:ellipsize="middle" />
                     <TextView android:id="@+id/tvSyncedCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/green" />
