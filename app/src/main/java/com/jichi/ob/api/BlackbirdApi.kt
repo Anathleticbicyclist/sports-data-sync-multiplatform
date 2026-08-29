@@ -218,9 +218,31 @@ class BlackbirdApi {
                 Log.d(TAG, "黑鸟活动无FIT下载地址，使用GPX构建")
             }
 
-            // v6.3.8: 获取开始时间(Unix秒)，用于构建GPX时间戳
-            val startTime = data.optLong("startTime", data.optLong("start_time",
-                data.optLong("beginTime", data.optLong("begin_time", 0L))))
+            // v6.3.9: 获取开始时间(Unix秒)，支持字符串/数字+更多字段名
+            val startTime = run {
+                val keys = listOf("startTime","start_time","beginTime","begin_time","startDate","start_date","date","time","startTimestamp","start_timestamp")
+                var v = 0L
+                for (k in keys) {
+                    val s = data.optString(k, "")
+                    if (s.isNotEmpty()) {
+                        val num = s.toLongOrNull() ?: s.toDoubleOrNull()?.toLong()
+                        if (num != null && num > 0) { v = num; break }
+                    }
+                }
+                if (v == 0L) {
+                    for (k in keys) {
+                        val num = data.optLong(k, 0L)
+                        if (num > 0) { v = num; break }
+                    }
+                }
+                v
+            }
+            // v6.3.9调试：输出content所有字段名和track前2个点，排查时间/心率功率问题
+            val allKeys = data.names()?.let { arr -> (0 until arr.length()).map { arr.optString(it) }.joinToString(",") } ?: "(无)"
+            val trackStr = data.optString("track", data.optString("points", ""))
+            val firstPoints = trackStr.split(";").take(2).joinToString(" | ")
+            Log.w(TAG, "===== 黑鸟活动调试 ===== keys=$allKeys startTime=$startTime")
+            Log.w(TAG, "===== track前2点: $firstPoints =====")
 
             // 从轨迹点构建GPX：track可能是JSONArray（旧格式）或分号分隔字符串（实际格式）
             val trackArr = data.optJSONArray("track") ?: data.optJSONArray("points")
@@ -229,7 +251,6 @@ class BlackbirdApi {
                 Log.d(TAG, "GPX built: ${gpx.size} bytes from ${trackArr.length()} points")
                 return@withContext gpx
             }
-            val trackStr = data.optString("track", data.optString("points", ""))
             if (trackStr.isNotBlank()) {
                 val gpx = buildGpxFromTrackString(trackStr, recordId, startTime, convertCoord)
                 Log.d(TAG, "GPX built from track string: ${gpx.size} bytes (startTime=$startTime)")
@@ -308,25 +329,30 @@ class BlackbirdApi {
             // v6.3.8: 黑鸟坐标GCJ-02→WGS84转换（受UI开关控制）
             val (lat, lon) = if (convertCoord) gcj02ToWgs84(gcjLat, gcjLon) else Pair(gcjLat, gcjLon)
 
-            // 时间：最后一个字段是毫秒偏移（可能为空字符串）
+            // 时间：最后一个字段是偏移量（可能是秒/毫秒浮点数，也可能为空字符串）
             var timeStr = ""
             if (startTimeSec > 0 && f.size >= 4) {
-                val offsetMs = f[f.size - 1].trim().let { if (it.isEmpty()) "0" else it }.toLongOrNull() ?: 0L
-                val ts = startTimeSec * 1000 + offsetMs
+                val lastField = f[f.size - 1].trim().let { if (it.isEmpty()) "0" else it }
+                // v6.3.9: 支持浮点数偏移（黑鸟track最后字段可能是"123.456"秒或毫秒）
+                val offsetVal = lastField.toDoubleOrNull() ?: 0.0
+                // 判断是秒还是毫秒：如果值>100000（超过27小时），视为毫秒；否则视为秒
+                val offsetMs = if (offsetVal > 100000) offsetVal else offsetVal * 1000
+                val ts = startTimeSec * 1000 + offsetMs.toLong()
                 val instant = java.time.Instant.ofEpochMilli(ts)
                 timeStr = java.time.format.DateTimeFormatter.ISO_INSTANT.format(instant)
                 hasTime = true
             }
 
             // 中间字段尝试解析心率/功率/踏频（f[3]到f[size-2]）
+            // v6.3.9: 支持浮点数，扩大合理范围
             var hr = 0; var power = 0; var cad = 0
             val midFields = if (f.size >= 5) f.subList(3, f.size - 1) else emptyList()
             for (v in midFields) {
-                val num = v.trim().toIntOrNull() ?: continue
+                val num = v.trim().toDoubleOrNull()?.toInt() ?: continue
                 when {
-                    num in 30..250 && hr == 0 -> hr = num  // 心率: 30-250 bpm
-                    num in 0..2000 && power == 0 && num != hr -> power = num  // 功率: 0-2000w
-                    num in 0..200 && cad == 0 && num != hr && num != power -> cad = num  // 踏频: 0-200 rpm
+                    num in 25..250 && hr == 0 -> hr = num  // 心率: 25-250 bpm
+                    num in 0..3000 && power == 0 && num != hr -> power = num  // 功率: 0-3000w
+                    num in 0..220 && cad == 0 && num != hr && num != power -> cad = num  // 踏频: 0-220 rpm
                 }
             }
             if (hr > 0) hasHr = true
