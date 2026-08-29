@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.7 |
+| 当前版本 | v6.3.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -158,14 +158,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 
 
-### v6.3.7 (2026-08-30)
-1. **修复iGPSPORT上传数量不生效（关键）** — IgpsportApi.getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致无论选择1-20多少条，for循环都遍历完当前页20条全部添加，实际同步20条。修复：添加limit条后立即break，数量选择1-1000均正确生效
-2. **清理iGPSPORT重复调试代码** — v6.3.6重写时残留重复的调试日志块，已清理
-3. **版本号更新** — v6.3.7 (versionCode 637)
+### v6.3.8 (2026-08-30)
+1. **黑鸟下载重构（关键）** — 黑鸟活动数据下载全面重构：FIT优先（增强fitUrl/downloadUrl/fileUrl等10+字段探测+cookie认证+Referer），FIT失败回退GPX构建；GPX构建从只存lat/lon/ele升级为完整解析（content.startTime Unix时间戳+track字符串最后字段毫秒偏移生成时间戳，中间字段智能识别心率30-250/功率0-2000w/踏频0-200rpm写入Garmin TrackPointExtension），解决黑鸟→Outbase无心率功率的问题
+2. **黑鸟坐标GCJ-02→WGS84转换（关键）** — 黑鸟坐标为GCJ-02(火星坐标)，实测上传Outbase有偏移。实现迭代近似GCJ-02→WGS84转换算法（与blackbird2wgs.py一致），GPX构建时自动转换；FIT下载时复用迈金坐标转换引擎（magene_fix.js）转换。黑鸟不分下载渠道，全量转换
+3. **坐标转换UI开关统一** — 原"迈金 GCJ-02→WGS84 坐标转换"开关改名为"迈金&黑鸟 GCJ-02→WGS84 坐标转换"，同一开关控制迈金（分渠道：fit_content转、七牛云直链WGS84不转）和黑鸟（不分渠道全转）的坐标转换
+4. **版本号更新** — v6.3.8 (versionCode 638)
 
 ---
 
-### 📋 全平台功能与实现方法总览（v6.3.7 现状）
+### 📋 全平台功能与实现方法总览（v6.3.8 现状）
 
 #### 一、支持平台矩阵
 
@@ -183,7 +184,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 **1. 行者（XingZhe）**
 - 登录：WebView登录 `imxingzhe.com/login`，获取 `sessionid` cookie
 - 活动列表：`GET /api/v1/pgworkout/?offset=&limit=`
-- 下载：**v6.3.6起FIT优先** `GET /api/v1/workout/{id}/fit/`（FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失）；FIT下载失败回退GPX `GET /api/v1/pgworkout/{id}/gpx/` 再转换
+- 下载：**v6.3.6起FIT优先** `GET /api/v1/workout/{id}/fit/`（FIT原生支持功率/心率/踏频/温度等扩展数据）；FIT下载失败回退GPX `GET /api/v1/pgworkout/{id}/gpx/` 再转换
 - 上传：官方开放API `POST /api/v1/fit/upload/`，字段 fit_file + md5，返回 workout_id 且 handle_msg=ok 即正常入库；重复上传返回 code=9006"文件已上传"
 - 时间修正：行者GPX中`<time>`是北京时间但错误标注Z(UTC)，v6.3.6起在UploadEngine.upload入口统一减8小时转为正确UTC（覆盖所有上传目标）
 
@@ -192,25 +193,27 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 活动列表：`POST/GET queryMyActivity` 接口（分页 pageNo/pageSize，服务端不支持offset，拉取后丢弃前offset条）
 - **v6.3.7修复**：getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致数量选择1-20不生效（始终同步20条），已修复
 - 下载：FIT直链，通过 `getDownloadUrl` 接口获取真实下载地址
-- 上传：官方第三方上传API，两步流程：①获取OSS签名URL（`getSignedUrl?fileExtension=.fit/.gpx`）②PUT文件到OSS；扩展名须与文件类型一致（GPX用.gpx否则解析失败）
+- 上传：官方第三方上传API，两步流程：①获取OSS签名URL（`getSignedUrl?fileExtension=.fit/.gpx`）②PUT文件到OSS；扩展名须与文件类型一致
 - 时间字段：v6.3.6增强探测（StartTime/startTime/start_time/RideDate/rideDate/SportTime/BeginTime/RideTime/createTime/StartDate等15+字段），调试日志Log.w输出首活动所有字段名和时间值
 
 **3. 迈金（Magene/顽鹿）**
 - 登录：WebView登录顽鹿，获取 cookie
 - 下载：FIT直链（七牛云WGS84无需转换，fit_content来源GCJ-02需转WGS84）
-- 坐标转换：GCJ-02（火星坐标）→ WGS84（GPS坐标）批量转换，自动识别来源，转换日志输出修正坐标点数和平均偏移距离
+- 坐标转换：**分渠道**——fit_content接口下载的GCJ-02坐标FIT执行转换，七牛云直链(durl)下载的已是WGS84不转换。通过WebView执行magene_fix.js转换，日志输出修正坐标点数和平均偏移距离
 - 上传：开发中（WebView通道，HTTP上传404问题待解决）
 
 **4. 黑鸟单车（Blackbird）**
 - 登录：WebView登录 `blackbirdsport.com/auth/login`，`JSESSIONID` cookie
-- 登录防误判：JSESSIONID是访问网站即生成的会话cookie（未登录也有），必须调用 `/api/user` 验证返回有效用户信息（status=ok且有nickname）才算真正登录成功（v6.3.2修复）
+- 登录防误判：JSESSIONID是访问网站即生成的会话cookie（未登录也有），必须调用 `/api/user` 验证返回有效用户信息才算真正登录成功（v6.3.2修复）
 - 活动列表：`GET /api/records?lastRecordId=&pageSize=`
-- 下载：GPX格式
-- 上传：`POST /api/records/upload`，只接受FIT；GPX源必须用Outbase官方gpx2fit转FIT（自研转换器生成的FIT黑鸟解析器较旧无法解析，返回FIT_FILE_ERROR）；v6.3.4启用
+- 下载：**v6.3.8重构**——FIT优先（增强fitUrl/downloadUrl/fileUrl等10+字段探测+cookie认证+Referer），FIT失败回退GPX构建
+- GPX构建：**v6.3.8重构**——从只存lat/lon/ele升级为完整解析：`content.startTime`(Unix秒) + track字符串最后字段(毫秒偏移)生成时间戳；中间字段智能识别心率(30-250bpm)/功率(0-2000w)/踏频(0-200rpm)写入Garmin TrackPointExtension；坐标GCJ-02→WGS84转换
+- 坐标转换：**不分渠道全转**——黑鸟坐标为GCJ-02(火星坐标)，GPX构建时用迭代近似算法转换（与blackbird2wgs.py一致）；FIT下载时复用迈金坐标转换引擎(magene_fix.js)转换
+- 上传：`POST /api/records/upload`，只接受FIT；GPX源必须用Outbase官方gpx2fit转FIT（自研转换器生成的FIT黑鸟解析器较旧无法解析）；v6.3.4启用
 
 **5. Outbase**
 - 登录：WebView登录 `outbase.cn`，获取 `sessionId`
-- 上传流程：CDN h5直连（`melon-gateway /zeusfit/resource/h5/upload`，浏览器风格请求无需鉴权头）→ 注册接口（`POST /api/h5/sport/upload/fit`，带Sessionid/Uagent头）；CDN失败时回退WebView内fetch
+- 上传流程：CDN h5直连（`melon-gateway /zeusfit/resource/h5/upload`）→ 注册接口（`POST /api/h5/sport/upload/fit`，带Sessionid/Uagent头）；CDN失败时回退WebView内fetch
 - 会话校验：上传前 `POST /api/h5/sport/upload/list` 验证sessionId有效性
 - GPX→FIT：Outbase官方gpx2fit（WebView注入gpx2fit.js，分块注入+base64读回，与正式版项目一致）；官方转换失败时回退自研GpxToFitConverter
 - 重复检测：注册接口返回"已存在"自动跳过
@@ -224,16 +227,17 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 时间：`yyyyMMdd_HHmmss`，支持多种格式解析（.NET `/Date()`/ 秒/毫秒时间戳 / 带时区偏移 `+08:00` / 多种日期格式）
 - 运动类型：从活动标题自动提取（室内骑行/户外骑行/跑步/游泳等20+关键词），无匹配时取标题最后片段
 - 来源ID：平台缩写+活动ID（如 xz221312982 / igp55059252 / mg6a8d8a0d / bb113833851）
-- v6.3.5起跨平台同步时文件名前缀用**源平台名**（如行者数据上传到任何平台都显示 XingZhe_xxx）
+- v6.3.5起跨平台同步时文件名前缀用**源平台名**
 
 **2. GPX→FIT 转换双保险**
 - 优先：Outbase官方gpx2fit（WebView注入JS，与正式版一致，黑鸟/Outbase上传均优先使用）
 - 兜底：自研GpxToFitConverter（file_id/event/device_info/session/lap/activity/record消息流+CRC校验）
 - 官方gpx2fit失败时输出明确告警日志
 
-**3. 迈金坐标转换引擎**
-- GCJ-02（火星坐标）→ WGS84（GPS坐标）批量转换
-- 自动识别来源：七牛云直链WGS84无需转换，fit_content来源GCJ-02需转换
+**3. 坐标转换引擎（迈金&黑鸟）**
+- 统一UI开关："迈金&黑鸟 GCJ-02→WGS84 坐标转换"（v6.3.8改名，原仅迈金）
+- 迈金：**分渠道**——fit_content来源GCJ-02转，七牛云直链WGS84不转
+- 黑鸟：**不分渠道全转**——GPX构建时用Kotlin迭代近似算法转换，FIT下载时复用迈金magene_fix.js转换
 - 转换日志输出修正坐标点数和平均偏移距离
 
 **4. 同步记忆与去重**
@@ -257,6 +261,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 详细操作日志（下载/上传/转换/跳过/失败原因，带时间戳）
 - 启动日志版本号动态化（BuildConfig.VERSION_NAME）
 - 同步完成统计：成功/跳过/失败数
+
+### v6.3.7 (2026-08-30)
+1. **修复iGPSPORT上传数量不生效（关键）** — IgpsportApi.getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致无论选择1-20多少条，for循环都遍历完当前页20条全部添加，实际同步20条。修复：添加limit条后立即break，数量选择1-1000均正确生效
+2. **清理iGPSPORT重复调试代码** — v6.3.6重写时残留重复的调试日志块，已清理
+3. **版本号更新** — v6.3.7 (versionCode 637)
 
 ### v6.3.6 (2026-08-30)
 1. **行者下载改为FIT优先（关键）** — 行者下载优先获取FIT文件（`/api/v1/workout/{id}/fit/`），FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失；FIT下载失败时回退GPX（`/api/v1/pgworkout/{id}/gpx/`）再转换
