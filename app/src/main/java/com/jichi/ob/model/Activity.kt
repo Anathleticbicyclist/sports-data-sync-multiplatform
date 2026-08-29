@@ -40,7 +40,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     IGPSPORT(true, "官方第三方上传API"),
     XINGZHE(true, "官方开放API"),
     MAGENE(false, "开发中"),
-    BLACKBIRD(false, "开发中"),
+    BLACKBIRD(true, "官方上传通道，仅接受FIT"),
     BRYTON(false, "开发中");
 
     companion object {

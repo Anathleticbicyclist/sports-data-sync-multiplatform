@@ -50,29 +50,48 @@ object FileNameGenerator {
     /** 统一时间格式 yyyyMMdd_HHmmss */
     private fun formatTime(startTime: String): String {
         if (startTime.isBlank()) return "unknown"
+        val raw = startTime.trim()
+        // .NET 日期格式: /Date(1724584446000)/ 或 /Date(1724584446000+0800)/
+        if (raw.startsWith("/Date(") && raw.endsWith(")/")) {
+            try {
+                val num = raw.removePrefix("/Date(").removeSuffix(")/").substringBefore("+").substringBefore("-")
+                val ts = num.toLong()
+                val date = Date(if (ts > 1e12) ts else ts * 1000)
+                return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(date)
+            } catch (_: Exception) {}
+        }
         // 尝试多种格式解析
         val patterns = listOf(
             "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
             "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
             "yyyy/MM/dd HH:mm:ss",
             "yyyy-MM-dd HH:mm",
-            "yyyy-MM-dd"
+            "yyyy-MM-dd",
+            "yyyyMMdd HH:mm:ss",
+            "yyyyMMdd'T'HH:mm:ss"
         )
         for (p in patterns) {
             try {
                 val fmt = SimpleDateFormat(p, Locale.US).apply { timeZone = TimeZone.getDefault() }
-                val date = fmt.parse(startTime.trim())
+                val date = fmt.parse(raw)
                 if (date != null) {
                     val out = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
                     return out.format(date)
                 }
             } catch (_: Exception) {}
         }
-        // 尝试时间戳（秒/毫秒）
-        startTime.trim().toLongOrNull()?.let { ts ->
+        // 尝试纯数字时间戳（秒/毫秒）
+        raw.toLongOrNull()?.let { ts ->
             val date = Date(if (ts > 1e12) ts else ts * 1000)
             return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(date)
+        }
+        // 尝试带小数的时间戳
+        raw.toDoubleOrNull()?.let { ts ->
+            val ms = if (ts > 1e12) ts.toLong() else (ts * 1000).toLong()
+            return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(ms))
         }
         return "unknown"
     }

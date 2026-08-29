@@ -103,7 +103,7 @@ class BlackbirdApi {
                     result.add(
                         ActivityRecord(
                             id = id.toString(),
-                            title = item.optString("title", "骑行"),
+                            title = item.optString("title", "").takeIf { it.isNotEmpty() && it != "null" } ?: "骑行",
                             startTime = formatStartTime(item.optLong("startTime", 0)),
                             distance = item.optDouble("distance", 0.0) / 1000.0,
                             duration = item.optInt("duration", 0),
