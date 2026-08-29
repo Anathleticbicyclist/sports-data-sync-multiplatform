@@ -264,9 +264,9 @@ class BlackbirdApi {
 
     private fun buildGpx(track: org.json.JSONArray, recordId: String, startTimeSec: Long, convertCoord: Boolean): ByteArray {
         val sb = StringBuilder()
+        var firstTime2 = ""
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\">\n")
-        sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         for (i in 0 until track.length()) {
             val pt = track.optJSONObject(i) ?: continue
             val gcjLat = pt.optDouble("lat", pt.optDouble("latitude", 0.0))
@@ -289,7 +289,10 @@ class BlackbirdApi {
             val cad = pt.optInt("cad", pt.optInt("cadence", 0))
             sb.append("      <trkpt lat=\"$lat\" lon=\"$lon\">\n")
             if (ele != 0.0) sb.append("        <ele>$ele</ele>\n")
-            if (ptTime.isNotEmpty()) sb.append("        <time>$ptTime</time>\n")
+            if (ptTime.isNotEmpty()) {
+                if (firstTime2.isEmpty()) firstTime2 = ptTime
+                sb.append("        <time>$ptTime</time>\n")
+            }
             if (hr > 0 || power > 0 || cad > 0) {
                 sb.append("        <extensions>\n          <gpxtpx:TrackPointExtension>\n")
                 if (hr > 0) sb.append("            <gpxtpx:hr>$hr</gpxtpx:hr>\n")
@@ -299,7 +302,12 @@ class BlackbirdApi {
             }
             sb.append("      </trkpt>\n")
         }
-        sb.append("    </trkseg>\n  </trk>\n</gpx>")
+        if (firstTime2.isNotEmpty()) {
+            sb.insert(sb.indexOf("<gpx "), "<metadata><time>$firstTime2</time></metadata>\n")
+        }
+        sb.append("    </trkseg>\n")
+        if (firstTime2.isNotEmpty()) sb.append("    <time>$firstTime2</time>\n")
+        sb.append("  </trk>\n</gpx>")
         return sb.toString().toByteArray()
     }
 
