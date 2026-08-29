@@ -69,35 +69,32 @@ class UploadEngine(private val context: android.content.Context? = null) {
             return@withContext UploadResult(false, message = "${target.displayName}上传功能${support.note}")
         }
 
-        // v6.3.6/v6.3.11: 行者/黑鸟GPX时间统一修正（所有目标平台生效）
-        // 行者/黑鸟GPX中<time>是北京时间但错误标注Z(UTC)，各平台解析时当成UTC→显示差8小时。
-        // 修正：减8小时转为正确UTC，这样各平台显示UTC+8→北京时间即正确。
-        val needTimeFix = (record.source == DataSource.XINGZHE || record.source == DataSource.BLACKBIRD) &&
-            !com.jichi.ob.GpxToFitConverter.isFit(fitData)
-        val uploadData = if (needTimeFix) {
+        // v6.3.12: 所有GPX统一在入口转FIT再上传（各平台只接收FIT）
+        // 1. 行者GPX：时间是北京时间但标注Z(UTC)，先减8小时转为正确UTC
+        // 2. 黑鸟GPX：时间已经是标准UTC，不需要修正
+        // 3. 所有GPX：用自研转换器转FIT（已支持hr/cad/power），FIT时间戳/坐标/扩展数据各平台都能正确解析
+        val isFit = com.jichi.ob.GpxToFitConverter.isFit(fitData)
+        val timeFixedData = if (!isFit && record.source == DataSource.XINGZHE) {
             try {
                 val fixed = com.jichi.ob.util.GpxTimeFixer.fixXingzheGpx(fitData)
-                if (fixed !== fitData) Log.d(TAG, "${record.source.displayName}GPX时间已修正(减8h)，目标=${target.displayName}")
+                if (fixed !== fitData) Log.d(TAG, "行者GPX时间已修正(减8h)，目标=${target.displayName}")
                 fixed
             } catch (e: Exception) {
-                Log.w(TAG, "${record.source.displayName}GPX时间修正失败: ${e.message}")
+                Log.w(TAG, "行者GPX时间修正失败: ${e.message}")
                 fitData
             }
         } else fitData
 
-        // v6.3.11: 黑鸟GPX对所有平台统一转FIT再上传
-        // 原因：iGPSPORT等平台对GPX时间解析异常（不识别Z/UTC），FIT时间戳是UTC各平台都能正确解析；
-        // 自研GpxToFitConverter已增强支持hr/cad/power，转FIT不丢失扩展数据。
-        val finalData = if (record.source == DataSource.BLACKBIRD && !com.jichi.ob.GpxToFitConverter.isFit(uploadData)) {
+        val finalData = if (!isFit) {
             try {
-                val fit = com.jichi.ob.GpxToFitConverter.convert(uploadData)
-                Log.d(TAG, "黑鸟GPX→FIT(自研): ${uploadData.size} -> ${fit.size} bytes，目标=${target.displayName}")
+                val fit = com.jichi.ob.GpxToFitConverter.convert(timeFixedData)
+                Log.d(TAG, "${record.source.displayName}GPX→FIT(自研): ${timeFixedData.size} -> ${fit.size} bytes，目标=${target.displayName}")
                 fit
             } catch (e: Exception) {
-                Log.w(TAG, "黑鸟GPX→FIT转换失败，退回原GPX: ${e.message}")
-                uploadData
+                Log.w(TAG, "${record.source.displayName}GPX→FIT转换失败，退回原文件: ${e.message}")
+                timeFixedData
             }
-        } else uploadData
+        } else timeFixedData
 
         when (target) {
             DataSource.OUTBASE -> uploadToOutbase(credential, finalData, record, extra)
@@ -115,36 +112,9 @@ class UploadEngine(private val context: android.content.Context? = null) {
         sessionId: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         return try {
-            // v6.3.5: 与正式版项目完全一致——行者GPX直接用Outbase官方gpx2fit转FIT上传，不预先修正GPX时间
-            // （正式版验证：官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常）
-            val uploadData = if (com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
-                fitData
-            } else {
-                // 优先官方gpx2fit（与正式版一致），失败/无桥时退回自研转换器双保险
-                val officialFit = try {
-                    if (outbaseBridge != null) {
-                        val f = outbaseBridge!!.convertGpxToFit(fitData)
-                        Log.d(TAG, "Outbase GPX->FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
-                        f
-                    } else {
-                        Log.w(TAG, "Outbase outbaseBridge为null，无法用官方gpx2fit")
-                        null
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Outbase 官方gpx2fit转换失败: ${e.message}")
-                    null
-                }
-                officialFit ?: try {
-                    val f = com.jichi.ob.GpxToFitConverter.convert(fitData)
-                    Log.d(TAG, "Outbase GPX->FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
-                    f
-                } catch (e: Exception) {
-                    Log.w(TAG, "Outbase 自研转换也失败，退回原文件: ${e.message}")
-                    fitData
-                }
-            }
+            // v6.3.12: 入口已统一转FIT，这里直接上传
             val fileName = FileNameGenerator.generate(DataSource.OUTBASE, record, "fit")
-            val (msg, skipped, _) = outbaseApi.upload(sessionId, null, uploadData, fileName)
+            val (msg, skipped, _) = outbaseApi.upload(sessionId, null, fitData, fileName)
             UploadResult(!skipped && msg.contains("成功"), message = msg, skipped = skipped)
         } catch (e: Exception) {
             Log.e(TAG, "Outbase upload error", e)
