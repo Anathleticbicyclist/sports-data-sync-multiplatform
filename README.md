@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.3.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.0 |
+| 当前版本 | v6.3.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -154,6 +154,10 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v6.3.1 (2026-08-29)
+1. **统一上传文件名命名规则** — 此前各平台上传文件名混乱（如 xz_221312982.fit、mg_6a8d8a0d.fit）。统一为：`目标平台_运动时间_运动类型_来源ID.扩展名`，示例：`iGPSPORT_20260825_120000_骑行_xz221312982.fit`。运动类型从活动标题自动提取（如室内骑行/户外骑行/跑步等），时间统一为 yyyyMMdd_HHmmss
+2. **版本号更新** — v6.3.1 (versionCode 631)
 
 ### v6.3.0 (2026-08-28)
 1. **底部更新链接排版调整** — 标题去掉"更新链接"和冒号，改为蓝色（与俱乐部链接大小一致 11sp）、无下划线；说明注释另起一行灰色小字
