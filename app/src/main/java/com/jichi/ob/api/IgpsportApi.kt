@@ -107,7 +107,20 @@ class IgpsportApi {
                     fetched++
                     if (fetched <= offset) continue
                     val item = rows.getJSONObject(i)
+                    // v6.3.5 调试：输出第一个活动的时间字段实际值，排查文件名时间unknown
+                    if (fetched == offset + 1) {
+                        val timeKeys = listOf("StartTime","startTime","SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime","createTime","CreateTime","start_date","startDate")
+                        val timeVals = timeKeys.mapNotNull { k -> item.optString(k, "").takeIf { it.isNotEmpty() }?.let { "$k=$it" } }
+                        val allKeys = item.names()?.let { arr -> (0 until arr.length()).map { arr.optString(it) }.joinToString(",") } ?: "(无)"
+                        Log.d(TAG, "iGPSPORT首活动时间字段: ${timeVals.joinToString(", ") ?: "(无时间字段)"} | keys=$allKeys")
+                    }
                     val rideId = item.optString("RideId", item.optString("rideId", item.optString("id", "")))
+                    // v6.3.5 调试：输出iGPSPORT活动原始时间字段，排查文件名时间unknown
+                    if (result.isEmpty() && i == 0) {
+                        val keys = listOf("StartTime","startTime","SportTime","sportTime","BeginTime","beginTime","RideTime","rideTime","createTime","CreateTime","start_time","begin_time","sport_time")
+                        val timeVals = keys.mapNotNull { k -> item.optString(k, "").takeIf { it.isNotEmpty() }?.let { "$k=$it" } }
+                        Log.d(TAG, "iGPSPORT首活动调试: rideId=$rideId title=${item.optString("Title","")} 时间字段=[${timeVals.joinToString(", ")}]")
+                    }
                     if (rideId.isEmpty()) continue
                     val downloadUrl = item.optString("DownloadUrl",
                         item.optString("downloadUrl",

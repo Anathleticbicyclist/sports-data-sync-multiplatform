@@ -33,14 +33,15 @@ object FileNameGenerator {
 
     private val illegalChars = Regex("[\\\\/:*?\"<>|\\s]+")
 
-    /** 生成统一文件名 */
+    /** 生成统一文件名（用源平台名，如行者数据上传到任何平台都显示 XingZhe_xxx） */
     fun generate(target: DataSource, record: ActivityRecord, ext: String): String {
-        val targetName = TARGET_NAMES[target] ?: target.shortName
+        // v6.3.5: 用源平台名(record.source)而非目标平台(target)，确保跨平台同步时文件名标识数据来源
+        val sourceName = TARGET_NAMES[record.source] ?: record.source.shortName
         val time = formatTime(record.startTime)
         val sportType = extractSportType(record.title)
         val sourceId = "${record.source.shortName}${record.id.take(12)}"
         val cleanExt = ext.trimStart('.')
-        return "${clean(targetName)}_${time}_${clean(sportType)}_${clean(sourceId)}.$cleanExt"
+        return "${clean(sourceName)}_${time}_${clean(sportType)}_${clean(sourceId)}.$cleanExt"
     }
 
     /** 清理文件名非法字符 */
@@ -60,18 +61,23 @@ object FileNameGenerator {
                 return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(date)
             } catch (_: Exception) {}
         }
-        // 尝试多种格式解析
+        // 尝试多种格式解析（含带时区偏移的格式，如 2026-08-25T19:14:06+08:00）
         val patterns = listOf(
             "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
             "yyyy-MM-dd'T'HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
             "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
             "yyyy/MM/dd HH:mm:ss",
             "yyyy-MM-dd HH:mm",
             "yyyy-MM-dd",
             "yyyyMMdd HH:mm:ss",
-            "yyyyMMdd'T'HH:mm:ss"
+            "yyyyMMdd'T'HH:mm:ss",
+            "MMM dd, yyyy HH:mm:ss",
+            "EEE MMM dd HH:mm:ss zzz yyyy"
         )
         for (p in patterns) {
             try {
@@ -80,6 +86,17 @@ object FileNameGenerator {
                 if (date != null) {
                     val out = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
                     return out.format(date)
+                }
+            } catch (_: Exception) {}
+        }
+        // 带时区偏移但格式不标准的，如 2026-08-25T19:14:06+0800（无冒号）
+        if (raw.contains("+") || raw.contains("-")) {
+            try {
+                val cleaned = raw.replace(Regex("([+-]\\d{2})(\\d{2})$"), "$1:$2")
+                val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).apply { timeZone = TimeZone.getDefault() }
+                val date = fmt.parse(cleaned)
+                if (date != null) {
+                    return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(date)
                 }
             } catch (_: Exception) {}
         }

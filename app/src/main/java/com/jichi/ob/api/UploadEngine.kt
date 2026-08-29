@@ -85,35 +85,32 @@ class UploadEngine(private val context: android.content.Context? = null) {
         sessionId: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         return try {
-            // v6.3.3: 行者GPX时间修正（本地时间标Z → 正确UTC，减8小时），避免Outbase双重时区转换差16小时
-            val sourceData = if (record.source == DataSource.XINGZHE && !com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
-                GpxTimeFixer.fixXingzheGpx(fitData)
-            } else fitData
-            // v6.2.6 修复(Outbase解析失败根因)：Outbase只接受真正的FIT。行者等来源下载的是GPX，
-            // 若直接把GPX以.fit扩展名上传，Outbase按FIT解析GPX必失败→记录"待处理"永不解析。
-            // 与正式版项目(sync-igpsport-magene-onelap-xingzhe-data-to-outbase)一致：
-            // 用Outbase官方gpx2fit库先把GPX转成FIT再上传。
-            val uploadData = if (com.jichi.ob.GpxToFitConverter.isFit(sourceData)) {
+            // v6.3.5: 与正式版项目完全一致——行者GPX直接用Outbase官方gpx2fit转FIT上传，不预先修正GPX时间
+            // （正式版验证：官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常）
+            val uploadData = if (com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
                 fitData
             } else {
                 // 优先官方gpx2fit（与正式版一致），失败/无桥时退回自研转换器双保险
                 val officialFit = try {
                     if (outbaseBridge != null) {
-                        val f = outbaseBridge!!.convertGpxToFit(sourceData)
-                        Log.d(TAG, "Outbase GPX->FIT converted(官方gpx2fit): ${sourceData.size} -> ${f.size} bytes")
+                        val f = outbaseBridge!!.convertGpxToFit(fitData)
+                        Log.d(TAG, "Outbase GPX->FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
                         f
-                    } else null
+                    } else {
+                        Log.w(TAG, "Outbase outbaseBridge为null，无法用官方gpx2fit")
+                        null
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "Outbase 官方gpx2fit转换失败: ${e.message}")
                     null
                 }
                 officialFit ?: try {
-                    val f = com.jichi.ob.GpxToFitConverter.convert(sourceData)
-                    Log.d(TAG, "Outbase GPX->FIT converted(自研兜底): ${sourceData.size} -> ${f.size} bytes")
+                    val f = com.jichi.ob.GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "Outbase GPX->FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
                     f
                 } catch (e: Exception) {
                     Log.w(TAG, "Outbase 自研转换也失败，退回原文件: ${e.message}")
-                    sourceData
+                    fitData
                 }
             }
             val fileName = FileNameGenerator.generate(DataSource.OUTBASE, record, "fit")
@@ -368,29 +365,39 @@ class UploadEngine(private val context: android.content.Context? = null) {
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            // v6.3.3: 黑鸟只接受FIT。GPX源优先用Outbase官方gpx2fit转换（与正式版一致），失败回退自研转换器
+            // v6.3.5: 黑鸟只接受FIT。GPX源必须用Outbase官方gpx2fit转FIT（自研转换器生成的FIT黑鸟无法解析）
             val fileName = FileNameGenerator.generate(DataSource.BLACKBIRD, record, "fit")
             val uploadBytes: ByteArray
             if (GpxToFitConverter.isFit(fitData)) {
                 uploadBytes = fitData
+                Log.d(TAG, "黑鸟 源已是FIT，直接上传 ${fitData.size} bytes")
             } else {
+                Log.d(TAG, "黑鸟 GPX源 ${fitData.size} bytes，开始官方gpx2fit转换...")
                 val officialFit = try {
                     if (outbaseBridge != null) {
                         val f = outbaseBridge!!.convertGpxToFit(fitData)
-                        Log.d(TAG, "黑鸟 GPX->FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
+                        Log.d(TAG, "黑鸟 GPX->FIT(官方gpx2fit成功): ${fitData.size} -> ${f.size} bytes")
                         f
-                    } else null
+                    } else {
+                        Log.e(TAG, "黑鸟 outbaseBridge为null，官方gpx2fit不可用！")
+                        null
+                    }
                 } catch (e: Exception) {
-                    Log.w(TAG, "黑鸟 官方gpx2fit转换失败: ${e.message}")
+                    Log.e(TAG, "黑鸟 官方gpx2fit转换异常: ${e.message}", e)
                     null
                 }
-                uploadBytes = officialFit ?: try {
-                    val f = GpxToFitConverter.convert(fitData)
-                    Log.d(TAG, "黑鸟 GPX->FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
-                    f
-                } catch (e: Exception) {
-                    Log.w(TAG, "黑鸟 自研转换也失败: ${e.message}")
-                    fitData
+                uploadBytes = if (officialFit != null) {
+                    officialFit
+                } else {
+                    Log.w(TAG, "黑鸟 官方gpx2fit不可用，回退自研转换器（黑鸟可能拒绝该FIT）")
+                    try {
+                        val f = GpxToFitConverter.convert(fitData)
+                        Log.d(TAG, "黑鸟 GPX->FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
+                        f
+                    } catch (e: Exception) {
+                        Log.w(TAG, "黑鸟 自研转换也失败: ${e.message}")
+                        fitData
+                    }
                 }
             }
             val err = blackbirdApi.uploadActivity(cookie, uploadBytes, fileName)
