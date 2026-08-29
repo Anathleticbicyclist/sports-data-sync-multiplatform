@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 因此 Android 端必须通过 WebView + WebChromeClient.onShowFileChooser 返回本地FIT文件，
  * 由WebView内部把该文件赋给页面 input.files —— 与用户手动在网页上选择文件完全等价。
  *
- * 【登录注入】顽鹿Web与App同源：App内已通过API登录(账号15092285275)获得token，
+ * 【登录注入】顽鹿Web与App同源：App内已通过API登录获得token，
  * WebView加载 otm.onelap.cn 后把 token 写入 localStorage('token') 即保持登录态，无需WebView二次登录。
  */
 class MageneWebUploader(private val activity: Activity, private val token: String) {
