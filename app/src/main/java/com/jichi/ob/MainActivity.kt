@@ -656,7 +656,7 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: MageneApi.NoFileException) { null }
             }
             DataSource.BLACKBIRD -> {
-                val bbData = blackbirdApi.downloadActivity(cred, record.id)  // 黑鸟坐标已是WGS84，不转换
+                val bbData = blackbirdApi.downloadActivity(cred, record.id)  // v6.3.16: 黑鸟固定GCJ-02→WGS84，内部默认convertCoord=true
                 // v6.3.15调试：输出黑鸟原始track字段（带位置索引），确定真实字段顺序，排查字段错位
                 val rawSample = com.jichi.ob.api.BlackbirdApi.lastRawTrackSample
                 if (rawSample.isNotEmpty()) {

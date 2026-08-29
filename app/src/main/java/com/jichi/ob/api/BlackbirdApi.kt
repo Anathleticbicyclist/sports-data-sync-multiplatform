@@ -181,7 +181,7 @@ class BlackbirdApi {
      *   构建带时间戳/心率/功率/踏频的完整GPX，不再只存lat/lon/ele
      * - 坐标：黑鸟为GCJ-02(火星坐标)，构建GPX时根据UI开关决定是否转WGS84（实测Outbase偏移修复）
      */
-    suspend fun downloadActivity(cookie: String, recordId: String, convertCoord: Boolean = false): ByteArray =
+    suspend fun downloadActivity(cookie: String, recordId: String, convertCoord: Boolean = true): ByteArray =
         withContext(Dispatchers.IO) {
             val req = Request.Builder().url("$BASE/records/$recordId/data")
                 .apply { authHeaders(cookie).forEach { (k, v) -> addHeader(k, v) } }
@@ -325,70 +325,55 @@ class BlackbirdApi {
 
     /** 从黑鸟 track 字符串（"lat,lon,ele,dist,...;lat,lon,..."）构建GPX */
     /**
-     * v6.3.8: 从黑鸟track字符串构建完整GPX
-     * track格式: "lat,lon,ele,[hr?,power?,cad?,]...,time_offset_ms;..."
-     * 最后一个字段是相对于startTime的毫秒偏移(可能为空，需补0)
-     * 中间字段尝试解析为心率/功率/踏频（值在合理范围内才采用）
+     * v6.3.16（推倒重写）黑鸟track固定9字段，按位置精确解析，不再靠数值范围猜测。
+     * 字段布局（实际抓包 + 第三方blackbird2wgs脚本双重验证）:
+     *   [0]lat(GCJ-02) [1]lon(GCJ-02) [2]ele海拔(米)
+     *   [3]内部值(忽略) [4]hr心率(bpm) [5]power功率(瓦) [6]speed速度(单位0.1km/h)
+     *   [7]相对startTime的秒偏移 [8]保留(恒0)
+     * 坐标固定 GCJ-02→WGS84；逐点时间=startTime+[7]；速度[6]换算m/s写入gpxtpx:speed；无独立踏频字段不造假。
      */
     private fun buildGpxFromTrackString(trackStr: String, recordId: String, startTimeSec: Long, convertCoord: Boolean): ByteArray {
+        val isoFmt = java.time.format.DateTimeFormatter.ISO_INSTANT
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         sb.append("<gpx version=\"1.1\" creator=\"JichiOB-${BuildConfig.VERSION_NAME}\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\">\n")
         sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         var count = 0
-        var hasTime = false
-        var hasHr = false
-        var hasPower = false
-        var hasCad = false
-        var firstTimeStr = ""  // v6.3.14: 记录首个点时间用于metadata
+        var firstTimeStr = ""
+        var nHr = 0; var nPower = 0; var nSpeed = 0
         for (segment in trackStr.split(";")) {
-            if (count >= 50000) break  // v6.3.14: 5000→50000，长距离骑行不再截断轨迹
+            if (count >= 50000) break  // 上限5万点，长距离不截断
             val f = segment.split(",")
-            if (f.size < 2) continue
+            if (f.size < 3) continue
             val gcjLat = f[0].trim().toDoubleOrNull() ?: continue
             val gcjLon = f[1].trim().toDoubleOrNull() ?: continue
-            val ele = if (f.size >= 3) (f[2].trim().toDoubleOrNull() ?: 0.0) else 0.0
-            // v6.3.8: 黑鸟坐标GCJ-02→WGS84转换（受UI开关控制）
+            val ele = f[2].trim().toDoubleOrNull() ?: 0.0
+            // 黑鸟坐标固定GCJ-02，统一转WGS84后输出（运动平台均使用WGS84）
             val (lat, lon) = if (convertCoord) gcj02ToWgs84(gcjLat, gcjLon) else Pair(gcjLat, gcjLon)
 
-            // 时间：最后一个字段是偏移量（可能是秒/毫秒浮点数，也可能为空字符串）
-            var timeStr = ""
-            if (startTimeSec > 0 && f.size >= 4) {
-                val lastField = f[f.size - 1].trim().let { if (it.isEmpty()) "0" else it }
-                // v6.3.9: 支持浮点数偏移（黑鸟track最后字段可能是"123.456"秒或毫秒）
-                val offsetVal = lastField.toDoubleOrNull() ?: 0.0
-                // 判断是秒还是毫秒：如果值>100000（超过27小时），视为毫秒；否则视为秒
-                val offsetMs = if (offsetVal > 100000) offsetVal else offsetVal * 1000
-                val ts = startTimeSec * 1000 + offsetMs.toLong()
-                val instant = java.time.Instant.ofEpochMilli(ts)
-                timeStr = java.time.format.DateTimeFormatter.ISO_INSTANT.format(instant)
-                hasTime = true
-                if (firstTimeStr.isEmpty()) firstTimeStr = timeStr  // v6.3.14: 记录首点时间
-            }
+            // 时间偏移：固定取[7]秒；字段不足的老格式回退最后一个字段
+            val offsetSec = (if (f.size >= 8) f[7].trim().toDoubleOrNull()
+                             else f[f.size - 1].trim().toDoubleOrNull()) ?: 0.0
+            val timeStr = if (startTimeSec > 0)
+                isoFmt.format(java.time.Instant.ofEpochMilli((startTimeSec * 1000 + offsetSec * 1000).toLong())) else ""
+            if (firstTimeStr.isEmpty() && timeStr.isNotEmpty()) firstTimeStr = timeStr
 
-            // 中间字段尝试解析心率/功率/踏频（f[3]到f[size-2]）
-            // v6.3.9: 支持浮点数，扩大合理范围
-            var hr = 0; var power = 0; var cad = 0
-            val midFields = if (f.size >= 5) f.subList(3, f.size - 1) else emptyList()
-            for (v in midFields) {
-                val num = v.trim().toDoubleOrNull()?.toInt() ?: continue
-                when {
-                    num in 25..250 && hr == 0 -> hr = num  // 心率: 25-250 bpm
-                    num in 0..3000 && power == 0 && num != hr -> power = num  // 功率: 0-3000w
-                    num in 0..220 && cad == 0 && num != hr && num != power -> cad = num  // 踏频: 0-220 rpm
-                }
-            }
-            if (hr > 0) hasHr = true
-            if (power > 0) hasPower = true
-            if (cad > 0) hasCad = true
+            // 传感器按固定位置取，0=该点无此数据
+            val hr = if (f.size >= 5) (f[4].trim().toDoubleOrNull()?.toInt() ?: 0) else 0
+            val power = if (f.size >= 6) (f[5].trim().toDoubleOrNull()?.toInt() ?: 0) else 0
+            val speedDeciKmh = if (f.size >= 7) (f[6].trim().toDoubleOrNull() ?: 0.0) else 0.0 // 0.1km/h
+            val speedMs = if (speedDeciKmh > 0) speedDeciKmh / 36.0 else 0.0 // 换算 m/s
+            if (hr > 0) nHr++
+            if (power > 0) nPower++
+            if (speedMs > 0) nSpeed++
 
             sb.append("      <trkpt lat=\"$lat\" lon=\"$lon\">\n")
-            if (ele != 0.0) sb.append("        <ele>$ele</ele>\n")
+            sb.append("        <ele>$ele</ele>\n")
             if (timeStr.isNotEmpty()) sb.append("        <time>$timeStr</time>\n")
-            if (hr > 0 || power > 0 || cad > 0) {
+            if (hr > 0 || power > 0 || speedMs > 0) {
                 sb.append("        <extensions>\n          <gpxtpx:TrackPointExtension>\n")
                 if (hr > 0) sb.append("            <gpxtpx:hr>$hr</gpxtpx:hr>\n")
-                if (cad > 0) sb.append("            <gpxtpx:cad>$cad</gpxtpx:cad>\n")
+                if (speedMs > 0) sb.append("            <gpxtpx:speed>$speedMs</gpxtpx:speed>\n")
                 if (power > 0) sb.append("            <gpxtpx:power>$power</gpxtpx:power>\n")
                 sb.append("          </gpxtpx:TrackPointExtension>\n        </extensions>\n")
             }
@@ -396,17 +381,12 @@ class BlackbirdApi {
             count++
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>")
-        // v6.3.14: 补metadata time（官方gpx2fit需要活动级开始时间，否则FIT时间戳为0→1989/1970年）
         if (firstTimeStr.isNotEmpty()) {
             val idx = sb.indexOf("<gpx ")
             if (idx >= 0) sb.insert(sb.indexOf(">", idx) + 1, "\n  <metadata><time>$firstTimeStr</time></metadata>")
         }
-        Log.d(TAG, "buildGpxFromTrackString: $count points, time=$hasTime hr=$hasHr power=$hasPower cad=$hasCad")
-        // v6.3.9调试：输出GPX前3个trkpt完整内容，确认时间/心率/功率/坐标
-        val gpxStr = sb.toString()
-        val firstTrkpts = Regex("<trkpt.*?</trkpt>", RegexOption.DOT_MATCHES_ALL).findAll(gpxStr).take(3).map { it.value.replace("\\s+".toRegex(), " ") }.joinToString(" || ")
-        Log.w(TAG, "===== 黑鸟GPX前3点(startTime=$startTimeSec): $firstTrkpts =====")
-        return gpxStr.toByteArray()
+        Log.w(TAG, "buildGpx(固定9字段): $count 点 | 有hr=$nHr power=$nPower speed=$nSpeed | 首时间=$firstTimeStr")
+        return sb.toString().toByteArray()
     }
 
     /**
