@@ -657,11 +657,11 @@ class MainActivity : AppCompatActivity() {
             }
             DataSource.BLACKBIRD -> {
                 val bbData = blackbirdApi.downloadActivity(cred, record.id)  // 黑鸟坐标已是WGS84，不转换
-                // v6.3.9调试：如果是GPX，输出前3个trkpt到日志界面，确认时间/心率/功率/坐标
-                if (bbData.size >= 14 && !(bbData[8] == '.'.code.toByte() && bbData[9] == 'F'.code.toByte())) {
-                    val gpxStr = String(bbData, 0, minOf(2000, bbData.size))
-                    val trkpts = Regex("<trkpt.*?</trkpt>", RegexOption.DOT_MATCHES_ALL).findAll(gpxStr).take(2).map { it.value.replace("\\s+".toRegex(), " ") }.joinToString(" | ")
-                    appendLog("🔍 黑鸟GPX调试: ${trkpts.take(300)}")
+                // v6.3.15调试：输出黑鸟原始track字段（带位置索引），确定真实字段顺序，排查字段错位
+                val rawSample = com.jichi.ob.api.BlackbirdApi.lastRawTrackSample
+                if (rawSample.isNotEmpty()) {
+                    appendLog("🔬 黑鸟原始字段(startTime=${com.jichi.ob.api.BlackbirdApi.lastStartTime}):")
+                    rawSample.split("\n").forEach { appendLog(it.take(400)) }
                 }
                 // 黑鸟坐标已是WGS84，不转换
                 if (false && bbData.size >= 14 && bbData[8] == '.'.code.toByte() && bbData[9] == 'F'.code.toByte()) {

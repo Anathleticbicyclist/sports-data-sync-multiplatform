@@ -75,6 +75,10 @@ class BlackbirdApi {
         const val LOGIN_URL = "https://www.blackbirdsport.com/login"
         private const val BASE = "https://www.blackbirdsport.com/api"
         private const val PER_PAGE = 100
+        // v6.3.15调试: 最近一次活动的原始track样本（带字段索引），供界面日志显示，用于确定黑鸟真实字段顺序
+        @Volatile var lastRawTrackSample: String = ""
+        @Volatile var lastRawKeys: String = ""
+        @Volatile var lastStartTime: Long = 0L
     }
 
     private val client = OkHttpClient.Builder()
@@ -245,6 +249,13 @@ class BlackbirdApi {
             val startTimeSec = if (startTime > 1000000000000L) startTime / 1000 else startTime
             Log.w(TAG, "===== 黑鸟活动调试 ===== keys=$allKeys startTimeRaw=$startTime startTimeSec=$startTimeSec")
             Log.w(TAG, "===== track前2点: $firstPoints =====")
+            // v6.3.15: 保存原始track前5点，每个字段标注位置索引，供界面日志确认真实字段顺序
+            lastRawKeys = allKeys
+            lastStartTime = startTimeSec
+            lastRawTrackSample = trackStr.split(";").take(5).mapIndexed { i, seg ->
+                val parts = seg.split(",")
+                "点#$i(${parts.size}字段): " + parts.mapIndexed { j, v -> "[$j]=$v" }.joinToString(" ")
+            }.joinToString("\n")
 
             // 从轨迹点构建GPX：track可能是JSONArray（旧格式）或分号分隔字符串（实际格式）
             val trackArr = data.optJSONArray("track") ?: data.optJSONArray("points")
