@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.3.17-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.4.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.3.17 |
+| 当前版本 | v6.4.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -155,22 +155,31 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
-### v6.3.17 (2026-08-30) — 黑鸟全链路修复 + 统一时间适配矩阵 + 文件可见性
+### v6.4.0 (2026-08-30) — 黑鸟全链路定稿 + 统一时间适配矩阵 + 六平台互传能力补齐
 
-> 本版本对黑鸟单车数据链路做推倒重写后的最终修正，经14条真实活动原始字段 + 码表BSC500原生记录 + 第三方脚本三重交叉验证，确保黑鸟数据上传到任意平台均与码表原生一致。
+> 大版本里程碑。黑鸟单车数据链路经多轮推倒重写后定稿，经14条真实活动原始字段 + 码表BSC500原生记录 + 第三方脚本三重交叉验证；建立全平台统一时间适配矩阵；文件保存改MediaStore解决可见性问题。
 
-**一、黑鸟track固定9字段解析（核心修正）**
-- 黑鸟 `/api/records/{id}/data` 返回 `content.track` 为分号分隔的字符串，每点固定9字段，按位置精确取值，不再靠数值范围猜测：
-  - `[0]` 纬度(GCJ-02)、`[1]` 经度(GCJ-02)、`[2]` 海拔(米)
-  - `[3]` 功率(0.01W，/100得瓦，含黑鸟估算功率)、`[4]` 心率(bpm)、`[5]` 踏频(rpm，0=无)
-  - `[6]` 速度(0.1km/h)、`[7]` 相对startTime的秒偏移、`[8]` 保留(恒0)
-- 时间生成：`startTime`(Unix秒) + `[7]`秒偏移，逐点递增，彻底解决v6.3.9同批点时间戳相同导致的速度图爆炸/均速异常
-- 坐标：黑鸟为GCJ-02火星坐标，固定执行迭代近似GCJ-02→WGS84转换（与blackbird2wgs.py一致），青岛地区偏移约450米
-- 轨迹点上限：3000→50000点，长距离骑行不截断、不抽稀，保留完整轨迹
-- 传感器写入Garmin TrackPointExtension：hr/cad/power/speed，0值不写入（避免平台显示0功率/0踏频）
-- 修复v6.3.16字段映射错误：此前误把`[5]`踏频当功率输出、丢弃`[3]`真实功率，导致平台显示功率0W/踏频空
+**一、黑鸟单车数据链路（定稿）**
+
+1. track固定9字段精确解析
+   - 黑鸟 `/api/records/{id}/data` 返回 `content.track` 为分号分隔字符串，每点固定9字段，按位置取值，不再靠数值范围猜测
+   - `[0]`纬度(GCJ-02) `[1]`经度(GCJ-02) `[2]`海拔(m) `[3]`功率(0.01W,/100得瓦,含黑鸟估算功率) `[4]`心率(bpm) `[5]`踏频(rpm,0=无) `[6]`速度(0.1km/h) `[7]`相对startTime秒偏移 `[8]`保留(恒0)
+   - 传感器写入Garmin TrackPointExtension(hr/cad/power/speed)，0值不写入，避免平台显示0功率/0踏频
+2. 时间生成
+   - `startTime`(Unix秒,自动识别10位秒/13位毫秒) + `[7]`秒偏移逐点递增
+   - 彻底解决同批点时间戳相同导致的速度图爆炸/均速异常
+3. 坐标转换
+   - 黑鸟为GCJ-02火星坐标，固定执行迭代近似GCJ-02→WGS84转换(与blackbird2wgs.py一致)，青岛地区偏移约450米
+   - 与迈金共用同一坐标转换开关
+4. 轨迹完整性
+   - 点上限3000→50000，长距离骑行不截断、不抽稀，保留完整轨迹
+   - metadata补充活动标题/时间
+5. 下载格式
+   - FIT优先(探测fitUrl/downloadUrl/fileUrl等10+字段+cookie认证+Referer)，FIT失败回退GPX构建
+   - GPX构建输出标准UTC带Z，creator用BuildConfig版本号
 
 **二、统一时间适配矩阵（UploadEngine入口）**
+
 - 设计原则：下载端统一产出【标准UTC带Z】GPX作为中间态；上传端按目标平台时区输出
 - 源归一化：行者源GPX是"北京时间标Z"，减8转成真UTC；黑鸟/iGPSPORT等源本就是UTC
 - 目标分两类：
@@ -178,34 +187,38 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
   - B类（国产平台直接吃GPX、按GPX时钟数字显示不做UTC→本地）：iGPSPORT / 行者 / 迈金 → UTC+8转北京时间
 - 自洽验证：行者源→行者 = 减8(归一)+8(目标)=还原原始北京时间，零误差
 
-**三、文件保存可见性修复（MediaStore）**
-- 根因：targetSdk=36下用废弃API `getExternalStoragePublicDirectory` 直接写路径，文件不被MediaStore索引；且APP运行在应用双开/工作资料空间(用户ID 999)时物理路径 `/storage/emulated/999/...` 主空间文件管理器找不到
+**三、文件保存可见性（MediaStore）**
+
+- 根因：targetSdk=36下用废弃API `getExternalStoragePublicDirectory` 直接写路径，文件不被MediaStore索引；APP运行在应用双开/工作资料空间(用户ID 999)时物理路径 `/storage/emulated/999/...` 主空间文件管理器找不到
 - 修复：Android 10+一律走 `MediaStore.Downloads`，写入 `公共下载/鸡翅幸哲迈进OB`，写入后立即被系统索引，可直接在系统「文件」App下载目录查看/分享；同名先删避免副本；API 26-28回退直接路径
 - 同时保留app私有目录(cacheDir)副本，供迈金/百锐腾WebView上传使用
 
-**四、六平台互传能力现状**
-| 平台 | 下载(源) | 上传(目标) | 上传通道 |
+**四、六平台互传能力**
+
+| 平台 | 下载(源) | 上传(目标) | 上传通道实现 |
 |------|:---:|:---:|------|
 | iGPSPORT | ✅ | ✅ | 官方OSS直传(getSignedUrl→PUT→uploadByOss)，按文件头自动选.fit/.gpx扩展名 |
-| 行者 | ✅ | ✅ | 官方 `/api/v1/fit/upload/`(fit_file+md5)，返回workout_id且is_valid=1才判成功 |
-| 迈金 | ✅ | ✅ | 优先HTTP `u.onelap.cn/upload/fit`，失败回退顽鹿WebView真实文件选择(onShowFileChooser+FileProvider) |
-| 黑鸟单车 | ✅ | ✅ | 仅接受FIT，GPX源用Outbase官方gpx2fit转FIT后上传 `/api/records/upload` |
-| 百锐腾 | ⚠️受限 | ✅ | WebView注入Meteor token+真实文件选择；官方未开放FIT下载，不可作来源 |
-| Outbase | ❌ | ✅ | 仅目标平台，GPX用官方gpx2fit转FIT上传 |
+| 行者 | ✅ | ✅ | 官方 `/api/v1/fit/upload/`(fit_file+md5)，返回workout_id且is_valid=1才判成功；下载FIT优先回退GPX |
+| 迈金 | ✅ | ✅ | 优先HTTP `u.onelap.cn/upload/fit`，失败回退顽鹿WebView真实文件选择(onShowFileChooser+FileProvider+localStorage注入token) |
+| 黑鸟单车 | ✅ | ✅ | 仅接受FIT，GPX源用Outbase官方gpx2fit转FIT后上传 `/api/records/upload`；登录检测需/api/user验证(防JSESSIONID误判) |
+| 百锐腾 | ⚠️受限 | ✅ | WebView注入Meteor token(localStorage)+真实文件选择；官方未开放FIT下载，不可作来源 |
+| Outbase | ❌ | ✅ | 仅目标平台，GPX用官方gpx2fit(自包含49模块版)转FIT上传 |
 
 **五、其他功能**
-- 数据来源记忆：自动记住上次同步来源，重启恢复
-- 同步记忆+跳过：已同步记录本地记账，再次同步自动跳过，上限10000条；一键清记忆
-- 后台常驻自动同步：开关控制，检测间隔30秒~1小时可调，任务栏常驻通知，内置各品牌后台常驻/电池优化指引
-- 测试下载：下载1条保存本地验证下载功能
-- 登录态：WebView加载官方登录页拦截回调，登录后显示账户名
-- 迈金坐标转换：七牛云直链(WGS84)跳过，fit_content(GCJ-02)转换，用户开关控制
-- 版本号：v6.3.17 (versionCode 647)
+
+- 数据来源记忆：自动记住上次同步来源，重启APP自动恢复
+- 同步记忆+跳过：已同步记录本地记账(SharedPreferences)，再次同步自动跳过，上限10000条；一键「清记忆」按钮
+- 后台常驻自动同步：开关控制，检测间隔30秒~1小时可调(默认5分钟)，任务栏常驻通知显示最近检测结果，内置各品牌后台常驻/电池优化/自启动设置指引
+- 测试下载：停止和复制按钮间「测试」按钮，下载1条保存本地验证下载功能
+- 登录态：WebView加载各平台官方登录页拦截回调获取Token/Cookie，登录后显示账户名；行者会话预检防过期刷屏
+- 迈金坐标转换：七牛云直链(WGS84)跳过，fit_content接口(GCJ-02)转换，基于开源magene-fit-strava-fix移植，用户开关控制
+- 文件名统一：`平台_运动时间_运动类型_来源ID.扩展名`，运动类型从标题自动提取
+- 协程异步：全部网络请求Kotlin Coroutines，主线程安全
+
+**六、版本号**
+- v6.4.0 (versionCode 648)
 
 ---
-
-
-
 
 ### v6.3.7 (2026-08-30)
 1. **修复iGPSPORT上传数量不生效（关键）** — IgpsportApi.getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致无论选择1-20多少条，for循环都遍历完当前页20条全部添加，实际同步20条。修复：添加limit条后立即break，数量选择1-1000均正确生效
