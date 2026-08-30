@@ -265,19 +265,30 @@ class UploadEngine(private val context: android.content.Context? = null) {
     }
 
     // ===== 行者 上传（网页版上传接口 api/v1/fit/upload）=====
-    private fun uploadToXingzhe(
+    private suspend fun uploadToXingzhe(
         sessionId: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            // v6.4.1修复: 行者接口只吃FIT, GPX必须先转FIT, 否则服务器HTTP 500
+            // v6.4.2修复: 行者接口只吃FIT, GPX必须先转FIT, 否则服务器HTTP 500
+            // 用Outbase同款官方gpx2fit.js(WebBridge), 自研GpxToFitConverter兜底
             val uploadData = if (!GpxToFitConverter.isFit(fitData)) {
-                try {
-                    val fit = GpxToFitConverter.convert(fitData)
-                    Log.d(TAG, "行者上传: GPX→FIT转换成功(${fitData.size}→${fit.size}字节)")
-                    fit
+                val officialFit = try {
+                    if (outbaseBridge != null) {
+                        val f = outbaseBridge!!.convertGpxToFit(fitData)
+                        Log.d(TAG, "行者 GPX→FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
+                        f
+                    } else null
                 } catch (e: Exception) {
-                    Log.w(TAG, "行者上传: GPX→FIT转换失败(${e.message}), 尝试直传GPX")
+                    Log.w(TAG, "行者 官方gpx2fit转换失败: ${e.message}")
+                    null
+                }
+                officialFit ?: try {
+                    val f = GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "行者 GPX→FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
+                    f
+                } catch (e: Exception) {
+                    Log.w(TAG, "行者 自研转换也失败: ${e.message}")
                     fitData
                 }
             } else fitData
