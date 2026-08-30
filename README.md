@@ -155,6 +155,42 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.4.3 (2026-08-30) — 一次性修复所有平台FIT时间偏移(bridge.html add8Hours参数化)
+
+**根因**：bridge.html里官方gpx2fit转换时硬编码把GPX时间+8小时(为Outbase按UTC数字显示设计)。但行者/黑鸟等国内平台按UTC解析FIT后转北京时间显示，导致上传后时间快8小时。
+
+**一次性解决方案**：
+1. bridge.html的`__convertGpx(count, add8Hours)`参数化，默认true(兼容Outbase)
+2. WebBridge.convertGpxToFit(gpxData, add8Hours=true)参数化
+3. **Outbase上传**：不传参，默认true(Outbase按数字显示需+8)
+4. **行者上传**：add8Hours=false(行者按UTC解析转北京，不需+8)
+5. **黑鸟上传**：add8Hours=false(黑鸟同行者，国内平台按UTC解析转北京)
+6. **iGPSPORT/迈金**：不用bridge.html，OSS直传GPX/FIT，不受影响；GPX源在UploadEngine里按目标平台时区适配
+
+**时间链路验证**：
+- 黑鸟GPX时间=UTC(如00:04Z, 北京08:04)
+- 行者/黑鸟上传: add8Hours=false → FIT时间戳=00:04 UTC → 平台解析转北京=08:04 ✓
+- Outbase上传: add8Hours=true → FIT时间戳=08:04 → Outbase按数字显示=08:04 ✓
+
+**版本号**：v6.4.3 (versionCode 651)
+
+### v6.4.3 (2026-08-31) — 修复行者/黑鸟上传时间快8小时：gpx2fit的+8小时参数化
+
+**根因深入分析**：
+1. `bridge.html`官方gpx2fit转换时硬编码把GPX时间+8小时（注释："Outbase按UTC展示→+8小时对齐北京时间"）
+2. Outbase解析FIT时直接按时间戳数字显示（不加时区），所以+8小时正确
+3. 行者/黑鸟解析FIT时按UTC标准解析再转北京时间显示，+8小时导致显示时间快8小时
+4. iGPSPORT/迈金不用bridge.html（OSS直传），不受此问题影响
+
+**一次性解决方案**：
+1. `bridge.html`的`__convertGpx(count, add8Hours)`新增`add8Hours`参数，默认true（兼容Outbase）
+2. `WebBridge.convertGpxToFit(gpxData, add8Hours=true)`透传参数
+3. Outbase上传：不传参（默认true，+8小时，Outbase按数字显示正确）
+4. 行者上传：`add8Hours=false`（UTC标准时间戳，行者转北京时间显示正确）
+5. 黑鸟上传：`add8Hours=false`（同上）
+
+**版本号**：v6.4.3 (versionCode 651)
+
 ### v6.4.2 (2026-08-30) — 修复黑鸟上传行者：用官方gpx2fit转FIT(替代自研转换器)
 
 **根因深入分析**：

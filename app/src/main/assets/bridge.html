@@ -81,21 +81,24 @@ function bytesToB64(bytes) {
 // ===== GPX → FIT 转换（用 Outbase 官方 gpx2fit 库，注意 gpx2fitEncoder 是异步函数） =====
 window.__resultB64 = null;
 window.__convertError = null;
-window.__convertGpx = function(count) {
+window.__convertGpx = function(count, add8Hours) {
   try {
     var bytes = chunksToBytes(count);
     var gpxText = new TextDecoder('utf-8').decode(bytes);
     window.__chunks = [];
     window.__convertError = null;
-    // GPX为UTC时间，Outbase按UTC展示 → +8小时对齐北京时间
-    gpxText = gpxText.replace(/<time>([^<]+)<\/time>/g, function(m, t) {
-      var d = new Date(t);
-      if (!isNaN(d.getTime())) {
-        d.setTime(d.getTime() + 8 * 3600 * 1000);
-        return '<time>' + d.toISOString().replace(/\.\d{3}Z$/, 'Z') + '</time>';
-      }
-      return m;
-    });
+    // v6.4.3: add8Hours参数化。Outbase按UTC数字显示→true(+8h); 行者/黑鸟按UTC解析转北京时间→false
+    var doAdd8 = (add8Hours === undefined) ? true : add8Hours;
+    if (doAdd8) {
+      gpxText = gpxText.replace(/<time>([^<]+)<\/time>/g, function(m, t) {
+        var d = new Date(t);
+        if (!isNaN(d.getTime())) {
+          d.setTime(d.getTime() + 8 * 3600 * 1000);
+          return '<time>' + d.toISOString().replace(/\.\d{3}Z$/, 'Z') + '</time>';
+        }
+        return m;
+      });
+    }
     Promise.resolve(window.__api.gpx2fitEncoder(gpxText)).then(function(enc) {
       try {
         var bufs = enc.dataArrayBuffer;
