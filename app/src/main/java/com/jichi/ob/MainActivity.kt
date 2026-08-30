@@ -497,10 +497,13 @@ class MainActivity : AppCompatActivity() {
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
                     }
                     val ext = if (isFit(fileData)) "fit" else "gpx"
-                    val localFile = File(saveDir, FileNameGenerator.generate(source, act, ext))
+                    val localName = FileNameGenerator.generate(source, act, ext)
+                    // cacheDir副本供迈金/百锐腾WebView文件选择；MediaStore副本写入公共下载供用户查看/分享
+                    val localFile = File(cacheDir, localName)
                     try {
                         FileOutputStream(localFile).use { it.write(fileData) }
-                        appendLog("💾 已存: ${localFile.name} (${fileData.size}字节)")
+                        val savedPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, localName, fileData)
+                        appendLog("💾 已存: $savedPath (${fileData.size}字节)")
                     } catch (_: Exception) {}
                     val t0 = System.currentTimeMillis()
                     appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
@@ -772,12 +775,12 @@ class MainActivity : AppCompatActivity() {
                 val data = downloadActivity(source, act)
                 if (data == null || data.size < 100) { appendLog("❌ 下载失败: 数据无效"); return@launch }
                 val ext = if (isFit(data)) "fit" else "gpx"
-                val file = File(saveDir, "test_" + FileNameGenerator.generate(source, act, ext))
-                FileOutputStream(file).use { it.write(data) }
-                appendLog("✅ 测试下载成功! 文件: ${file.name} (${data.size} bytes)")
-                appendLog("📂 保存路径: ${file.absolutePath}")
+                val tName = "test_" + FileNameGenerator.generate(source, act, ext)
+                val tPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, tName, data)
+                appendLog("✅ 测试下载成功! 文件: $tName (${data.size} bytes)")
+                appendLog("📂 保存路径: $tPath（系统「文件」App→下载→鸡翅幸哲迈进OB）")
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "测试下载成功! ${file.name}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "测试下载成功! $tName", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 appendLog("❌ 测试下载异常: ${e.message}")
