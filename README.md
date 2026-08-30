@@ -155,6 +155,21 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.4.2 (2026-08-30) — 修复黑鸟上传行者：用官方gpx2fit转FIT(替代自研转换器)
+
+**根因深入分析**：
+1. v6.4.1用自研GpxToFitConverter转FIT，但uploadToXingzhe非suspend函数，且日志无转换输出→转换未生效
+2. 坐标：黑鸟下载时convertCoord=true已做GCJ-02→WGS84，上传行者/迈金/iGPSPORT/Outbase坐标已是WGS84，不需再转
+3. 时间：黑鸟GPX时间为UTC，转FIT后FIT是标准UTC时间戳(1989基准)，行者解析FIT用UTC→时间正确，不需+8
+
+**修复**：
+1. uploadToXingzhe改为suspend函数
+2. GPX→FIT转换改用Outbase同款官方gpx2fit.js(WebBridge.convertGpxToFit)，自研GpxToFitConverter兜底
+3. 行者从localTimeTargets移除(v6.4.1已做)：转FIT后标准UTC，不需+8
+4. 传感器数据：官方gpx2fit完整保留心率/踏频/功率/海拔/速度
+
+**版本号**：v6.4.2 (versionCode 650)
+
 ### v6.4.1 (2026-08-30) — 修复黑鸟GPX上传行者HTTP 500
 
 **根因**：行者上传接口`/api/v1/fit/upload/`只接受FIT文件（字段名`fit_file`），但黑鸟下载产出GPX。代码直接用GPX内容+`.fit`扩展名上传，行者服务器无法解析GPX，返回HTTP 500。
