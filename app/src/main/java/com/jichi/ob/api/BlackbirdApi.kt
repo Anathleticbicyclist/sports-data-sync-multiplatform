@@ -328,9 +328,9 @@ class BlackbirdApi {
      * v6.3.16（推倒重写）黑鸟track固定9字段，按位置精确解析，不再靠数值范围猜测。
      * 字段布局（实际抓包 + 第三方blackbird2wgs脚本双重验证）:
      *   [0]lat(GCJ-02) [1]lon(GCJ-02) [2]ele海拔(米)
-     *   [3]内部值(忽略) [4]hr心率(bpm) [5]power功率(瓦) [6]speed速度(单位0.1km/h)
+     *   [3]power功率(单位0.01W,/100得瓦) [4]hr心率(bpm) [5]cad踏频(rpm,0=无) [6]speed速度(单位0.1km/h)
      *   [7]相对startTime的秒偏移 [8]保留(恒0)
-     * 坐标固定 GCJ-02→WGS84；逐点时间=startTime+[7]；速度[6]换算m/s写入gpxtpx:speed；无独立踏频字段不造假。
+     * 坐标固定 GCJ-02→WGS84；逐点时间=startTime+[7](标准UTC带Z)；速度[6]换算m/s；功率[3]/100；踏频[5]。
      */
     private fun buildGpxFromTrackString(trackStr: String, recordId: String, startTimeSec: Long, convertCoord: Boolean): ByteArray {
         val isoFmt = java.time.format.DateTimeFormatter.ISO_INSTANT
@@ -340,7 +340,7 @@ class BlackbirdApi {
         sb.append("  <trk>\n    <name>黑鸟骑行 $recordId</name>\n    <trkseg>\n")
         var count = 0
         var firstTimeStr = ""
-        var nHr = 0; var nPower = 0; var nSpeed = 0
+        var nHr = 0; var nPower = 0; var nSpeed = 0; var nCad = 0
         for (segment in trackStr.split(";")) {
             if (count >= 50000) break  // 上限5万点，长距离不截断
             val f = segment.split(",")
@@ -358,21 +358,25 @@ class BlackbirdApi {
                 isoFmt.format(java.time.Instant.ofEpochMilli((startTimeSec * 1000 + offsetSec * 1000).toLong())) else ""
             if (firstTimeStr.isEmpty() && timeStr.isNotEmpty()) firstTimeStr = timeStr
 
-            // 传感器按固定位置取，0=该点无此数据
-            val hr = if (f.size >= 5) (f[4].trim().toDoubleOrNull()?.toInt() ?: 0) else 0
-            val power = if (f.size >= 6) (f[5].trim().toDoubleOrNull()?.toInt() ?: 0) else 0
-            val speedDeciKmh = if (f.size >= 7) (f[6].trim().toDoubleOrNull() ?: 0.0) else 0.0 // 0.1km/h
+            // 传感器按固定位置取（v6.3.17经14条真实活动+码表原生数据交叉验证），0=该点无此数据
+            val powerRaw = if (f.size >= 4) (f[3].trim().toDoubleOrNull() ?: 0.0) else 0.0 // [3]功率,0.01W
+            val power = Math.round(powerRaw / 100.0).toInt() // →瓦
+            val hr = if (f.size >= 5) (f[4].trim().toDoubleOrNull()?.toInt() ?: 0) else 0   // [4]心率
+            val cad = if (f.size >= 6) (f[5].trim().toDoubleOrNull()?.toInt() ?: 0) else 0   // [5]踏频rpm
+            val speedDeciKmh = if (f.size >= 7) (f[6].trim().toDoubleOrNull() ?: 0.0) else 0.0 // [6]速度0.1km/h
             val speedMs = if (speedDeciKmh > 0) speedDeciKmh / 36.0 else 0.0 // 换算 m/s
             if (hr > 0) nHr++
             if (power > 0) nPower++
             if (speedMs > 0) nSpeed++
+            if (cad > 0) nCad++
 
             sb.append("      <trkpt lat=\"$lat\" lon=\"$lon\">\n")
             sb.append("        <ele>$ele</ele>\n")
             if (timeStr.isNotEmpty()) sb.append("        <time>$timeStr</time>\n")
-            if (hr > 0 || power > 0 || speedMs > 0) {
+            if (hr > 0 || power > 0 || cad > 0 || speedMs > 0) {
                 sb.append("        <extensions>\n          <gpxtpx:TrackPointExtension>\n")
                 if (hr > 0) sb.append("            <gpxtpx:hr>$hr</gpxtpx:hr>\n")
+                if (cad > 0) sb.append("            <gpxtpx:cad>$cad</gpxtpx:cad>\n")
                 if (speedMs > 0) sb.append("            <gpxtpx:speed>$speedMs</gpxtpx:speed>\n")
                 if (power > 0) sb.append("            <gpxtpx:power>$power</gpxtpx:power>\n")
                 sb.append("          </gpxtpx:TrackPointExtension>\n        </extensions>\n")
@@ -385,7 +389,7 @@ class BlackbirdApi {
             val idx = sb.indexOf("<gpx ")
             if (idx >= 0) sb.insert(sb.indexOf(">", idx) + 1, "\n  <metadata><time>$firstTimeStr</time></metadata>")
         }
-        Log.w(TAG, "buildGpx(固定9字段): $count 点 | 有hr=$nHr power=$nPower speed=$nSpeed | 首时间=$firstTimeStr")
+        Log.w(TAG, "buildGpx(固定9字段): $count 点 | hr=$nHr cad=$nCad power=$nPower speed=$nSpeed | 首时间=$firstTimeStr")
         return sb.toString().toByteArray()
     }
 

@@ -69,20 +69,26 @@ class UploadEngine(private val context: android.content.Context? = null) {
             return@withContext UploadResult(false, message = "${target.displayName}上传功能${support.note}")
         }
 
-        // v6.3.13: 只做时间修正（行者GPX减8h），各平台按原逻辑上传GPX/FIT
-        // 行者GPX：时间是北京时间但标注Z(UTC)，减8小时转为正确UTC
-        // 黑鸟GPX：时间已经是标准UTC，不需要修正
-        // iGPSPORT/Outbase等平台能正确解析GPX，自研FIT格式部分平台无法解析，故不统一转FIT
-        val finalData = if (!com.jichi.ob.GpxToFitConverter.isFit(fitData) && record.source == DataSource.XINGZHE) {
+        // ===== v6.3.17 统一时间适配矩阵（仅GPX，FIT不动）=====
+        // 下载端统一产出【标准UTC带Z】GPX；上传端按目标平台时区输出。
+        //  A) 走官方gpx2fit(Date.parse带Z按UTC)：Outbase/黑鸟 → 保持UTC
+        //  B) 国产平台直接吃GPX、按GPX时钟数字显示：iGPSPORT/行者/迈金 → 需北京时间(UTC+8)
+        val isGpxFile = !com.jichi.ob.GpxToFitConverter.isFit(fitData)
+        // 第一步 源归一化为UTC：行者源是"北京时间标Z"，减8；黑鸟等源本就是UTC
+        val utcData = if (isGpxFile && record.source == DataSource.XINGZHE) {
             try {
-                val fixed = com.jichi.ob.util.GpxTimeFixer.fixXingzheGpx(fitData)
-                if (fixed !== fitData) Log.d(TAG, "行者GPX时间已修正(减8h)，目标=${target.displayName}")
-                fixed
-            } catch (e: Exception) {
-                Log.w(TAG, "行者GPX时间修正失败: ${e.message}")
-                fitData
-            }
+                val f = com.jichi.ob.util.GpxTimeFixer.fixGpxTime(fitData, 8)
+                Log.d(TAG, "源归一化: 行者GPX减8→UTC，目标=${target.displayName}"); f
+            } catch (e: Exception) { Log.w(TAG, "行者源归一化失败: ${e.message}"); fitData }
         } else fitData
+        // 第二步 按目标时区：B类国产直传平台 UTC+8，A类gpx2fit平台保持UTC
+        val localTimeTargets = setOf(DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE)
+        val finalData = if (isGpxFile && localTimeTargets.contains(target)) {
+            try {
+                val f = com.jichi.ob.util.GpxTimeFixer.fixGpxTime(utcData, -8) // -8=加8→北京时间
+                Log.d(TAG, "目标适配: ${record.source.displayName}→${target.displayName} GPX+8(北京显示)"); f
+            } catch (e: Exception) { Log.w(TAG, "目标时区适配失败: ${e.message}"); utcData }
+        } else utcData
 
         when (target) {
             DataSource.OUTBASE -> uploadToOutbase(credential, finalData, record, extra)
