@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.4.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.4.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.4.0 |
+| 当前版本 | v6.4.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -169,14 +169,6 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 4. 传感器数据：官方gpx2fit完整保留心率/踏频/功率/海拔/速度
 
 **版本号**：v6.4.2 (versionCode 650)
-
-### v6.4.1 (2026-08-30) — 修复黑鸟GPX上传行者HTTP 500
-
-**根因**：行者上传接口`/api/v1/fit/upload/`只接受FIT文件（字段名`fit_file`），但黑鸟下载产出GPX。代码直接用GPX内容+`.fit`扩展名上传，行者服务器无法解析GPX，返回HTTP 500。
-
-**修复**：`UploadEngine.uploadToXingzhe()`上传前检测文件格式，若为GPX则调用`GpxToFitConverter.convert()`转成标准FIT后再上传。转换失败时回退直传GPX（保底）。
-
-**版本号**：v6.4.1 (versionCode 649)
 
 ### v6.4.1 (2026-08-30) — 修复黑鸟上传行者HTTP 500 + 时间偏移
 
