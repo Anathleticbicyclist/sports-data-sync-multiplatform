@@ -155,6 +155,25 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.4.1 (2026-08-30) — 修复黑鸟GPX上传行者HTTP 500
+
+**根因**：行者上传接口`/api/v1/fit/upload/`只接受FIT文件（字段名`fit_file`），但黑鸟下载产出GPX。代码直接用GPX内容+`.fit`扩展名上传，行者服务器无法解析GPX，返回HTTP 500。
+
+**修复**：`UploadEngine.uploadToXingzhe()`上传前检测文件格式，若为GPX则调用`GpxToFitConverter.convert()`转成标准FIT后再上传。转换失败时回退直传GPX（保底）。
+
+**版本号**：v6.4.1 (versionCode 649)
+
+### v6.4.1 (2026-08-30) — 修复黑鸟上传行者HTTP 500 + 时间偏移
+
+**根因**：行者上传接口`/api/v1/fit/upload/`只接受FIT文件(字段名`fit_file`)，但黑鸟下载的是GPX，代码直接用GPX内容+`.fit`扩展名上传，行者服务器无法解析GPX返回HTTP 500。
+
+**修复**：
+1. `uploadToXingzhe`：上传前检测文件格式，GPX先调用`GpxToFitConverter.convert()`转FIT再上传
+2. 时间适配：行者从`localTimeTargets`移除——转FIT后FIT是标准UTC时间戳(1989基准)，行者解析FIT用UTC，不需加8小时；否则时间会快8小时
+3. 传感器数据：GpxToFitConverter保留心率/踏频/功率/海拔/速度/距离，FIT record点完整写入
+
+**版本号**：v6.4.1 (versionCode 649)
+
 ### v6.4.0 (2026-08-30) — 黑鸟全链路定稿 + 统一时间适配矩阵 + 六平台互传能力补齐
 
 > 大版本里程碑。黑鸟单车数据链路经多轮推倒重写后定稿，经14条真实活动原始字段 + 码表BSC500原生记录 + 第三方脚本三重交叉验证；建立全平台统一时间适配矩阵；文件保存改MediaStore解决可见性问题。
