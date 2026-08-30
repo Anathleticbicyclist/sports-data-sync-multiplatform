@@ -137,10 +137,10 @@ window.__upResult = null;
     }
  
     /** GPX → FIT */
-    suspend fun convertGpxToFit(gpxData: ByteArray): ByteArray {
+    suspend fun convertGpxToFit(gpxData: ByteArray, add8Hours: Boolean = true): ByteArray {
         initLocal()
         val count = injectChunks(localWv, gpxData, "window.__injectChunk")
-        val trigger = evalLocal("window.__convertGpx($count)")
+        val trigger = evalLocal("window.__convertGpx($count, $add8Hours)")
         if (trigger?.startsWith("err:") == true) throw Exception("GPX→FIT失败: $trigger")
  
         val b64Len = withTimeout(120000L) {

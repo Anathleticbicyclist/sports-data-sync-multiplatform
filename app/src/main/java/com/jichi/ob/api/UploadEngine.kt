@@ -275,7 +275,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
             val uploadData = if (!GpxToFitConverter.isFit(fitData)) {
                 val officialFit = try {
                     if (outbaseBridge != null) {
-                        val f = outbaseBridge!!.convertGpxToFit(fitData)
+                        val f = outbaseBridge!!.convertGpxToFit(fitData, add8Hours = false)
                         Log.d(TAG, "行者 GPX→FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
                         f
                     } else null
@@ -419,7 +419,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
                 Log.d(TAG, "黑鸟 GPX源 ${fitData.size} bytes，开始官方gpx2fit转换...")
                 val officialFit = try {
                     if (outbaseBridge != null) {
-                        val f = outbaseBridge!!.convertGpxToFit(fitData)
+                        val f = outbaseBridge!!.convertGpxToFit(fitData, add8Hours = false)
                         Log.d(TAG, "黑鸟 GPX->FIT(官方gpx2fit成功): ${fitData.size} -> ${f.size} bytes")
                         f
                     } else {
