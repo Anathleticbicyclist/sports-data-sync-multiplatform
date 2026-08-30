@@ -81,8 +81,9 @@ class UploadEngine(private val context: android.content.Context? = null) {
                 Log.d(TAG, "源归一化: 行者GPX减8→UTC，目标=${target.displayName}"); f
             } catch (e: Exception) { Log.w(TAG, "行者源归一化失败: ${e.message}"); fitData }
         } else fitData
-        // 第二步 按目标时区：B类国产直传平台 UTC+8，A类gpx2fit平台保持UTC
-        val localTimeTargets = setOf(DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE)
+        // 第二步 按目标时区：B类国产直传GPX平台 UTC+8，A类gpx2fit平台保持UTC
+        // v6.4.1: 行者从localTimeTargets移除——行者上传强制GPX→FIT, FIT是标准UTC时间戳, 不需+8
+        val localTimeTargets = setOf(DataSource.IGPSPORT, DataSource.MAGENE)
         val finalData = if (isGpxFile && localTimeTargets.contains(target)) {
             try {
                 val f = com.jichi.ob.util.GpxTimeFixer.fixGpxTime(utcData, -8) // -8=加8→北京时间
@@ -263,22 +264,34 @@ class UploadEngine(private val context: android.content.Context? = null) {
         }
     }
 
-    // ===== 行者 上传（网页版上传接口 api/v4/upload_fits）=====
+    // ===== 行者 上传（网页版上传接口 api/v1/fit/upload）=====
     private fun uploadToXingzhe(
         sessionId: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
+            // v6.4.1修复: 行者接口只吃FIT, GPX必须先转FIT, 否则服务器HTTP 500
+            val uploadData = if (!GpxToFitConverter.isFit(fitData)) {
+                try {
+                    val fit = GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "行者上传: GPX→FIT转换成功(${fitData.size}→${fit.size}字节)")
+                    fit
+                } catch (e: Exception) {
+                    Log.w(TAG, "行者上传: GPX→FIT转换失败(${e.message}), 尝试直传GPX")
+                    fitData
+                }
+            } else fitData
+
             val fileName = FileNameGenerator.generate(DataSource.XINGZHE, record, "fit")
             val csrf = extra["csrf"] ?: ""
 
             // 行者官方上传接口（v6.2.1 实测修复）：POST /api/v1/fit/upload/
             // 旧接口 /api/v1/workout/upload/ (file+随机uuid) 只存文件不解析 → 平台不显示(is_valid=0)
             // 正确接口需字段 fit_file + md5(文件MD5)，返回 data.workout_id 且 handle_msg=ok → 正常入库(is_valid=1)
-            val md5 = MessageDigest.getInstance("MD5").digest(fitData).joinToString("") { "%02x".format(it) }
+            val md5 = MessageDigest.getInstance("MD5").digest(uploadData).joinToString("") { "%02x".format(it) }
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("fit_file", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
+                .addFormDataPart("fit_file", fileName, uploadData.toRequestBody("application/octet-stream".toMediaType()))
                 .addFormDataPart("md5", md5)
                 .build()
 
