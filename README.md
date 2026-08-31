@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.4.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.4.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.4.2 |
+| 当前版本 | v6.4.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -109,7 +109,8 @@ app/src/main/java/com/jichi/ob/
 app/src/main/assets/
 ├── magene_fix.js                # 迈金FIT坐标转换核心（移植自开源验证方案）
 ├── magene_fix.html              # 坐标转换WebView容器
-└── bridge.html                  # 通用JS桥接页
+├── bridge.html                  # 通用JS桥接页(GPX→FIT官方gpx2fit调用入口)
+└── gpx2fit.js                   # Outbase官方gpx2fit库(自包含49模块版)
 ```
 
 ---
@@ -122,7 +123,7 @@ app/src/main/assets/
 4. **逆向流动上传引擎**：`UploadEngine.kt` 统一分发，每平台独立适配官方上传通道（iGPSPORT OSS直传 / 行者官方API / 黑鸟/百锐腾官方上传）
 5. **顽鹿WebView上传通道**：顽鹿 `upload/fit` 拒绝程序化multipart，`MageneWebUploader` 用隐藏WebView加载顽鹿页+注入API token（localStorage）保持登录态，`onShowFileChooser` 通过 FileProvider 返回本地FIT，由WebView赋给页面input.files，等价用户手动选择上传
 6. **协程异步**：全部网络请求使用Kotlin Coroutines，主线程安全
-6. **本地持久化**：SharedPreferences存储登录态、同步记录、设置项
+7. **本地持久化**：SharedPreferences存储登录态、同步记录、设置项
 
 ---
 
@@ -155,25 +156,6 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
-### v6.4.3 (2026-08-30) — 一次性修复所有平台FIT时间偏移(bridge.html add8Hours参数化)
-
-**根因**：bridge.html里官方gpx2fit转换时硬编码把GPX时间+8小时(为Outbase按UTC数字显示设计)。但行者/黑鸟等国内平台按UTC解析FIT后转北京时间显示，导致上传后时间快8小时。
-
-**一次性解决方案**：
-1. bridge.html的`__convertGpx(count, add8Hours)`参数化，默认true(兼容Outbase)
-2. WebBridge.convertGpxToFit(gpxData, add8Hours=true)参数化
-3. **Outbase上传**：不传参，默认true(Outbase按数字显示需+8)
-4. **行者上传**：add8Hours=false(行者按UTC解析转北京，不需+8)
-5. **黑鸟上传**：add8Hours=false(黑鸟同行者，国内平台按UTC解析转北京)
-6. **iGPSPORT/迈金**：不用bridge.html，OSS直传GPX/FIT，不受影响；GPX源在UploadEngine里按目标平台时区适配
-
-**时间链路验证**：
-- 黑鸟GPX时间=UTC(如00:04Z, 北京08:04)
-- 行者/黑鸟上传: add8Hours=false → FIT时间戳=00:04 UTC → 平台解析转北京=08:04 ✓
-- Outbase上传: add8Hours=true → FIT时间戳=08:04 → Outbase按数字显示=08:04 ✓
-
-**版本号**：v6.4.3 (versionCode 651)
-
 ### v6.4.3 (2026-08-31) — 修复行者/黑鸟上传时间快8小时：gpx2fit的+8小时参数化
 
 **根因深入分析**：
@@ -261,9 +243,9 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 |------|:---:|:---:|------|
 | iGPSPORT | ✅ | ✅ | 官方OSS直传(getSignedUrl→PUT→uploadByOss)，按文件头自动选.fit/.gpx扩展名 |
 | 行者 | ✅ | ✅ | 官方 `/api/v1/fit/upload/`(fit_file+md5)，返回workout_id且is_valid=1才判成功；下载FIT优先回退GPX |
-| 迈金 | ✅ | ✅ | 优先HTTP `u.onelap.cn/upload/fit`，失败回退顽鹿WebView真实文件选择(onShowFileChooser+FileProvider+localStorage注入token) |
+| 迈金 | ✅ | 🚧当前禁用 | 通道已实现(优先HTTP `u.onelap.cn/upload/fit`，回退顽鹿WebView)，但UploadSupport仍为禁用，暂不可作为同步目标 |
 | 黑鸟单车 | ✅ | ✅ | 仅接受FIT，GPX源用Outbase官方gpx2fit转FIT后上传 `/api/records/upload`；登录检测需/api/user验证(防JSESSIONID误判) |
-| 百锐腾 | ⚠️受限 | ✅ | WebView注入Meteor token(localStorage)+真实文件选择；官方未开放FIT下载，不可作来源 |
+| 百锐腾 | ⚠️受限 | 🚧当前禁用 | 通道已实现(WebView注入Meteor token+真实文件选择)，但UploadSupport仍为禁用，暂不可作为同步目标；官方未开放FIT下载，不可作来源 |
 | Outbase | ❌ | ✅ | 仅目标平台，GPX用官方gpx2fit(自包含49模块版)转FIT上传 |
 
 **五、其他功能**
@@ -384,6 +366,10 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 2. **行者会话预检** — 同步开始时先校验行者会话（user_info接口），失效立即中止并提示重新登录，避免20条记录全部报错刷屏
 3. **行者上传实测验证** — 沙箱真实账号登录（account+RSA加密密码）+ 有效sessionid上传FIT成功（code:0），确认行者上传接口与APP代码逻辑正常；失败根因为行者会话过期，需重新登录
 
+### v6.1.9 (2026-08-27)
+1. **恢复底部正式版更新链接** — 底部新增"鸡翅幸哲迈进OB正式版更新链接"，指向正式版仓库 sync-igpsport-magene-onelap-xingzhe-data-to-outbase；开发版不稳定时提示下载正式版（开发版+正式版两个链接并存）
+2. **黑鸟上传错误码翻译** — 实测黑鸟接口：DUPLICATE=记录已存在(重复)；010001=无有效GPS轨迹(0km空活动/室内骑行)或格式不认；FIT_FILE_ERROR=迈金等含开发者字段FIT。失败时给出可读提示
+3. **黑鸟上传实测验证** — 沙箱真实登录黑鸟验证：有GPS的iGPSPORT标准FIT可被黑鸟解析（重复识别正常）；迈金C606室内骑行台(无GPS)被黑鸟FIT_FILE_ERROR拒绝（平台限制）
 
 ### v6.1.8 (2026-08-27)
 1. **底部更新链接修正** — 更新链接指向开发测试版仓库 `sports-data-sync-multiplatform`（此前误指向正式版仓库）
@@ -472,8 +458,3 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ---
 **鸡翅幸哲迈进OB(开发体验版)** — 让运动数据自由流动 🚴♂️
-
-### v6.1.9 (2026-08-27)
-1. **恢复底部正式版更新链接** — 底部新增"鸡翅幸哲迈进OB正式版更新链接"，指向正式版仓库 sync-igpsport-magene-onelap-xingzhe-data-to-outbase；开发版不稳定时提示下载正式版（开发版+正式版两个链接并存）
-2. **黑鸟上传错误码翻译** — 实测黑鸟接口：DUPLICATE=记录已存在(重复)；010001=无有效GPS轨迹(0km空活动/室内骑行)或格式不认；FIT_FILE_ERROR=迈金等含开发者字段FIT。失败时给出可读提示
-3. **黑鸟上传实测验证** — 沙箱真实登录黑鸟验证：有GPS的iGPSPORT标准FIT可被黑鸟解析（重复识别正常）；迈金C606室内骑行台(无GPS)被黑鸟FIT_FILE_ERROR拒绝（平台限制）
