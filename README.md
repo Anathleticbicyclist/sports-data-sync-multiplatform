@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.5 |
+| 当前版本 | v6.5.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,23 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.6 (2026-09-01) — 高驰上传ZIP方案修复 + 佳明登录ticket捕获增强 + UI布局优化
+1. **高驰上传核心修复（关键，真实FIT验证通过）**：v6.5.5上传返回`result=0000, status=-1, apiCode=8E16FCC7`（OSS接收成功但fit/import解析失败）。深入对比garmin-sync-coros开源项目逆向发现根因：**高驰fit/import必须传.zip格式，不能传裸.fit**。
+   - **ZIP打包上传**：新增`zipFitData()`方法，用ZipOutputStream把FIT打包成ZIP（ZIP内装一个.fit文件），md5/size/objectKey/oriFileName全部改用ZIP文件的
+   - **object key格式**：`fit_zip/{userId}/{zipMd5}.zip`（含userId路径归属校验）
+   - **oriFileName格式**：`{activityId}.zip`
+   - **成功判断修正**：`result=="0000"`且`data.status==2`且`data.errorSize==0`（status=2只表示处理完成，errorSize字段不存在或为0才表示FIT解析成功；errorSize只在出错时出现）
+   - **真实FIT验证**：用用户提供的375KB真实骑行FIT打包ZIP上传，返回`result=0000, status=2, 无errorSize字段`，高驰APP运动记录可见，完全验证通过
+2. **佳明登录ticket捕获增强（关键）**：新版佳明SSO（`/portal/sso/sign-in`）是纯JS SPA+Cloudflare验证码，登录成功后重定向到`/embed?ticket=ST-...-sso`。旧版ticket捕获只检查URL query参数，可能漏掉fragment或JS变量中的ticket。
+   - **多维度ticket捕获**：onPageStarted实时捕获 + detectGarmin定时检测，覆盖URL query参数、URL fragment（#ticket=）、页面HTML、input[name=ticket]、window.response_url五种来源
+   - **支持ST-...-sso格式**：正则表达式增强，匹配新版ticket格式（末尾带-sso）
+   - **统一ticket处理**：新增`exchangeGarminTicket()`方法，onPageStarted和detectGarmin共用，避免重复代码
+   - **登录失败自动重试**：ticket换token失败时重置detected标志，允许继续检测重试
+3. **UI布局优化**：
+   - **Wahoo挪到百锐腾后**：平台顺序调整为iGPSPORT→行者→迈金→黑鸟→百锐腾→Wahoo→佳明国际→佳明中国→高驰中国→高驰国际→Outbase
+   - **Outbase放最后且单独一行占两列**：Outbase作为核心目标平台，单独一行占满两列宽度，更醒目
+   - **两列对齐**：所有平台卡片等高对齐，间距统一
+4. **版本号更新** — v6.5.6 (versionCode 658)
 ### v6.5.5 (2026-09-01) — 高驰上传核心修复 + 佳明登录URL新格式
 1. **高驰上传核心修复（关键）**：v6.5.4上传日志显示"✅成功"但高驰APP无数据。深入研究garmin-sync-coros开源项目逆向发现三重根因：
    - **成功判断错误**：旧版把`apiCode`非空+data有id当成功，但`apiCode`只是请求ID，真正成功标志是`result=="0000"`且`data.status==2`。旧版fit/import实际返回无result字段，被误判成功

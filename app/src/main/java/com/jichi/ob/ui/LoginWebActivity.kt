@@ -137,32 +137,31 @@ class LoginWebActivity : AppCompatActivity() {
                             finish()
                         }
                     }
-                    // v6.5.3: 佳明 ticket实时捕获 —— 登录成功后重定向到 connect.garmin.com/cn?service?ticket=ST-...
-                    // 在onPageStarted捕获(重定向瞬间触发)，避免2秒定时检测错过
+                    // v6.5.6: 佳明 ticket实时捕获（增强：支持query和fragment，支持ST-...-sso格式）
+                    // 新版SSO登录成功后重定向到 /embed?ticket=ST-...-sso 或 connect.garmin.com/modern/?ticket=ST-...
                     if ((loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) && url != null && !detected) {
-                        val ticket = try { android.net.Uri.parse(url).getQueryParameter("ticket") } catch (_: Exception) { null }
+                        var ticket: String? = null
+                        // 先从query参数提取
+                        try { ticket = android.net.Uri.parse(url).getQueryParameter("ticket") } catch (_: Exception) {}
+                        // query没有则从fragment提取（#ticket=ST-...）
+                        if (ticket.isNullOrEmpty()) {
+                            val fragIdx = url.indexOf('#')
+                            if (fragIdx > 0) {
+                                val frag = url.substring(fragIdx + 1)
+                                val m = Regex("ticket=(ST-[A-Za-z0-9\\-]+)").find(frag)
+                                ticket = m?.groupValues?.getOrNull(1)
+                            }
+                        }
+                        // 再从整个URL正则提取（兜底）
+                        if (ticket.isNullOrEmpty()) {
+                            val m = Regex("ticket=(ST-[A-Za-z0-9\\-]+)").find(url)
+                            ticket = m?.groupValues?.getOrNull(1)
+                        }
                         if (!ticket.isNullOrEmpty() && ticket.startsWith("ST-")) {
                             detected = true
-                            Log.i(TAG, "✅ 佳明ticket捕获(onPageStarted): ${ticket.take(30)}...")
-                            // 后台换OAuth2 token
-                            Thread {
-                                try {
-                                    val cn = loginType == TYPE_GARMIN_CN
-                                    val serviceUrl = if (cn) "https://connect.garmin.cn/app" else "https://connect.garmin.com/modern/"
-                                    val oauth2 = com.jichi.ob.api.GarminOAuthHelper.loginWithTicket(ticket, cn, serviceUrl)
-                                    if (!isFinishing) {
-                                        runOnUiThread {
-                                            setResult(Activity.RESULT_OK, Intent()
-                                                .putExtra(RESULT_TOKEN, oauth2.toJson())
-                                                .putExtra(RESULT_LOGIN_TYPE, loginType))
-                                            finish()
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "佳明ticket换token失败: ${e.message}")
-                                    detected = false  // 允许重试
-                                }
-                            }.start()
+                            Log.i(TAG, "✅ 佳明ticket捕获(onPageStarted): ${ticket.take(40)}...")
+                            val cn = loginType == TYPE_GARMIN_CN
+                            exchangeGarminTicket(ticket, cn)
                         }
                     }
                 }
@@ -303,42 +302,53 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
-    /** v6.5.3: 佳明 检测登录 —— 从Success页面提取ticket(ST-...)，后台换OAuth2 Bearer token
-     *  旧版cookie-only方式已失效(佳明2026年改认证流)，必须用ticket→OAuth1→OAuth2 */
+    /** v6.5.6: 佳明 检测登录 —— 增强ticket捕获（新版SSO重定向到/embed?ticket=ST-...-sso）
+     *  从URL query/fragment、页面HTML、JS变量多维度提取ticket，后台换OAuth2 Bearer token */
     private fun detectGarmin(cn: Boolean) {
         if (!verifying.compareAndSet(false, true)) return
-        // 从页面内容提取ticket（Success页面的response_url包含ticket=ST-...）
+        // v6.5.6: 多维度提取ticket（URL query/fragment/HTML/JS变量），支持ST-...-sso格式
         webView.evaluateJavascript(
-            "(function(){try{var html=document.body?document.body.innerHTML:'';var m=html.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m)return m[1];if(document.location.href.indexOf('ticket=')>0){var m2=document.location.href.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m2)return m2[1];}return '';}catch(e){return '';}})()"
+            "(function(){try{" +
+            "var urls=[document.location.href, document.location.search, document.location.hash];" +
+            "for(var i=0;i<urls.length;i++){var u=urls[i]||'';if(u.indexOf('ticket=')>=0){var m=u.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m&&m[1])return m[1];}}" +
+            "var html=document.body?document.body.innerHTML:'';var m2=html.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m2&&m2[1])return m2[1];" +
+            "if(document.querySelector&&document.querySelector('input[name=ticket]'))return document.querySelector('input[name=ticket]').value;" +
+            "if(window.response_url&&window.response_url.indexOf('ticket=')>=0){var m3=window.response_url.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m3&&m3[1])return m3[1];}" +
+            "return '';}catch(e){return 'ERR:'+e.message;}})()"
         ) { ticket ->
             val t = ticket?.trim()?.trim('"') ?: ""
             if (t.length < 10 || !t.startsWith("ST-")) {
                 verifying.set(false)
                 return@evaluateJavascript
             }
-            Log.i(TAG, "佳明${if (cn) "中国" else "国际"} ticket捕获: ${t.take(30)}...")
-            // 后台线程换token
-            Thread {
-                try {
-                    val serviceUrl = if (cn) "https://connect.garmin.cn/app"
-                                     else "https://connect.garmin.com/modern/"
-                    val oauth2 = com.jichi.ob.api.GarminOAuthHelper.loginWithTicket(t, cn, serviceUrl)
-                    if (!detected && !isFinishing) {
-                        detected = true
-                        Log.i(TAG, "✅ 佳明${if (cn) "中国" else "国际"}登录成功, accessToken len=${oauth2.accessToken.length}")
-                        runOnUiThread {
-                            setResult(Activity.RESULT_OK, Intent()
-                                .putExtra(RESULT_TOKEN, oauth2.toJson())
-                                .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_GARMIN_CN else TYPE_GARMIN_COM))
-                            finish()
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "佳明ticket换token失败: ${e.message}")
-                    verifying.set(false)
-                }
-            }.start()
+            Log.i(TAG, "佳明${if (cn) "中国" else "国际"} ticket捕获(detect): ${t.take(40)}...")
+            exchangeGarminTicket(t, cn)
         }
+    }
+
+    /** v6.5.6: 佳明 ticket→OAuth2 统一处理（onPageStarted和detectGarmin共用） */
+    private fun exchangeGarminTicket(ticket: String, cn: Boolean) {
+        if (detected || isFinishing) return
+        Thread {
+            try {
+                val serviceUrl = if (cn) "https://connect.garmin.cn/app"
+                                 else "https://connect.garmin.com/modern/"
+                val oauth2 = com.jichi.ob.api.GarminOAuthHelper.loginWithTicket(ticket, cn, serviceUrl)
+                if (!detected && !isFinishing) {
+                    detected = true
+                    Log.i(TAG, "✅ 佳明${if (cn) "中国" else "国际"}登录成功, accessToken len=${oauth2.accessToken.length}")
+                    runOnUiThread {
+                        setResult(Activity.RESULT_OK, Intent()
+                            .putExtra(RESULT_TOKEN, oauth2.toJson())
+                            .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_GARMIN_CN else TYPE_GARMIN_COM))
+                        finish()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "佳明ticket换token失败: ${e.message}")
+                verifying.set(false)
+            }
+        }.start()
     }
 
     /** v6.5.0: 高驰 检测登录 —— 读取 CPL-coros-token / CPL-coros-region cookie */

@@ -120,22 +120,22 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Outbase -->
+                <!-- Wahoo -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="3dp" android:layout_columnWeight="1"
                     app:cardCornerRadius="10dp" app:cardElevation="2dp">
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/outbase_orange" />
-                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Outbase" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
+                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/wahoo_red" />
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Wahoo" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
                         </LinearLayout>
-                        <TextView android:id="@+id/tvOutbaseStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="❌ 未登录" android:textColor="@color/red" android:textSize="11sp" />
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnOutbaseLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Outbase" android:textSize="11sp" app:backgroundTint="@color/outbase_orange" app:cornerRadius="8dp" />
+                        <TextView android:id="@+id/tvWahooStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="❌ 未登录" android:textColor="@color/red" android:textSize="11sp" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnWahooLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Wahoo" android:textSize="11sp" app:backgroundTint="@color/wahoo_red" app:cornerRadius="8dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- 佳明国际 -->
+            <!-- 佳明国际 -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="3dp" android:layout_columnWeight="1"
@@ -195,22 +195,22 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Wahoo -->
+                <!-- Outbase -->
                 <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_margin="3dp" android:layout_columnWeight="1"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_margin="3dp" android:layout_columnSpan="2" android:layout_gravity="fill_horizontal"
                     app:cardCornerRadius="10dp" app:cardElevation="2dp">
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/wahoo_red" />
-                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Wahoo" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
+                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/outbase_orange" />
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Outbase" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
                         </LinearLayout>
-                        <TextView android:id="@+id/tvWahooStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="❌ 未登录" android:textColor="@color/red" android:textSize="11sp" />
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnWahooLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Wahoo" android:textSize="11sp" app:backgroundTint="@color/wahoo_red" app:cornerRadius="8dp" />
+                        <TextView android:id="@+id/tvOutbaseStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="❌ 未登录" android:textColor="@color/red" android:textSize="11sp" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnOutbaseLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Outbase" android:textSize="11sp" app:backgroundTint="@color/outbase_orange" app:cornerRadius="8dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-            </GridLayout>
+                </GridLayout>
 
 <!-- 同步设置 -->
             <com.google.android.material.card.MaterialCardView
