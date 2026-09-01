@@ -61,8 +61,10 @@ class GarminApi {
         @Volatile private var webViewLoading = false
         private val mainHandler = Handler(Looper.getMainLooper())
 
+        var enableDebugLogs = false
         val debugLogs = mutableListOf<String>()
         fun addDebugLog(msg: String) {
+            if (!enableDebugLogs) return
             val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
             val line = "[$time][GarminApi] $msg"
             synchronized(debugLogs) {
