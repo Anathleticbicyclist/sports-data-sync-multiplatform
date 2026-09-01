@@ -27,6 +27,9 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import android.widget.GridLayout
+import android.text.SpannableString
+import android.text.Spannable
+import android.text.style.AbsoluteSizeSpan
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -406,7 +409,7 @@ class MainActivity : AppCompatActivity() {
             setButtonSelected(btn, tag == selectedSourceTag, tag)
         }
         val lastTgt = prefs.getLastTarget()
-        if (lastTgt.isNotBlank()) selectedTargetTag = lastTgt
+        selectedTargetTag = if (lastTgt.isNotBlank()) lastTgt else "ob"
         for (i in 0 until gridTarget.childCount) {
             val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
             val tag = btn.tag as? String ?: continue
@@ -427,7 +430,16 @@ class MainActivity : AppCompatActivity() {
             val support = UploadSupport.fromDataSource(ds)
             if (!support.available) {
                 btn.isEnabled = false
-                btn.text = "${ds.displayName}(开发中)"
+                // 两行显示：第一行平台名(10sp)，第二行"开发中"(8sp)
+                val name = ds.displayName
+                val spannable = SpannableString("$name\n开发中")
+                spannable.setSpan(AbsoluteSizeSpan(11, true), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(AbsoluteSizeSpan(8, true), name.length + 1, spannable.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                btn.text = spannable
+                btn.maxLines = 2
+                btn.setBackgroundColor(0xFFE8E8E8.toInt())
+                btn.setTextColor(0xFFB0B0B0.toInt())
+                btn.alpha = 0.7f
             }
         }
     }
@@ -477,6 +489,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setButtonSelected(btn: MaterialButton, selected: Boolean, tag: String) {
+        if (!btn.isEnabled) {
+            // 开发中/不可用：更浅的灰底+更浅的文字+半透明，明显区分
+            btn.setBackgroundColor(0xFFE8E8E8.toInt())
+            btn.setTextColor(0xFFB0B0B0.toInt())
+            btn.alpha = 0.6f
+            return
+        }
+        btn.alpha = 1.0f
         if (selected) {
             btn.setBackgroundColor(platformColor(tag))
             btn.setTextColor(getColor(R.color.white))
@@ -491,6 +511,7 @@ class MainActivity : AppCompatActivity() {
             val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
             val tag = btn.tag as? String ?: continue
             btn.setOnClickListener {
+                if (!btn.isEnabled) return@setOnClickListener
                 selectedSourceTag = tag
                 for (j in 0 until gridSource.childCount) {
                     val b = gridSource.getChildAt(j) as? MaterialButton ?: continue
@@ -505,6 +526,7 @@ class MainActivity : AppCompatActivity() {
             val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
             val tag = btn.tag as? String ?: continue
             btn.setOnClickListener {
+                if (!btn.isEnabled) return@setOnClickListener
                 selectedTargetTag = tag
                 for (j in 0 until gridTarget.childCount) {
                     val b = gridTarget.getChildAt(j) as? MaterialButton ?: continue
