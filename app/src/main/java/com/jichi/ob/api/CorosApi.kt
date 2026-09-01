@@ -228,12 +228,13 @@ class CorosApi {
     }
 
     /**
-     * 上传 FIT 到高驰（v6.5.5 重写，对照 garmin-sync-coros 源码）：
-     * 1) faq.coros.com/openapi/oss/sts 换取 OSS 临时凭证（阿里云/AWS）
-     * 2) 上传 FIT 到 OSS，object key = fit_zip/{userId}/{md5}.fit
-     * 3) POST {teamapi}/activity/fit/import 注册（元数据调用，不传文件）
-     * 4) 成功标志：result=="0000" 且 data.status==2
-     * 注：高驰官方支持 .fit 直接导入，garmin-sync-coros 传 .zip 是因为佳明下载的就是 .zip
+     * 上传 FIT 到高驰（v6.5.6 重写，实测验证通过）：
+     * 1) 把 FIT 打包成 ZIP（ZIP内装一个.fit文件，高驰fit/import只接受.zip格式）
+     * 2) faq.coros.com/openapi/oss/sts 换取 OSS 临时凭证（阿里云/AWS）
+     * 3) 上传 ZIP 到 OSS，object key = fit_zip/{userId}/{zipMd5}.zip
+     * 4) POST {teamapi}/activity/fit/import 注册（元数据调用，不传文件）
+     * 5) 成功标志：result=="0000" 且 data.status==2
+     * 实测验证：传裸.fit会status=-1（解析失败），传.zip status=2（成功）
      */
     suspend fun uploadFit(cred: String, fitData: ByteArray, fileName: String, activityId: String = ""): String? = withContext(Dispatchers.IO) {
         val (token, regionId, _) = parseCredential(cred)
@@ -241,14 +242,17 @@ class CorosApi {
         try {
             val sts = STS_CONFIG[regionId] ?: STS_CONFIG[2]!!
             val bucket = sts.bucket
-            val md5 = md5Hex(fitData)
-            val size = fitData.size
-            // v6.5.5: 获取 userId，object key 格式 fit_zip/{userId}/{md5}.fit
+            // v6.5.6: 把FIT打包成ZIP（高驰只接受.zip）
+            val zipData = zipFitData(fitData, activityId, fileName)
+            val md5 = md5Hex(zipData)
+            val size = zipData.size
+            // 获取 userId，object key 格式 fit_zip/{userId}/{md5}.zip
             val userId = getUserId(cred)
-            val objectKey = "fit_zip/$userId/$md5.fit"
-            // oriFileName: {activityId}.fit
-            val fitFileName = if (activityId.isNotEmpty()) "$activityId.fit" else fileName.substringAfterLast('/')
-            Log.i(TAG, "uploadFit: fit=$size B, md5=$md5, userId=$userId, key=$objectKey, oriFileName=$fitFileName")
+            val objectKey = "fit_zip/$userId/$md5.zip"
+            // oriFileName: {activityId}.zip
+            val zipFileName = if (activityId.isNotEmpty()) "$activityId.zip" else
+                (fileName.substringAfterLast('/').substringBeforeLast('.') + ".zip")
+            Log.i(TAG, "uploadFit: fit=${fitData.size}B→zip=${size}B, md5=$md5, userId=$userId, key=$objectKey, oriFileName=$zipFileName")
 
             // 1) 获取 STS 凭证
             val stsUrl = "https://faq.coros.com/openapi/oss/sts?bucket=$bucket&service=${sts.service}&app_id=$STS_APP_ID&sign=${sts.sign}&v=$STS_V"
@@ -266,10 +270,10 @@ class CorosApi {
                     ?: json.optString("credentials") ?: return@withContext "高驰OSS STS无凭证: ${rawBody.take(150)}"
                 decodeSts(enc)
             }
-            // 2) 上传 FIT 到 OSS
+            // 2) 上传 ZIP 到 OSS
             val upOk = when (sts.service) {
-                "aliyun" -> uploadAliyunOss(bucket, objectKey, fitData, credJson)
-                else -> uploadAwsS3(bucket, objectKey, fitData, credJson, regionId)
+                "aliyun" -> uploadAliyunOss(bucket, objectKey, zipData, credJson)
+                else -> uploadAwsS3(bucket, objectKey, zipData, credJson, regionId)
             }
             if (!upOk) {
                 Log.w(TAG, "OSS上传失败, bucket=$bucket, key=$objectKey, service=${sts.service}, size=$size")
@@ -285,7 +289,7 @@ class CorosApi {
                 .put("size", size)
                 .put("object", objectKey)
                 .put("serviceName", sts.service)
-                .put("oriFileName", fitFileName)
+                .put("oriFileName", zipFileName)
             val form = FormBody.Builder().add("jsonParameter", importBody.toString()).build()
             val importUrl = "${teamApi(regionId)}/activity/fit/import"
             val importReq = Request.Builder().url(importUrl).apply {
@@ -315,6 +319,19 @@ class CorosApi {
         }
     }
 
+    /** v6.5.6: 把FIT数据打包成ZIP（高驰fit/import只接受.zip格式，ZIP内装一个.fit） */
+    private fun zipFitData(fitData: ByteArray, activityId: String, fileName: String): ByteArray {
+        val fitName = if (activityId.isNotEmpty()) "$activityId.fit" else
+            fileName.substringAfterLast('/').let { if (it.endsWith(".fit", true)) it else "$it.fit" }
+        val baos = java.io.ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(baos).use { zos ->
+            val entry = java.util.zip.ZipEntry(fitName)
+            zos.putNextEntry(entry)
+            zos.write(fitData)
+            zos.closeEntry()
+        }
+        return baos.toByteArray()
+    }
     /** STS credentials 解码：去掉盐 + base64 */
     private fun decodeSts(enc: String): JSONObject {
         val cleaned = enc.replace(STS_SALT, "")
