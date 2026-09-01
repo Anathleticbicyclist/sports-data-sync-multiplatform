@@ -120,7 +120,12 @@ class LoginWebActivity : AppCompatActivity() {
  
             // 只清相关域cookie，保留其他平台登录态
             CookieManager.getInstance().removeAllCookies(null)
- 
+
+            // v6.5.6: 佳明专用JS桥——注入页面监听ticket（URL/fragment/postMessage/AJAX全拦截）
+            if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) {
+                webView.addJavascriptInterface(GarminJsBridge(), "GarminBridge")
+            }
+
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     progressBar.visibility = android.view.View.VISIBLE
@@ -170,6 +175,10 @@ class LoginWebActivity : AppCompatActivity() {
                     checkCount++
                     Log.d(TAG, "[$loginType] PageFinished #$checkCount: $url")
                     if (checkCount == 1) webView.post(checkRunnable)
+                    // v6.5.6: 佳明页面注入JS监听器（拦截ticket）
+                    if ((loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) && !detected) {
+                        view?.evaluateJavascript(injectGarminListener(), null)
+                    }
                 }
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for ${request?.url}")
@@ -628,6 +637,85 @@ class LoginWebActivity : AppCompatActivity() {
         if (webView.canGoBack()) webView.goBack()
         else { detected = true; super.onBackPressed() }
     }
+
+    /** v6.5.6: 佳明JS桥——页面检测到ticket时回调Native */
+    inner class GarminJsBridge {
+        @android.webkit.JavascriptInterface
+        fun onTicket(ticket: String) {
+            if (detected || isFinishing) return
+            if (ticket.length < 10 || !ticket.startsWith("ST-")) return
+            detected = true
+            Log.i(TAG, "✅ 佳明ticket捕获(JS桥): ${ticket.take(40)}...")
+            val cn = loginType == TYPE_GARMIN_CN
+            exchangeGarminTicket(ticket, cn)
+        }
+    }
+
+    /** v6.5.6: 注入佳明ticket监听器JS（拦截URL/fragment/postMessage/AJAX响应中的ticket） */
+    private fun injectGarminListener(): String {
+        return """
+        (function(){
+            if (window.__garminTicketInjected) return;
+            window.__garminTicketInjected = true;
+            function extractTicket(str) {
+                if (!str) return null;
+                var m = str.match(/ticket=(ST-[A-Za-z0-9\-]+)/);
+                return m ? m[1] : null;
+            }
+            function checkAndReport() {
+                try {
+                    var t = extractTicket(location.href) || extractTicket(location.search) || extractTicket(location.hash);
+                    if (t && window.GarminBridge) { window.GarminBridge.onTicket(t); return true; }
+                } catch(e) {}
+                return false;
+            }
+            // 1. 立即检查
+            checkAndReport();
+            // 2. 轮询URL变化（JS重定向不会触发onPageStarted）
+            setInterval(checkAndReport, 500);
+            // 3. 监听postMessage
+            window.addEventListener('message', function(e) {
+                try {
+                    var t = extractTicket(typeof e.data === 'string' ? e.data : JSON.stringify(e.data));
+                    if (t && window.GarminBridge) window.GarminBridge.onTicket(t);
+                } catch(err) {}
+            });
+            // 4. 拦截XMLHttpRequest响应（ticket可能在AJAX响应中）
+            var origOpen = XMLHttpRequest.prototype.open;
+            var origSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.open = function(method, url) {
+                this.__url = url;
+                return origOpen.apply(this, arguments);
+            };
+            XMLHttpRequest.prototype.send = function() {
+                this.addEventListener('load', function() {
+                    try {
+                        var t = extractTicket(this.responseText) || extractTicket(this.__url);
+                        if (t && window.GarminBridge) window.GarminBridge.onTicket(t);
+                    } catch(e) {}
+                });
+                return origSend.apply(this, arguments);
+            };
+            // 5. 拦截fetch响应
+            var origFetch = window.fetch;
+            if (origFetch) {
+                window.fetch = function() {
+                    return origFetch.apply(this, arguments).then(function(resp) {
+                        try {
+                            var clone = resp.clone();
+                            clone.text().then(function(text) {
+                                var t = extractTicket(text);
+                                if (t && window.GarminBridge) window.GarminBridge.onTicket(t);
+                            });
+                        } catch(e) {}
+                        return resp;
+                    });
+                };
+            }
+        })();
+        """.trimIndent()
+    }
+
 }
  
 
