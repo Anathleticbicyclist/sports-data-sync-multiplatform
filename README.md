@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.7.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,11 +23,17 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.9 |
+| 当前版本 | v6.7.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 构建工具 | Gradle 8.13 + AGP 8.13.0 |
+
+---
+
+## 📱 软件界面
+
+<p align="center"><img src="app_screenshot.png" width="360" alt="App主界面"/></p>
 
 ---
 
@@ -163,6 +169,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.7.0 (2026-09-01) — 佳明401根因修复（JWT_WEB+session双cookie） + 鸣谢更新 + 软件界面截图
+**核心突破**：Python实测验证佳明gc-api必须同时传递`JWT_WEB`和`session`两个cookie，只传JWT_WEB返回401。
+1. **佳明401根因修复** — LoginWebActivity明确提取JWT_WEB+session两个关键cookie，保存为`{"jwt_web":"...","session":"...","csrf":"..."}`；GarminApi构建Cookie header为`JWT_WEB=...; session=...`，中国版/国际版通用
+2. **佳明国际版支持** — gc-api代理方案同时支持国际版(connect.garmin.com/gc-api)和中国版(connect.garmin.cn/gc-api)，登录检测逻辑统一
+3. **鸣谢更新** — 测试人员新增"心急吃不了热豆付"；新增鸣谢青岛AUV俱乐部；反馈渠道改为Outbase俱乐部跟主理人反馈；开发者署名多吃两口
+4. **软件界面截图** — README新增App主界面截图
+5. **版本号更新** — v6.7.0 (versionCode 670)
 ### v6.5.9 (2026-09-01) — 佳明上传下载401修复（禁用旧ticket交换） + 底部鸣谢更新
 1. **佳明401根因修复** — v6.5.8中onPageStarted检测到ticket后仍调用旧exchangeGarminTicket，抢先返回OAuth2旧格式凭证导致上传下载401。v6.5.9彻底禁用旧ticket捕获逻辑，完全依赖JWT_WEB cookie定时检测
 2. **佳明国际版支持** — gc-api代理方案同时支持国际版(connect.garmin.com/gc-api)和中国版(connect.garmin.cn/gc-api)，登录后自动提取JWT_WEB+CSRF
@@ -533,9 +546,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 🙏 鸣谢
 
-感谢 **iGPSPORT、迈金、黑鸟单车、百锐腾、行者、Outbase** 为运动用户提供的数据记录与存储服务。
+感谢 **iGPSPORT、迈金、黑鸟单车、百锐腾、行者、高驰、佳明、Wahoo、Outbase** 为运动用户提供的数据记录与存储服务。
 
-感谢以下人员（均为骑行爱称）为软件测试提供的帮助：**素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参**
+感谢以下人员（均为骑行爱称）为软件测试提供的帮助：**素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付**
+
+鸣谢 **青岛AUV俱乐部**。
+
+**开发者：多吃两口**
 
 感谢开源项目 [magene-fit-strava-fix](https://github.com/dwmer0308-a11y/magene-fit-strava-fix) 提供的迈金坐标修正算法参考。
 
@@ -552,7 +569,7 @@ v6.5.0 新增平台同步功能参考并感谢以下开源项目：
 
 - **开发者俱乐部**：[鸡翅幸哲迈进OB同步工具开发者俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)
 - **软件更新地址**：[GitHub - sports-data-sync-multiplatform（开发测试版）](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform)
-- **问题反馈**：欢迎加入俱乐部跟主理人反馈，开发中功能招募测试人员，欢迎联系主理人~
+- **问题反馈**：如有问题，欢迎加入Outbase俱乐部跟主理人反馈。
 
 ---
 
