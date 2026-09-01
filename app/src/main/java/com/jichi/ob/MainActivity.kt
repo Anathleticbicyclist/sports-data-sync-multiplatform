@@ -242,6 +242,7 @@ class MainActivity : AppCompatActivity() {
             brytonApi = BrytonApi()
             outbaseApi = OutbaseApi()
             garminApi = GarminApi()
+            garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
             corosApi = CorosApi()
             wahooApi = WahooApi()
             uploadEngine = UploadEngine(this)
