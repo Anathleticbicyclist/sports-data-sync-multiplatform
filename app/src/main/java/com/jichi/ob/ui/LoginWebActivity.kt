@@ -68,7 +68,7 @@ class LoginWebActivity : AppCompatActivity() {
         override fun run() {
             if (!detected && !isFinishing) {
                 detectLogin()
-                webView.postDelayed(this, 2000)
+                webView.postDelayed(this, 1000)
             }
         }
     }
@@ -135,6 +135,34 @@ class LoginWebActivity : AppCompatActivity() {
                                 .putExtra(RESULT_TOKEN, code)
                                 .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
                             finish()
+                        }
+                    }
+                    // v6.5.3: 佳明 ticket实时捕获 —— 登录成功后重定向到 connect.garmin.com/cn?service?ticket=ST-...
+                    // 在onPageStarted捕获(重定向瞬间触发)，避免2秒定时检测错过
+                    if ((loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) && url != null && !detected) {
+                        val ticket = try { android.net.Uri.parse(url).getQueryParameter("ticket") } catch (_: Exception) { null }
+                        if (!ticket.isNullOrEmpty() && ticket.startsWith("ST-")) {
+                            detected = true
+                            Log.i(TAG, "✅ 佳明ticket捕获(onPageStarted): ${ticket.take(30)}...")
+                            // 后台换OAuth2 token
+                            Thread {
+                                try {
+                                    val cn = loginType == TYPE_GARMIN_CN
+                                    val serviceUrl = if (cn) "https://connect.garmin.cn/app" else "https://connect.garmin.com/modern/"
+                                    val oauth2 = com.jichi.ob.api.GarminOAuthHelper.loginWithTicket(ticket, cn, serviceUrl)
+                                    if (!isFinishing) {
+                                        runOnUiThread {
+                                            setResult(Activity.RESULT_OK, Intent()
+                                                .putExtra(RESULT_TOKEN, oauth2.toJson())
+                                                .putExtra(RESULT_LOGIN_TYPE, loginType))
+                                            finish()
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "佳明ticket换token失败: ${e.message}")
+                                    detected = false  // 允许重试
+                                }
+                            }.start()
                         }
                     }
                 }
@@ -292,7 +320,7 @@ class LoginWebActivity : AppCompatActivity() {
             // 后台线程换token
             Thread {
                 try {
-                    val serviceUrl = if (cn) "https://connect.garmin.cn/modern/"
+                    val serviceUrl = if (cn) "https://connect.garmin.cn/app"
                                      else "https://connect.garmin.com/modern/"
                     val oauth2 = com.jichi.ob.api.GarminOAuthHelper.loginWithTicket(t, cn, serviceUrl)
                     if (!detected && !isFinishing) {
