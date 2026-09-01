@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.7.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.7.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.7.0 |
+| 当前版本 | v6.7.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -169,6 +169,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.7.1 (2026-09-01) — 佳明国际版区域检测（中国区账号自动提示切换）
+**佳明中国版已全流程验证通过**（登录→活动列表→FIT下载→FIT上传，iGPSPORT/行者/迈金/黑鸟/高驰→佳明中国上传全部成功，佳明中国→高驰下载上传成功）。
+**佳明国际版说明**：佳明实行区域账号隔离，中国区注册的账号无法在国际版(connect.garmin.com)登录（服务器自动重定向回中国区signin页）。
+1. **国际版区域检测** — 国际版登录时若检测到被重定向到garmin.cn/connectus，自动Toast提示"该账号为佳明中国区账号，请使用佳明中国登录"，避免用户困惑
+2. **国际版代码逻辑已就绪** — 若用户拥有真正的国际区账号（非中国区注册），国际版登录→下载→上传全流程与中国版一致（gc-api代理+JWT_WEB+session双cookie）
+3. **版本号更新** — v6.7.1 (versionCode 671)
 ### v6.7.0 (2026-09-01) — 佳明401根因修复（JWT_WEB+session双cookie） + 鸣谢更新 + 软件界面截图
 **核心突破**：Python实测验证佳明gc-api必须同时传递`JWT_WEB`和`session`两个cookie，只传JWT_WEB返回401。
 1. **佳明401根因修复** — LoginWebActivity明确提取JWT_WEB+session两个关键cookie，保存为`{"jwt_web":"...","session":"...","csrf":"..."}`；GarminApi构建Cookie header为`JWT_WEB=...; session=...`，中国版/国际版通用
