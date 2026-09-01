@@ -481,8 +481,10 @@ class MainActivity : AppCompatActivity() {
     private fun setStatus(tv: TextView, btn: MaterialButton, ds: DataSource) {
         val logged = prefs.isLoggedIn(ds)
         val username = prefs.getUsername(ds)
+        // v6.7.2: 佳明的displayName是UUID(用户ID)，不显示，直接显示已登录
+        val hideUsername = ds == DataSource.GARMIN_CN || ds == DataSource.GARMIN_COM
         tv.text = if (logged) {
-            if (username != null) "✅ $username" else "✅ 已登录"
+            if (username != null && !hideUsername) "✅ $username" else "✅ 已登录"
         } else "❌ 未登录"
         tv.setTextColor(getColor(if (logged) R.color.green else R.color.red))
         btn.text = if (logged) "重新登录" else "登录${ds.displayName}"
@@ -499,8 +501,9 @@ class MainActivity : AppCompatActivity() {
                 DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
                 DataSource.BRYTON -> brytonApi.getUsername(cred)
                 DataSource.OUTBASE -> outbaseApi.getUsername(cred)
-                DataSource.GARMIN_COM -> garminApi.getUsername(ds, cred)
-                DataSource.GARMIN_CN -> garminApi.getUsername(ds, cred)
+                // v6.7.2: 佳明displayName是UUID(用户ID)，不获取不显示，直接已登录
+                DataSource.GARMIN_COM -> null
+                DataSource.GARMIN_CN -> null
                 DataSource.COROS_CN -> corosApi.getUsername(cred)
                 DataSource.COROS_INT -> corosApi.getUsername(cred)
                 DataSource.WAHOO -> wahooApi.getUsername(cred)
