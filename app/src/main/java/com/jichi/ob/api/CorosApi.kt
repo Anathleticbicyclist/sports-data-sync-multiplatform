@@ -230,11 +230,22 @@ class CorosApi {
             }.post(form).build()
             client.newCall(importReq).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
+                Log.d(TAG, "fit/import HTTP ${resp.code}: ${body.take(400)}")
                 if (resp.code != 200) return@withContext "高驰fit/import HTTP ${resp.code}: ${body.take(120)}"
                 val json = try { JSONObject(body) } catch (_: Exception) { null }
+                // v6.5.3: 适配实际返回格式 —— 高驰返回 {"apiCode":"xxx","data":{"id":...,"fileUrl":...}}
+                // 成功标志：result=="0000" 或 apiCode存在 且 data中有id/fileUrl（说明记录已创建）
                 val result = json?.optString("result") ?: ""
-                val status = json?.optJSONObject("data")?.optInt("status", 0) ?: 0
-                if (result == "0000" && status == 2) null else "高驰fit/import失败: ${body.take(150)}"
+                val apiCode = json?.optString("apiCode") ?: ""
+                val dataObj = json?.optJSONObject("data")
+                val hasRecord = dataObj?.optString("id")?.isNotEmpty() == true ||
+                        dataObj?.optString("fileUrl")?.isNotEmpty() == true ||
+                        dataObj?.optString("labelId")?.isNotEmpty() == true
+                val status = dataObj?.optInt("status", 0) ?: 0
+                val success = (result == "0000" && (status == 2 || hasRecord)) ||
+                        (apiCode.isNotEmpty() && hasRecord) ||
+                        (result == "0000" && status == 0 && hasRecord)
+                if (success) null else "高驰fit/import失败: ${body.take(150)}"
             }
         } catch (e: Exception) {
             Log.e(TAG, "uploadFit error", e)
