@@ -46,17 +46,26 @@ class GarminApi {
         .followRedirects(true)
         .build()
 
-    /** v6.5.8: 凭证格式为 JSON {"jwt_web":"...","csrf":"..."}
-     *  兼容旧格式 OAuth2 token JSON（尝试转换，但API调用会用新方式） */
-    private data class GarminSession(val jwtWeb: String, val csrf: String) {
-        fun toJson(): String = JSONObject().put("jwt_web", jwtWeb).put("csrf", csrf).toString()
+    /** v6.7.0: 凭证格式为 JSON {"jwt_web":"...","session":"...","csrf":"..."}
+     *  关键：gc-api必须同时传递JWT_WEB和session两个cookie，缺一返回401
+     *  兼容旧格式 {"cookies":"...","csrf":"..."} 和 {"jwt_web":"...","csrf":"..."} */
+    private data class GarminSession(val cookies: String, val csrf: String) {
+        fun toJson(): String = JSONObject().put("cookies", cookies).put("csrf", csrf).toString()
         companion object {
             fun fromJson(json: String): GarminSession? {
                 return try {
                     val obj = JSONObject(json)
-                    val jwt = obj.optString("jwt_web", "")
                     val csrf = obj.optString("csrf", "")
-                    if (jwt.isNotEmpty()) GarminSession(jwt, csrf) else null
+                    // 新格式：jwt_web + session（两个都必须有）
+                    val jwtWeb = obj.optString("jwt_web", "")
+                    val sessionCookie = obj.optString("session", "")
+                    val cookies = if (jwtWeb.isNotEmpty() && sessionCookie.isNotEmpty()) {
+                        "JWT_WEB=$jwtWeb; session=$sessionCookie"
+                    } else {
+                        // 兼容旧格式：直接用cookies字段
+                        obj.optString("cookies", "")
+                    }
+                    if (cookies.isNotEmpty()) GarminSession(cookies, csrf) else null
                 } catch (_: Exception) { null }
             }
         }
@@ -79,16 +88,17 @@ class GarminApi {
     private fun gcApiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/gc-api" else "https://connect.garmin.com/gc-api"
 
-    /** v6.5.8: 构建API请求header —— JWT_WEB cookie + connect-csrf-token */
+    /** v6.7.0: 构建API请求header —— 全部cookie + connect-csrf-token */
     private fun apiHeaders(ds: DataSource, cred: String): Map<String, String> {
         val sess = parseCredential(cred)
         val h = mutableMapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept" to "application/json",
             "Referer" to if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/app/home" else "https://connect.garmin.com/modern/",
+            "Origin" to if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn" else "https://connect.garmin.com",
         )
         sess?.let {
-            if (it.jwtWeb.isNotEmpty()) h["Cookie"] = "JWT_WEB=${it.jwtWeb}"
+            if (it.cookies.isNotEmpty()) h["Cookie"] = it.cookies
             if (it.csrf.isNotEmpty()) h["connect-csrf-token"] = it.csrf
         }
         return h

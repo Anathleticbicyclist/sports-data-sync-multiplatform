@@ -318,8 +318,9 @@
             <!-- 鸣谢 -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:layout_marginTop="4dp" android:text="🙏 鸣谢" android:textColor="@color/text_primary" android:textSize="11sp" android:textStyle="bold" android:padding="2dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、高驰、佳明、Wahoo、Outbase为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase开发者俱乐部私信。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="12dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸣谢青岛AUV俱乐部" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="12dp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

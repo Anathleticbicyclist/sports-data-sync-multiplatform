@@ -286,27 +286,22 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
-    /** v6.5.8: 佳明 检测登录 —— 检测JWT_WEB cookie + 从页面提取CSRF token
-     *  新流程：WebView登录成功后cookie中有JWT_WEB，页面HTML有<meta name="csrf-token">
-     *  凭证格式：JSON {"jwt_web":"...","csrf":"..."} */
+    /** v6.7.0: 佳明 检测登录 —— 必须同时提取JWT_WEB + session两个cookie（gc-api缺一返回401）
+     *  凭证格式：JSON {"jwt_web":"...","session":"...","csrf":"..."} */
     private fun detectGarmin(cn: Boolean) {
         if (!verifying.compareAndSet(false, true)) return
         val cm = CookieManager.getInstance()
         val host = if (cn) "connect.garmin.cn" else "connect.garmin.com"
-        // 检测JWT_WEB cookie
-        val allCookies = listOf(
-            cm.getCookie("https://$host"),
-            cm.getCookie(host),
-            cm.getCookie(".$host")
-        ).filterNotNull().joinToString("; ")
-        val jwtWeb = extractCookieValue(allCookies, "JWT_WEB")
-        if (jwtWeb.length < 20) {
-            // JWT_WEB还没出现，可能还在登录过程中，继续检测
-            Log.d(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB未出现，继续检测...")
+        // 用完整URL获取该域所有cookie（JWT_WEB和session的domain都是.host）
+        val cookieStr = cm.getCookie("https://$host") ?: ""
+        val jwtWeb = extractCookieValue(cookieStr, "JWT_WEB")
+        val sessionCookie = extractCookieValue(cookieStr, "session")
+        if (jwtWeb.length < 20 || sessionCookie.length < 20) {
+            Log.d(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}，继续检测...")
             verifying.set(false)
             return
         }
-        Log.i(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB已捕获 len=${jwtWeb.length}，正在提取CSRF...")
+        Log.i(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB+session已捕获，正在提取CSRF...")
         // 从页面HTML提取CSRF token
         webView.evaluateJavascript(
             "(function(){try{" +
@@ -322,9 +317,10 @@ class LoginWebActivity : AppCompatActivity() {
                 detected = true
                 val credential = org.json.JSONObject()
                     .put("jwt_web", jwtWeb)
+                    .put("session", sessionCookie)
                     .put("csrf", csrf)
                     .toString()
-                Log.i(TAG, "✅ 佳明${if(cn)"中国"else"国际"}登录成功, JWT_WEB len=${jwtWeb.length}, CSRF=${csrf.take(8)}...")
+                Log.i(TAG, "✅ 佳明${if(cn)"中国"else"国际"}登录成功, JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}, CSRF=${csrf.take(8)}...")
                 runOnUiThread {
                     setResult(Activity.RESULT_OK, Intent()
                         .putExtra(RESULT_TOKEN, credential)
