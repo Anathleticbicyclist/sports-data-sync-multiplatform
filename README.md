@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.0 |
+| 当前版本 | v6.5.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -49,7 +49,7 @@
 | **佳明中国** | ✅ | ✅ | Garmin Connect 中国区；上传自动FIT设备伪装为Garmin Edge 830 |
 | **高驰中国** | ✅ | ✅ | COROS 中国区（teamcnapi），三区域自动路由，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS 国际/欧洲区（teamapi/teameuapi），AWS S3上传 |
-| **Wahoo** | ✅ | ❌ | Wahoo SYSTM/ELEMNT，仅下载（无公开上传API），需注册开发者应用OAuth2 |
+| **Wahoo** | ✅ | ❌ | Wahoo SYSTM/ELEMNT，仅下载（无公开上传API），维护者内置凭证用户无需注册 |
 
 **可同步的组合**（来源 → 目标）：
 - iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / 佳明 / 高驰 / Wahoo → Outbase（上传）
@@ -163,12 +163,18 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.1 (2026-09-01) — Wahoo免注册改造 + 佳明登录修复 + 同步目标chip补全
+1. **Wahoo免注册**：去掉用户手动输入 client_id/client_secret 弹窗，改为维护者在 developers.wahooligan.com 免费注册一次后内置凭证，用户直接用Wahoo账号登录授权即可，完全感知不到注册环节
+2. **佳明登录修复**：detectGarmin 增加登录态cookie检测（GARMIN-SSO/SID/IDENTITY/SESSIONID/JSESSIONID任一），避免SSO页未登录普通cookie触发2秒误判"登录成功"；WebView增加 onRenderProcessGone 崩溃防护（渲染进程崩溃时自动reload不闪退）；佳明登录页改用Mobile UA降低JS复杂度
+3. **同步目标chip补全**：chipGroupTarget 补全佳明国际/佳明中国/高驰中国/高驰国际4个新平台chip，与source平台顺序对齐
+4. **版本号**：v6.5.0(652) → v6.5.1(653)
+
 ### v6.5.0 (2026-09-01) — 新增佳明/高驰/Wahoo三平台同步 + UI两列布局 + 国内国际互传
 
 **新增平台**：
 1. **佳明国际 / 佳明中国**：支持下载（FIT，zip自动解压）和上传（upload-service），上传前自动将非Garmin设备FIT伪装为 **Garmin Edge 830**（manufacturer=1, product=3122），重算CRC-16，解决佳明拒收第三方设备FIT的问题
 2. **高驰中国 / 高驰国际**：支持下载（FIT）和上传（STS临时凭证→阿里云OSS/AWS S3→fit/import注册），三区域（1国际/2中国/3欧洲）登录后自动路由，支持中国区↔国际区互传
-3. **Wahoo**：支持下载（OAuth2授权码→access_token→workouts列表→CDN直链FIT），**仅下载无上传**（Wahoo无公开上传API），需用户在 developer.wahoo.fit 注册开发者应用获取 client_id/client_secret
+3. **Wahoo**：支持下载（OAuth2授权码→access_token→workouts列表→CDN直链FIT），**仅下载无上传**（Wahoo无公开上传API）
 
 **国内区/国际区互传**：
 - 佳明国际(GARMIN_COM) ↔ 佳明中国(GARMIN_CN) 拆分为独立平台，支持双向互传
@@ -178,7 +184,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 **UI 改造**：
 - 平台登录卡片从单列竖排改为 **GridLayout 两列网格布局**，11个平台卡片统一色条/标题/状态/按钮高度，对齐排版，解决单列页面过长问题
 
-**版本号**：v6.5.0 (versionCode 652)
+**版本号**：v6.5.1 (versionCode 653)
 
 ### v6.4.3 (2026-08-31) — 修复行者/黑鸟上传时间快8小时：gpx2fit的+8小时参数化
 

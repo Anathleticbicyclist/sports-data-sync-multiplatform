@@ -30,7 +30,13 @@ class WahooApi {
         const val TOKEN_URL = "https://api.wahooligan.com/oauth/token"
         const val REDIRECT_URI = "https://localhost:8080/"
         const val SCOPES = "workouts_read offline_data user_read"
-        private const val UA = "jichi-ob/6.5.0 (Android)"
+        private const val UA = "jichi-ob/6.5.1 (Android)"
+
+        // v6.5.1: 内置开发者凭证（App维护者在 developers.wahooligan.com 免费注册一次后填写）
+        // 用户无需注册，直接用Wahoo账号登录授权即可。redirect_uri填 https://localhost:8080/
+        const val BUILTIN_CLIENT_ID = ""
+        const val BUILTIN_CLIENT_SECRET = ""
+        fun isBuiltinConfigured(): Boolean = BUILTIN_CLIENT_ID.isNotEmpty() && BUILTIN_CLIENT_SECRET.isNotEmpty()
     }
 
     private val client = OkHttpClient.Builder()
@@ -41,7 +47,7 @@ class WahooApi {
         .build()
 
     /** 构造授权 URL（打开WebView让用户登录） */
-    fun authorizeUrl(clientId: String): String =
+    fun authorizeUrl(clientId: String = BUILTIN_CLIENT_ID): String =
         "$AUTHORIZE_URL?client_id=$clientId&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.replace(" ", "%20")}&response_type=code"
 
     /** 用授权码换 token */
