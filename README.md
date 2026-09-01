@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.4-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.5-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.4 |
+| 当前版本 | v6.5.5 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.5 (2026-09-01) — 高驰上传核心修复 + 佳明登录URL新格式
+1. **高驰上传核心修复（关键）**：v6.5.4上传日志显示"✅成功"但高驰APP无数据。深入研究garmin-sync-coros开源项目逆向发现三重根因：
+   - **成功判断错误**：旧版把`apiCode`非空+data有id当成功，但`apiCode`只是请求ID，真正成功标志是`result=="0000"`且`data.status==2`。旧版fit/import实际返回无result字段，被误判成功
+   - **object key缺少userId**：旧版用`fit_zip/upload/{md5}.fit`，正确格式为`fit_zip/{userId}/{md5}.fit`（高驰校验路径归属）。新增`getUserId()`方法（先试`/account`接口，再试活动列表提取，兜底token MD5前16位）
+   - **oriFileName修正**：旧版用传入fileName，正确格式为`{activityId}.fit`
+   - **直接传.fit不压缩**：高驰官方支持.fit/.tcx直接导入，无需压缩成.zip
+2. **佳明登录URL新格式**：改用用户提供的官方Connect登录格式——中国`/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=/app`，国际`/portal/sso/en-US/sign-in?clientId=GarminConnect&service=/modern/`
+3. **Wahoo平台内置凭证模式就绪**：Wahoo开发者应用已提交（Sandbox环境，Scopes: user_read/workouts_read/offline_data），等待Wahoo人工审批；审批通过后填入client_id/secret即可直接使用，无需用户自注册
+4. **版本号**：v6.5.4(656) → v6.5.5(657)
 ### v6.5.4 (2026-09-01) — 佳明登录检测修复（ticket实时捕获）
 1. **佳明ticket实时捕获**：v6.5.3只在定时检测中捕获ticket，登录成功后Success页面→JS重定向到connect域?ticket=ST-...的瞬间可能被错过。改为在`onPageStarted`中实时捕获URL中的ticket参数（重定向瞬间触发），确保不会错过
 2. **中国区登录URL修正**：service路径从`/modern/`改为`/app`（佳明Connect中国实际路径）

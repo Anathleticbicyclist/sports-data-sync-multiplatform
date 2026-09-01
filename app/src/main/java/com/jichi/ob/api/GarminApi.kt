@@ -31,8 +31,9 @@ import java.util.zip.ZipInputStream
 class GarminApi {
     companion object {
         private const val TAG = "GarminApi"
-        const val LOGIN_URL_COM = "https://sso.garmin.com/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
-        const val LOGIN_URL_CN = "https://sso.garmin.cn/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
+        // v6.5.5: 改用佳明Connect官方登录URL格式（用户提供），旧格式/sso/signin可能导致登录页异常
+        const val LOGIN_URL_COM = "https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
+        const val LOGIN_URL_CN = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
     }
 
     private val client = OkHttpClient.Builder()
