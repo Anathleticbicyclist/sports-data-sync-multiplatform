@@ -311,27 +311,53 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
-    /** v6.5.6: 佳明 检测登录 —— 增强ticket捕获（新版SSO重定向到/embed?ticket=ST-...-sso）
-     *  从URL query/fragment、页面HTML、JS变量多维度提取ticket，后台换OAuth2 Bearer token */
+    /** v6.5.8: 佳明 检测登录 —— 检测JWT_WEB cookie + 从页面提取CSRF token
+     *  新流程：WebView登录成功后cookie中有JWT_WEB，页面HTML有<meta name="csrf-token">
+     *  凭证格式：JSON {"jwt_web":"...","csrf":"..."} */
     private fun detectGarmin(cn: Boolean) {
         if (!verifying.compareAndSet(false, true)) return
-        // v6.5.6: 多维度提取ticket（URL query/fragment/HTML/JS变量），支持ST-...-sso格式
+        val cm = CookieManager.getInstance()
+        val host = if (cn) "connect.garmin.cn" else "connect.garmin.com"
+        // 检测JWT_WEB cookie
+        val allCookies = listOf(
+            cm.getCookie("https://$host"),
+            cm.getCookie(host),
+            cm.getCookie(".$host")
+        ).filterNotNull().joinToString("; ")
+        val jwtWeb = extractCookieValue(allCookies, "JWT_WEB")
+        if (jwtWeb.length < 20) {
+            // JWT_WEB还没出现，可能还在登录过程中，继续检测
+            Log.d(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB未出现，继续检测...")
+            verifying.set(false)
+            return
+        }
+        Log.i(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB已捕获 len=${jwtWeb.length}，正在提取CSRF...")
+        // 从页面HTML提取CSRF token
         webView.evaluateJavascript(
             "(function(){try{" +
-            "var urls=[document.location.href, document.location.search, document.location.hash];" +
-            "for(var i=0;i<urls.length;i++){var u=urls[i]||'';if(u.indexOf('ticket=')>=0){var m=u.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m&&m[1])return m[1];}}" +
-            "var html=document.body?document.body.innerHTML:'';var m2=html.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m2&&m2[1])return m2[1];" +
-            "if(document.querySelector&&document.querySelector('input[name=ticket]'))return document.querySelector('input[name=ticket]').value;" +
-            "if(window.response_url&&window.response_url.indexOf('ticket=')>=0){var m3=window.response_url.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m3&&m3[1])return m3[1];}" +
-            "return '';}catch(e){return 'ERR:'+e.message;}})()"
-        ) { ticket ->
-            val t = ticket?.trim()?.trim('"') ?: ""
-            if (t.length < 10 || !t.startsWith("ST-")) {
-                verifying.set(false)
-                return@evaluateJavascript
+            "var m=document.querySelector('meta[name=csrf-token]');" +
+            "if(m&&m.content)return m.content;" +
+            "var html=document.documentElement.outerHTML||'';" +
+            "var r=html.match(/name=[\"']csrf-token[\"'][^>]*content=[\"']([^\"']+)/);" +
+            "if(r&&r[1])return r[1];" +
+            "return '';}catch(e){return '';}})()"
+        ) { csrfResult ->
+            val csrf = csrfResult?.trim()?.trim('"') ?: ""
+            if (!detected && !isFinishing) {
+                detected = true
+                val credential = org.json.JSONObject()
+                    .put("jwt_web", jwtWeb)
+                    .put("csrf", csrf)
+                    .toString()
+                Log.i(TAG, "✅ 佳明${if(cn)"中国"else"国际"}登录成功, JWT_WEB len=${jwtWeb.length}, CSRF=${csrf.take(8)}...")
+                runOnUiThread {
+                    setResult(Activity.RESULT_OK, Intent()
+                        .putExtra(RESULT_TOKEN, credential)
+                        .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_GARMIN_CN else TYPE_GARMIN_COM))
+                    finish()
+                }
             }
-            Log.i(TAG, "佳明${if (cn) "中国" else "国际"} ticket捕获(detect): ${t.take(40)}...")
-            exchangeGarminTicket(t, cn)
+            verifying.set(false)
         }
     }
 

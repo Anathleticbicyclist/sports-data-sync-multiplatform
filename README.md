@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.7 |
+| 当前版本 | v6.5.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.8 (2026-09-01) — 佳明登录彻底修复（gc-api代理 + JWT_WEB + CSRF）
+**核心突破**：佳明中国版登录全流程Python实测验证通过，彻底废弃旧OAuth2 Bearer token方案。
+1. **佳明认证重写** — 改用gc-api代理方案：WebView登录成功后提取JWT_WEB cookie + 页面meta csrf-token，API调用走`connect.garmin.cn/gc-api/`代理，header带`connect-csrf-token` + `Cookie: JWT_WEB=...`
+2. **佳明下载修复** — 下载接口Accept必须用`*/*`（用application/json返回406），返回ZIP自动解压出FIT
+3. **佳明上传修复** — 上传走gc-api/upload-service/upload/，multipart格式，202成功/409重复
+4. **登录检测重写** — LoginWebActivity佳明登录检测改为检测JWT_WEB cookie（不再依赖ticket捕获），登录成功后自动提取CSRF保存为JSON凭证
+5. **版本号更新** — v6.5.8 (versionCode 660)
 ### v6.5.7 (2026-09-01) — 佳明登录JS注入监听（5重拦截） + 高驰token过期提示
 1. **佳明登录核心修复（关键）**：新版SSO是纯JS SPA，登录成功后ticket可能通过JS重定向/postMessage/AJAX响应传递，旧版仅靠onPageStarted捕获URL会漏掉。新增**5重JS注入监听**：
    - 页面加载后立即检查URL（query/fragment）
