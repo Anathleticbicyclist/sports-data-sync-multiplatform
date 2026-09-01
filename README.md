@@ -2,16 +2,16 @@
 
 <p align="center"><img src="app_icon/app_icon_512.png" width="128" alt="App图标"/></p>
 
-**让运动数据自由流动 — 六平台运动数据互传工具**
+**让运动数据自由流动 — 十一平台运动数据互传工具**
 
 > 📱 **App图标**：位于 `app_icon/` 目录（512/192/144px），供开发者/分发平台使用。
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.4.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase** 六平台之间自由同步运动记录（FIT/GPX）。
+一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
 
 > ⚠️ **开发版不稳定且用且珍惜**，仅供测试体验，正式版请使用 [sync-igpsport-magene-onelap-xingzhe-data-to-outbase](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)。
 
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.4.3 |
+| 当前版本 | v6.5.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -33,7 +33,7 @@
 
 ## ✨ 功能特性
 
-### 1. 六平台数据互传（逆向流动）
+### 1. 十一平台数据互传（逆向流动）
 
 > **注意**：Outbase 为聚合平台，**仅支持上传（作为同步目标），不支持作为数据来源下载**。其余五个平台均可作为来源下载，也可作为目标上传。
 
@@ -45,12 +45,19 @@
 | **黑鸟单车** | ✅ | ✅ | 黑鸟单车数据；仅接受FIT，GPX源自动用官方gpx2fit转换后上传 |
 | **百锐腾** | ⚠️ | 🚧 开发中 | Bryton Active数据；上传功能开发中（暂不可作为同步目标）；**官方未开放FIT下载接口，不可作为来源下载轨迹** |
 | **Outbase** | ❌ | ✅ | **仅目标平台**，支持活动上传，不可作为来源 |
+| **佳明国际** | ✅ | ✅ | Garmin Connect 国际区；上传自动FIT设备伪装为Garmin Edge 830 |
+| **佳明中国** | ✅ | ✅ | Garmin Connect 中国区；上传自动FIT设备伪装为Garmin Edge 830 |
+| **高驰中国** | ✅ | ✅ | COROS 中国区（teamcnapi），三区域自动路由，OSS+fit/import上传 |
+| **高驰国际** | ✅ | ✅ | COROS 国际/欧洲区（teamapi/teameuapi），AWS S3上传 |
+| **Wahoo** | ✅ | ❌ | Wahoo SYSTM/ELEMNT，仅下载（无公开上传API），需注册开发者应用OAuth2 |
 
 **可同步的组合**（来源 → 目标）：
-- iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 → Outbase（上传）
-- iGPSPORT / 行者 之间互传（如 iGPSPORT → 行者）
+- iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / 佳明 / 高驰 / Wahoo → Outbase（上传）
+- iGPSPORT / 行者 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) 之间任意互传
+- **国内区↔国际区互传**：佳明国际↔佳明中国、高驰中国↔高驰国际（拆分为独立平台，天然支持）
 - 迈金 / 百锐腾 作为同步目标：🚧 开发中（暂不可用）
 - 黑鸟单车 作为同步目标：✅ 已开放（仅接受FIT）
+- Wahoo 作为同步目标：❌ 无公开上传API（仅可作为来源下载）
 
 ### 2. 数据来源记忆
 自动记住上次选择的同步来源，重启APP后自动恢复，无需重复选择。
@@ -156,6 +163,23 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.0 (2026-09-01) — 新增佳明/高驰/Wahoo三平台同步 + UI两列布局 + 国内国际互传
+
+**新增平台**：
+1. **佳明国际 / 佳明中国**：支持下载（FIT，zip自动解压）和上传（upload-service），上传前自动将非Garmin设备FIT伪装为 **Garmin Edge 830**（manufacturer=1, product=3122），重算CRC-16，解决佳明拒收第三方设备FIT的问题
+2. **高驰中国 / 高驰国际**：支持下载（FIT）和上传（STS临时凭证→阿里云OSS/AWS S3→fit/import注册），三区域（1国际/2中国/3欧洲）登录后自动路由，支持中国区↔国际区互传
+3. **Wahoo**：支持下载（OAuth2授权码→access_token→workouts列表→CDN直链FIT），**仅下载无上传**（Wahoo无公开上传API），需用户在 developer.wahoo.fit 注册开发者应用获取 client_id/client_secret
+
+**国内区/国际区互传**：
+- 佳明国际(GARMIN_COM) ↔ 佳明中国(GARMIN_CN) 拆分为独立平台，支持双向互传
+- 高驰中国(COROS_CN) ↔ 高驰国际(COROS_INT) 拆分为独立平台，支持双向互传
+- 所有新平台活动数据均为 WGS84 标准坐标 + UTC 标准时间，零坐标转换、零时间偏移
+
+**UI 改造**：
+- 平台登录卡片从单列竖排改为 **GridLayout 两列网格布局**，11个平台卡片统一色条/标题/状态/按钮高度，对齐排版，解决单列页面过长问题
+
+**版本号**：v6.5.0 (versionCode 652)
+
 ### v6.4.3 (2026-08-31) — 修复行者/黑鸟上传时间快8小时：gpx2fit的+8小时参数化
 
 **根因深入分析**：
@@ -441,6 +465,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 感谢以下人员（均为骑行爱称）为软件测试提供的帮助：**素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参**
 
 感谢开源项目 [magene-fit-strava-fix](https://github.com/dwmer0308-a11y/magene-fit-strava-fix) 提供的迈金坐标修正算法参考。
+
+v6.5.0 新增平台同步功能参考并感谢以下开源项目：
+- [yihong0618/running_page](https://github.com/yihong0618/running_page) — 佳明同步接口与认证流程参考
+- [XiaoSiHwang/garmin-sync-coros](https://github.com/XiaoSiHwang/garmin-sync-coros) — 佳明↔高驰双向同步接口、高驰三区域配置与STS凭证解密算法
+- [jat255/Fit-File-Faker](https://github.com/jat255/Fit-File-Faker) — FIT文件设备伪装策略（Garmin Edge 830 product=3122）与file_id/device_info记录改写
+- [matin/garth](https://github.com/matin/garth) — 佳明SSO OAuth认证流（CLIENT_ID=GCM_ANDROID_DARK）
+- [mrebbert/hawahooligan](https://github.com/mrebbert/hawahooligan) — Wahoo API接口与OAuth2流程参考
 
 ---
 

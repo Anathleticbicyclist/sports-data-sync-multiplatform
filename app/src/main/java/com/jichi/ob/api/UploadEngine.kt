@@ -46,6 +46,8 @@ class UploadEngine(private val context: android.content.Context? = null) {
     private val outbaseApi = OutbaseApi()
     private val blackbirdApi = BlackbirdApi()
     private val brytonApi = BrytonApi()
+    private val garminApi = GarminApi()
+    private val corosApi = CorosApi()
 
     data class UploadResult(
         val success: Boolean,
@@ -98,6 +100,10 @@ class UploadEngine(private val context: android.content.Context? = null) {
             DataSource.MAGENE -> uploadToMagene(credential, finalData, record, extra)
             DataSource.BLACKBIRD -> uploadToBlackbird(credential, finalData, record, extra)
             DataSource.BRYTON -> uploadToBryton(credential, finalData, record, extra)
+            DataSource.GARMIN_COM -> uploadToGarmin(credential, finalData, record, DataSource.GARMIN_COM)
+            DataSource.GARMIN_CN -> uploadToGarmin(credential, finalData, record, DataSource.GARMIN_CN)
+            DataSource.COROS_CN -> uploadToCoros(credential, finalData, record)
+            DataSource.COROS_INT -> uploadToCoros(credential, finalData, record)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
@@ -468,6 +474,77 @@ class UploadEngine(private val context: android.content.Context? = null) {
         } catch (e: Exception) {
             Log.e(TAG, "Bryton upload error", e)
             UploadResult(false, message = "百锐腾上传失败: ${e.message}")
+        }
+    }
+
+    // ===== 佳明 上传（v6.5.0：FIT设备伪装 + upload-service/upload）=====
+    private suspend fun uploadToGarmin(
+        cred: String, fitData: ByteArray, record: ActivityRecord, target: DataSource
+    ): UploadResult {
+        return try {
+            // 佳明接受 FIT/GPX/TCX；GPX源先转FIT（标准UTC）
+            val fitBytes = if (GpxToFitConverter.isFit(fitData)) {
+                fitData
+            } else {
+                val f = try {
+                    if (outbaseBridge != null) {
+                        val ff = outbaseBridge!!.convertGpxToFit(fitData, add8Hours = false)
+                        Log.d(TAG, "佳明 GPX->FIT(官方gpx2fit): ${fitData.size} -> ${ff.size} bytes")
+                        ff
+                    } else null
+                } catch (e: Exception) { Log.w(TAG, "佳明 官方gpx2fit失败: ${e.message}"); null }
+                f ?: try {
+                    val ff = GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "佳明 GPX->FIT(自研兜底): ${fitData.size} -> ${ff.size} bytes"); ff
+                } catch (e: Exception) { Log.w(TAG, "佳明 自研转换失败: ${e.message}"); fitData }
+            }
+            // v6.5.0: 非Garmin设备FIT被拒 → 伪装为 Garmin Edge 830
+            val faked = if (!FitDeviceFaker.isAlreadyGarmin(fitBytes)) {
+                Log.d(TAG, "佳明 FIT设备伪装: Edge 830")
+                FitDeviceFaker.fake(fitBytes)
+            } else fitBytes
+            val fileName = FileNameGenerator.generate(target, record, "fit")
+            val err = garminApi.uploadActivity(target, cred, faked, fileName)
+            Log.d(TAG, "Garmin upload result: ${err ?: "ok"}")
+            if (err == null) UploadResult(true, message = "${target.displayName}上传成功")
+            else UploadResult(false, message = err)
+        } catch (e: Exception) {
+            Log.e(TAG, "Garmin upload error", e)
+            UploadResult(false, message = "${target.displayName}上传失败: ${e.message}")
+        }
+    }
+
+    // ===== 高驰 上传（v6.5.0：OSS + fit/import）=====
+    private suspend fun uploadToCoros(
+        cred: String, fitData: ByteArray, record: ActivityRecord
+    ): UploadResult {
+        return try {
+            // 高驰只接受FIT（20KB~200MB），GPX源先转FIT
+            val fitBytes = if (GpxToFitConverter.isFit(fitData)) {
+                fitData
+            } else {
+                val f = try {
+                    if (outbaseBridge != null) {
+                        val ff = outbaseBridge!!.convertGpxToFit(fitData, add8Hours = false)
+                        Log.d(TAG, "高驰 GPX->FIT(官方gpx2fit): ${fitData.size} -> ${ff.size} bytes")
+                        ff
+                    } else null
+                } catch (e: Exception) { Log.w(TAG, "高驰 官方gpx2fit失败: ${e.message}"); null }
+                f ?: try {
+                    val ff = GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "高驰 GPX->FIT(自研兜底): ${fitData.size} -> ${ff.size} bytes"); ff
+                } catch (e: Exception) { Log.w(TAG, "高驰 自研转换失败: ${e.message}"); fitData }
+            }
+            if (fitBytes.size < 20 * 1024 || fitBytes.size > 200 * 1024 * 1024) {
+                return UploadResult(false, message = "高驰文件大小需20KB~200MB（当前${fitBytes.size}字节）")
+            }
+            val fileName = FileNameGenerator.generate(DataSource.COROS_CN, record, "fit")
+            val err = corosApi.uploadFit(cred, fitBytes, fileName)
+            if (err == null) UploadResult(true, message = "高驰上传成功")
+            else UploadResult(false, message = err)
+        } catch (e: Exception) {
+            Log.e(TAG, "Coros upload error", e)
+            UploadResult(false, message = "高驰上传失败: ${e.message}")
         }
     }
 }

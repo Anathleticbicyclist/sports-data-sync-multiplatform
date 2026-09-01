@@ -95,6 +95,47 @@ class PrefsManager(context: Context) {
     fun getGatewayCookies(): String? = prefs.getString("gateway_cookies", null)
     fun isOutbaseLoggedIn(): Boolean = !getOutbaseSessionId().isNullOrEmpty()
 
+    // ===== v6.5.0 新增：佳明(COM/CN) OAuth2 token + cookie =====
+    fun saveGarminComToken(t: String) { prefs.edit().putString("garmin_com_token", t).apply() }
+    fun getGarminComToken(): String? = prefs.getString("garmin_com_token", null)
+    fun saveGarminComCookie(c: String) { prefs.edit().putString("garmin_com_cookie", c).apply() }
+    fun getGarminComCookie(): String? = prefs.getString("garmin_com_cookie", null)
+    fun isGarminComLoggedIn(): Boolean = !getGarminComToken().isNullOrEmpty()
+    fun saveGarminCnToken(t: String) { prefs.edit().putString("garmin_cn_token", t).apply() }
+    fun getGarminCnToken(): String? = prefs.getString("garmin_cn_token", null)
+    fun saveGarminCnCookie(c: String) { prefs.edit().putString("garmin_cn_cookie", c).apply() }
+    fun getGarminCnCookie(): String? = prefs.getString("garmin_cn_cookie", null)
+    fun isGarminCnLoggedIn(): Boolean = !getGarminCnToken().isNullOrEmpty()
+
+    // ===== 高驰 中国区(region 2, teamcnapi.coros.com): accessToken + regionId + cookie =====
+    fun saveCorosCnToken(t: String) { prefs.edit().putString("coros_cn_token", t).apply() }
+    fun getCorosCnToken(): String? = prefs.getString("coros_cn_token", null)
+    fun saveCorosCnRegion(r: String) { prefs.edit().putString("coros_cn_region", r).apply() }
+    fun getCorosCnRegion(): String = prefs.getString("coros_cn_region", "2") ?: "2"
+    fun saveCorosCnCookie(c: String) { prefs.edit().putString("coros_cn_cookie", c).apply() }
+    fun getCorosCnCookie(): String? = prefs.getString("coros_cn_cookie", null)
+    fun isCorosCnLoggedIn(): Boolean = !getCorosCnToken().isNullOrEmpty()
+
+    // ===== 高驰 国际/欧洲区(region 1/3, teamapi/teameuapi.coros.com) =====
+    fun saveCorosIntToken(t: String) { prefs.edit().putString("coros_int_token", t).apply() }
+    fun getCorosIntToken(): String? = prefs.getString("coros_int_token", null)
+    fun saveCorosIntRegion(r: String) { prefs.edit().putString("coros_int_region", r).apply() }
+    fun getCorosIntRegion(): String = prefs.getString("coros_int_region", "1") ?: "1"
+    fun saveCorosIntCookie(c: String) { prefs.edit().putString("coros_int_cookie", c).apply() }
+    fun getCorosIntCookie(): String? = prefs.getString("coros_int_cookie", null)
+    fun isCorosIntLoggedIn(): Boolean = !getCorosIntToken().isNullOrEmpty()
+
+    // ===== Wahoo: OAuth2 access/refresh token（需开发者app client_id/secret）=====
+    fun saveWahooToken(t: String) { prefs.edit().putString("wahoo_token", t).apply() }
+    fun getWahooToken(): String? = prefs.getString("wahoo_token", null)
+    fun saveWahooRefresh(r: String) { prefs.edit().putString("wahoo_refresh", r).apply() }
+    fun getWahooRefresh(): String? = prefs.getString("wahoo_refresh", null)
+    fun saveWahooClientId(c: String) { prefs.edit().putString("wahoo_client_id", c).apply() }
+    fun getWahooClientId(): String? = prefs.getString("wahoo_client_id", null)
+    fun saveWahooClientSecret(c: String) { prefs.edit().putString("wahoo_client_secret", c).apply() }
+    fun getWahooClientSecret(): String? = prefs.getString("wahoo_client_secret", null)
+    fun isWahooLoggedIn(): Boolean = !getWahooToken().isNullOrEmpty() && !getWahooClientId().isNullOrEmpty()
+
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
@@ -103,6 +144,11 @@ class PrefsManager(context: Context) {
         DataSource.BLACKBIRD -> getBlackbirdCookie()
         DataSource.BRYTON -> getBrytonCookie()
         DataSource.OUTBASE -> getOutbaseSessionId()
+        DataSource.GARMIN_COM -> getGarminComToken()
+        DataSource.GARMIN_CN -> getGarminCnToken()
+        DataSource.COROS_CN -> getCorosCnToken()
+        DataSource.COROS_INT -> getCorosIntToken()
+        DataSource.WAHOO -> getWahooToken()
     }
     fun isLoggedIn(ds: DataSource): Boolean = when (ds) {
         DataSource.IGPSPORT -> isIgpsportLoggedIn()
@@ -111,6 +157,11 @@ class PrefsManager(context: Context) {
         DataSource.BLACKBIRD -> isBlackbirdLoggedIn()
         DataSource.BRYTON -> isBrytonLoggedIn()
         DataSource.OUTBASE -> isOutbaseLoggedIn()
+        DataSource.GARMIN_COM -> isGarminComLoggedIn()
+        DataSource.GARMIN_CN -> isGarminCnLoggedIn()
+        DataSource.COROS_CN -> isCorosCnLoggedIn()
+        DataSource.COROS_INT -> isCorosIntLoggedIn()
+        DataSource.WAHOO -> isWahooLoggedIn()
     }
 
     // ===== 用户名存储 =====

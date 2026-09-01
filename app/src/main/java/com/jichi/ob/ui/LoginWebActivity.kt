@@ -43,6 +43,11 @@ class LoginWebActivity : AppCompatActivity() {
         const val TYPE_OUTBASE = "outbase"
         const val TYPE_BLACKBIRD = "blackbird"
         const val TYPE_BRYTON = "bryton"
+        const val TYPE_GARMIN_COM = "garmin_com"
+        const val TYPE_GARMIN_CN = "garmin_cn"
+        const val TYPE_COROS_CN = "coros_cn"
+        const val TYPE_COROS_INT = "coros_int"
+        const val TYPE_WAHOO = "wahoo"
         const val RESULT_TOKEN = "***"
         const val RESULT_SESSION_ID = "session_id"
         const val RESULT_LOGIN_TYPE = "login_type"
@@ -84,6 +89,11 @@ class LoginWebActivity : AppCompatActivity() {
                 TYPE_OUTBASE -> "登录 Outbase"
                 TYPE_BLACKBIRD -> "登录黑鸟单车"
                 TYPE_BRYTON -> "登录百锐腾"
+                TYPE_GARMIN_COM -> "登录佳明国际"
+                TYPE_GARMIN_CN -> "登录佳明中国"
+                TYPE_COROS_CN -> "登录高驰中国"
+                TYPE_COROS_INT -> "登录高驰国际"
+                TYPE_WAHOO -> "登录 Wahoo"
                 else -> "登录"
             }
             toolbar.setNavigationOnClickListener { detected = true; finish() }
@@ -115,6 +125,18 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     progressBar.visibility = android.view.View.VISIBLE
                     Log.d(TAG, "[$loginType] PageStarted: $url")
+                    // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
+                    if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
+                        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+                        if (!code.isNullOrEmpty()) {
+                            detected = true
+                            Log.i(TAG, "✅ Wahoo 授权码捕获 len=${code.length}")
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, code)
+                                .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+                            finish()
+                        }
+                    }
                 }
                 override fun onPageFinished(view: WebView?, url: String?) {
                     progressBar.visibility = android.view.View.GONE
@@ -149,6 +171,11 @@ class LoginWebActivity : AppCompatActivity() {
             TYPE_OUTBASE -> detectOutbase()
             TYPE_BLACKBIRD -> detectBlackbird()
             TYPE_BRYTON -> detectBryton()
+            TYPE_GARMIN_COM -> detectGarmin(cn = false)
+            TYPE_GARMIN_CN -> detectGarmin(cn = true)
+            TYPE_COROS_CN -> detectCoros(cn = true)
+            TYPE_COROS_INT -> detectCoros(cn = false)
+            TYPE_WAHOO -> detectWahoo()
         }
     }
 
@@ -238,6 +265,62 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
+    /** v6.5.0: 佳明 检测登录 —— 捕获 connect 域会话 cookie（SSO登录后跳转 connect 域） */
+    private fun detectGarmin(cn: Boolean) {
+        val host = if (cn) "https://connect.garmin.cn" else "https://connect.garmin.com"
+        val hostPlain = if (cn) "connect.garmin.cn" else "connect.garmin.com"
+        val ssoHost = if (cn) "https://sso.garmin.cn" else "https://sso.garmin.com"
+        val cm = CookieManager.getInstance()
+        val all = listOf(
+            cm.getCookie(host),
+            cm.getCookie(hostPlain),
+            cm.getCookie(ssoHost),
+            cm.getCookie(ssoHost.removePrefix("https://"))
+        ).filterNotNull().joinToString("; ")
+        if (all.length < 40) return
+        detected = true
+        Log.i(TAG, "✅ 佳明${if (cn) "中国" else "国际"}登录成功, cookie len=${all.length}")
+        setResult(Activity.RESULT_OK, Intent()
+            .putExtra(RESULT_SESSION_ID, ";$all")
+            .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_GARMIN_CN else TYPE_GARMIN_COM))
+        finish()
+    }
+
+    /** v6.5.0: 高驰 检测登录 —— 读取 CPL-coros-token / CPL-coros-region cookie */
+    private fun detectCoros(cn: Boolean) {
+        val host = if (cn) "https://trainingcn.coros.com" else "https://training.coros.com"
+        val hostPlain = if (cn) "trainingcn.coros.com" else "training.coros.com"
+        val cm = CookieManager.getInstance()
+        val all = listOf(
+            cm.getCookie(host),
+            cm.getCookie(hostPlain)
+        ).filterNotNull().joinToString("; ")
+        val token = extractCookieValue(all, "CPL-coros-token")
+        val region = extractCookieValue(all, "CPL-coros-region")
+        if (token.length < 10) return
+        detected = true
+        val regionId = region.ifEmpty { if (cn) "2" else "1" }
+        Log.i(TAG, "✅ 高驰${if (cn) "中国" else "国际"}登录成功, region=$regionId, token len=${token.length}")
+        setResult(Activity.RESULT_OK, Intent()
+            .putExtra(RESULT_SESSION_ID, "$token;$regionId;$all")
+            .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_COROS_CN else TYPE_COROS_INT))
+        finish()
+    }
+
+    /** v6.5.0: Wahoo 检测登录 —— OAuth2 回调 localhost:8080?code= 已由 onPageStarted 处理，兜底读 webView.url */
+    private fun detectWahoo() {
+        val url = webView.url ?: return
+        if (!url.contains("localhost:8080") || !url.contains("code=")) return
+        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+        if (code.isNullOrEmpty()) return
+        detected = true
+        Log.i(TAG, "✅ Wahoo 授权码捕获 len=${code.length}")
+        setResult(Activity.RESULT_OK, Intent()
+            .putExtra(RESULT_TOKEN, code)
+            .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+        finish()
+    }
+
     /** 手动确认登录: 用户点击按钮后捕获当前凭证 */
     private fun confirmManualLogin() {
         if (detected) return
@@ -307,6 +390,26 @@ class LoginWebActivity : AppCompatActivity() {
                 if (sid.length > 5) {
                     setResult(Activity.RESULT_OK, Intent().putExtra(RESULT_SESSION_ID, sid).putExtra(RESULT_EXTRA, gw).putExtra(RESULT_LOGIN_TYPE, TYPE_OUTBASE))
                 } else { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到登录态", android.widget.Toast.LENGTH_SHORT).show() }; return }
+            }
+            TYPE_GARMIN_COM -> {
+                detectGarmin(cn = false)
+                if (!detected) { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到佳明国际登录态", android.widget.Toast.LENGTH_SHORT).show() }; return }
+            }
+            TYPE_GARMIN_CN -> {
+                detectGarmin(cn = true)
+                if (!detected) { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到佳明中国登录态", android.widget.Toast.LENGTH_SHORT).show() }; return }
+            }
+            TYPE_COROS_CN -> {
+                detectCoros(cn = true)
+                if (!detected) { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到高驰中国登录态", android.widget.Toast.LENGTH_SHORT).show() }; return }
+            }
+            TYPE_COROS_INT -> {
+                detectCoros(cn = false)
+                if (!detected) { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到高驰国际登录态", android.widget.Toast.LENGTH_SHORT).show() }; return }
+            }
+            TYPE_WAHOO -> {
+                detectWahoo()
+                if (!detected) { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到Wahoo授权码", android.widget.Toast.LENGTH_SHORT).show() }; return }
             }
         }
         finish()
