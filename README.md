@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.7.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.7.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.7.3 |
+| 当前版本 | v6.7.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -169,6 +169,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.7.4 (2026-09-01) — 佳明国际版WebView方案修复（cookie注入+就绪等待+调试日志）
+1. **cookie注入** — 每次国际版API调用前，将凭证中的JWT_WEB+session cookie注入到WebView的CookieManager，确保WebView有登录态
+2. **就绪等待** — WebView调用前等待页面加载完成（最多15秒），未就绪时强制重新加载首页
+3. **详细调试日志** — 添加WebView初始化、页面加载、fetch请求、上传结果等详细日志，便于定位问题
+4. **fetch结果结构化** — 返回JSON包含status/result/error，准确判断HTTP状态码
+5. **版本号更新** — v6.7.4 (versionCode 674)
 ### v6.7.3 (2026-09-01) — 佳明国际版Cloudflare绕过（WebView执行fetch）
 **根因**：国际版connect.garmin.com/gc-api被Cloudflare Bot Fight Mode拦截(403)，中国版connect.garmin.cn/gc-api正常。requests/OkHttp/curl_cffi均无法绕过。
 **方案**：国际版改用隐藏WebView执行fetch请求，利用WebView的浏览器TLS指纹和完整Cookie通过Cloudflare验证。
