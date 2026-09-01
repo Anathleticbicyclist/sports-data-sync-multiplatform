@@ -95,6 +95,65 @@ class CorosApi {
         } catch (e: Exception) { null }
     }
 
+    /**
+     * 获取高驰 userId（v6.5.5 新增）
+     * 高驰 fit/import 的 OSS object key 格式为 fit_zip/{userId}/{md5}.zip
+     * 尝试从 /account 接口获取，失败则从活动列表第一条记录的 userId 字段提取
+     */
+    suspend fun getUserId(cred: String): String = withContext(Dispatchers.IO) {
+        val (token, regionId, _) = parseCredential(cred)
+        if (token.isEmpty()) return@withContext "0"
+        try {
+            // 尝试1: GET /account（高驰Training Hub用户信息接口）
+            val url1 = "${teamApi(regionId)}/account"
+            val req1 = Request.Builder().url(url1).apply {
+                authHeaders(token, regionId).forEach { (k, v) -> addHeader(k, v) }
+            }.get().build()
+            client.newCall(req1).execute().use { resp ->
+                val body = resp.body?.string() ?: ""
+                Log.d(TAG, "getUserId /account HTTP ${resp.code}: ${body.take(300)}")
+                if (resp.code == 200) {
+                    val json = JSONObject(body)
+                    if (json.optString("result") == "0000") {
+                        val data = json.optJSONObject("data")
+                        val uid = data?.optString("userId") ?: data?.optString("id") ?: ""
+                        if (uid.isNotEmpty()) return@withContext uid
+                    }
+                }
+            }
+        } catch (e: Exception) { Log.w(TAG, "getUserId /account error: ${e.message}") }
+        try {
+            // 尝试2: 从活动列表第一条记录提取 userId
+            val url2 = "${teamApi(regionId)}/activity/query?modeList=&pageNumber=1&size=1"
+            val req2 = Request.Builder().url(url2).apply {
+                authHeaders(token, regionId).forEach { (k, v) -> addHeader(k, v) }
+            }.get().build()
+            client.newCall(req2).execute().use { resp ->
+                val body = resp.body?.string() ?: ""
+                Log.d(TAG, "getUserId activity/query HTTP ${resp.code}: ${body.take(400)}")
+                if (resp.code == 200) {
+                    val json = JSONObject(body)
+                    if (json.optString("result") == "0000") {
+                        val data = json.optJSONObject("data")
+                        val list = data?.optJSONArray("dataList")
+                        if (list != null && list.length() > 0) {
+                            val item = list.getJSONObject(0)
+                            val uid = item.optString("userId") ?: item.optString("uid") ?: ""
+                            if (uid.isNotEmpty()) return@withContext uid
+                        }
+                        // 从data顶层提取userId
+                        val uid = data?.optString("userId") ?: data?.optString("uid") ?: ""
+                        if (uid.isNotEmpty()) return@withContext uid
+                    }
+                }
+            }
+        } catch (e: Exception) { Log.w(TAG, "getUserId activity/query error: ${e.message}") }
+        // 兜底: 用token的MD5前16位作为userId替代（保证object key唯一）
+        val fallback = md5Hex(token.toByteArray()).substring(0, 16)
+        Log.w(TAG, "getUserId fallback to token md5: $fallback")
+        fallback
+    }
+
     /** 获取活动列表 */
     suspend fun getActivities(cred: String, offset: Int, limit: Int): List<ActivityRecord> = withContext(Dispatchers.IO) {
         val (token, regionId, _) = parseCredential(cred)
@@ -169,20 +228,27 @@ class CorosApi {
     }
 
     /**
-     * 上传 FIT 到高驰：
+     * 上传 FIT 到高驰（v6.5.5 重写，对照 garmin-sync-coros 源码）：
      * 1) faq.coros.com/openapi/oss/sts 换取 OSS 临时凭证（阿里云/AWS）
-     * 2) 上传 FIT 到 OSS
-     * 3) POST {teamapi}/activity/fit/import 注册
+     * 2) 上传 FIT 到 OSS，object key = fit_zip/{userId}/{md5}.fit
+     * 3) POST {teamapi}/activity/fit/import 注册（元数据调用，不传文件）
+     * 4) 成功标志：result=="0000" 且 data.status==2
+     * 注：高驰官方支持 .fit 直接导入，garmin-sync-coros 传 .zip 是因为佳明下载的就是 .zip
      */
-    suspend fun uploadFit(cred: String, fitData: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
+    suspend fun uploadFit(cred: String, fitData: ByteArray, fileName: String, activityId: String = ""): String? = withContext(Dispatchers.IO) {
         val (token, regionId, _) = parseCredential(cred)
         if (token.isEmpty()) return@withContext "高驰登录失效，请重新登录"
         try {
             val sts = STS_CONFIG[regionId] ?: STS_CONFIG[2]!!
             val bucket = sts.bucket
             val md5 = md5Hex(fitData)
-            val objectKey = "fit_zip/upload/${md5}.fit"
             val size = fitData.size
+            // v6.5.5: 获取 userId，object key 格式 fit_zip/{userId}/{md5}.fit
+            val userId = getUserId(cred)
+            val objectKey = "fit_zip/$userId/$md5.fit"
+            // oriFileName: {activityId}.fit
+            val fitFileName = if (activityId.isNotEmpty()) "$activityId.fit" else fileName.substringAfterLast('/')
+            Log.i(TAG, "uploadFit: fit=$size B, md5=$md5, userId=$userId, key=$objectKey, oriFileName=$fitFileName")
 
             // 1) 获取 STS 凭证
             val stsUrl = "https://faq.coros.com/openapi/oss/sts?bucket=$bucket&service=${sts.service}&app_id=$STS_APP_ID&sign=${sts.sign}&v=$STS_V"
@@ -200,8 +266,7 @@ class CorosApi {
                     ?: json.optString("credentials") ?: return@withContext "高驰OSS STS无凭证: ${rawBody.take(150)}"
                 decodeSts(enc)
             }
-
-            // 2) 上传到 OSS
+            // 2) 上传 FIT 到 OSS
             val upOk = when (sts.service) {
                 "aliyun" -> uploadAliyunOss(bucket, objectKey, fitData, credJson)
                 else -> uploadAwsS3(bucket, objectKey, fitData, credJson, regionId)
@@ -210,8 +275,8 @@ class CorosApi {
                 Log.w(TAG, "OSS上传失败, bucket=$bucket, key=$objectKey, service=${sts.service}, size=$size")
                 return@withContext "高驰OSS上传失败"
             }
-
-            // 3) fit/import 注册
+            Log.i(TAG, "OSS上传成功: $objectKey ($size bytes)")
+            // 3) fit/import 注册（元数据调用，不传文件）
             val importBody = JSONObject()
                 .put("source", 1)
                 .put("timezone", 32)
@@ -220,7 +285,7 @@ class CorosApi {
                 .put("size", size)
                 .put("object", objectKey)
                 .put("serviceName", sts.service)
-                .put("oriFileName", fileName)
+                .put("oriFileName", fitFileName)
             val form = FormBody.Builder().add("jsonParameter", importBody.toString()).build()
             val importUrl = "${teamApi(regionId)}/activity/fit/import"
             val importReq = Request.Builder().url(importUrl).apply {
@@ -230,22 +295,19 @@ class CorosApi {
             }.post(form).build()
             client.newCall(importReq).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
-                Log.d(TAG, "fit/import HTTP ${resp.code}: ${body.take(400)}")
+                Log.d(TAG, "fit/import HTTP ${resp.code}: ${body.take(500)}")
                 if (resp.code != 200) return@withContext "高驰fit/import HTTP ${resp.code}: ${body.take(120)}"
                 val json = try { JSONObject(body) } catch (_: Exception) { null }
-                // v6.5.3: 适配实际返回格式 —— 高驰返回 {"apiCode":"xxx","data":{"id":...,"fileUrl":...}}
-                // 成功标志：result=="0000" 或 apiCode存在 且 data中有id/fileUrl（说明记录已创建）
+                // v6.5.5: 成功标志 = result=="0000" 且 data.status==2（对照 garmin-sync-coros）
                 val result = json?.optString("result") ?: ""
+                val message = json?.optString("message") ?: ""
                 val apiCode = json?.optString("apiCode") ?: ""
                 val dataObj = json?.optJSONObject("data")
-                val hasRecord = dataObj?.optString("id")?.isNotEmpty() == true ||
-                        dataObj?.optString("fileUrl")?.isNotEmpty() == true ||
-                        dataObj?.optString("labelId")?.isNotEmpty() == true
                 val status = dataObj?.optInt("status", 0) ?: 0
-                val success = (result == "0000" && (status == 2 || hasRecord)) ||
-                        (apiCode.isNotEmpty() && hasRecord) ||
-                        (result == "0000" && status == 0 && hasRecord)
-                if (success) null else "高驰fit/import失败: ${body.take(150)}"
+                val dataStr = dataObj?.toString()?.take(300) ?: ""
+                val success = result == "0000" && status == 2
+                Log.i(TAG, "fit/import result=$result, status=$status, apiCode=$apiCode, msg=$message, data=$dataStr")
+                if (success) null else "高驰fit/import失败(result=$result, status=$status, apiCode=$apiCode, msg=$message): ${body.take(250)}"
             }
         } catch (e: Exception) {
             Log.e(TAG, "uploadFit error", e)

@@ -539,7 +539,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
                 return UploadResult(false, message = "高驰文件大小需20KB~200MB（当前${fitBytes.size}字节）")
             }
             val fileName = FileNameGenerator.generate(DataSource.COROS_CN, record, "fit")
-            val err = corosApi.uploadFit(cred, fitBytes, fileName)
+            val err = corosApi.uploadFit(cred, fitBytes, fileName, record.id)
             if (err == null) UploadResult(true, message = "高驰上传成功")
             else UploadResult(false, message = err)
         } catch (e: Exception) {
