@@ -311,6 +311,10 @@ class CorosApi {
                 val dataStr = dataObj?.toString()?.take(300) ?: ""
                 val success = result == "0000" && status == 2
                 Log.i(TAG, "fit/import result=$result, status=$status, apiCode=$apiCode, msg=$message, data=$dataStr")
+                // v6.5.6: token过期检测（result=1019或message含Access token invalid）
+                if (result == "1019" || message.contains("Access token is invalid", true) || message.contains("token", true) && message.contains("invalid", true)) {
+                    return@withContext "高驰登录已过期，请重新登录高驰"
+                }
                 if (success) null else "高驰fit/import失败(result=$result, status=$status, apiCode=$apiCode, msg=$message): ${body.take(250)}"
             }
         } catch (e: Exception) {

@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.6 |
+| 当前版本 | v6.5.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,16 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.7 (2026-09-01) — 佳明登录JS注入监听（5重拦截） + 高驰token过期提示
+1. **佳明登录核心修复（关键）**：新版SSO是纯JS SPA，登录成功后ticket可能通过JS重定向/postMessage/AJAX响应传递，旧版仅靠onPageStarted捕获URL会漏掉。新增**5重JS注入监听**：
+   - 页面加载后立即检查URL（query/fragment）
+   - 500ms轮询URL变化（JS重定向不触发onPageStarted）
+   - 监听window.postMessage
+   - 拦截XMLHttpRequest响应
+   - 拦截fetch响应
+   - 任一渠道检测到`ST-...`格式ticket即通过JavascriptInterface回调Native，立即换OAuth2 token
+2. **高驰token过期明确提示**：fit/import返回`result=1019`或`Access token is invalid`时，明确提示"高驰登录已过期，请重新登录高驰"，不再报技术性错误
+3. **版本号更新** — v6.5.7 (versionCode 659)
 ### v6.5.6 (2026-09-01) — 高驰上传ZIP方案修复 + 佳明登录ticket捕获增强 + UI布局优化
 1. **高驰上传核心修复（关键，真实FIT验证通过）**：v6.5.5上传返回`result=0000, status=-1, apiCode=8E16FCC7`（OSS接收成功但fit/import解析失败）。深入对比garmin-sync-coros开源项目逆向发现根因：**高驰fit/import必须传.zip格式，不能传裸.fit**。
    - **ZIP打包上传**：新增`zipFitData()`方法，用ZipOutputStream把FIT打包成ZIP（ZIP内装一个.fit文件），md5/size/objectKey/oriFileName全部改用ZIP文件的
