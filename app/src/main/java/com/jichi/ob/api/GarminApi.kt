@@ -17,21 +17,24 @@ import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
 
 /**
- * 佳明(Garmin) API（v6.5.3 重写认证）—— CN/COM 双域名
+ * 佳明(Garmin) API（v6.5.8 重写认证——gc-api代理 + JWT_WEB cookie + connect-csrf-token）
  *
- * v6.5.3 重要变更：佳明2026年改认证流，旧cookie-only方式失效。
- * 新流程：WebView SSO登录 → 捕获ticket(ST-...) → OAuth1 preauthorized → OAuth2 exchange → Bearer token调API
- * 参考：garth(已废弃) + python-garminconnect(新移动SSO流) + gist meddlesome/garmin-browser-auth.py
+ * v6.5.8 重要变更：旧OAuth2 Bearer token方式在新版佳明认证流下不可靠。
+ * 新流程（已Python实测全流程通过）：
+ *   1. WebView SSO登录 → 登录成功后cookie中有JWT_WEB
+ *   2. 从页面HTML提取<meta name="csrf-token" content="...">
+ *   3. API调用：https://connect.garmin.cn/gc-api/{path}，header带 connect-csrf-token + Cookie: JWT_WEB=...
  *
- * - 列表：GET {connectapi}/activitylist-service/activities/search/activities
- * - FIT下载：GET {connectapi}/download-service/files/activity/{id}（返回zip）
- * - 上传：POST {connectapi}/upload-service/upload（multipart，202成功/409重复）
- * - token刷新：refresh_token → /oauth-service/oauth/token (grant_type=refresh_token)
+ * - 列表：GET /gc-api/activitylist-service/activities/search/activities
+ * - FIT下载：GET /gc-api/download-service/files/activity/{id}（返回zip，解压出.fit）
+ * - 上传：POST /gc-api/upload-service/upload/（multipart，202成功/409重复）
+ *
+ * 凭证格式：JSON {"jwt_web":"...","csrf":"..."}（LoginWebActivity返回RESULT_TOKEN）
  */
 class GarminApi {
     companion object {
         private const val TAG = "GarminApi"
-        // v6.5.5: 改用佳明Connect官方登录URL格式（用户提供），旧格式/sso/signin可能导致登录页异常
+        // v6.5.5: 佳明Connect官方登录URL格式
         const val LOGIN_URL_COM = "https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
         const val LOGIN_URL_CN = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
     }
@@ -43,85 +46,60 @@ class GarminApi {
         .followRedirects(true)
         .build()
 
-    private fun apiHost(ds: DataSource): String =
-        if (ds == DataSource.GARMIN_CN) "connectapi.garmin.cn" else "connectapi.garmin.com"
+    /** v6.5.8: 凭证格式为 JSON {"jwt_web":"...","csrf":"..."}
+     *  兼容旧格式 OAuth2 token JSON（尝试转换，但API调用会用新方式） */
+    private data class GarminSession(val jwtWeb: String, val csrf: String) {
+        fun toJson(): String = JSONObject().put("jwt_web", jwtWeb).put("csrf", csrf).toString()
+        companion object {
+            fun fromJson(json: String): GarminSession? {
+                return try {
+                    val obj = JSONObject(json)
+                    val jwt = obj.optString("jwt_web", "")
+                    val csrf = obj.optString("csrf", "")
+                    if (jwt.isNotEmpty()) GarminSession(jwt, csrf) else null
+                } catch (_: Exception) { null }
+            }
+        }
+    }
 
-    /** v6.5.3: 凭证格式为 OAuth2 token JSON（LoginWebActivity返回RESULT_TOKEN）
-     *  兼容旧格式 "token;cookie" */
-    private fun parseCredential(cred: String): GarminOAuthHelper.OAuth2Token? {
+    private fun parseCredential(cred: String): GarminSession? {
         if (cred.isEmpty()) return null
-        if (cred.trimStart().startsWith("{")) {
-            return GarminOAuthHelper.OAuth2Token.fromJson(cred)
-        }
-        val token = cred.split(";").firstOrNull()?.trim() ?: ""
-        if (token.isEmpty()) return null
-        return GarminOAuthHelper.OAuth2Token(
-            accessToken = token, refreshToken = "",
-            expiresIn = 3600, refreshExpiresIn = 71400
-        )
+        // 新格式：JSON with jwt_web
+        GarminSession.fromJson(cred)?.let { return it }
+        // 旧格式兼容：尝试从OAuth2 token JSON中提取（但不可用，返回null触发重新登录）
+        return null
     }
 
-    /** 确保token有效，过期则刷新，返回最新token JSON（调用方需保存更新） */
+    /** v6.5.8: JWT_WEB方式无refresh机制，cookie过期需重新登录。此方法保留兼容，直接返回原凭证 */
     fun ensureValidToken(ds: DataSource, cred: String): String {
-        val token = parseCredential(cred) ?: return cred
-        if (!token.isExpired()) return cred
-        if (token.refreshToken.isEmpty() || token.isRefreshExpired()) {
-            Log.w(TAG, "token过期且无有效refresh_token，需重新登录")
-            return cred
-        }
-        return try {
-            val cn = ds == DataSource.GARMIN_CN
-            val newToken = refreshOAuth2Token(token.refreshToken, cn)
-            Log.i(TAG, "✅ 佳明token刷新成功")
-            newToken.toJson()
-        } catch (e: Exception) {
-            Log.e(TAG, "佳明token刷新失败: ${e.message}")
-            cred
-        }
+        return cred
     }
 
-    private fun refreshOAuth2Token(refreshToken: String, cn: Boolean): GarminOAuthHelper.OAuth2Token {
-        val base = if (cn) "https://connectapi.garmin.cn" else "https://connectapi.garmin.com"
-        val url = "$base/oauth-service/oauth/token"
-        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.setRequestProperty("User-Agent", "com.garmin.android.apps.connectmobile")
-        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-        conn.doOutput = true
-        conn.connectTimeout = 15000
-        conn.readTimeout = 15000
-        val body = "grant_type=refresh_token&refresh_token=${java.net.URLEncoder.encode(refreshToken, "UTF-8")}"
-        conn.outputStream.write(body.toByteArray())
-        val code = conn.responseCode
-        val respBody = if (code == 200) conn.inputStream.bufferedReader().readText()
-                       else conn.errorStream?.bufferedReader()?.readText() ?: ""
-        if (code != 200) throw Exception("refresh failed: HTTP $code, $respBody")
-        val json = JSONObject(respBody)
-        return GarminOAuthHelper.OAuth2Token(
-            accessToken = json.getString("access_token"),
-            refreshToken = json.optString("refresh_token", refreshToken),
-            expiresIn = json.optLong("expires_in", 3600),
-            refreshExpiresIn = json.optLong("refresh_token_expires_in", 71400)
-        )
-    }
+    /** v6.5.8: gc-api代理域名 */
+    private fun gcApiHost(ds: DataSource): String =
+        if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/gc-api" else "https://connect.garmin.com/gc-api"
 
-    private fun authHeaders(ds: DataSource, cred: String): Map<String, String> {
-        val token = parseCredential(cred)
+    /** v6.5.8: 构建API请求header —— JWT_WEB cookie + connect-csrf-token */
+    private fun apiHeaders(ds: DataSource, cred: String): Map<String, String> {
+        val sess = parseCredential(cred)
         val h = mutableMapOf(
-            "User-Agent" to "GCM-iOS-5.7.2.1",
-            "nk" to "NT",
-            "Accept" to "application/json"
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept" to "application/json",
+            "Referer" to if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/app/home" else "https://connect.garmin.com/modern/",
         )
-        token?.let { if (it.accessToken.isNotEmpty()) h["Authorization"] = "Bearer ${it.accessToken}" }
+        sess?.let {
+            if (it.jwtWeb.isNotEmpty()) h["Cookie"] = "JWT_WEB=${it.jwtWeb}"
+            if (it.csrf.isNotEmpty()) h["connect-csrf-token"] = it.csrf
+        }
         return h
     }
 
     /** 获取用户名 */
     suspend fun getUsername(ds: DataSource, cred: String): String? = withContext(Dispatchers.IO) {
         try {
-            val url = "https://${apiHost(ds)}/userprofile-service/socialProfile"
+            val url = "${gcApiHost(ds)}/userprofile-service/socialProfile"
             val req = Request.Builder().url(url).apply {
-                authHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
+                apiHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
             client.newCall(req).execute().use { resp ->
                 if (resp.code != 200) return@withContext null
@@ -134,10 +112,10 @@ class GarminApi {
 
     /** 获取活动列表 */
     suspend fun getActivities(ds: DataSource, cred: String, offset: Int, limit: Int): List<ActivityRecord> = withContext(Dispatchers.IO) {
-        val url = "https://${apiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
+        val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
         try {
             val req = Request.Builder().url(url).apply {
-                authHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
+                apiHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
             client.newCall(req).execute().use { resp ->
                 if (resp.code != 200) {
@@ -163,12 +141,14 @@ class GarminApi {
         }
     }
 
-    /** 下载 FIT（返回zip，解压出 .fit） */
+    /** 下载 FIT（返回zip，解压出 .fit）—— v6.5.8用gc-api，Accept用通配符避免406 */
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            val url = "https://${apiHost(ds)}/download-service/files/activity/$activityId"
+            val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
+            val headers = apiHeaders(ds, cred).toMutableMap()
+            headers["Accept"] = "*/*"  // 下载接口需要通配符Accept，用application/json会返回406
             val req = Request.Builder().url(url).apply {
-                authHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
+                headers.forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
             client.newCall(req).execute().use { resp ->
                 if (resp.code != 200) {
@@ -202,28 +182,30 @@ class GarminApi {
             }
         } catch (e: Exception) {
             Log.e(TAG, "unzipFit error", e)
+            // 兜底：如果本身就是FIT文件（以.FIT头标识）
             if (zipBytes.size >= 14 && zipBytes[8] == '.'.code.toByte() && zipBytes[9] == 'F'.code.toByte()) zipBytes else null
         }
     }
 
-    /** 上传 FIT/GPX/TCX 到佳明（202成功/409重复） */
+    /** 上传 FIT/GPX/TCX 到佳明（202成功/409重复）—— v6.5.8用gc-api */
     suspend fun uploadActivity(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
         try {
-            val url = "https://${apiHost(ds)}/upload-service/upload/"
+            val url = "${gcApiHost(ds)}/upload-service/upload/"
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
                 .build()
+            val headers = apiHeaders(ds, cred).toMutableMap()
+            headers["Accept"] = "application/json"
             val reqBuilder = Request.Builder().url(url).apply {
-                authHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
-                addHeader("Accept", "application/json")
+                headers.forEach { (k, v) -> addHeader(k, v) }
             }
             val req = reqBuilder.post(body).build()
             client.newCall(req).execute().use { resp ->
                 val result = resp.body?.string() ?: ""
                 Log.d(TAG, "Garmin upload HTTP ${resp.code}: ${result.take(200)}")
                 when (resp.code) {
-                    202 -> null
+                    200, 201, 202 -> null  // 成功
                     409 -> if (result.contains("Duplicate Activity")) "重复活动(已在佳明存在)"
                            else "佳明上传冲突 HTTP 409: ${result.take(100)}"
                     400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
