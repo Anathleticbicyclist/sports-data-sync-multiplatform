@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.7.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.7.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.7.8 |
+| 当前版本 | v6.7.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |

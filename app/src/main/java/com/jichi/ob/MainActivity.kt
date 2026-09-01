@@ -26,7 +26,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
+import android.widget.GridLayout
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -116,8 +116,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvSkip: TextView
     private lateinit var tvLog: TextView
     private lateinit var progressBar: LinearProgressIndicator
-    private lateinit var chipGroupSource: ChipGroup
-    private lateinit var chipGroupTarget: ChipGroup
+    private lateinit var gridSource: GridLayout
+    private lateinit var gridTarget: GridLayout
+    private var selectedSourceTag = "xz"
+    private var selectedTargetTag = "ob"
     private lateinit var logScrollView: ScrollView
     private lateinit var switchGcj02: SwitchMaterial
     private lateinit var switchAutoSync: SwitchMaterial
@@ -299,8 +301,10 @@ class MainActivity : AppCompatActivity() {
         tvSkip = findViewById(R.id.tvSkip)
         tvLog = findViewById(R.id.tvLog)
         progressBar = findViewById(R.id.progressBar)
-        chipGroupSource = findViewById(R.id.chipGroupSource)
-        chipGroupTarget = findViewById(R.id.chipGroupTarget)
+        gridSource = findViewById(R.id.gridSource)
+        gridTarget = findViewById(R.id.gridTarget)
+        setupSourceButtons()
+        setupTargetButtons()
         logScrollView = findViewById(R.id.svLog)
         switchGcj02 = findViewById(R.id.switchGcj02)
         switchAutoSync = findViewById(R.id.switchAutoSync)
@@ -395,14 +399,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun restoreSettings() {
         val lastSrc = prefs.getLastSource()
-        DataSource.sourcePlatforms().forEachIndexed { index, ds ->
-            val chip = chipGroupSource.getChildAt(index) as? Chip
-            if (ds.shortName == lastSrc) chip?.isChecked = true
+        if (lastSrc.isNotBlank()) selectedSourceTag = lastSrc
+        for (i in 0 until gridSource.childCount) {
+            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
+            val tag = btn.tag as? String ?: continue
+            setButtonSelected(btn, tag == selectedSourceTag, tag)
         }
         val lastTgt = prefs.getLastTarget()
-        for (i in 0 until chipGroupTarget.childCount) {
-            val chip = chipGroupTarget.getChildAt(i) as? Chip
-            if (chip?.tag == lastTgt) chip.isChecked = true
+        if (lastTgt.isNotBlank()) selectedTargetTag = lastTgt
+        for (i in 0 until gridTarget.childCount) {
+            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+            val tag = btn.tag as? String ?: continue
+            setButtonSelected(btn, tag == selectedTargetTag, tag)
         }
         switchGcj02.isChecked = prefs.isGcj02Convert()
         switchAutoSync.isChecked = prefs.isAutoSync()
@@ -413,13 +421,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateTargetChips() {
-        for (i in 0 until chipGroupTarget.childCount) {
-            val chip = chipGroupTarget.getChildAt(i) as? Chip ?: continue
-            val ds = DataSource.fromShortName(chip.tag as? String ?: "") ?: continue
+        for (i in 0 until gridTarget.childCount) {
+            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+            val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
             val support = UploadSupport.fromDataSource(ds)
             if (!support.available) {
-                chip.isEnabled = false
-                chip.text = "${ds.displayName}(开发中)"
+                btn.isEnabled = false
+                btn.text = "${ds.displayName}(开发中)"
             }
         }
     }
@@ -446,23 +454,64 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSelectedSource(): DataSource {
-        val checkedId = chipGroupSource.checkedChipId
-        for (i in 0 until chipGroupSource.childCount) {
-            val chip = chipGroupSource.getChildAt(i) as? Chip
-            if (chip?.id == checkedId) return DataSource.sourcePlatforms().getOrNull(i) ?: DataSource.XINGZHE
-        }
-        return DataSource.XINGZHE
+        return DataSource.fromShortName(selectedSourceTag) ?: DataSource.XINGZHE
     }
 
     private fun getSelectedTarget(): DataSource {
-        val checkedId = chipGroupTarget.checkedChipId
-        for (i in 0 until chipGroupTarget.childCount) {
-            val chip = chipGroupTarget.getChildAt(i) as? Chip
-            if (chip?.id == checkedId) {
-                return DataSource.fromShortName(chip.tag as? String ?: "") ?: DataSource.OUTBASE
+        return DataSource.fromShortName(selectedTargetTag) ?: DataSource.OUTBASE
+    }
+
+
+    // v6.7.9: 平台主题色映射
+    private fun platformColor(tag: String): Int = when (tag) {
+        "igp" -> getColor(R.color.igp_green)
+        "xz" -> getColor(R.color.xingzhe_blue)
+        "mg" -> getColor(R.color.magene_blue)
+        "bb" -> getColor(R.color.blackbird_dark)
+        "br" -> getColor(R.color.bryton_red)
+        "gm", "gcn" -> getColor(R.color.garmin_blue)
+        "cscn", "cs" -> getColor(R.color.coros_red)
+        "wahoo" -> getColor(R.color.wahoo_red)
+        "ob" -> getColor(R.color.outbase_orange)
+        else -> getColor(R.color.primary)
+    }
+
+    private fun setButtonSelected(btn: MaterialButton, selected: Boolean, tag: String) {
+        if (selected) {
+            btn.setBackgroundColor(platformColor(tag))
+            btn.setTextColor(getColor(R.color.white))
+        } else {
+            btn.setBackgroundColor(getColor(R.color.grey_light))
+            btn.setTextColor(getColor(R.color.text_primary))
+        }
+    }
+
+    private fun setupSourceButtons() {
+        for (i in 0 until gridSource.childCount) {
+            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
+            val tag = btn.tag as? String ?: continue
+            btn.setOnClickListener {
+                selectedSourceTag = tag
+                for (j in 0 until gridSource.childCount) {
+                    val b = gridSource.getChildAt(j) as? MaterialButton ?: continue
+                    setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
+                }
             }
         }
-        return DataSource.OUTBASE
+    }
+
+    private fun setupTargetButtons() {
+        for (i in 0 until gridTarget.childCount) {
+            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+            val tag = btn.tag as? String ?: continue
+            btn.setOnClickListener {
+                selectedTargetTag = tag
+                for (j in 0 until gridTarget.childCount) {
+                    val b = gridTarget.getChildAt(j) as? MaterialButton ?: continue
+                    setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
+                }
+            }
+        }
     }
 
     private fun updateStatusUI() {
