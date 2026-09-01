@@ -1,9 +1,15 @@
 package com.jichi.ob.api
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.util.Log
+import android.webkit.CookieManager
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.model.DataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -15,27 +21,19 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
+import kotlin.coroutines.resume
 
 /**
- * 佳明(Garmin) API（v6.5.8 重写认证——gc-api代理 + JWT_WEB cookie + connect-csrf-token）
+ * 佳明(Garmin) API（v6.7.3 国际版用WebView绕过Cloudflare）
  *
- * v6.5.8 重要变更：旧OAuth2 Bearer token方式在新版佳明认证流下不可靠。
- * 新流程（已Python实测全流程通过）：
- *   1. WebView SSO登录 → 登录成功后cookie中有JWT_WEB
- *   2. 从页面HTML提取<meta name="csrf-token" content="...">
- *   3. API调用：https://connect.garmin.cn/gc-api/{path}，header带 connect-csrf-token + Cookie: JWT_WEB=...
+ * v6.7.3 重要变更：国际版connect.garmin.com/gc-api被Cloudflare拦截(403)，
+ * 中国版connect.garmin.cn/gc-api正常。国际版改用WebView执行fetch请求绕过Cloudflare。
  *
- * - 列表：GET /gc-api/activitylist-service/activities/search/activities
- * - FIT下载：GET /gc-api/download-service/files/activity/{id}（返回zip，解压出.fit）
- * - 上传：POST /gc-api/upload-service/upload/（multipart，202成功/409重复）
- *
- * 凭证格式：JSON {"jwt_web":"...","csrf":"..."}（LoginWebActivity返回RESULT_TOKEN）
+ * 凭证格式：JSON {"jwt_web":"...","session":"...","csrf":"..."}
  */
 class GarminApi {
     companion object {
         private const val TAG = "GarminApi"
-        // v6.5.5: 佳明Connect官方登录URL格式
-        // v6.7.2: 国际版必须用/app/路径，用/modern/会被重定向到中国区signin（香港/中国区账号）
         const val LOGIN_URL_COM = "https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fapp%2F"
         const val LOGIN_URL_CN = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
     }
@@ -47,9 +45,32 @@ class GarminApi {
         .followRedirects(true)
         .build()
 
-    /** v6.7.0: 凭证格式为 JSON {"jwt_web":"...","session":"...","csrf":"..."}
-     *  关键：gc-api必须同时传递JWT_WEB和session两个cookie，缺一返回401
-     *  兼容旧格式 {"cookies":"...","csrf":"..."} 和 {"jwt_web":"...","csrf":"..."} */
+    // v6.7.3: 国际版用WebView绕过Cloudflare
+    private var webView: WebView? = null
+    private var webViewReady = false
+
+    @SuppressLint("SetJavaScriptEnabled")
+    fun initWebView(context: Context) {
+        if (webView != null) return
+        webView = WebView(context.applicationContext).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    if (url?.contains("connect.garmin.com") == true) {
+                        webViewReady = true
+                        Log.d(TAG, "WebView页面加载完成: $url")
+                    }
+                }
+            }
+        }
+        // 预加载国际版首页，获取Cloudflare clearance
+        webView?.loadUrl("https://connect.garmin.com/app/home")
+        Log.d(TAG, "WebView已初始化，正在加载国际版首页")
+    }
+
     private data class GarminSession(val cookies: String, val csrf: String) {
         fun toJson(): String = JSONObject().put("cookies", cookies).put("csrf", csrf).toString()
         companion object {
@@ -57,13 +78,11 @@ class GarminApi {
                 return try {
                     val obj = JSONObject(json)
                     val csrf = obj.optString("csrf", "")
-                    // 新格式：jwt_web + session（两个都必须有）
                     val jwtWeb = obj.optString("jwt_web", "")
                     val sessionCookie = obj.optString("session", "")
                     val cookies = if (jwtWeb.isNotEmpty() && sessionCookie.isNotEmpty()) {
                         "JWT_WEB=$jwtWeb; session=$sessionCookie"
                     } else {
-                        // 兼容旧格式：直接用cookies字段
                         obj.optString("cookies", "")
                     }
                     if (cookies.isNotEmpty()) GarminSession(cookies, csrf) else null
@@ -74,22 +93,15 @@ class GarminApi {
 
     private fun parseCredential(cred: String): GarminSession? {
         if (cred.isEmpty()) return null
-        // 新格式：JSON with jwt_web
         GarminSession.fromJson(cred)?.let { return it }
-        // 旧格式兼容：尝试从OAuth2 token JSON中提取（但不可用，返回null触发重新登录）
         return null
     }
 
-    /** v6.5.8: JWT_WEB方式无refresh机制，cookie过期需重新登录。此方法保留兼容，直接返回原凭证 */
-    fun ensureValidToken(ds: DataSource, cred: String): String {
-        return cred
-    }
+    fun ensureValidToken(ds: DataSource, cred: String): String = cred
 
-    /** v6.5.8: gc-api代理域名 */
     private fun gcApiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/gc-api" else "https://connect.garmin.com/gc-api"
 
-    /** v6.7.0: 构建API请求header —— 全部cookie + connect-csrf-token */
     private fun apiHeaders(ds: DataSource, cred: String): Map<String, String> {
         val sess = parseCredential(cred)
         val h = mutableMapOf(
@@ -105,10 +117,112 @@ class GarminApi {
         return h
     }
 
+    // v6.7.3: 用WebView执行fetch请求（绕过国际版Cloudflare）
+    private suspend fun fetchViaWebView(url: String, method: String = "GET", headers: Map<String, String> = emptyMap(), body: String? = null): String? = withContext(Dispatchers.Main) {
+        suspendCancellableCoroutine { cont ->
+            val wv = webView
+            if (wv == null) {
+                cont.resume(null)
+                return@suspendCancellableCoroutine
+            }
+            // 构建fetch的headers JSON
+            val headersJson = JSONObject(headers as Map<String, String>).toString()
+            // 构建fetch JS
+            val fetchJs = """
+                (function() {
+                    try {
+                        var opts = { method: '$method', credentials: 'include', headers: $headersJson };
+                        ${if (body != null) "opts.body = '$body';" else ""}
+                        fetch('$url', opts).then(function(r) { return r.text(); }).then(function(t) { window.__garmin_result = t; window.__garmin_done = true; }).catch(function(e) { window.__garmin_error = e.toString(); window.__garmin_done = true; });
+                    } catch(e) { window.__garmin_error = e.toString(); window.__garmin_done = true; }
+                })();
+            """.trimIndent()
+
+            var result: String? = null
+            var attempts = 0
+            val checkResult = object : Runnable {
+                override fun run() {
+                    attempts++
+                    wv.evaluateJavascript("(function(){ if(window.__garmin_done){ if(window.__garmin_result!==undefined) return window.__garmin_result; if(window.__garmin_error) return 'ERROR:'+window.__garmin_error; } return '__NOT_DONE__'; })()") { value ->
+                        val v = value?.trim()?.trim('"') ?: ""
+                        if (v != "__NOT_DONE__" && v.isNotEmpty()) {
+                            result = if (v.startsWith("ERROR:")) null else v.replace("\\n", "\n").replace("\\\"", "\"")
+                            cont.resume(result)
+                        } else if (attempts < 50) {
+                            wv.postDelayed(this, 200)
+                        } else {
+                            cont.resume(null)
+                        }
+                    }
+                }
+            }
+            // 重置状态并执行fetch
+            wv.evaluateJavascript("window.__garmin_done=false;window.__garmin_result=undefined;window.__garmin_error=undefined;") {
+                wv.evaluateJavascript(fetchJs) { checkResult.run() }
+            }
+        }
+    }
+
+    // v6.7.3: 用WebView上传文件（base64编码）
+    private suspend fun uploadViaWebView(url: String, fileName: String, fileData: ByteArray, headers: Map<String, String>): String? = withContext(Dispatchers.Main) {
+        suspendCancellableCoroutine { cont ->
+            val wv = webView
+            if (wv == null) {
+                cont.resume(null)
+                return@suspendCancellableCoroutine
+            }
+            val base64 = android.util.Base64.encodeToString(fileData, android.util.Base64.NO_WRAP)
+            val headersJson = JSONObject(headers as Map<String, String>).toString()
+            val fetchJs = """
+                (function() {
+                    try {
+                        var binary = atob('$base64');
+                        var bytes = new Uint8Array(binary.length);
+                        for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+                        var blob = new Blob([bytes], {type:'application/octet-stream'});
+                        var form = new FormData();
+                        form.append('file', blob, '$fileName');
+                        fetch('$url', { method:'POST', credentials:'include', headers:$headersJson, body:form }).then(function(r){ return r.text(); }).then(function(t){ window.__garmin_result=t; window.__garmin_done=true; }).catch(function(e){ window.__garmin_error=e.toString(); window.__garmin_done=true; });
+                    } catch(e) { window.__garmin_error=e.toString(); window.__garmin_done=true; }
+                })();
+            """.trimIndent()
+
+            var attempts = 0
+            val checkResult = object : Runnable {
+                override fun run() {
+                    attempts++
+                    wv.evaluateJavascript("(function(){ if(window.__garmin_done){ if(window.__garmin_result!==undefined) return window.__garmin_result; if(window.__garmin_error) return 'ERROR:'+window.__garmin_error; } return '__NOT_DONE__'; })()") { value ->
+                        val v = value?.trim()?.trim('"') ?: ""
+                        if (v != "__NOT_DONE__" && v.isNotEmpty()) {
+                            val result = if (v.startsWith("ERROR:")) null else v.replace("\\n", "\n").replace("\\\"", "\"")
+                            cont.resume(result)
+                        } else if (attempts < 100) {
+                            wv.postDelayed(this, 200)
+                        } else {
+                            cont.resume(null)
+                        }
+                    }
+                }
+            }
+            wv.evaluateJavascript("window.__garmin_done=false;window.__garmin_result=undefined;window.__garmin_error=undefined;") {
+                wv.evaluateJavascript(fetchJs) { checkResult.run() }
+            }
+        }
+    }
+
     /** 获取用户名 */
     suspend fun getUsername(ds: DataSource, cred: String): String? = withContext(Dispatchers.IO) {
         try {
             val url = "${gcApiHost(ds)}/userprofile-service/socialProfile"
+            // v6.7.3: 国际版用WebView
+            if (ds == DataSource.GARMIN_COM && webView != null) {
+                val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
+                if (result != null) {
+                    val json = JSONObject(result)
+                    return@withContext json.optString("displayName").ifBlank { null }
+                }
+                return@withContext null
+            }
             val req = Request.Builder().url(url).apply {
                 apiHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
@@ -125,6 +239,28 @@ class GarminApi {
     suspend fun getActivities(ds: DataSource, cred: String, offset: Int, limit: Int): List<ActivityRecord> = withContext(Dispatchers.IO) {
         val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
         try {
+            // v6.7.3: 国际版用WebView
+            if (ds == DataSource.GARMIN_COM && webView != null) {
+                val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
+                if (result != null) {
+                    val arr = JSONArray(result)
+                    val out = mutableListOf<ActivityRecord>()
+                    for (i in 0 until arr.length()) {
+                        val item = arr.getJSONObject(i)
+                        val id = item.optString("activityId")
+                        if (id.isEmpty()) continue
+                        val title = item.optString("activityName").ifBlank { "佳明活动" }
+                        val startTime = item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") }
+                        val distance = item.optDouble("distance", 0.0) / 1000.0
+                        val duration = item.optInt("duration", 0)
+                        out.add(ActivityRecord(id, title, startTime, distance, duration, ds))
+                    }
+                    Log.d(TAG, "WebView获取到 ${out.size} 条活动")
+                    return@withContext out
+                }
+                Log.w(TAG, "WebView获取活动列表失败，返回空")
+                return@withContext emptyList()
+            }
             val req = Request.Builder().url(url).apply {
                 apiHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
@@ -152,12 +288,47 @@ class GarminApi {
         }
     }
 
-    /** 下载 FIT（返回zip，解压出 .fit）—— v6.5.8用gc-api，Accept用通配符避免406 */
+    /** 下载 FIT */
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
+            // v6.7.3: 国际版用WebView（base64返回）
+            if (ds == DataSource.GARMIN_COM && webView != null) {
+                val headers = apiHeaders(ds, cred).toMutableMap()
+                headers["Accept"] = "*/*"
+                // WebView fetch返回base64
+                val fetchJs = """
+                    (function(){ fetch('$url',{method:'GET',credentials:'include',headers:${JSONObject(headers as Map<String,String>).toString()}}).then(r=>r.blob()).then(b=>{var r=new FileReader();r.onload=e=>{window.__garmin_result=e.target.result.split(',')[1];window.__garmin_done=true;};r.readAsDataURL(b);}).catch(e=>{window.__garmin_error=e.toString();window.__garmin_done=true;}); })();
+                """.trimIndent()
+                val wv = webView!!
+                val result = suspendCancellableCoroutine<String?> { cont ->
+                    var attempts = 0
+                    val check = object : Runnable {
+                        override fun run() {
+                            attempts++
+                            wv.evaluateJavascript("(function(){ if(window.__garmin_done){ if(window.__garmin_result) return window.__garmin_result; if(window.__garmin_error) return 'ERROR:'+window.__garmin_error; } return '__NOT_DONE__'; })()") { v ->
+                                val valStr = v?.trim()?.trim('"') ?: ""
+                                if (valStr != "__NOT_DONE__" && valStr.isNotEmpty()) {
+                                    cont.resume(if (valStr.startsWith("ERROR:")) null else valStr)
+                                } else if (attempts < 100) {
+                                    wv.postDelayed(this, 200)
+                                } else cont.resume(null)
+                            }
+                        }
+                    }
+                    wv.evaluateJavascript("window.__garmin_done=false;window.__garmin_result=undefined;window.__garmin_error=undefined;") {
+                        wv.evaluateJavascript(fetchJs) { check.run() }
+                    }
+                }
+                if (result != null) {
+                    val zipBytes = android.util.Base64.decode(result, android.util.Base64.DEFAULT)
+                    Log.d(TAG, "WebView下载ZIP大小: ${zipBytes.size}")
+                    return@withContext unzipFit(zipBytes)
+                }
+                return@withContext null
+            }
             val headers = apiHeaders(ds, cred).toMutableMap()
-            headers["Accept"] = "*/*"  // 下载接口需要通配符Accept，用application/json会返回406
+            headers["Accept"] = "*/*"
             val req = Request.Builder().url(url).apply {
                 headers.forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
@@ -193,30 +364,41 @@ class GarminApi {
             }
         } catch (e: Exception) {
             Log.e(TAG, "unzipFit error", e)
-            // 兜底：如果本身就是FIT文件（以.FIT头标识）
             if (zipBytes.size >= 14 && zipBytes[8] == '.'.code.toByte() && zipBytes[9] == 'F'.code.toByte()) zipBytes else null
         }
     }
 
-    /** 上传 FIT/GPX/TCX 到佳明（202成功/409重复）—— v6.5.8用gc-api */
+    /** 上传 FIT */
     suspend fun uploadActivity(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
         try {
             val url = "${gcApiHost(ds)}/upload-service/upload/"
+            // v6.7.3: 国际版用WebView
+            if (ds == DataSource.GARMIN_COM && webView != null) {
+                val headers = apiHeaders(ds, cred).toMutableMap()
+                headers["Accept"] = "application/json"
+                val result = uploadViaWebView(url, fileName, data, headers)
+                Log.d(TAG, "WebView上传结果: ${result?.take(200)}")
+                if (result == null) return@withContext "佳明国际上传失败(WebView无响应)"
+                return@withContext when {
+                    result.contains("Duplicate Activity") || result.contains("duplicate") -> "重复活动(已在佳明存在)"
+                    result.contains("\"id\"") || result.contains("\"activityId\"") -> null
+                    else -> "佳明国际上传返回: ${result.take(100)}"
+                }
+            }
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
                 .build()
             val headers = apiHeaders(ds, cred).toMutableMap()
             headers["Accept"] = "application/json"
-            val reqBuilder = Request.Builder().url(url).apply {
+            val req = Request.Builder().url(url).apply {
                 headers.forEach { (k, v) -> addHeader(k, v) }
-            }
-            val req = reqBuilder.post(body).build()
+            }.post(body).build()
             client.newCall(req).execute().use { resp ->
                 val result = resp.body?.string() ?: ""
                 Log.d(TAG, "Garmin upload HTTP ${resp.code}: ${result.take(200)}")
                 when (resp.code) {
-                    200, 201, 202 -> null  // 成功
+                    200, 201, 202 -> null
                     409 -> if (result.contains("Duplicate Activity")) "重复活动(已在佳明存在)"
                            else "佳明上传冲突 HTTP 409: ${result.take(100)}"
                     400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
