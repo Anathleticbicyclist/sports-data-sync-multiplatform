@@ -32,6 +32,9 @@ import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.jichi.ob.api.BlackbirdApi
 import com.jichi.ob.api.BrytonApi
+import com.jichi.ob.api.CorosApi
+import com.jichi.ob.api.GarminApi
+import com.jichi.ob.api.WahooApi
 import com.jichi.ob.api.IgpsportApi
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.OutbaseApi
@@ -74,6 +77,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var blackbirdApi: BlackbirdApi
     private lateinit var brytonApi: BrytonApi
     private lateinit var outbaseApi: OutbaseApi
+    private lateinit var garminApi: GarminApi
+    private lateinit var corosApi: CorosApi
+    private lateinit var wahooApi: WahooApi
     private lateinit var uploadEngine: UploadEngine
 
     private lateinit var tvIgpStatus: TextView
@@ -82,12 +88,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvBlackbirdStatus: TextView
     private lateinit var tvBrytonStatus: TextView
     private lateinit var tvOutbaseStatus: TextView
+    private lateinit var tvGarminComStatus: TextView
+    private lateinit var tvGarminCnStatus: TextView
+    private lateinit var tvCorosCnStatus: TextView
+    private lateinit var tvCorosIntStatus: TextView
+    private lateinit var tvWahooStatus: TextView
     private lateinit var btnIgpLogin: MaterialButton
     private lateinit var btnXingzheLogin: MaterialButton
     private lateinit var btnMageneLogin: MaterialButton
     private lateinit var btnBlackbirdLogin: MaterialButton
     private lateinit var btnBrytonLogin: MaterialButton
     private lateinit var btnOutbaseLogin: MaterialButton
+    private lateinit var btnGarminComLogin: MaterialButton
+    private lateinit var btnGarminCnLogin: MaterialButton
+    private lateinit var btnCorosCnLogin: MaterialButton
+    private lateinit var btnCorosIntLogin: MaterialButton
+    private lateinit var btnWahooLogin: MaterialButton
     private lateinit var btnSync: MaterialButton
     private lateinit var btnStop: MaterialButton
     private lateinit var btnTestDownload: MaterialButton
@@ -171,6 +187,45 @@ class MainActivity : AppCompatActivity() {
                         prefs.saveGatewayCookies(extra)
                         appendLog("✅ Outbase登录成功"); fetchUsernameAfterLogin(DataSource.OUTBASE)
                     }
+                    LoginWebActivity.TYPE_GARMIN_COM -> if (sid.length > 10) {
+                        prefs.saveGarminComCookie(sid)
+                        prefs.saveGarminComToken("")
+                        appendLog("✅ 佳明国际登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
+                    } else appendLog("⚠️ 佳明国际登录失败: 未捕获到会话")
+                    LoginWebActivity.TYPE_GARMIN_CN -> if (sid.length > 10) {
+                        prefs.saveGarminCnCookie(sid)
+                        prefs.saveGarminCnToken("")
+                        appendLog("✅ 佳明中国登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
+                    } else appendLog("⚠️ 佳明中国登录失败: 未捕获到会话")
+                    LoginWebActivity.TYPE_COROS_CN -> if (sid.length > 10) {
+                        prefs.saveCorosCnToken(sid)
+                        appendLog("✅ 高驰中国登录成功"); fetchUsernameAfterLogin(DataSource.COROS_CN)
+                    } else appendLog("⚠️ 高驰中国登录失败: 未捕获到token")
+                    LoginWebActivity.TYPE_COROS_INT -> if (sid.length > 10) {
+                        prefs.saveCorosIntToken(sid)
+                        appendLog("✅ 高驰国际登录成功"); fetchUsernameAfterLogin(DataSource.COROS_INT)
+                    } else appendLog("⚠️ 高驰国际登录失败: 未捕获到token")
+                    LoginWebActivity.TYPE_WAHOO -> {
+                        // v6.5.0: Wahoo 返回的是 OAuth2 授权码，需用 client_id/secret 换取 access_token
+                        val cid = prefs.getWahooClientId()
+                        val csec = prefs.getWahooClientSecret()
+                        if (sid.length > 5 && cid != null && csec != null) {
+                            val code = sid
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                val fresh = wahooApi.exchangeToken(code, cid, csec)
+                                runOnUiThread {
+                                    if (fresh != null) {
+                                        prefs.saveWahooToken(fresh.first)
+                                        prefs.saveWahooRefresh(fresh.second)
+                                        appendLog("✅ Wahoo登录成功(token换取成功)"); fetchUsernameAfterLogin(DataSource.WAHOO)
+                                    } else appendLog("⚠️ Wahoo token换取失败，请检查client_id/secret")
+                                    updateStatusUI()
+                                }
+                            }
+                        } else if (cid == null || csec == null) {
+                            appendLog("⚠️ Wahoo需先配置client_id/client_secret")
+                        } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码")
+                    }
                 }
                 updateStatusUI()
             }
@@ -190,6 +245,9 @@ class MainActivity : AppCompatActivity() {
             blackbirdApi = BlackbirdApi()
             brytonApi = BrytonApi()
             outbaseApi = OutbaseApi()
+            garminApi = GarminApi()
+            corosApi = CorosApi()
+            wahooApi = WahooApi()
             uploadEngine = UploadEngine(this)
             if (!saveDir.exists()) saveDir.mkdirs()
             initViews()
@@ -216,12 +274,22 @@ class MainActivity : AppCompatActivity() {
         tvBlackbirdStatus = findViewById(R.id.tvBlackbirdStatus)
         tvBrytonStatus = findViewById(R.id.tvBrytonStatus)
         tvOutbaseStatus = findViewById(R.id.tvOutbaseStatus)
+        tvGarminComStatus = findViewById(R.id.tvGarminComStatus)
+        tvGarminCnStatus = findViewById(R.id.tvGarminCnStatus)
+        tvCorosCnStatus = findViewById(R.id.tvCorosCnStatus)
+        tvCorosIntStatus = findViewById(R.id.tvCorosIntStatus)
+        tvWahooStatus = findViewById(R.id.tvWahooStatus)
         btnIgpLogin = findViewById(R.id.btnIgpLogin)
         btnXingzheLogin = findViewById(R.id.btnXingzheLogin)
         btnMageneLogin = findViewById(R.id.btnMageneLogin)
         btnBlackbirdLogin = findViewById(R.id.btnBlackbirdLogin)
         btnBrytonLogin = findViewById(R.id.btnBrytonLogin)
         btnOutbaseLogin = findViewById(R.id.btnOutbaseLogin)
+        btnGarminComLogin = findViewById(R.id.btnGarminComLogin)
+        btnGarminCnLogin = findViewById(R.id.btnGarminCnLogin)
+        btnCorosCnLogin = findViewById(R.id.btnCorosCnLogin)
+        btnCorosIntLogin = findViewById(R.id.btnCorosIntLogin)
+        btnWahooLogin = findViewById(R.id.btnWahooLogin)
         btnSync = findViewById(R.id.btnSync)
         btnStop = findViewById(R.id.btnStop)
         btnTestDownload = findViewById(R.id.btnTestDownload)
@@ -253,6 +321,11 @@ class MainActivity : AppCompatActivity() {
         btnBlackbirdLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_BLACKBIRD, BlackbirdApi.LOGIN_URL) }
         btnBrytonLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_BRYTON, BrytonApi.LOGIN_URL) }
         btnOutbaseLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_OUTBASE, OutbaseApi.LOGIN_URL) }
+        btnGarminComLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_GARMIN_COM, GarminApi.LOGIN_URL_COM) }
+        btnGarminCnLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_GARMIN_CN, GarminApi.LOGIN_URL_CN) }
+        btnCorosCnLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_COROS_CN, CorosApi.LOGIN_URL_CN) }
+        btnCorosIntLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_COROS_INT, CorosApi.LOGIN_URL_INT) }
+        btnWahooLogin.setOnClickListener { openWahooLogin() }
         sliderCount.addOnChangeListener { _, v, _ -> tvCount.text = v.toInt().toString() }
         sliderSkip.addOnChangeListener { _, v, _ -> tvSkip.text = v.toInt().toString() }
         sliderAutoInterval.addOnChangeListener { _, v, _ ->
@@ -362,6 +435,39 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
+    /** v6.5.0: Wahoo 登录——先确认开发者 client_id/secret 已配置 */
+    private fun openWahooLogin() {
+        val cid = prefs.getWahooClientId()
+        val csec = prefs.getWahooClientSecret()
+        if (cid.isNullOrEmpty() || csec.isNullOrEmpty()) {
+            val inputLayout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(50, 20, 50, 0)
+            }
+            val etCid = android.widget.EditText(this).apply { hint = "Wahoo client_id（必填）" }
+            val etCsec = android.widget.EditText(this).apply { hint = "Wahoo client_secret（必填）" }
+            inputLayout.addView(etCid); inputLayout.addView(etCsec)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Wahoo 开发者凭证")
+                .setMessage("Wahoo 需在 developer.wahoo.fit 注册开发者应用获取 client_id/client_secret（OAuth2），之后才能登录同步。")
+                .setView(inputLayout)
+                .setPositiveButton("保存并登录") { _, _ ->
+                    val ci = etCid.text.toString().trim()
+                    val cs = etCsec.text.toString().trim()
+                    if (ci.isNotEmpty() && cs.isNotEmpty()) {
+                        prefs.saveWahooClientId(ci); prefs.saveWahooClientSecret(cs)
+                        openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl(ci))
+                    } else {
+                        Toast.makeText(this, "client_id/client_secret不能为空", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        } else {
+            openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl(cid))
+        }
+    }
+
     private fun getSelectedSource(): DataSource {
         val checkedId = chipGroupSource.checkedChipId
         for (i in 0 until chipGroupSource.childCount) {
@@ -389,6 +495,11 @@ class MainActivity : AppCompatActivity() {
         setStatus(tvBlackbirdStatus, btnBlackbirdLogin, DataSource.BLACKBIRD)
         setStatus(tvBrytonStatus, btnBrytonLogin, DataSource.BRYTON)
         setStatus(tvOutbaseStatus, btnOutbaseLogin, DataSource.OUTBASE)
+        setStatus(tvGarminComStatus, btnGarminComLogin, DataSource.GARMIN_COM)
+        setStatus(tvGarminCnStatus, btnGarminCnLogin, DataSource.GARMIN_CN)
+        setStatus(tvCorosCnStatus, btnCorosCnLogin, DataSource.COROS_CN)
+        setStatus(tvCorosIntStatus, btnCorosIntLogin, DataSource.COROS_INT)
+        setStatus(tvWahooStatus, btnWahooLogin, DataSource.WAHOO)
     }
 
     private fun setStatus(tv: TextView, btn: MaterialButton, ds: DataSource) {
@@ -412,6 +523,11 @@ class MainActivity : AppCompatActivity() {
                 DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
                 DataSource.BRYTON -> brytonApi.getUsername(cred)
                 DataSource.OUTBASE -> outbaseApi.getUsername(cred)
+                DataSource.GARMIN_COM -> garminApi.getUsername(ds, cred)
+                DataSource.GARMIN_CN -> garminApi.getUsername(ds, cred)
+                DataSource.COROS_CN -> corosApi.getUsername(cred)
+                DataSource.COROS_INT -> corosApi.getUsername(cred)
+                DataSource.WAHOO -> wahooApi.getUsername(cred)
             }
             if (name != null) {
                 prefs.saveUsername(ds, name)
@@ -633,6 +749,25 @@ class MainActivity : AppCompatActivity() {
                 val uid = prefs.getBrytonUserId() ?: return emptyList()
                 BrytonWebApi(this, tok, uid).getActivities(skip, limit)
             }
+            DataSource.GARMIN_COM -> garminApi.getActivities(source, cred, skip, limit)
+            DataSource.GARMIN_CN -> garminApi.getActivities(source, cred, skip, limit)
+            DataSource.COROS_CN -> corosApi.getActivities(cred, skip, limit)
+            DataSource.COROS_INT -> corosApi.getActivities(cred, skip, limit)
+            DataSource.WAHOO -> {
+                // v6.5.0: Wahoo需要 client_id/secret + token；先尝试刷新token
+                var token = cred
+                val refresh = prefs.getWahooRefresh()
+                val cid = prefs.getWahooClientId()
+                val csec = prefs.getWahooClientSecret()
+                if (refresh != null && cid != null && csec != null) {
+                    val fresh = wahooApi.refreshToken(refresh, cid, csec)
+                    if (fresh != null) {
+                        prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
+                        token = fresh.first
+                    }
+                }
+                wahooApi.getActivities(token, skip, limit)
+            }
             else -> emptyList()
         }
     }
@@ -677,6 +812,25 @@ class MainActivity : AppCompatActivity() {
                 // v6.2.4: 百锐腾官方未开放FIT/GPX下载接口（网页仅展示summary，CDP实测全部下载路径返回SPA HTML），
                 // 从百锐腾下载原始轨迹不可行；仅支持将其他平台数据上传到百锐腾
                 null
+            }
+            DataSource.GARMIN_COM -> garminApi.downloadFit(source, cred, record.id)
+            DataSource.GARMIN_CN -> garminApi.downloadFit(source, cred, record.id)
+            DataSource.COROS_CN -> corosApi.downloadFit(cred, record.id, record.extra)
+            DataSource.COROS_INT -> corosApi.downloadFit(cred, record.id, record.extra)
+            DataSource.WAHOO -> {
+                // v6.5.0: Wahoo下载需要 access token
+                var token = cred
+                val refresh = prefs.getWahooRefresh()
+                val cid = prefs.getWahooClientId()
+                val csec = prefs.getWahooClientSecret()
+                if (refresh != null && cid != null && csec != null) {
+                    val fresh = wahooApi.refreshToken(refresh, cid, csec)
+                    if (fresh != null) {
+                        prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
+                        token = fresh.first
+                    }
+                }
+                wahooApi.downloadFit(token, record.id)
             }
             else -> null
         }
