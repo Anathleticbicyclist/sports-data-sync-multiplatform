@@ -229,6 +229,11 @@
                         <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="迈金" style="@style/Widget.MaterialComponents.Chip.Choice" />
                         <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="黑鸟" style="@style/Widget.MaterialComponents.Chip.Choice" />
                         <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="百锐腾" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="佳明国际" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="佳明中国" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="高驰中国" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="高驰国际" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Wahoo" style="@style/Widget.MaterialComponents.Chip.Choice" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="同步目标 (逆向流动):" android:textSize="13sp" android:textColor="@color/text_primary" />
@@ -239,6 +244,10 @@
                         <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="迈金" android:tag="mg" style="@style/Widget.MaterialComponents.Chip.Choice" />
                         <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="黑鸟" android:tag="bb" style="@style/Widget.MaterialComponents.Chip.Choice" />
                         <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="百锐腾" android:tag="br" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="佳明国际" android:tag="gm" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="佳明中国" android:tag="gcn" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="高驰中国" android:tag="cscn" style="@style/Widget.MaterialComponents.Chip.Choice" />
+                        <com.google.android.material.chip.Chip android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="高驰国际" android:tag="cs" style="@style/Widget.MaterialComponents.Chip.Choice" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal" android:gravity="center_vertical">

@@ -111,7 +111,7 @@ class LoginWebActivity : AppCompatActivity() {
                 databaseEnabled = true
                 allowContentAccess = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                userAgentString = DESKTOP_UA
+                userAgentString = if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) MOBILE_UA else DESKTOP_UA
                 if (loginType == TYPE_OUTBASE) {
                     useWideViewPort = true
                     loadWithOverviewMode = true
@@ -146,6 +146,16 @@ class LoginWebActivity : AppCompatActivity() {
                 }
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for ${request?.url}")
+                }
+                override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                    Log.e(TAG, "[$loginType] WebView渲染进程崩溃: reason=${detail?.didCrash()}, didCrash=${detail?.didCrash()}")
+                    runOnUiThread {
+                        android.widget.Toast.makeText(this@LoginWebActivity, "页面渲染异常，正在重试...", android.widget.Toast.LENGTH_SHORT).show()
+                        view?.let { wv ->
+                            try { wv.stopLoading(); wv.clearHistory(); wv.reload() } catch (_: Exception) {}
+                        }
+                    }
+                    return true  // 返回true表示App已处理，不杀死App
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?) = false
             }
@@ -278,6 +288,14 @@ class LoginWebActivity : AppCompatActivity() {
             cm.getCookie(ssoHost.removePrefix("https://"))
         ).filterNotNull().joinToString("; ")
         if (all.length < 40) return
+        // v6.5.1: 必须检测到佳明登录态cookie才算成功（SSO页未登录也有普通cookie，避免误判自动关闭）
+        val hasLoginCookie = all.contains("GARMIN-SSO") || all.contains("SID=") ||
+            all.contains("IDENTITY") || all.contains("__cFP") ||
+            all.contains("SESSIONID") || all.contains("JSESSIONID")
+        if (!hasLoginCookie) {
+            Log.d(TAG, "佳明${if (cn) "中国" else "国际"} cookie存在但无登录态标记，继续等待用户登录 (len=${all.length})")
+            return
+        }
         detected = true
         Log.i(TAG, "✅ 佳明${if (cn) "中国" else "国际"}登录成功, cookie len=${all.length}")
         setResult(Activity.RESULT_OK, Intent()

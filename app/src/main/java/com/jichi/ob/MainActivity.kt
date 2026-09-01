@@ -206,24 +206,20 @@ class MainActivity : AppCompatActivity() {
                         appendLog("✅ 高驰国际登录成功"); fetchUsernameAfterLogin(DataSource.COROS_INT)
                     } else appendLog("⚠️ 高驰国际登录失败: 未捕获到token")
                     LoginWebActivity.TYPE_WAHOO -> {
-                        // v6.5.0: Wahoo 返回的是 OAuth2 授权码，需用 client_id/secret 换取 access_token
-                        val cid = prefs.getWahooClientId()
-                        val csec = prefs.getWahooClientSecret()
-                        if (sid.length > 5 && cid != null && csec != null) {
+                        // v6.5.1: Wahoo 返回 OAuth2 授权码，用内置凭证换取 access_token
+                        if (sid.length > 5 && com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
                             val code = sid
                             lifecycleScope.launch(Dispatchers.IO) {
-                                val fresh = wahooApi.exchangeToken(code, cid, csec)
+                                val fresh = wahooApi.exchangeToken(code, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET)
                                 runOnUiThread {
                                     if (fresh != null) {
                                         prefs.saveWahooToken(fresh.first)
                                         prefs.saveWahooRefresh(fresh.second)
-                                        appendLog("✅ Wahoo登录成功(token换取成功)"); fetchUsernameAfterLogin(DataSource.WAHOO)
-                                    } else appendLog("⚠️ Wahoo token换取失败，请检查client_id/secret")
+                                        appendLog("✅ Wahoo登录成功"); fetchUsernameAfterLogin(DataSource.WAHOO)
+                                    } else appendLog("⚠️ Wahoo token换取失败")
                                     updateStatusUI()
                                 }
                             }
-                        } else if (cid == null || csec == null) {
-                            appendLog("⚠️ Wahoo需先配置client_id/client_secret")
                         } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码")
                     }
                 }
@@ -435,37 +431,17 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
-    /** v6.5.0: Wahoo 登录——先确认开发者 client_id/secret 已配置 */
+    /** v6.5.1: Wahoo 登录——使用内置开发者凭证（维护者注册一次，用户无需注册） */
     private fun openWahooLogin() {
-        val cid = prefs.getWahooClientId()
-        val csec = prefs.getWahooClientSecret()
-        if (cid.isNullOrEmpty() || csec.isNullOrEmpty()) {
-            val inputLayout = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
-                setPadding(50, 20, 50, 0)
-            }
-            val etCid = android.widget.EditText(this).apply { hint = "Wahoo client_id（必填）" }
-            val etCsec = android.widget.EditText(this).apply { hint = "Wahoo client_secret（必填）" }
-            inputLayout.addView(etCid); inputLayout.addView(etCsec)
+        if (!com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
             androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Wahoo 开发者凭证")
-                .setMessage("Wahoo 需在 developer.wahoo.fit 注册开发者应用获取 client_id/client_secret（OAuth2），之后才能登录同步。")
-                .setView(inputLayout)
-                .setPositiveButton("保存并登录") { _, _ ->
-                    val ci = etCid.text.toString().trim()
-                    val cs = etCsec.text.toString().trim()
-                    if (ci.isNotEmpty() && cs.isNotEmpty()) {
-                        prefs.saveWahooClientId(ci); prefs.saveWahooClientSecret(cs)
-                        openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl(ci))
-                    } else {
-                        Toast.makeText(this, "client_id/client_secret不能为空", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                .setNegativeButton("取消", null)
+                .setTitle("Wahoo 暂未配置")
+                .setMessage("Wahoo 同步功能待开发者配置凭证后启用。请使用其他平台同步，或等待后续版本更新。")
+                .setPositiveButton("知道了", null)
                 .show()
-        } else {
-            openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl(cid))
+            return
         }
+        openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl())
     }
 
     private fun getSelectedSource(): DataSource {
@@ -754,13 +730,11 @@ class MainActivity : AppCompatActivity() {
             DataSource.COROS_CN -> corosApi.getActivities(cred, skip, limit)
             DataSource.COROS_INT -> corosApi.getActivities(cred, skip, limit)
             DataSource.WAHOO -> {
-                // v6.5.0: Wahoo需要 client_id/secret + token；先尝试刷新token
+                // v6.5.1: Wahoo用内置凭证刷新token
                 var token = cred
                 val refresh = prefs.getWahooRefresh()
-                val cid = prefs.getWahooClientId()
-                val csec = prefs.getWahooClientSecret()
-                if (refresh != null && cid != null && csec != null) {
-                    val fresh = wahooApi.refreshToken(refresh, cid, csec)
+                if (refresh != null && com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
+                    val fresh = wahooApi.refreshToken(refresh, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET)
                     if (fresh != null) {
                         prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
                         token = fresh.first
@@ -818,13 +792,11 @@ class MainActivity : AppCompatActivity() {
             DataSource.COROS_CN -> corosApi.downloadFit(cred, record.id, record.extra)
             DataSource.COROS_INT -> corosApi.downloadFit(cred, record.id, record.extra)
             DataSource.WAHOO -> {
-                // v6.5.0: Wahoo下载需要 access token
+                // v6.5.1: Wahoo下载用内置凭证刷新token
                 var token = cred
                 val refresh = prefs.getWahooRefresh()
-                val cid = prefs.getWahooClientId()
-                val csec = prefs.getWahooClientSecret()
-                if (refresh != null && cid != null && csec != null) {
-                    val fresh = wahooApi.refreshToken(refresh, cid, csec)
+                if (refresh != null && com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
+                    val fresh = wahooApi.refreshToken(refresh, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET)
                     if (fresh != null) {
                         prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
                         token = fresh.first
