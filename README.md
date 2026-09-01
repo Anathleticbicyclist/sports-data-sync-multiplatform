@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.7.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.7.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.7.1 |
+| 当前版本 | v6.7.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -169,6 +169,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.7.2 (2026-09-01) — 佳明国际版修复（/app/路径登录） + 佳明UUID隐藏 + 日志滑动修复 + 鸣谢更新
+**佳明国际版根因修复**：香港/中国区账号用国际版登录时，service URL用/modern/会被佳明服务器重定向到中国区signin（connectus.garmin.cn），导致JWT_WEB无法获取。改用/app/路径直接消费ticket，国际版登录成功。
+1. **佳明国际版登录修复** — LOGIN_URL_COM的service从/modern/改为/app/，Referer同步改为/app/home
+2. **佳明UUID隐藏** — 佳明socialProfile返回的displayName是UUID(用户ID)，登录后不再获取/显示，界面和日志统一显示"已登录"，避免暴露用户ID
+3. **日志滑动修复** — 日志区域ScrollView增加nestedScrollingEnabled=true（解决嵌套ScrollView无法独立滑动问题），高度从180dp增加到240dp
+4. **鸣谢更新** — 测试人员新增"青山依旧张指导"
+5. **版本号更新** — v6.7.2 (versionCode 672)
 ### v6.7.1 (2026-09-01) — 佳明国际版区域检测（中国区账号自动提示切换）
 **佳明中国版已全流程验证通过**（登录→活动列表→FIT下载→FIT上传，iGPSPORT/行者/迈金/黑鸟/高驰→佳明中国上传全部成功，佳明中国→高驰下载上传成功）。
 **佳明国际版说明**：佳明实行区域账号隔离，中国区注册的账号无法在国际版(connect.garmin.com)登录（服务器自动重定向回中国区signin页）。
@@ -554,7 +561,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 感谢 **iGPSPORT、迈金、黑鸟单车、百锐腾、行者、高驰、佳明、Wahoo、Outbase** 为运动用户提供的数据记录与存储服务。
 
-感谢以下人员（均为骑行爱称）为软件测试提供的帮助：**素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付**
+感谢以下人员（均为骑行爱称）为软件测试提供的帮助：**素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导**
 
 鸣谢 **青岛AUV俱乐部**。
 

@@ -286,8 +286,8 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
-    /** v6.7.1: 佳明 检测登录 —— 必须同时提取JWT_WEB + session两个cookie（gc-api缺一返回401）
-     *  国际版区域检测：中国区账号在国际版登录会被重定向到connectus.garmin.cn，自动提示切换中国版
+    /** v6.7.2: 佳明 检测登录 —— 必须同时提取JWT_WEB + session两个cookie（gc-api缺一返回401）
+     *  国际版必须用/app/路径登录（/modern/会被重定向到中国区）
      *  凭证格式：JSON {"jwt_web":"...","session":"...","csrf":"..."} */
     private fun detectGarmin(cn: Boolean) {
         if (!verifying.compareAndSet(false, true)) return
@@ -297,20 +297,6 @@ class LoginWebActivity : AppCompatActivity() {
         val jwtWeb = extractCookieValue(cookieStr, "JWT_WEB")
         val sessionCookie = extractCookieValue(cookieStr, "session")
         if (jwtWeb.length < 20 || sessionCookie.length < 20) {
-            // v6.7.1: 国际版区域检测——如果被重定向到garmin.cn，说明是中国区账号
-            if (!cn) {
-                val currentUrl = webView.url ?: ""
-                if (currentUrl.contains("garmin.cn") || currentUrl.contains("connectus")) {
-                    detected = true
-                    Log.w(TAG, "⚠️ 佳明国际检测到中国区账号(重定向到garmin.cn)，提示用户切换中国版")
-                    runOnUiThread {
-                        android.widget.Toast.makeText(this@LoginWebActivity, "该账号为佳明中国区账号，请使用「佳明中国」登录", android.widget.Toast.LENGTH_LONG).show()
-                        setResult(Activity.RESULT_CANCELED)
-                        finish()
-                    }
-                    return
-                }
-            }
             Log.d(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}，继续检测...")
             verifying.set(false)
             return
