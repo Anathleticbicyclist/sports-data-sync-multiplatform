@@ -45,6 +45,73 @@
             app:cornerRadius="8dp" />
     </LinearLayout>
 
+    <!-- 国际版mobile SSO登录界面（v6.7.8，默认隐藏） -->
+    <LinearLayout
+        android:id="@+id/mobileLoginLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal"
+        android:visibility="gone">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="佳明国际版登录"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用mobile SSO方式（不经过Cloudflare）"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:layout_marginBottom="32dp" />
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="邮箱"
+            app:boxBackgroundMode="outline">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress"
+                android:autofillHints="email" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="密码"
+            android:layout_marginTop="16dp"
+            app:boxBackgroundMode="outline"
+            app:passwordToggleEnabled="true">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:autofillHints="password" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMobileLogin"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="登录"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            app:cornerRadius="12dp" />
+        <TextView
+            android:id="@+id/tvMobileLoginStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:layout_marginTop="16dp"
+            android:gravity="center" />
+    </LinearLayout>
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
