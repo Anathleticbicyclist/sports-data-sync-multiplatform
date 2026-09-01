@@ -28,9 +28,9 @@ import java.util.zip.ZipInputStream
 import kotlin.coroutines.resume
 
 /**
- * 佳明(Garmin) API（v6.7.6 静态WebView共享+fetch超时修复）
+ * 佳明(Garmin) API（v6.7.7 修复WebView重定向循环）
  *
- * v6.7.6: WebView改为静态共享，UploadEngine中的GarminApi实例也能使用
+ * v6.7.7: WebView初始加载about:blank避免重定向循环；请求前注入cookie并加载connect.garmin.com
  */
 class GarminApi {
     companion object {
@@ -38,12 +38,11 @@ class GarminApi {
         const val LOGIN_URL_COM = "https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fapp%2F"
         const val LOGIN_URL_CN = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
 
-        // v6.7.6: 静态WebView，所有实例共享
         @Volatile private var sharedWebView: WebView? = null
         @Volatile private var sharedWebViewReady = false
+        @Volatile private var webViewLoading = false
         private val mainHandler = Handler(Looper.getMainLooper())
 
-        // 调试日志
         val debugLogs = mutableListOf<String>()
         fun addDebugLog(msg: String) {
             val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
@@ -58,36 +57,36 @@ class GarminApi {
         @SuppressLint("SetJavaScriptEnabled")
         fun initSharedWebView(context: Context) {
             if (sharedWebView != null) {
-                addDebugLog("initSharedWebView: WebView已存在，跳过")
+                addDebugLog("initSharedWebView: 已存在，跳过")
                 return
             }
             if (Looper.myLooper() != Looper.getMainLooper()) {
-                addDebugLog("initSharedWebView: 切换到主线程")
                 mainHandler.post { initSharedWebView(context) }
                 return
             }
             try {
                 val appContext = context.applicationContext
-                addDebugLog("initSharedWebView: 开始创建静态WebView...")
+                addDebugLog("initSharedWebView: 创建WebView，加载about:blank")
                 sharedWebView = WebView(appContext).apply {
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     settings.databaseEnabled = true
-                    settings.useWideViewPort = true
-                    settings.loadWithOverviewMode = true
                     settings.userAgentString = "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UQ1A.240205.004; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.230 Mobile Safari/537.36"
                     webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
-                            addDebugLog("WebView onPageFinished: $url")
-                            if (url?.contains("connect.garmin.com") == true) {
+                            webViewLoading = false
+                            if (url?.contains("connect.garmin.com") == true && !url.contains("logout") && !url.contains("sign-in")) {
                                 sharedWebViewReady = true
-                                addDebugLog("WebView已就绪")
+                                addDebugLog("WebView就绪: $url")
+                            } else {
+                                addDebugLog("WebView页面加载: $url")
                             }
                         }
                         override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
                             super.onReceivedError(view, errorCode, description, failingUrl)
-                            addDebugLog("WebView错误: code=$errorCode, desc=$description, url=$failingUrl")
+                            webViewLoading = false
+                            addDebugLog("WebView错误: code=$errorCode, url=$failingUrl")
                         }
                     }
                 }
@@ -95,10 +94,9 @@ class GarminApi {
                     setAcceptCookie(true)
                     setAcceptThirdPartyCookies(sharedWebView, true)
                 }
-                addDebugLog("静态WebView创建成功，加载connect.garmin.com/app/home")
-                sharedWebView?.loadUrl("https://connect.garmin.com/app/home")
+                sharedWebView?.loadUrl("about:blank")
             } catch (e: Exception) {
-                addDebugLog("静态WebView创建异常: ${e.message}")
+                addDebugLog("WebView创建异常: ${e.message}")
                 Log.e(TAG, "WebView创建异常", e)
             }
         }
@@ -111,28 +109,40 @@ class GarminApi {
         .followRedirects(true)
         .build()
 
-    // 兼容旧接口
     fun initWebView(context: Context) = initSharedWebView(context)
 
-    private suspend fun ensureWebViewReady(): Boolean {
+    private suspend fun prepareWebView(cred: String): Boolean {
         val wv = sharedWebView
         if (wv == null) {
-            addDebugLog("ensureWebViewReady: 静态WebView为null!")
+            addDebugLog("prepareWebView: WebView为null")
             return false
         }
-        if (sharedWebViewReady) return true
-        addDebugLog("ensureWebViewReady: 等待WebView就绪...")
+        injectCookies(cred)
+        val currentUrl = withContext(Dispatchers.Main) { wv.url }
+        val onGarmin = currentUrl?.contains("connect.garmin.com") == true &&
+                        !currentUrl.contains("logout") && !currentUrl.contains("sign-in")
+        if (onGarmin && sharedWebViewReady) {
+            addDebugLog("prepareWebView: 已在connect.garmin.com页面，直接使用")
+            return true
+        }
+        addDebugLog("prepareWebView: 加载connect.garmin.com/app/home")
+        sharedWebViewReady = false
+        webViewLoading = true
+        withContext(Dispatchers.Main) {
+            wv.loadUrl("https://connect.garmin.com/app/home")
+        }
         var attempts = 0
-        while (!sharedWebViewReady && attempts < 15) {
-            delay(1000)
+        while ((!sharedWebViewReady || webViewLoading) && attempts < 30) {
+            delay(500)
             attempts++
+            if (attempts % 4 == 0) addDebugLog("prepareWebView: 等待页面加载... ${attempts}/30, ready=$sharedWebViewReady, loading=$webViewLoading")
         }
         if (!sharedWebViewReady) {
-            addDebugLog("ensureWebViewReady: 强制重新加载首页")
-            withContext(Dispatchers.Main) { wv.loadUrl("https://connect.garmin.com/app/home") }
-            delay(5000)
+            addDebugLog("prepareWebView: 页面加载超时，当前URL=${withContext(Dispatchers.Main){wv.url}}")
+            return false
         }
-        return sharedWebViewReady
+        addDebugLog("prepareWebView: 页面加载完成")
+        return true
     }
 
     private fun injectCookies(cred: String) {
@@ -149,7 +159,7 @@ class GarminApi {
             }
         }
         cm.flush()
-        addDebugLog("injectCookies: 注入${cookies.size}个cookie, csrf=${sess.csrf.take(20)}...")
+        addDebugLog("injectCookies: 注入${cookies.size}个cookie")
     }
 
     private data class GarminSession(val cookies: String, val csrf: String) {
@@ -197,19 +207,14 @@ class GarminApi {
         return h
     }
 
-    // v6.7.6: 用WebView执行fetch（带超时）
     private suspend fun fetchViaWebView(url: String, method: String = "GET", headers: Map<String, String> = emptyMap(), body: String? = null): String? {
         val wv = sharedWebView
         if (wv == null) {
-            addDebugLog("fetchViaWebView: 静态WebView为null，回退OkHttp")
-            return null
-        }
-        if (!ensureWebViewReady()) {
-            addDebugLog("fetchViaWebView: WebView未就绪，回退OkHttp")
+            addDebugLog("fetchViaWebView: WebView为null")
             return null
         }
         addDebugLog("fetchViaWebView: $method $url")
-        return withTimeoutOrNull(25000) {
+        return withTimeoutOrNull(30000) {
             withContext(Dispatchers.Main) {
                 suspendCancellableCoroutine { cont ->
                     val headersJson = JSONObject(headers as Map<String, String>).toString()
@@ -245,7 +250,7 @@ class GarminApi {
                             attempts++
                             wv.evaluateJavascript("(function(){ if(window.__g_done){ var s=window.__g_status||0; var r=window.__g_result!==undefined?window.__g_result:''; var e=window.__g_error||''; return JSON.stringify({s:s,r:r,e:e}); } return '__ND__'; })()") { value ->
                                 val v = value?.trim()?.trim('"') ?: ""
-                                if (attempts % 5 == 0) addDebugLog("fetch检查 ${attempts}/50: ${v.take(60)}")
+                                if (attempts % 5 == 0) addDebugLog("fetch检查 ${attempts}/60: ${v.take(60)}")
                                 if (v != "__ND__" && v.isNotEmpty()) {
                                     try {
                                         val json = JSONObject(v.replace("\\n", "\n").replace("\\\"", "\""))
@@ -253,12 +258,12 @@ class GarminApi {
                                         val result = json.optString("r", "")
                                         val error = json.optString("e", "")
                                         addDebugLog("fetch完成: status=$status, len=${result.length}, err=$error")
-                                        if (status in 200..299 && result.isNotEmpty()) cont.resume(result) else cont.resume(null)
+                                        cont.resume(if (status in 200..299 && result.isNotEmpty()) result else null)
                                     } catch (e: Exception) {
                                         addDebugLog("fetch解析异常: ${e.message}")
                                         cont.resume(null)
                                     }
-                                } else if (attempts < 50) {
+                                } else if (attempts < 60) {
                                     wv.postDelayed(this, 500)
                                 } else {
                                     addDebugLog("fetch检查超时")
@@ -267,9 +272,8 @@ class GarminApi {
                             }
                         }
                     }
-                    addDebugLog("执行fetch JS...")
                     wv.evaluateJavascript(fetchJs) {
-                        addDebugLog("fetch JS已执行，开始检查结果")
+                        addDebugLog("fetch JS已执行")
                         checkResult.run()
                     }
                 }
@@ -277,15 +281,10 @@ class GarminApi {
         }
     }
 
-    // v6.7.6: 用WebView上传文件（带超时）
     private suspend fun uploadViaWebView(url: String, fileName: String, fileData: ByteArray, headers: Map<String, String>): String? {
         val wv = sharedWebView
         if (wv == null) {
             addDebugLog("uploadViaWebView: WebView为null")
-            return null
-        }
-        if (!ensureWebViewReady()) {
-            addDebugLog("uploadViaWebView: WebView未就绪")
             return null
         }
         addDebugLog("uploadViaWebView: $fileName (${fileData.size}字节)")
@@ -351,19 +350,20 @@ class GarminApi {
                             }
                         }
                     }
-                    wv.evaluateJavascript(fetchJs) { checkResult.run() }
+                    wv.evaluateJavascript(fetchJs) {
+                        addDebugLog("上传JS已执行")
+                        checkResult.run()
+                    }
                 }
             }
         }
     }
 
-    /** 获取用户名 */
     suspend fun getUsername(ds: DataSource, cred: String): String? = withContext(Dispatchers.IO) {
         try {
             val url = "${gcApiHost(ds)}/userprofile-service/socialProfile"
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
-                addDebugLog("getUsername: 国际版用WebView")
-                injectCookies(cred)
+                if (!prepareWebView(cred)) return@withContext null
                 val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
                 if (result != null) {
                     val json = JSONObject(result)
@@ -383,41 +383,42 @@ class GarminApi {
         } catch (e: Exception) { null }
     }
 
-    /** 获取活动列表 */
     suspend fun getActivities(ds: DataSource, cred: String, offset: Int, limit: Int): List<ActivityRecord> = withContext(Dispatchers.IO) {
         val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
         try {
-            addDebugLog("getActivities: ds=$ds, sharedWebView!=null=${sharedWebView != null}, ready=$sharedWebViewReady")
+            addDebugLog("getActivities: ds=$ds, webView!=null=${sharedWebView != null}")
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
                 addDebugLog("getActivities: 国际版走WebView分支")
-                injectCookies(cred)
-                val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
-                if (result != null) {
-                    val arr = JSONArray(result)
-                    val out = mutableListOf<ActivityRecord>()
-                    for (i in 0 until arr.length()) {
-                        val item = arr.getJSONObject(i)
-                        val id = item.optString("activityId")
-                        if (id.isEmpty()) continue
-                        val title = item.optString("activityName").ifBlank { "佳明活动" }
-                        val startTime = item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") }
-                        val distance = item.optDouble("distance", 0.0) / 1000.0
-                        val duration = item.optInt("duration", 0)
-                        out.add(ActivityRecord(id, title, startTime, distance, duration, ds))
+                if (!prepareWebView(cred)) {
+                    addDebugLog("getActivities: WebView准备失败，回退OkHttp")
+                } else {
+                    val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
+                    if (result != null) {
+                        val arr = JSONArray(result)
+                        val out = mutableListOf<ActivityRecord>()
+                        for (i in 0 until arr.length()) {
+                            val item = arr.getJSONObject(i)
+                            val id = item.optString("activityId")
+                            if (id.isEmpty()) continue
+                            val title = item.optString("activityName").ifBlank { "佳明活动" }
+                            val startTime = item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") }
+                            val distance = item.optDouble("distance", 0.0) / 1000.0
+                            val duration = item.optInt("duration", 0)
+                            out.add(ActivityRecord(id, title, startTime, distance, duration, ds))
+                        }
+                        addDebugLog("WebView获取到 ${out.size} 条活动")
+                        return@withContext out
                     }
-                    addDebugLog("WebView获取到 ${out.size} 条活动")
-                    return@withContext out
+                    addDebugLog("WebView获取失败，回退OkHttp")
                 }
-                addDebugLog("WebView获取失败，回退OkHttp")
-            } else {
-                addDebugLog("getActivities: 走OkHttp分支")
             }
+            addDebugLog("getActivities: 走OkHttp分支")
             val req = Request.Builder().url(url).apply {
                 apiHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
             client.newCall(req).execute().use { resp ->
                 if (resp.code != 200) {
-                    addDebugLog("getActivities OkHttp HTTP ${resp.code}")
+                    addDebugLog("getActivities OkHttp HTTP ${resp.code}: ${resp.body?.string()?.take(150)}")
                     return@withContext emptyList()
                 }
                 val arr = JSONArray(resp.body?.string() ?: "[]")
@@ -432,6 +433,7 @@ class GarminApi {
                     val duration = item.optInt("duration", 0)
                     out.add(ActivityRecord(id, title, startTime, distance, duration, ds))
                 }
+                addDebugLog("OkHttp获取到 ${out.size} 条活动")
                 out
             }
         } catch (e: Exception) {
@@ -440,18 +442,16 @@ class GarminApi {
         }
     }
 
-    /** 下载 FIT */
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
-            addDebugLog("downloadFit: ds=$ds, webView!=null=${sharedWebView != null}")
+            addDebugLog("downloadFit: ds=$ds")
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
                 addDebugLog("downloadFit: 国际版用WebView")
-                injectCookies(cred)
+                if (!prepareWebView(cred)) return@withContext null
                 val headers = apiHeaders(ds, cred).toMutableMap()
                 headers["Accept"] = "*/*"
                 val wv = sharedWebView!!
-                if (!ensureWebViewReady()) return@withContext null
                 val fetchJs = """
                     (function(){ fetch('$url',{method:'GET',credentials:'include',headers:${JSONObject(headers as Map<String,String>).toString()}}).then(r=>{window.__g_status=r.status;return r.blob();}).then(b=>{var r=new FileReader();r.onload=e=>{window.__g_result=e.target.result.split(',')[1];window.__g_done=true;};r.readAsDataURL(b);}).catch(e=>{window.__g_error=e.toString();window.__g_done=true;}); })();
                 """.trimIndent()
@@ -533,23 +533,27 @@ class GarminApi {
         }
     }
 
-    /** 上传 FIT */
     suspend fun uploadActivity(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
         try {
             val url = "${gcApiHost(ds)}/upload-service/upload/"
-            addDebugLog("uploadActivity: ds=$ds, webView!=null=${sharedWebView != null}, ready=$sharedWebViewReady, size=${data.size}")
+            addDebugLog("uploadActivity: ds=$ds, webView!=null=${sharedWebView != null}, size=${data.size}")
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
                 addDebugLog("uploadActivity: 国际版走WebView分支")
-                injectCookies(cred)
-                val headers = apiHeaders(ds, cred).toMutableMap()
-                headers["Accept"] = "application/json"
-                val result = uploadViaWebView(url, fileName, data, headers)
-                addDebugLog("WebView上传结果: ${result?.take(200)}")
-                if (result == null) return@withContext "佳明国际上传失败(WebView无响应，请查看调试日志)"
-                return@withContext when {
-                    result.contains("Duplicate Activity", true) || result.contains("duplicate", true) -> "重复活动(已在佳明存在)"
-                    result.contains("\"id\"") || result.contains("\"activityId\"") || result.contains("\"uploadId\"") -> null
-                    else -> "佳明国际上传返回: ${result.take(100)}"
+                if (!prepareWebView(cred)) {
+                    addDebugLog("uploadActivity: WebView准备失败，回退OkHttp")
+                } else {
+                    val headers = apiHeaders(ds, cred).toMutableMap()
+                    headers["Accept"] = "application/json"
+                    val result = uploadViaWebView(url, fileName, data, headers)
+                    addDebugLog("WebView上传结果: ${result?.take(200)}")
+                    if (result != null) {
+                        return@withContext when {
+                            result.contains("Duplicate Activity", true) || result.contains("duplicate", true) -> "重复活动(已在佳明存在)"
+                            result.contains("\"id\"") || result.contains("\"activityId\"") || result.contains("\"uploadId\"") -> null
+                            else -> "佳明国际上传返回: ${result.take(100)}"
+                        }
+                    }
+                    addDebugLog("WebView上传失败，回退OkHttp")
                 }
             }
             addDebugLog("uploadActivity: 走OkHttp分支")
