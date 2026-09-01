@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.2 |
+| 当前版本 | v6.5.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.3 (2026-09-01) — 佳明完整OAuth2认证重写 + 高驰上传修复
+1. **佳明认证完整重写**：佳明2026年改认证流，旧cookie-only方式完全失效（API返回403）。新流程：WebView SSO登录→捕获ticket(ST-...)→OAuth1 preauthorized→OAuth2 exchange→Bearer token调API。参考garth(已废弃)+python-garminconnect+gist meddlesome/garmin-browser-auth.py
+2. **佳明登录检测修复**：旧版7秒误判"登录成功"(SSO页未登录就有JSESSIONID)，改为检测Success页面的ticket(ST-...)，登录成功后后台自动换OAuth2 token
+3. **佳明token自动刷新**：access_token过期自动用refresh_token刷新，同步时源/目标平台均自动检查并刷新
+4. **高驰上传修复**：OSS上传成功但fit/import返回`apiCode:8E16FCC7`被误判失败——实际返回格式为`{"apiCode":"xxx","data":{"id":...,"fileUrl":...}}`，修复成功判断逻辑（apiCode存在且data有id/fileUrl即视为成功）
+5. **版本号**：v6.5.2(654) → v6.5.3(655)
+
 ### v6.5.2 (2026-09-01) — 佳明登录修复 + 高驰OSS上传修复
 1. **佳明登录修复**：v6.5.1 误将佳明SSO登录页改为Mobile UA导致页面异常"登录没反应"，改回桌面UA；登录态cookie检测保留（避免2秒误判）
 2. **高驰OSS上传修复**：阿里云OSS签名Date头未设置GMT时区（默认北京时间差8小时），导致所有上传签名验证失败返回"高驰OSS上传失败"；已修复Date头时区为GMT

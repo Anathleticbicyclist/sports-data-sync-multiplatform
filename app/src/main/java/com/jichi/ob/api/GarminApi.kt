@@ -17,24 +17,22 @@ import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
 
 /**
- * 佳明(Garmin) API（v6.5.0 新增）—— CN/COM 双域名
+ * 佳明(Garmin) API（v6.5.3 重写认证）—— CN/COM 双域名
  *
- * 依据开源项目 running_page/garmin_sync.py + XiaoSiHwang/garmin-sync-coros 接口（已逐行核对）：
- * - 认证：OAuth2 Bearer token（WebView 登录 sso.garmin.com / sso.garmin.cn 后捕获）
+ * v6.5.3 重要变更：佳明2026年改认证流，旧cookie-only方式失效。
+ * 新流程：WebView SSO登录 → 捕获ticket(ST-...) → OAuth1 preauthorized → OAuth2 exchange → Bearer token调API
+ * 参考：garth(已废弃) + python-garminconnect(新移动SSO流) + gist meddlesome/garmin-browser-auth.py
+ *
  * - 列表：GET {connectapi}/activitylist-service/activities/search/activities
- * - FIT下载：GET {connectapi}/download-service/files/activity/{id}（返回zip内含 {id}_ACTIVITY.fit）
- * - 上传：POST {connectapi}/upload-service/upload（multipart file）
- * - 请求头：Authorization: Bearer <token> + nk: NT
- * - 注意：非Garmin设备FIT可能被拒收，需先经 FitDeviceFaker 伪装（见 UploadEngine）
+ * - FIT下载：GET {connectapi}/download-service/files/activity/{id}（返回zip）
+ * - 上传：POST {connectapi}/upload-service/upload（multipart，202成功/409重复）
+ * - token刷新：refresh_token → /oauth-service/oauth/token (grant_type=refresh_token)
  */
 class GarminApi {
-
     companion object {
         private const val TAG = "GarminApi"
         const val LOGIN_URL_COM = "https://sso.garmin.com/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
         const val LOGIN_URL_CN = "https://sso.garmin.cn/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fmodern%2F"
-
-        private const val UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
     }
 
     private val client = OkHttpClient.Builder()
@@ -47,31 +45,80 @@ class GarminApi {
     private fun apiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) "connectapi.garmin.cn" else "connectapi.garmin.com"
 
-    /** 凭证格式: "token" 或 "token;cookie" */
-    private fun parseCredential(cred: String): Pair<String, String> {
-        val parts = cred.split(";")
-        val token = parts.getOrNull(0)?.trim() ?: ""
-        val cookie = parts.drop(1).joinToString(";").trim()
-        return token to cookie
+    /** v6.5.3: 凭证格式为 OAuth2 token JSON（LoginWebActivity返回RESULT_TOKEN）
+     *  兼容旧格式 "token;cookie" */
+    private fun parseCredential(cred: String): GarminOAuthHelper.OAuth2Token? {
+        if (cred.isEmpty()) return null
+        if (cred.trimStart().startsWith("{")) {
+            return GarminOAuthHelper.OAuth2Token.fromJson(cred)
+        }
+        val token = cred.split(";").firstOrNull()?.trim() ?: ""
+        if (token.isEmpty()) return null
+        return GarminOAuthHelper.OAuth2Token(
+            accessToken = token, refreshToken = "",
+            expiresIn = 3600, refreshExpiresIn = 71400
+        )
+    }
+
+    /** 确保token有效，过期则刷新，返回最新token JSON（调用方需保存更新） */
+    fun ensureValidToken(ds: DataSource, cred: String): String {
+        val token = parseCredential(cred) ?: return cred
+        if (!token.isExpired()) return cred
+        if (token.refreshToken.isEmpty() || token.isRefreshExpired()) {
+            Log.w(TAG, "token过期且无有效refresh_token，需重新登录")
+            return cred
+        }
+        return try {
+            val cn = ds == DataSource.GARMIN_CN
+            val newToken = refreshOAuth2Token(token.refreshToken, cn)
+            Log.i(TAG, "✅ 佳明token刷新成功")
+            newToken.toJson()
+        } catch (e: Exception) {
+            Log.e(TAG, "佳明token刷新失败: ${e.message}")
+            cred
+        }
+    }
+
+    private fun refreshOAuth2Token(refreshToken: String, cn: Boolean): GarminOAuthHelper.OAuth2Token {
+        val base = if (cn) "https://connectapi.garmin.cn" else "https://connectapi.garmin.com"
+        val url = "$base/oauth-service/oauth/token"
+        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        conn.requestMethod = "POST"
+        conn.setRequestProperty("User-Agent", "com.garmin.android.apps.connectmobile")
+        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+        conn.doOutput = true
+        conn.connectTimeout = 15000
+        conn.readTimeout = 15000
+        val body = "grant_type=refresh_token&refresh_token=${java.net.URLEncoder.encode(refreshToken, "UTF-8")}"
+        conn.outputStream.write(body.toByteArray())
+        val code = conn.responseCode
+        val respBody = if (code == 200) conn.inputStream.bufferedReader().readText()
+                       else conn.errorStream?.bufferedReader()?.readText() ?: ""
+        if (code != 200) throw Exception("refresh failed: HTTP $code, $respBody")
+        val json = JSONObject(respBody)
+        return GarminOAuthHelper.OAuth2Token(
+            accessToken = json.getString("access_token"),
+            refreshToken = json.optString("refresh_token", refreshToken),
+            expiresIn = json.optLong("expires_in", 3600),
+            refreshExpiresIn = json.optLong("refresh_token_expires_in", 71400)
+        )
     }
 
     private fun authHeaders(ds: DataSource, cred: String): Map<String, String> {
-        val (token, cookie) = parseCredential(cred)
+        val token = parseCredential(cred)
         val h = mutableMapOf(
-            "User-Agent" to UA,
+            "User-Agent" to "GCM-iOS-5.7.2.1",
             "nk" to "NT",
-            "Accept" to "application/json",
-            "Origin" to (if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn" else "https://connect.garmin.com")
+            "Accept" to "application/json"
         )
-        if (token.isNotEmpty()) h["Authorization"] = "Bearer $token"
-        if (cookie.isNotEmpty()) h["Cookie"] = cookie
+        token?.let { if (it.accessToken.isNotEmpty()) h["Authorization"] = "Bearer ${it.accessToken}" }
         return h
     }
 
     /** 获取用户名 */
     suspend fun getUsername(ds: DataSource, cred: String): String? = withContext(Dispatchers.IO) {
         try {
-            val url = "https://${apiHost(ds)}/userprofile-service/socialProfile/displayName"
+            val url = "https://${apiHost(ds)}/userprofile-service/socialProfile"
             val req = Request.Builder().url(url).apply {
                 authHeaders(ds, cred).forEach { (k, v) -> addHeader(k, v) }
             }.get().build()
@@ -128,7 +175,6 @@ class GarminApi {
                     return@withContext null
                 }
                 val zipBytes = resp.body?.bytes() ?: return@withContext null
-                // 解压 zip 拿 .fit
                 unzipFit(zipBytes)
             }
         } catch (e: Exception) {
@@ -136,7 +182,6 @@ class GarminApi {
         }
     }
 
-    /** 从 zip 中提取第一个 .fit 文件 */
     private fun unzipFit(zipBytes: ByteArray): ByteArray? {
         return try {
             ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
@@ -156,7 +201,6 @@ class GarminApi {
             }
         } catch (e: Exception) {
             Log.e(TAG, "unzipFit error", e)
-            // 非zip直接返回原数据（某些情况下直接返回fit）
             if (zipBytes.size >= 14 && zipBytes[8] == '.'.code.toByte() && zipBytes[9] == 'F'.code.toByte()) zipBytes else null
         }
     }
@@ -178,16 +222,9 @@ class GarminApi {
                 val result = resp.body?.string() ?: ""
                 Log.d(TAG, "Garmin upload HTTP ${resp.code}: ${result.take(200)}")
                 when (resp.code) {
-                    202 -> {
-                        // 成功
-                        val json = try { JSONObject(result) } catch (_: Exception) { null }
-                        val uploadId = json?.optJSONObject("detailedImportResult")?.optString("uploadId") ?: ""
-                        null
-                    }
-                    409 -> {
-                        if (result.contains("Duplicate Activity")) "重复活动(已在佳明存在)"
-                        else "佳明上传冲突 HTTP 409: ${result.take(100)}"
-                    }
+                    202 -> null
+                    409 -> if (result.contains("Duplicate Activity")) "重复活动(已在佳明存在)"
+                           else "佳明上传冲突 HTTP 409: ${result.take(100)}"
                     400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
                     else -> "佳明上传失败 HTTP ${resp.code}: ${result.take(100)}"
                 }

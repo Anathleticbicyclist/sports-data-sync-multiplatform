@@ -275,33 +275,42 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
 
-    /** v6.5.0: 佳明 检测登录 —— 捕获 connect 域会话 cookie（SSO登录后跳转 connect 域） */
+    /** v6.5.3: 佳明 检测登录 —— 从Success页面提取ticket(ST-...)，后台换OAuth2 Bearer token
+     *  旧版cookie-only方式已失效(佳明2026年改认证流)，必须用ticket→OAuth1→OAuth2 */
     private fun detectGarmin(cn: Boolean) {
-        val host = if (cn) "https://connect.garmin.cn" else "https://connect.garmin.com"
-        val hostPlain = if (cn) "connect.garmin.cn" else "connect.garmin.com"
-        val ssoHost = if (cn) "https://sso.garmin.cn" else "https://sso.garmin.com"
-        val cm = CookieManager.getInstance()
-        val all = listOf(
-            cm.getCookie(host),
-            cm.getCookie(hostPlain),
-            cm.getCookie(ssoHost),
-            cm.getCookie(ssoHost.removePrefix("https://"))
-        ).filterNotNull().joinToString("; ")
-        if (all.length < 40) return
-        // v6.5.1: 必须检测到佳明登录态cookie才算成功（SSO页未登录也有普通cookie，避免误判自动关闭）
-        val hasLoginCookie = all.contains("GARMIN-SSO") || all.contains("SID=") ||
-            all.contains("IDENTITY") || all.contains("__cFP") ||
-            all.contains("SESSIONID") || all.contains("JSESSIONID")
-        if (!hasLoginCookie) {
-            Log.d(TAG, "佳明${if (cn) "中国" else "国际"} cookie存在但无登录态标记，继续等待用户登录 (len=${all.length})")
-            return
+        if (!verifying.compareAndSet(false, true)) return
+        // 从页面内容提取ticket（Success页面的response_url包含ticket=ST-...）
+        webView.evaluateJavascript(
+            "(function(){try{var html=document.body?document.body.innerHTML:'';var m=html.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m)return m[1];if(document.location.href.indexOf('ticket=')>0){var m2=document.location.href.match(/ticket=(ST-[A-Za-z0-9\\-]+)/);if(m2)return m2[1];}return '';}catch(e){return '';}})()"
+        ) { ticket ->
+            val t = ticket?.trim()?.trim('"') ?: ""
+            if (t.length < 10 || !t.startsWith("ST-")) {
+                verifying.set(false)
+                return@evaluateJavascript
+            }
+            Log.i(TAG, "佳明${if (cn) "中国" else "国际"} ticket捕获: ${t.take(30)}...")
+            // 后台线程换token
+            Thread {
+                try {
+                    val serviceUrl = if (cn) "https://connect.garmin.cn/modern/"
+                                     else "https://connect.garmin.com/modern/"
+                    val oauth2 = com.jichi.ob.api.GarminOAuthHelper.loginWithTicket(t, cn, serviceUrl)
+                    if (!detected && !isFinishing) {
+                        detected = true
+                        Log.i(TAG, "✅ 佳明${if (cn) "中国" else "国际"}登录成功, accessToken len=${oauth2.accessToken.length}")
+                        runOnUiThread {
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, oauth2.toJson())
+                                .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_GARMIN_CN else TYPE_GARMIN_COM))
+                            finish()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "佳明ticket换token失败: ${e.message}")
+                    verifying.set(false)
+                }
+            }.start()
         }
-        detected = true
-        Log.i(TAG, "✅ 佳明${if (cn) "中国" else "国际"}登录成功, cookie len=${all.length}")
-        setResult(Activity.RESULT_OK, Intent()
-            .putExtra(RESULT_SESSION_ID, ";$all")
-            .putExtra(RESULT_LOGIN_TYPE, if (cn) TYPE_GARMIN_CN else TYPE_GARMIN_COM))
-        finish()
     }
 
     /** v6.5.0: 高驰 检测登录 —— 读取 CPL-coros-token / CPL-coros-region cookie */

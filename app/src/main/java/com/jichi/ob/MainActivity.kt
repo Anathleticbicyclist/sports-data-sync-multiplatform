@@ -187,16 +187,16 @@ class MainActivity : AppCompatActivity() {
                         prefs.saveGatewayCookies(extra)
                         appendLog("✅ Outbase登录成功"); fetchUsernameAfterLogin(DataSource.OUTBASE)
                     }
-                    LoginWebActivity.TYPE_GARMIN_COM -> if (sid.length > 10) {
-                        prefs.saveGarminComCookie(sid)
-                        prefs.saveGarminComToken("")
-                        appendLog("✅ 佳明国际登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
-                    } else appendLog("⚠️ 佳明国际登录失败: 未捕获到会话")
-                    LoginWebActivity.TYPE_GARMIN_CN -> if (sid.length > 10) {
-                        prefs.saveGarminCnCookie(sid)
-                        prefs.saveGarminCnToken("")
-                        appendLog("✅ 佳明中国登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
-                    } else appendLog("⚠️ 佳明中国登录失败: 未捕获到会话")
+                    LoginWebActivity.TYPE_GARMIN_COM -> if (token.length > 20) {
+                        prefs.saveGarminComToken(token)
+                        prefs.saveGarminComCookie("")
+                        appendLog("✅ 佳明国际登录成功(OAuth2 Bearer token)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
+                    } else appendLog("⚠️ 佳明国际登录失败: 未获取到token")
+                    LoginWebActivity.TYPE_GARMIN_CN -> if (token.length > 20) {
+                        prefs.saveGarminCnToken(token)
+                        prefs.saveGarminCnCookie("")
+                        appendLog("✅ 佳明中国登录成功(OAuth2 Bearer token)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
+                    } else appendLog("⚠️ 佳明中国登录失败: 未获取到token")
                     LoginWebActivity.TYPE_COROS_CN -> if (sid.length > 10) {
                         prefs.saveCorosCnToken(sid)
                         appendLog("✅ 高驰中国登录成功"); fetchUsernameAfterLogin(DataSource.COROS_CN)
@@ -604,7 +604,16 @@ class MainActivity : AppCompatActivity() {
                     } else if (target == DataSource.BRYTON) {
                         appendLog("⏳ 正在打开百锐腾页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
                     }
-                    val targetCred = prefs.getCredential(target) ?: ""
+                    var targetCred = prefs.getCredential(target) ?: ""
+                    // v6.5.3: 佳明目标平台token过期自动刷新
+                    if (target == DataSource.GARMIN_COM || target == DataSource.GARMIN_CN) {
+                        val newCred = garminApi.ensureValidToken(target, targetCred)
+                        if (newCred != targetCred) {
+                            targetCred = newCred
+                            if (target == DataSource.GARMIN_COM) prefs.saveGarminComToken(targetCred)
+                            else prefs.saveGarminCnToken(targetCred)
+                        }
+                    }
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
                     // v6.2.5: 迈金上传优先走HTTP(u.onelap.cn/upload/fit, v6.2.2实测OK、快且不卡UI)，
@@ -713,7 +722,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun fetchActivities(source: DataSource, skip: Int, limit: Int): List<ActivityRecord> {
-        val cred = prefs.getCredential(source) ?: return emptyList()
+        var cred = prefs.getCredential(source) ?: return emptyList()
+        // v6.5.3: 佳明token过期自动刷新
+        if (source == DataSource.GARMIN_COM || source == DataSource.GARMIN_CN) {
+            val newCred = garminApi.ensureValidToken(source, cred)
+            if (newCred != cred) {
+                cred = newCred
+                if (source == DataSource.GARMIN_COM) prefs.saveGarminComToken(cred)
+                else prefs.saveGarminCnToken(cred)
+            }
+        }
         return when (source) {
             DataSource.IGPSPORT -> igpsportApi.getActivities(cred, skip, limit)
             DataSource.XINGZHE -> xingzheApi.getActivities(cred, skip, limit)
