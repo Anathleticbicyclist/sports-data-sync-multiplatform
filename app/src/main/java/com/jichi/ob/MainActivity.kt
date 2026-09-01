@@ -190,12 +190,12 @@ class MainActivity : AppCompatActivity() {
                     LoginWebActivity.TYPE_GARMIN_COM -> if (token.length > 20) {
                         prefs.saveGarminComToken(token)
                         prefs.saveGarminComCookie("")
-                        appendLog("✅ 佳明国际登录成功(OAuth2 Bearer token)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
+                        appendLog("✅ 佳明国际登录成功(JWT_WEB+CSRF)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
                     } else appendLog("⚠️ 佳明国际登录失败: 未获取到token")
                     LoginWebActivity.TYPE_GARMIN_CN -> if (token.length > 20) {
                         prefs.saveGarminCnToken(token)
                         prefs.saveGarminCnCookie("")
-                        appendLog("✅ 佳明中国登录成功(OAuth2 Bearer token)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
+                        appendLog("✅ 佳明中国登录成功(JWT_WEB+CSRF)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
                     } else appendLog("⚠️ 佳明中国登录失败: 未获取到token")
                     LoginWebActivity.TYPE_COROS_CN -> if (sid.length > 10) {
                         prefs.saveCorosCnToken(sid)

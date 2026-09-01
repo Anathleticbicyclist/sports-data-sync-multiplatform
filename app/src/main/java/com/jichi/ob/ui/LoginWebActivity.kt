@@ -142,33 +142,8 @@ class LoginWebActivity : AppCompatActivity() {
                             finish()
                         }
                     }
-                    // v6.5.6: 佳明 ticket实时捕获（增强：支持query和fragment，支持ST-...-sso格式）
-                    // 新版SSO登录成功后重定向到 /embed?ticket=ST-...-sso 或 connect.garmin.com/modern/?ticket=ST-...
-                    if ((loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) && url != null && !detected) {
-                        var ticket: String? = null
-                        // 先从query参数提取
-                        try { ticket = android.net.Uri.parse(url).getQueryParameter("ticket") } catch (_: Exception) {}
-                        // query没有则从fragment提取（#ticket=ST-...）
-                        if (ticket.isNullOrEmpty()) {
-                            val fragIdx = url.indexOf('#')
-                            if (fragIdx > 0) {
-                                val frag = url.substring(fragIdx + 1)
-                                val m = Regex("ticket=(ST-[A-Za-z0-9\\-]+)").find(frag)
-                                ticket = m?.groupValues?.getOrNull(1)
-                            }
-                        }
-                        // 再从整个URL正则提取（兜底）
-                        if (ticket.isNullOrEmpty()) {
-                            val m = Regex("ticket=(ST-[A-Za-z0-9\\-]+)").find(url)
-                            ticket = m?.groupValues?.getOrNull(1)
-                        }
-                        if (!ticket.isNullOrEmpty() && ticket.startsWith("ST-")) {
-                            detected = true
-                            Log.i(TAG, "✅ 佳明ticket捕获(onPageStarted): ${ticket.take(40)}...")
-                            val cn = loginType == TYPE_GARMIN_CN
-                            exchangeGarminTicket(ticket, cn)
-                        }
-                    }
+                    // v6.5.8: 佳明不再用ticket换OAuth2，改为检测JWT_WEB cookie（detectGarmin定时检测）
+                    // 旧的ticket捕获逻辑已禁用，避免抢先返回旧格式凭证导致401
                 }
                 override fun onPageFinished(view: WebView?, url: String?) {
                     progressBar.visibility = android.view.View.GONE
