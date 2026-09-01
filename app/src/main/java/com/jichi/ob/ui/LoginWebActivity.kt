@@ -111,7 +111,7 @@ class LoginWebActivity : AppCompatActivity() {
                 databaseEnabled = true
                 allowContentAccess = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                userAgentString = if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) MOBILE_UA else DESKTOP_UA
+                userAgentString = DESKTOP_UA  // v6.5.2: 佳明改回桌面UA(Mobile UA下SSO登录页异常无反应)
                 if (loginType == TYPE_OUTBASE) {
                     useWideViewPort = true
                     loadWithOverviewMode = true

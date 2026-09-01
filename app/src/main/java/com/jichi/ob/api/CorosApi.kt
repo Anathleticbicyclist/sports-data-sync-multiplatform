@@ -188,10 +188,16 @@ class CorosApi {
             val stsUrl = "https://faq.coros.com/openapi/oss/sts?bucket=$bucket&service=${sts.service}&app_id=$STS_APP_ID&sign=${sts.sign}&v=$STS_V"
             val stsReq = Request.Builder().url(stsUrl).addHeader("User-Agent", UA).get().build()
             val credJson = client.newCall(stsReq).execute().use { resp ->
+                val rawBody = resp.body?.string() ?: ""
+                Log.d(TAG, "STS HTTP ${resp.code}: ${rawBody.take(300)}")
                 if (resp.code != 200) return@withContext "高驰OSS STS获取失败 HTTP ${resp.code}"
-                val json = JSONObject(resp.body?.string() ?: "")
-                if (json.optInt("code") != 200) return@withContext "高驰OSS STS失败: ${json.optString("msg")}"
-                val enc = json.optJSONObject("data")?.optString("credentials") ?: return@withContext "高驰OSS STS无凭证"
+                val json = JSONObject(rawBody)
+                val ok = json.optInt("code") == 200 || json.optString("code") == "200" ||
+                    json.optString("result") == "0000" || json.optString("status") == "ok"
+                if (!ok) return@withContext "高驰OSS STS失败: ${rawBody.take(150)}"
+                val dataObj = json.optJSONObject("data")
+                val enc = dataObj?.optString("credentials") ?: dataObj?.optString("credential")
+                    ?: json.optString("credentials") ?: return@withContext "高驰OSS STS无凭证: ${rawBody.take(150)}"
                 decodeSts(enc)
             }
 
@@ -200,7 +206,10 @@ class CorosApi {
                 "aliyun" -> uploadAliyunOss(bucket, objectKey, fitData, credJson)
                 else -> uploadAwsS3(bucket, objectKey, fitData, credJson, regionId)
             }
-            if (!upOk) return@withContext "高驰OSS上传失败"
+            if (!upOk) {
+                Log.w(TAG, "OSS上传失败, bucket=$bucket, key=$objectKey, service=${sts.service}, size=$size")
+                return@withContext "高驰OSS上传失败"
+            }
 
             // 3) fit/import 注册
             val importBody = JSONObject()
@@ -246,8 +255,9 @@ class CorosApi {
             val ak = cred.getString("AccessKeyId")
             val sk = cred.getString("AccessKeySecret")
             val token = cred.getString("SecurityToken")
-            val date = java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", java.util.Locale.US)
-                .format(java.util.Date())
+            val sdf = java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", java.util.Locale.US)
+            sdf.timeZone = java.util.TimeZone.getTimeZone("GMT")
+            val date = sdf.format(java.util.Date())
             val contentType = "application/octet-stream"
             val stringToSign = "PUT\n\n$contentType\n$date\nx-oss-security-token:$token\n/$bucket/$key"
             val signature = hmacSha1(sk, stringToSign)
