@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.8 |
+| 当前版本 | v6.5.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.9 (2026-09-01) — 佳明上传下载401修复（禁用旧ticket交换） + 底部鸣谢更新
+1. **佳明401根因修复** — v6.5.8中onPageStarted检测到ticket后仍调用旧exchangeGarminTicket，抢先返回OAuth2旧格式凭证导致上传下载401。v6.5.9彻底禁用旧ticket捕获逻辑，完全依赖JWT_WEB cookie定时检测
+2. **佳明国际版支持** — gc-api代理方案同时支持国际版(connect.garmin.com/gc-api)和中国版(connect.garmin.cn/gc-api)，登录后自动提取JWT_WEB+CSRF
+3. **底部鸣谢更新** — 平台新增高驰、佳明、Wahoo；测试人员新增兰兰大王、。、初夏飞雪bab；开发者署名多吃两口；反馈渠道改为Outbase开发者俱乐部私信
+4. **版本号更新** — v6.5.9 (versionCode 661)
 ### v6.5.8 (2026-09-01) — 佳明登录彻底修复（gc-api代理 + JWT_WEB + CSRF）
 **核心突破**：佳明中国版登录全流程Python实测验证通过，彻底废弃旧OAuth2 Bearer token方案。
 1. **佳明认证重写** — 改用gc-api代理方案：WebView登录成功后提取JWT_WEB cookie + 页面meta csrf-token，API调用走`connect.garmin.cn/gc-api/`代理，header带`connect-csrf-token` + `Cookie: JWT_WEB=...`
