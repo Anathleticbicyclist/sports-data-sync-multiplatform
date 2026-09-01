@@ -98,6 +98,56 @@ class LoginWebActivity : AppCompatActivity() {
             }
             toolbar.setNavigationOnClickListener { detected = true; finish() }
 
+            // v6.7.8: 国际版用mobile SSO登录（不经过Cloudflare），中国版保持WebView登录
+            if (loginType == TYPE_GARMIN_COM) {
+                findViewById<android.widget.LinearLayout>(R.id.mobileLoginLayout).visibility = android.view.View.VISIBLE
+                webView = findViewById(R.id.webView)
+                webView.visibility = android.view.View.GONE
+                findViewById<android.view.View>(R.id.btnConfirmLogin)?.visibility = android.view.View.GONE
+                val etEmail = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etEmail)
+                val etPassword = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPassword)
+                val btnLogin = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnMobileLogin)
+                val tvStatus = findViewById<android.widget.TextView>(R.id.tvMobileLoginStatus)
+                btnLogin.setOnClickListener {
+                    val email = etEmail.text?.toString()?.trim() ?: ""
+                    val password = etPassword.text?.toString() ?: ""
+                    if (email.isEmpty() || password.isEmpty()) {
+                        tvStatus.text = "请输入邮箱和密码"
+                        return@setOnClickListener
+                    }
+                    btnLogin.isEnabled = false
+                    btnLogin.text = "登录中..."
+                    tvStatus.text = "正在通过mobile SSO登录..."
+                    GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val garminApi = com.jichi.ob.api.GarminApi()
+                            val cred = garminApi.loginMobile(email, password)
+                            runOnUiThread {
+                                if (cred != null) {
+                                    tvStatus.text = "✅ 登录成功！"
+                                    detected = true
+                                    setResult(Activity.RESULT_OK, Intent()
+                                        .putExtra(RESULT_TOKEN, cred)
+                                        .putExtra(RESULT_LOGIN_TYPE, TYPE_GARMIN_COM))
+                                    finish()
+                                } else {
+                                    btnLogin.isEnabled = true
+                                    btnLogin.text = "登录"
+                                    tvStatus.text = "❌ 登录失败，请检查邮箱密码\n（如开启了两步验证请先关闭）"
+                                }
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread {
+                                btnLogin.isEnabled = true
+                                btnLogin.text = "登录"
+                                tvStatus.text = "❌ 登录异常: ${e.message}"
+                            }
+                        }
+                    }
+                }
+                return@onCreate
+            }
+
             findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.setOnClickListener {
                 confirmManualLogin()
             }
