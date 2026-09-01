@@ -8,7 +8,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v6.5.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v6.5.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具（**开发体验版**），支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -23,7 +23,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v6.5.1 |
+| 当前版本 | v6.5.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -163,6 +163,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v6.5.2 (2026-09-01) — 佳明登录修复 + 高驰OSS上传修复
+1. **佳明登录修复**：v6.5.1 误将佳明SSO登录页改为Mobile UA导致页面异常"登录没反应"，改回桌面UA；登录态cookie检测保留（避免2秒误判）
+2. **高驰OSS上传修复**：阿里云OSS签名Date头未设置GMT时区（默认北京时间差8小时），导致所有上传签名验证失败返回"高驰OSS上传失败"；已修复Date头时区为GMT
+3. **高驰STS解析加固**：兼容 code/result/status 多种返回格式，增加STS凭证和OSS上传失败日志，便于后续调试
+4. **版本号**：v6.5.1(653) → v6.5.2(654)
+
 ### v6.5.1 (2026-09-01) — Wahoo免注册改造 + 佳明登录修复 + 同步目标chip补全
 1. **Wahoo免注册**：去掉用户手动输入 client_id/client_secret 弹窗，改为维护者在 developers.wahooligan.com 免费注册一次后内置凭证，用户直接用Wahoo账号登录授权即可，完全感知不到注册环节
 2. **佳明登录修复**：detectGarmin 增加登录态cookie检测（GARMIN-SSO/SID/IDENTITY/SESSIONID/JSESSIONID任一），避免SSO页未登录普通cookie触发2秒误判"登录成功"；WebView增加 onRenderProcessGone 崩溃防护（渲染进程崩溃时自动reload不闪退）；佳明登录页改用Mobile UA降低JS复杂度
@@ -184,7 +190,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 **UI 改造**：
 - 平台登录卡片从单列竖排改为 **GridLayout 两列网格布局**，11个平台卡片统一色条/标题/状态/按钮高度，对齐排版，解决单列页面过长问题
 
-**版本号**：v6.5.1 (versionCode 653)
+**版本号**：v6.5.2 (versionCode 654)
 
 ### v6.4.3 (2026-08-31) — 修复行者/黑鸟上传时间快8小时：gpx2fit的+8小时参数化
 
