@@ -527,6 +527,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // v6.7.5: 输出GarminApi调试日志到界面
+    private fun flushGarminDebugLogs() {
+        try {
+            val logs = GarminApi.debugLogs
+            synchronized(logs) {
+                if (logs.isNotEmpty()) {
+                    for (line in logs) {
+                        val cur = tvLog.text?.toString() ?: ""
+                        tvLog.text = if (cur.isBlank() || cur == "等待操作...") line else "$cur\n$line"
+                    }
+                    logs.clear()
+                    logScrollView.post { try { logScrollView.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     private fun setSyncing(syncing: Boolean) {
         AutoSyncService.syncing = syncing
         runOnUiThread {
@@ -553,11 +570,14 @@ class MainActivity : AppCompatActivity() {
         appendLog("━━━━━━━━━━━━━━━━━━━━━━")
         appendLog("🚀 开始同步: ${source.displayName} → ${target.displayName} (跳过$skip, 同步$count)")
         setSyncing(true)
+        // v6.7.5: 输出GarminApi调试日志
+        flushGarminDebugLogs()
         syncJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 appendLog("📥 [${source.displayName}] 获取活动列表...")
                 val activities = fetchActivities(source, skip, count)
                 appendLog("📋 获取到 ${activities.size} 条活动")
+                flushGarminDebugLogs()
                 if (activities.isEmpty()) { appendLog("❌ 未获取到任何活动"); setSyncing(false); return@launch }
                 if (target == DataSource.OUTBASE) {
                     val obSid = prefs.getOutbaseSessionId()!!
