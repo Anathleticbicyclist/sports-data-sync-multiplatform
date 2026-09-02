@@ -28,7 +28,7 @@ class WahooApi {
         const val API_BASE = "https://api.wahooligan.com"
         const val AUTHORIZE_URL = "https://api.wahooligan.com/oauth/authorize"
         const val TOKEN_URL = "https://api.wahooligan.com/oauth/token"
-        const val REDIRECT_URI = "http://localhost:8080/"
+        const val REDIRECT_URI = "https://localhost:8080/"
         const val SCOPES = "workouts_read offline_data user_read"
         private const val UA = "jichi-ob/6.5.1 (Android)"
 

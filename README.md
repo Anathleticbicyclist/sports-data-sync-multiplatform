@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.1.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.7 |
+| 当前版本 | v7.1.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,26 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.1.8 (2026-09-02) — 修复Wahoo授权码捕获：在SSL证书错误时提取授权码（最关键修复）
+
+**根因**：
+- Wahoo要求HTTPS redirect_uri（`https://localhost:8080/`）
+- 但localhost没有有效SSL证书，WebView加载时会触发`onReceivedSslError`
+- 之前的四道防线（shouldOverrideUrlLoading/doUpdateVisitedHistory/onPageStarted/onReceivedError）在SSL错误时可能都不触发
+- **最可靠的时机是`onReceivedSslError`**，这时候URL中已经包含授权码
+
+**修复内容**：
+- redirect_uri改回HTTPS（`https://localhost:8080/`），和Wahoo开发者平台配置一致
+- 在`onReceivedSslError`中添加授权码捕获（第五道防线，最可靠）
+- 保留URL历史追踪和调试对话框（如果还是不行，点击"确认登录"查看URL历史）
+
+**五道防线**：
+1. `shouldOverrideUrlLoading` — URL加载前拦截
+2. `doUpdateVisitedHistory` — URL变化（包括302重定向）
+3. `onPageStarted` — 页面开始加载
+4. `onReceivedError` — 加载失败时从failingUrl提取
+5. **`onReceivedSslError` — HTTPS localhost证书错误时提取（最可靠）**
 
 ### v7.1.7 (2026-09-02) — Wahoo调试版：添加URL历史追踪，redirect_uri改HTTP
 

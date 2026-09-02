@@ -278,9 +278,25 @@ class LoginWebActivity : AppCompatActivity() {
                         }
                     }
                 }
-                // v7.1.6: 忽略SSL证书错误（https://localhost没有有效证书，不忽略会导致页面加载失败）
+                // v7.1.8: 忽略SSL证书错误，同时尝试从URL中提取授权码（https://localhost没有有效证书）
                 override fun onReceivedSslError(view: WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
-                    Log.w(TAG, "[$loginType] onReceivedSslError: ${error?.url}")
+                    val sslUrl = error?.url
+                    Log.w(TAG, "[$loginType] onReceivedSslError: $sslUrl")
+                    if (sslUrl != null) urlHistory.add("sslError: $sslUrl")
+                    // v7.1.8: HTTPS localhost证书错误时，直接从URL中提取授权码（最可靠的时机）
+                    if (loginType == TYPE_WAHOO && sslUrl != null && sslUrl.contains("localhost:8080") && sslUrl.contains("code=") && !detected) {
+                        val code = extractWahooCode(sslUrl)
+                        if (!code.isNullOrEmpty()) {
+                            detected = true
+                            Log.i(TAG, "✅ Wahoo 授权码捕获(onReceivedSslError) len=${code.length}")
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, code)
+                                .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+                            finish()
+                            handler?.cancel()
+                            return
+                        }
+                    }
                     handler?.proceed()  // 忽略证书错误，继续加载
                 }
 
