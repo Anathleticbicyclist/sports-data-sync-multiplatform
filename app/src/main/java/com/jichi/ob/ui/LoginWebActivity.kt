@@ -278,14 +278,21 @@ class LoginWebActivity : AppCompatActivity() {
                         }
                     }
                 }
-                // v7.1.8: 忽略SSL证书错误，同时尝试从URL中提取授权码（https://localhost没有有效证书）
+                // v7.1.9: 忽略SSL证书错误，同时尝试从URL中提取授权码（https://localhost没有有效证书）
                 override fun onReceivedSslError(view: WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
                     val sslUrl = error?.url
-                    Log.w(TAG, "[$loginType] onReceivedSslError: $sslUrl")
+                    val webViewUrl = view?.url
+                    Log.w(TAG, "[$loginType] onReceivedSslError: sslUrl=$sslUrl, webViewUrl=$webViewUrl")
                     if (sslUrl != null) urlHistory.add("sslError: $sslUrl")
-                    // v7.1.8: HTTPS localhost证书错误时，直接从URL中提取授权码（最可靠的时机）
-                    if (loginType == TYPE_WAHOO && sslUrl != null && sslUrl.contains("localhost:8080") && sslUrl.contains("code=") && !detected) {
-                        val code = extractWahooCode(sslUrl)
+                    if (webViewUrl != null) urlHistory.add("webViewUrl: $webViewUrl")
+                    // v7.1.9: HTTPS localhost证书错误时，从sslUrl和webViewUrl中提取授权码
+                    val candidateUrl = when {
+                        sslUrl != null && sslUrl.contains("localhost:8080") && sslUrl.contains("code=") -> sslUrl
+                        webViewUrl != null && webViewUrl.contains("localhost:8080") && webViewUrl.contains("code=") -> webViewUrl
+                        else -> null
+                    }
+                    if (loginType == TYPE_WAHOO && candidateUrl != null && !detected) {
+                        val code = extractWahooCode(candidateUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
                             Log.i(TAG, "✅ Wahoo 授权码捕获(onReceivedSslError) len=${code.length}")
