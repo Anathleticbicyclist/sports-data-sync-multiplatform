@@ -116,22 +116,70 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 佳明中国上传下载速度较慢（服务器端限制）
 - 行者→iGPSPORT 8小时时差
 
+### v7.5.0 ~ v7.4.6 (2026-09-03) — 佳明中国修复尝试（均未成功）
+**已解决**：
+- v7.4.9: 修复cookie被清除问题（只清佳明域名，保留其他平台登录态）
+
+**未解决**：
+- 佳明中国登录成功但获取活动列表0条、上传403或卡住
+- 尝试方案：favicon.ico页面、不加载页面注入cookie、gc-api+保存所有cookie、WebView直接加载URL，均未成功
+
 ### v7.4.5 (2026-09-03)
 **已解决**：
 - Wahoo登录、上传、下载全部修复（恢复OkHttp模拟浏览器直接登录方案）
-
-### v7.4.4 (2026-09-03)
-**已解决**：
-- Wahoo上传功能开放（workouts_write权限）
-
-### v7.1.2 (2026-08-xx)
-**已解决**：
-- 回滚行者FIT时间戳修改（修改后导致iGPSPORT解析失败），行者FIT直接上传
+- 佳明中国上传cookie domain修复（注入到主域名.garmin.cn）
 
 **未解决**：
-- 行者→iGPSPORT 8小时时差（时间戳修改导致解析失败，暂无法解决）
+- 佳明中国上传仍返回403
 
-### v7.0.x 历史版本
+### v7.4.4 ~ v7.4.0 (2026-09-02~03) — Wahoo和佳明中国修复尝试
+**已解决**：
+- v7.4.4: Wahoo上传功能开放（workouts_write权限）
+- v7.4.4: Wahoo登录回调捕获修复（shouldOverrideUrlLoading拦截回调URL）
+- v7.4.3: Wahoo redirect_uri改回HTTPS（Wahoo要求HTTPS）
+
+**未解决**：
+- Wahoo登录仍不稳定（回调捕获失败）
+- 佳明中国上传返回403
+
+### v7.3.1 ~ v7.2.0 (2026-09-02) — Wahoo登录重构
+**已解决**：
+- v7.3.1: 修复Wahoo登录成功但首页显示未登录的问题
+- v7.3.0: 找到Wahoo登录真正根因：授权按钮是中文"授权"而非英文"Authorize"
+- v7.2.2: 修复Step 1重定向处理的严重bug
+- v7.2.1: 重写Wahoo登录，使用OkHttp CookieJar自动管理Cookie
+- v7.2.0: 彻底重构Wahoo登录：不使用WebView，直接用OkHttp模拟OAuth2完整流程
+
+### v7.1.9 ~ v7.1.4 (2026-09-02) — Wahoo授权码捕获修复
+**已解决**：
+- v7.1.9: 增强SSL错误授权码捕获
+- v7.1.8: 修复Wahoo授权码捕获：在SSL证书错误时提取授权码（最关键修复）
+- v7.1.7: 添加URL历史追踪，redirect_uri改HTTP
+- v7.1.6: 本地测试验证后彻底修复Wahoo授权码捕获
+- v7.1.5: 彻底修复Wahoo授权码捕获（参考开源项目dofek/wahoolib）
+- v7.1.4: 修复Wahoo授权码捕获失败
+
+### v7.1.3 ~ v7.1.0 (2026-09-02) — Wahoo生产凭证 + 行者→iGPSPORT时间修复
+**已解决**：
+- v7.1.3: Wahoo生产应用已批准，内置生产凭证
+- v7.1.3: 回滚行者→iGPSPORT时间修正（修改后导致iGPSPORT解析失败）
+- v7.1.1: 修复行者→iGPSPORT activity消息时间戳未修改导致解析失败
+- v7.1.0: 行者→iGPSPORT时间修复稳定版
+
+**未解决**：
+- 行者→iGPSPORT 8小时时差（时间戳修改导致解析失败，回滚后仍存在）
+
+### v7.0.91 ~ v7.0.4 (2026-09-02) — 早期修复
+**已解决**：
+- v7.0.91: 修复行者→iGPSPORT经度被误改导致文件损坏
+- v7.0.9: 修复行者→iGPSPORT时间字段不一致导致解析失败
+- v7.0.8: 修复行者→iGPSPORT FIT文件结构损坏
+- v7.0.7: 修复佳明中国WebView通道域名错误
+- v7.0.6: 佳明中国用WebView绕过Cloudflare + 行者FIT时间修复 + Wahoo用户自配置
+- v7.0.5: 修复行者→iGPSPORT FIT文件结构损坏
+- v7.0.4: 行者→iGPSPORT FIT时间戳修正
+
+### v7.0.x 早期版本
 - 佳明国际mobile SSO+DI token绕过Cloudflare
 - 十一平台基础互传功能
 
