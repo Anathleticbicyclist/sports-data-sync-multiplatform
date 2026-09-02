@@ -191,17 +191,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 感谢以下运动平台为广大运动用户提供的数据记录与存储服务，正是因为各平台开放的数据接口，才让数据自由流动成为可能：
 
-| 品牌 | Slogan |
-|------|--------|
-| iGPSPORT迹驰 | [Innovation for Great Performance @ SPORTS](https://www.igpsport.com) |
-| 行者 | [虽千万里 吾往矣](https://www.imxingzhe.com) |
-| 迈金Magene | [让运动更科学](https://www.magene.cn) |
-| 黑鸟单车 | [黑鸟单车 骑乐无穷](https://www.blackbirdsport.com) |
-| 百锐腾Bryton | [Engineered for Great Performance](https://www.brytonsport.com) |
-| Outbase | [用运动连接世界](https://outbase.cn) |
-| 佳明Garmin | [Engineered on the inside for life on the outside](https://www.garmin.com.cn) |
-| 高驰COROS | [保持专注 乐于创新 满怀热情](https://www.coros.com) |
-| Wahoo | [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com) |
+- iGPSPORT迹驰 — [Innovation for Great Performance @ SPORTS](https://www.igpsport.com)
+- 行者 — [虽千万里 吾往矣](https://www.imxingzhe.com)
+- 迈金Magene — [让运动更科学](https://www.magene.cn)
+- 黑鸟单车 — [黑鸟单车 骑乐无穷](https://www.blackbirdsport.com)
+- 百锐腾Bryton — [Engineered for Great Performance](https://www.brytonsport.com)
+- Outbase — [用运动连接世界](https://outbase.cn)
+- 佳明Garmin — [Engineered on the inside for life on the outside](https://www.garmin.com.cn)
+- 高驰COROS — [保持专注 乐于创新 满怀热情](https://www.coros.com)
+- Wahoo — [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com)
 
 > 各平台数据版权归原平台所有，本工具仅用于用户个人数据的迁移与备份，不得用于商业用途或数据爬取。
 
