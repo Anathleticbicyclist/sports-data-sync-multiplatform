@@ -3,6 +3,13 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// 从 local.properties 读取签名密钥（不提交到 git）
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('local.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace 'com.jichi.ob'
     compileSdk 36
@@ -13,6 +20,9 @@ android {
         targetSdk 36
         versionCode 751
         versionName "7.5.1"
+        // Wahoo开发者凭证从local.properties读取（不硬编码到源码）
+        buildConfigField "String", "WAHOO_CLIENT_ID", "\"${keystoreProperties['wahoo_client_id'] ?: ""}\""
+        buildConfigField "String", "WAHOO_CLIENT_SECRET", "\"${keystoreProperties['wahoo_client_secret'] ?: ""}\""
     }
 
     buildFeatures {
@@ -21,10 +31,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('../jichi-ob-dev.keystore')
-            storePassword 'jichiobdev2026'
-            keyAlias 'jichiobdev'
-            keyPassword 'jichiobdev2026'
+            storeFile file(keystoreProperties['storeFile'] ?: '../jichi-ob-dev.keystore')
+            storePassword keystoreProperties['storePassword'] ?: ''
+            keyAlias keystoreProperties['keyAlias'] ?: ''
+            keyPassword keystoreProperties['keyPassword'] ?: ''
             v1SigningEnabled true
             v2SigningEnabled true
         }
