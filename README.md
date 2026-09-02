@@ -10,9 +10,9 @@
 [![Version](https://img.shields.io/badge/Version-v7.5.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
 
-> ⚠️ **开发版不稳定且用且珍惜**，仅供测试体验。
+> ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
 ---
 
@@ -29,15 +29,18 @@
 
 ---
 
-## 📱 软件界面
+## ⚠️ 已知问题与限制
 
-| 登录页 | 同步设置 | 运行日志 |
-|:---:|:---:|:---:|
-| <img src="screenshots_login.webp" width="280"/> | <img src="screenshots_sync.webp" width="280"/> | <img src="screenshots_log.webp" width="280"/> |
+使用前请务必了解以下已知问题：
 
-- **登录页**：十一平台登录卡片，两列布局，已登录状态一目了然
-- **同步设置**：数据来源/同步目标四列网格，Outbase独占一行，开发中按钮两行显示
-- **运行日志**：后台自动同步、开始同步、测试下载、运行日志实时输出
+| 问题 | 影响范围 | 说明 | 状态 |
+|------|---------|------|------|
+| **行者→iGPSPORT 8小时时差** | 行者上传到iGPSPORT | 行者FIT时间戳为北京时间（非标准UTC），iGPSPORT按UTC解析后显示时间晚8小时。曾尝试修改FIT时间戳但导致iGPSPORT解析失败，已回滚。**当前行者FIT直接上传，时间显示可能存在8小时差异** | 已知问题，暂未解决 |
+| **佳明中国速度较慢** | 佳明中国上传/下载 | 佳明中国connectapi服务器处理速度较慢，上传约需30-60秒（服务器端解析FIT、校验重复、入库），获取活动列表约需10-30秒。功能正常，仅速度较慢 | 已知问题，服务器端限制 |
+| **百锐腾下载不支持** | 百锐腾作为数据源 | 百锐腾官方未开放FIT下载接口，无法从百锐腾下载活动记录 | 平台限制，无法解决 |
+| **迈金上传开发中** | 迈金作为同步目标 | 迈金上传功能尚未完成，当前仅支持从迈金下载 | 开发中 |
+| **Outbase仅支持上传** | Outbase作为数据源 | Outbase为聚合上传平台，仅支持上传，不支持从Outbase下载 | 平台限制 |
+| **两步验证(MFA)** | 佳明中国/国际登录 | 佳明账号若开启两步验证，需先在佳明App中关闭，当前版本不支持MFA验证码输入 | 已知限制 |
 
 ---
 
@@ -48,20 +51,20 @@
 | 平台 | 下载(源) | 上传(目标) | 说明 |
 |------|:---:|:---:|------|
 | **iGPSPORT** | ✅ | ✅ | 迹驰码表数据，OSS直传上传 |
-| **行者** | ✅ | ✅ | 行者APP数据，官方开放API |
+| **行者** | ✅ | ✅ | 行者APP数据，官方开放API（⚠️上传到iGPSPORT有8小时时差） |
 | **迈金** | ✅ | 🚧 开发中 | 支持GCJ-02→WGS84坐标转换 |
 | **黑鸟单车** | ✅ | ✅ | 仅接受FIT，GPX自动转换 |
 | **百锐腾** | ⚠️ | 🚧 开发中 | 官方未开放FIT下载接口 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
-| **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO认证 |
-| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，mobile SSO+DI Token(参考garth库)，connectapi不经过Cloudflare |
+| **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO+DI Token |
+| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，mobile SSO+DI Token（参考garth库），connectapi不经过Cloudflare（⚠️速度较慢） |
 | **高驰中国** | ✅ | ✅ | COROS中国区，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS国际/欧洲区，AWS S3上传 |
-| **Wahoo** | ✅ | ✅ | Wahoo官方上传API，base64编码+轮询状态 |
+| **Wahoo** | ✅ | ✅ | Wahoo官方API，直接登录+base64编码上传+轮询状态 |
 
 **支持的同步组合**：
 - 任意平台 → Outbase 上传
-- iGPSPORT / 行者 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) 之间任意互传
+- iGPSPORT / 行者 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo 之间任意互传
 - 国内区↔国际区互传：佳明国际↔佳明中国、高驰中国↔高驰国际
 
 ### 核心功能
@@ -78,13 +81,11 @@
 
 ## 🏗️ 关键技术
 
-1. **WebView登录**：各平台官方登录页，拦截回调获取Token/Cookie
-2. **佳明国际mobile SSO**：参考garminconnect 0.3.x，通过mobile SSO获取DI OAuth Bearer token，访问connectapi.garmin.com绕过Cloudflare
-3. **佳明中国WebView+gc-api通道**：WebView登录获取所有cookie(含JWT_WEB/session/cf_clearance)，WebView执行JavaScript fetch调用gc-api端点上传下载，利用浏览器TLS指纹绕过Cloudflare
+1. **佳明国际/中国 mobile SSO**：参考garth库，通过mobile SSO登录获取serviceTicket → OAuth1 preauthorized → OAuth2 exchange → DI Bearer token，访问connectapi.garmin.com/cn绕过Cloudflare
+2. **Wahoo OAuth2直接登录**：OkHttp模拟浏览器完成SAML登录+OAuth2授权全流程，自动识别中文"授权"按钮，获取access_token（含workouts_write上传权限）
+3. **Wahoo上传下载**：官方API，base64编码上传+轮询处理状态，支持FIT文件
 4. **FIT坐标转换**：隐藏WebView执行JavaScript解析FIT二进制
-5. **Wahoo OAuth2直接登录**：OkHttp模拟浏览器完成SAML登录+OAuth2授权全流程，自动识别中文"授权"按钮，获取access_token（含workouts_write上传权限）
-6. **Wahoo上传下载**：官方API，base64编码上传+轮询处理状态，支持FIT文件
-7. **协程异步**：全部网络请求Kotlin Coroutines，主线程安全
+5. **协程异步**：全部网络请求Kotlin Coroutines，主线程安全
 
 ---
 
@@ -106,31 +107,31 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
 ### v7.5.1 (2026-09-03)
-- **佳明中国彻底修复**：深度研读garth库源代码，改用mobile SSO+OAuth1→OAuth2 Bearer token方案（和佳明国际完全一样），调用connectapi.garmin.cn，彻底绕过Cloudflare
-- 登录方式：弹出对话框输入邮箱密码，后台自动完成SSO登录+OAuth授权，不需要WebView
-- 之前的WebView+cookie+gc-api方案全部废弃
+**已解决**：
+- 佳明中国登录、上传、下载全部修复（改用garth库方案：mobile SSO+OAuth2 Bearer token+connectapi）
 
-### v7.5.0 (2026-09-03)
-- **佳明中国**：prepareWebView加载favicon.ico简单页面（而非modern页面），避免重定向到sign-in导致永远ready不了；origin为connect.garmin.cn，fetch调用gc-api无CORS问题；cookie直接用CookieManager中LoginWebActivity已有的，不手动注入
-- 其他平台未改动
-
-
-### v7.4.9 (2026-09-03)
-- **佳明中国**：修复cookie被清除问题——`removeAllCookies`改为只清除佳明域名，保留其他平台登录态；prepareWebView不手动注入cookie，直接用LoginWebActivity已有的有效cookie
-- 其他平台未改动
-
-### v7.4.8 (2026-09-03)
-- **佳明中国**：回滚到gc-api端点（Garmin网页本身用的API）；登录时保存所有cookie（含cf_clearance），避免后续请求再次触发Cloudflare验证
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- 行者→iGPSPORT 8小时时差
 
 ### v7.4.5 (2026-09-03)
-- **Wahoo**：登录+上传+下载全通，恢复OkHttp模拟浏览器直接登录方案（自动完成SAML+OAuth2授权）
+**已解决**：
+- Wahoo登录、上传、下载全部修复（恢复OkHttp模拟浏览器直接登录方案）
 
 ### v7.4.4 (2026-09-03)
-- **Wahoo**：上传功能开放，workouts_write权限，官方API base64上传+轮询状态
+**已解决**：
+- Wahoo上传功能开放（workouts_write权限）
+
+### v7.1.2 (2026-08-xx)
+**已解决**：
+- 回滚行者FIT时间戳修改（修改后导致iGPSPORT解析失败），行者FIT直接上传
+
+**未解决**：
+- 行者→iGPSPORT 8小时时差（时间戳修改导致解析失败，暂无法解决）
 
 ### v7.0.x 历史版本
-- 行者→iGPSPORT时间戳适配（后回滚，行者FIT直接上传）
 - 佳明国际mobile SSO+DI token绕过Cloudflare
 - 十一平台基础互传功能
 
