@@ -454,13 +454,65 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
-    /** v7.1.3: Wahoo 登录——内置生产凭证已配置时直接登录，否则弹出配置对话框 */
+    /** v7.2.0: Wahoo 登录——直接用WahooOAuth2Service模拟OAuth2流程（不使用WebView） */
     private fun openWahooLogin() {
-        // 内置生产凭证已配置，直接打开登录页面
-        if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
-            openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl())
-            return
+        // 显示邮箱密码输入对话框
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
         }
+        val etEmail = android.widget.EditText(this).apply {
+            hint = "Wahoo账号邮箱"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val etPassword = android.widget.EditText(this).apply {
+            hint = "密码"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val tvHint = android.widget.TextView(this).apply {
+            text = "v7.2.0新方案：不使用WebView，直接模拟OAuth2流程登录"
+            textSize = 11f
+            setTextColor(0xFF888888.toInt())
+            setPadding(0, 16, 0, 0)
+        }
+        layout.addView(etEmail)
+        layout.addView(etPassword)
+        layout.addView(tvHint)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Wahoo登录")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val email = etEmail.text.toString().trim()
+                val password = etPassword.text.toString().trim()
+                if (email.isEmpty() || password.isEmpty()) {
+                    android.widget.Toast.makeText(this, "请输入邮箱和密码", android.widget.Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                appendLog("🔐 Wahoo直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = com.jichi.ob.api.WahooOAuth2Service.login(email, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveWahooToken(result.first)
+                            prefs.saveWahooRefresh(result.second)
+                            appendLog("✅ Wahoo登录成功")
+                            fetchUsernameAfterLogin(DataSource.WAHOO)
+                            updateStatusUI()
+                        } else {
+                            appendLog("❌ Wahoo登录失败，请检查账号密码")
+                            android.widget.Toast.makeText(this@MainActivity, "Wahoo登录失败", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+        return
+    }
+
+    /** v7.2.0: Wahoo配置对话框（保留，用于用户自配置凭证） */
+    private fun openWahooConfigDialog() {
         val savedId = prefs.getWahooClientId() ?: ""
         val savedSecret = prefs.getWahooClientSecret() ?: ""
 

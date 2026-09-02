@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.2.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.9 |
+| 当前版本 | v7.2.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,31 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.2.0 (2026-09-02) — 彻底重构Wahoo登录：不使用WebView，直接用OkHttp模拟OAuth2完整流程
+
+**问题根因**：
+- WebView方案反复失败：五道防线（shouldOverrideUrlLoading/doUpdateVisitedHistory/onPageStarted/onReceivedError/onReceivedSslError）都无法可靠捕获授权码
+- HTTPS localhost的SSL证书错误导致WebView行为不可预测
+- 用户点击授权后WebView状态混乱，无法记住登录状态
+
+**全新方案（已在本地用Python验证可行）**：
+- 完全不使用WebView，直接用OkHttp模拟Wahoo OAuth2完整流程
+- 流程：访问授权URL → SAML登录 → SAML回调 → 授权确认页面 → 提交Authorize表单 → 捕获302重定向URL中的授权码 → 换取access_token
+- 使用Jsoup解析HTML表单，自动提取authenticity_token、SAMLRequest、SAMLResponse等字段
+- 手动管理Cookie，确保SAML会话状态正确传递
+
+**优势**：
+- 不依赖WebView，没有SSL证书错误问题
+- 不依赖重定向捕获，直接从HTTP响应头获取授权码
+- 登录状态直接保存到SharedPreferences，不会丢失
+- 用户体验更好：直接输入邮箱密码登录，不需要在WebView中操作
+
+**Wahoo登录步骤**：
+1. 点击Wahoo登录
+2. 在弹出的对话框中输入Wahoo账号邮箱和密码
+3. 点击登录，App自动完成OAuth2全流程
+4. 登录成功后自动保存token
 
 ### v7.1.9 (2026-09-02) — 本地模拟Wahoo OAuth2完整流程后增强SSL错误授权码捕获
 

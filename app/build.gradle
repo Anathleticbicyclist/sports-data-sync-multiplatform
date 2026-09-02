@@ -11,8 +11,8 @@ android {
         applicationId "com.jichi.ob.dev"
         minSdk 26
         targetSdk 36
-        versionCode 719
-        versionName "7.1.9"
+        versionCode 720
+        versionName "7.2.0"
     }
 
     buildFeatures {
@@ -52,5 +52,6 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.jsoup:jsoup:1.17.2'  // v7.2.0: Wahoo OAuth2直接登录需要解析HTML
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
