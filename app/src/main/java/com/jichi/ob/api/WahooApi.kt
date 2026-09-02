@@ -34,8 +34,8 @@ class WahooApi {
 
         // v6.5.1: 内置开发者凭证（App维护者在 developers.wahooligan.com 免费注册一次后填写）
         // 用户无需注册，直接用Wahoo账号登录授权即可。redirect_uri填 https://localhost:8080/
-        const val BUILTIN_CLIENT_ID = ""
-        const val BUILTIN_CLIENT_SECRET = ""
+        const val BUILTIN_CLIENT_ID = "lGMZOR4YVIhQZt6Zao6Z5RzmGXRTFZVgmaqV91JmoeU"
+        const val BUILTIN_CLIENT_SECRET = "w8aErisKTv8WV3ISYSPy70X4LWx0wGnxpwCCNCzXfpA"
         fun isBuiltinConfigured(): Boolean = BUILTIN_CLIENT_ID.isNotEmpty() && BUILTIN_CLIENT_SECRET.isNotEmpty()
     }
 

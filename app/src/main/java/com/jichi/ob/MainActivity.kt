@@ -211,9 +211,9 @@ class MainActivity : AppCompatActivity() {
                         appendLog("✅ 高驰国际登录成功"); fetchUsernameAfterLogin(DataSource.COROS_INT)
                     } else appendLog("⚠️ 高驰国际登录失败: 未捕获到token")
                     LoginWebActivity.TYPE_WAHOO -> {
-                        // v7.0.6: Wahoo 返回 OAuth2 授权码，用用户配置的凭证换取 access_token
-                        val clientId = prefs.getWahooClientId()
-                        val clientSecret = prefs.getWahooClientSecret()
+                        // v7.1.3: Wahoo 返回 OAuth2 授权码，优先用内置生产凭证，其次用用户配置的凭证
+                        val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                        val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
                         if (sid.length > 5 && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
                             val code = sid
                             lifecycleScope.launch(Dispatchers.IO) {
@@ -454,8 +454,13 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
-    /** v7.0.6: Wahoo 登录——用户自行配置开发者凭证（沙箱免费申请） */
+    /** v7.1.3: Wahoo 登录——内置生产凭证已配置时直接登录，否则弹出配置对话框 */
     private fun openWahooLogin() {
+        // 内置生产凭证已配置，直接打开登录页面
+        if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
+            openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl())
+            return
+        }
         val savedId = prefs.getWahooClientId() ?: ""
         val savedSecret = prefs.getWahooClientSecret() ?: ""
 
@@ -881,11 +886,11 @@ class MainActivity : AppCompatActivity() {
             DataSource.COROS_CN -> corosApi.getActivities(cred, skip, limit)
             DataSource.COROS_INT -> corosApi.getActivities(cred, skip, limit)
             DataSource.WAHOO -> {
-                // v7.0.6: Wahoo用用户配置的凭证刷新token
+                // v7.1.3: Wahoo优先用内置生产凭证刷新token，其次用用户配置的凭证
                 var token = cred
                 val refresh = prefs.getWahooRefresh()
-                val clientId = prefs.getWahooClientId()
-                val clientSecret = prefs.getWahooClientSecret()
+                val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
                 if (refresh != null && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
                     val fresh = wahooApi.refreshToken(refresh, clientId, clientSecret)
                     if (fresh != null) {
@@ -945,11 +950,13 @@ class MainActivity : AppCompatActivity() {
             DataSource.COROS_CN -> corosApi.downloadFit(cred, record.id, record.extra)
             DataSource.COROS_INT -> corosApi.downloadFit(cred, record.id, record.extra)
             DataSource.WAHOO -> {
-                // v6.5.1: Wahoo下载用内置凭证刷新token
+                // v7.1.3: Wahoo下载优先用内置生产凭证刷新token，其次用用户配置的凭证
                 var token = cred
                 val refresh = prefs.getWahooRefresh()
-                if (refresh != null && com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
-                    val fresh = wahooApi.refreshToken(refresh, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET)
+                val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                if (refresh != null && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
+                    val fresh = wahooApi.refreshToken(refresh, clientId, clientSecret)
                     if (fresh != null) {
                         prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
                         token = fresh.first
