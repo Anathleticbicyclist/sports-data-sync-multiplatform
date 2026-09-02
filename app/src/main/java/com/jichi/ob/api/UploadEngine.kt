@@ -93,14 +93,9 @@ class UploadEngine(private val context: android.content.Context? = null) {
             } catch (e: Exception) { Log.w(TAG, "目标时区适配失败: ${e.message}"); utcData }
         } else utcData
 
-        // v7.0.4: 行者→iGPSPORT的FIT文件时间戳修正（行者FIT时间戳是北京时间，需减8小时转UTC）
-        // 仅对行者来源 + iGPSPORT目标 + FIT文件生效，其他场景不处理
-        val uploadData = if (!isGpxFile && record.source == DataSource.XINGZHE && target == DataSource.IGPSPORT) {
-            try {
-                val fixed = com.jichi.ob.util.FitTimeFixer.fixXingzheFitTime(finalData)
-                Log.d(TAG, "行者→iGPSPORT FIT时间戳修正: ${finalData.size} -> ${fixed.size} bytes"); fixed
-            } catch (e: Exception) { Log.w(TAG, "行者FIT时间戳修正失败: ${e.message}"); finalData }
-        } else finalData
+        // v7.1.2: 回滚行者→iGPSPORT的FIT时间戳修正（多次尝试均导致iGPSPORT解析失败，不再处理时间问题）
+        // 行者FIT直接上传iGPSPORT，不做任何修改
+        val uploadData = finalData
 
         when (target) {
             DataSource.OUTBASE -> uploadToOutbase(credential, uploadData, record, extra)
