@@ -344,6 +344,11 @@ class GarminApi {
         val wv = sharedWebView ?: return false
         val host = if (ds == DataSource.GARMIN_CN) "connect.garmin.cn" else "connect.garmin.com"
         injectCookies(cred, host)
+        // v7.4.6: 佳明中国不需要加载connect.garmin.cn页面（被Cloudflare拦截会重定向到sign-in，导致永远ready不了）
+        // 只需要注入cookie到.garmin.cn域名，然后直接在WebView中执行fetch调用connectapi即可
+        if (ds == DataSource.GARMIN_CN) {
+            return true
+        }
         val currentUrl = withContext(Dispatchers.Main) { wv.url }
         val onGarmin = currentUrl?.contains(host) == true &&
                         !currentUrl.contains("logout") && !currentUrl.contains("sign-in")
@@ -646,16 +651,14 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
-            // v7.4.3: 中国版优先用OkHttp+cookie调用connectapi（纯浏览器风格header，gc-api被Cloudflare拦截）
-            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
-                val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
-                val req = Request.Builder().url(url).apply {
-                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
-                }.get().build()
-                client.newCall(req).execute().use { resp ->
-                    addDebugLog("getActivities CN(cookie): HTTP ${resp.code}")
-                    if (resp.code == 200) {
-                        val arr = JSONArray(resp.body?.string() ?: "[]")
+            // v7.4.6: 中国版优先用WebView调用connectapi（OkHttp+cookie返回403，浏览器环境cookie自动携带）
+            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
+                if (prepareWebView(cred, ds)) {
+                    val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
+                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }
+                    val result = fetchViaWebView(url, "GET", wvHeaders)
+                    if (result != null) {
+                        val arr = JSONArray(result)
                         val out = mutableListOf<ActivityRecord>()
                         for (i in 0 until arr.length()) {
                             val item = arr.getJSONObject(i)
@@ -670,10 +673,10 @@ class GarminApi {
                                 ds
                             ))
                         }
-                        addDebugLog("getActivities CN(cookie)成功: ${out.size}条")
+                        addDebugLog("getActivities CN(WebView+connectapi)成功: ${out.size}条")
                         return@withContext out
                     }
-                    addDebugLog("getActivities CN(cookie)失败: ${resp.body?.string()?.take(150)}")
+                    addDebugLog("getActivities CN(WebView+connectapi)失败，回退")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
@@ -757,26 +760,21 @@ class GarminApi {
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
-            // v7.4.3: 中国版优先用OkHttp+cookie调用connectapi下载（纯浏览器风格header）
-            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
-                val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
-                val req = Request.Builder().url(url).apply {
-                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
-                    addHeader("Accept", "*/*")
-                }.get().build()
-                client.newCall(req).execute().use { resp ->
-                    addDebugLog("downloadFit CN(cookie): HTTP ${resp.code}")
-                    if (resp.code == 200) {
-                        val zipBytes = resp.body?.bytes()
-                        if (zipBytes != null) {
-                            val fit = unzipFit(zipBytes)
-                            if (fit != null) {
-                                addDebugLog("downloadFit CN(cookie)成功")
-                                return@withContext fit
-                            }
+            // v7.4.6: 中国版优先用WebView调用connectapi下载（OkHttp+cookie返回403，浏览器环境cookie自动携带）
+            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
+                if (prepareWebView(cred, ds)) {
+                    val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
+                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }.toMutableMap()
+                    wvHeaders["Accept"] = "*/*"
+                    val zipBytes = downloadViaWebView(url, wvHeaders)
+                    if (zipBytes != null) {
+                        val fit = unzipFit(zipBytes)
+                        if (fit != null) {
+                            addDebugLog("downloadFit CN(WebView+connectapi)成功")
+                            return@withContext fit
                         }
                     }
-                    addDebugLog("downloadFit CN(cookie)失败，回退")
+                    addDebugLog("downloadFit CN(WebView+connectapi)失败，回退")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
