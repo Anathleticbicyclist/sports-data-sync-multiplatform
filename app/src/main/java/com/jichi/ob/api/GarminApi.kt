@@ -649,16 +649,15 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
-            // v7.4.1: 中国版优先用OkHttp+cookie调用connectapi（gc-api被Cloudflare拦截，connectapi不拦截）
-            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
-                val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
-                val req = Request.Builder().url(url).apply {
-                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
-                }.get().build()
-                client.newCall(req).execute().use { resp ->
-                    addDebugLog("getActivities CN(cookie): HTTP ${resp.code}")
-                    if (resp.code == 200) {
-                        val arr = JSONArray(resp.body?.string() ?: "[]")
+            // v7.4.2: 中国版优先用WebView调用connectapi（gc-api被Cloudflare拦截，connectapi不拦截）
+            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
+                if (prepareWebView(cred, ds)) {
+                    val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
+                    // 浏览器fetch不允许手动设置Cookie header，移除后用credentials:'include'自动携带
+                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }
+                    val result = fetchViaWebView(url, "GET", wvHeaders)
+                    if (result != null) {
+                        val arr = JSONArray(result)
                         val out = mutableListOf<ActivityRecord>()
                         for (i in 0 until arr.length()) {
                             val item = arr.getJSONObject(i)
@@ -673,10 +672,10 @@ class GarminApi {
                                 ds
                             ))
                         }
-                        addDebugLog("getActivities CN(cookie)成功: ${out.size}条")
+                        addDebugLog("getActivities CN(WebView+connectapi)成功: ${out.size}条")
                         return@withContext out
                     }
-                    addDebugLog("getActivities CN(cookie)失败: ${resp.body?.string()?.take(150)}")
+                    addDebugLog("getActivities CN(WebView+connectapi)失败，回退OkHttp")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
@@ -760,26 +759,22 @@ class GarminApi {
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
-            // v7.4.1: 中国版优先用OkHttp+cookie调用connectapi下载（gc-api被Cloudflare拦截）
-            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
-                val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
-                val req = Request.Builder().url(url).apply {
-                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
-                    addHeader("Accept", "*/*")
-                }.get().build()
-                client.newCall(req).execute().use { resp ->
-                    addDebugLog("downloadFit CN(cookie): HTTP ${resp.code}")
-                    if (resp.code == 200) {
-                        val zipBytes = resp.body?.bytes()
-                        if (zipBytes != null) {
-                            val fit = unzipFit(zipBytes)
-                            if (fit != null) {
-                                addDebugLog("downloadFit CN(cookie)成功")
-                                return@withContext fit
-                            }
+            // v7.4.2: 中国版优先用WebView调用connectapi下载（gc-api被Cloudflare拦截，connectapi不拦截）
+            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
+                if (prepareWebView(cred, ds)) {
+                    val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
+                    // 浏览器fetch不允许手动设置Cookie header，移除后用credentials:'include'自动携带
+                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }.toMutableMap()
+                    wvHeaders["Accept"] = "*/*"
+                    val zipBytes = downloadViaWebView(url, wvHeaders)
+                    if (zipBytes != null) {
+                        val fit = unzipFit(zipBytes)
+                        if (fit != null) {
+                            addDebugLog("downloadFit CN(WebView+connectapi)成功")
+                            return@withContext fit
                         }
                     }
-                    addDebugLog("downloadFit CN(cookie)失败，回退")
+                    addDebugLog("downloadFit CN(WebView+connectapi)失败，回退")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
@@ -878,27 +873,19 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
-            // v7.4.1: 中国版优先用OkHttp+cookie调用connectapi上传（gc-api被Cloudflare拦截）
-            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
-                val url = "${connectApiHost(ds)}/upload-service/upload"
-                val body = MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
-                    .build()
-                val req = Request.Builder().url(url).apply {
-                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
-                    addHeader("Accept", "application/json")
-                }.post(body).build()
-                client.newCall(req).execute().use { resp ->
-                    val result = resp.body?.string() ?: ""
-                    addDebugLog("upload CN(cookie): HTTP ${resp.code}, result=${result.take(200)}")
-                    return@withContext when (resp.code) {
-                        200, 201, 202 -> null
-                        409 -> if (result.contains("Duplicate Activity", true)) "重复活动(已在佳明存在)"
-                               else "佳明上传冲突 HTTP 409: ${result.take(100)}"
-                        400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
-                        else -> "佳明上传失败 HTTP ${resp.code}: ${result.take(100)}"
+            // v7.4.2: 中国版优先用WebView调用connectapi上传（gc-api被Cloudflare拦截，connectapi不拦截）
+            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
+                if (prepareWebView(cred, ds)) {
+                    val url = "${connectApiHost(ds)}/upload-service/upload"
+                    // 浏览器fetch不允许手动设置Cookie header，移除后用credentials:'include'自动携带
+                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }.toMutableMap()
+                    wvHeaders["Accept"] = "application/json"
+                    val result = uploadBinaryViaWebView(url, data, wvHeaders)
+                    if (result != null) {
+                        addDebugLog("upload CN(WebView+connectapi)成功")
+                        return@withContext null
                     }
+                    addDebugLog("upload CN(WebView+connectapi)失败，回退OkHttp")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）

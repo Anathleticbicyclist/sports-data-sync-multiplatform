@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.4.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.4.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.4.1 |
+| 当前版本 | v7.4.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,21 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.2 (2026-09-03)
+
+**两个关键bug修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo按钮选择错误 | Wahoo按钮tag从"wahoo"改为"wo"（与DataSource.WAHOO.shortName一致），修复选Wahoo却上传到Outbase的问题 |
+| 佳明中国获取活动列表0条 | 修复浏览器fetch API不允许手动设置Cookie header的问题：调用fetchViaWebView/uploadViaWebView/downloadViaWebView时移除Cookie header，用credentials:'include'让浏览器自动携带WebView中已注入的cookie |
+| 佳明中国上传下载 | 统一改用WebView+connectapi端点（gc-api被Cloudflare拦截，connectapi不拦截） |
+
+**根因分析**：
+- 浏览器fetch API出于安全原因，会忽略手动设置的`Cookie` header，甚至导致请求失败
+- 之前代码把包含Cookie的apiHeaders直接传给fetch，导致fetch请求异常
+- 修复：移除Cookie header，依赖`credentials: 'include'`自动携带WebView中通过injectCookies注入的cookie
+
 ### v7.4.1 (2026-09-02)
 
 **核心修复：佳明中国上传下载403问题彻底解决**
