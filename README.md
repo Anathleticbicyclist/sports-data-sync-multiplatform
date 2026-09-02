@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.5.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.5.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.5.1 |
+| 当前版本 | v7.5.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -233,6 +233,16 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.5.2 (2026-09-03)
+**已解决**：
+- 行者→iGPSPORT优先下载GPX格式，尝试解决8小时时差问题
+- iGPSPORT→Wahoo上传失败原因分析：iGPSPORT FIT文件存在时间戳溢出和字符串字段异常（iGPSPORT不支持GPX直接下载，后续研究FIT转GPX方案）
+
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- 行者→iGPSPORT 8小时时差（待用户测试GPX方案是否有效）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
 
 ### v7.5.1 (2026-09-03)
 **已解决**：

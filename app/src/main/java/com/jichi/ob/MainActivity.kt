@@ -832,7 +832,7 @@ class MainActivity : AppCompatActivity() {
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
                     }
                     appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
-                    val fileData = try { downloadActivity(source, act) } catch (e: Exception) {
+                    val fileData = try { downloadActivity(source, target, act) } catch (e: Exception) {
                         appendLog("❌ 下载失败: ${e.message}"); failed++
                         withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
                     }
@@ -1018,11 +1018,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun downloadActivity(source: DataSource, record: ActivityRecord): ByteArray? {
+    private suspend fun downloadActivity(source: DataSource, target: DataSource = DataSource.OUTBASE, record: ActivityRecord): ByteArray? {
         val cred = prefs.getCredential(source) ?: return null
         var data = when (source) {
             DataSource.IGPSPORT -> igpsportApi.downloadFitFile(cred, record.id, record.extra)
-            DataSource.XINGZHE -> { val (bytes, _) = xingzheApi.downloadGpxOrFit(cred, record.id); bytes }
+            DataSource.XINGZHE -> {
+                // v7.5.2: 行者→iGPSPORT时GPX优先，可能解决8小时时差
+                val preferGpx = (target == DataSource.IGPSPORT)
+                val (bytes, kind) = xingzheApi.downloadGpxOrFit(cred, record.id, preferGpx)
+                if (preferGpx) appendLog("📄 行者下载格式: ${kind.displayName}")
+                bytes
+            }
             DataSource.MAGENE -> {
                 try {
                     val result = mageneApi.downloadFit(cred, record.id)
@@ -1172,7 +1178,7 @@ class MainActivity : AppCompatActivity() {
                 if (activities.isEmpty()) { appendLog("❌ 未获取到活动"); return@launch }
                 val act = activities[0]
                 appendLog("⬇️ 下载: ${act.title.take(20)} (${"%.1f".format(act.distance)}km)")
-                val data = downloadActivity(source, act)
+                val data = downloadActivity(source, record = act)
                 if (data == null || data.size < 100) { appendLog("❌ 下载失败: 数据无效"); return@launch }
                 val ext = if (isFit(data)) "fit" else "gpx"
                 val tName = "test_" + FileNameGenerator.generate(source, act, ext)

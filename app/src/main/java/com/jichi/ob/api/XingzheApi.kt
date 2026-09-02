@@ -1,5 +1,5 @@
 package com.jichi.ob.api
- 
+
 import android.util.Log
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.model.DataSource
@@ -13,7 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
- 
+
 /**
  * 行者 API（2026-08 实测）
  * 认证: Cookie: sessionid=xxx（Bearer无效）
@@ -23,27 +23,27 @@ import java.util.concurrent.TimeUnit
  * 策略: GPX优先，回退FIT（遵用户指定）
  */
 class XingzheApi {
- 
+
     companion object {
         private const val TAG = "XingzheApi"
         const val LOGIN_URL = "https://www.imxingzhe.com/login"
         private const val BASE_URL = "https://www.imxingzhe.com/api/v1"
         private const val PER_PAGE = 100
     }
- 
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .followRedirects(true)
         .build()
- 
+
     private fun authHeaders(sessionId: String) = mapOf(
         "Cookie" to "sessionid=$sessionId",
         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         "Referer" to "https://www.imxingzhe.com/xingzhe/workouts/list",
         "Accept" to "application/json, text/plain, */*"
     )
- 
+
     suspend fun verifySession(sessionId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val req = Request.Builder().url("$BASE_URL/user/user_info/")
@@ -56,7 +56,7 @@ class XingzheApi {
             Log.e(TAG, "verifySession error", e); false
         }
     }
- 
+
     suspend fun getUsername(sessionId: String): String? = withContext(Dispatchers.IO) {
         try {
             val req = Request.Builder().url("$BASE_URL/user/user_info/")
@@ -72,7 +72,6 @@ class XingzheApi {
             } else null
         } catch (e: Exception) { Log.e(TAG, "getUsername error", e); null }
     }
-
     suspend fun getActivities(sessionId: String, offset: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             val result = mutableListOf<ActivityRecord>()
@@ -92,7 +91,7 @@ class XingzheApi {
                 if (json.optInt("code", -1) != 0) throw Exception("行者 API error: ${json.optString("msg")}")
                 val rows = json.optJSONObject("data")?.optJSONArray("data")
                 if (rows == null || rows.length() == 0) break
- 
+
                 val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                 for (i in 0 until rows.length()) {
                     val item = rows.getJSONObject(i)
@@ -117,14 +116,38 @@ class XingzheApi {
             Log.d(TAG, "getActivities total: ${result.size}")
             result
         }
- 
+
     /**
      * 下载: v6.3.6 FIT优先（保留功率/心率/踏频），FIT失败回退GPX转换
+     * v7.5.2: 增加preferGpx参数，为true时GPX优先（用于行者→iGPSPORT，可能解决8小时时差）
      */
-    suspend fun downloadGpxOrFit(sessionId: String, workoutId: String): Pair<ByteArray, FileKind> =
+    suspend fun downloadGpxOrFit(sessionId: String, workoutId: String, preferGpx: Boolean = false): Pair<ByteArray, FileKind> =
         withContext(Dispatchers.IO) {
             val headers = authHeaders(sessionId)
- 
+
+            if (preferGpx) {
+                // GPX优先：先尝试GPX，失败回退FIT
+                try {
+                    val req = Request.Builder().url("$BASE_URL/pgworkout/$workoutId/gpx/")
+                        .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
+                        .get().build()
+                    val resp = client.newCall(req).execute()
+                    if (resp.code == 200) {
+                        val bytes = resp.body?.bytes()
+                        if (bytes != null && bytes.size > 100) {
+                            val head = String(bytes, 0, minOf(60, bytes.size))
+                            if (head.contains("<?xml") || head.contains("<gpx")) {
+                                Log.d(TAG, "✅ GPX优先: ${bytes.size} bytes (id=$workoutId)")
+                                return@withContext Pair(bytes, FileKind.GPX)
+                            }
+                        }
+                    }
+                    Log.d(TAG, "GPX不可用 (HTTP ${resp.code})，回退FIT...")
+                } catch (e: Exception) {
+                    Log.w(TAG, "GPX异常: ${e.message}，回退FIT...")
+                }
+            }
+
             // 方式1: FIT（优先）——FIT原生支持功率/心率/踏频等扩展数据
             val req = Request.Builder().url("$BASE_URL/workout/$workoutId/fit/")
                 .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
@@ -162,9 +185,7 @@ class XingzheApi {
             } catch (e: Exception) {
                 Log.w(TAG, "GPX异常: ${e.message}，尝试GPX...")
             }
- 
+
             throw Exception("GPX/FIT 均下载失败 (id=$workoutId)")
         }
 }
- 
-
