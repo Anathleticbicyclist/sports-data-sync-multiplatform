@@ -146,14 +146,10 @@ object FitTimeFixer {
 
             Log.d(TAG, "时间戳统计: 共找到 $totalTimestamps 个，修正 $fixedCount 个")
 
-            // 重新计算数据区CRC（数据区内容 + CRC = dataSize）
-            val dataRegion = data.copyOfRange(dataStart, dataEnd)
-            val crc = calculateFitCrc(dataRegion)
-            // 写入CRC到数据区末尾
-            data[dataEnd] = (crc and 0xFF).toByte()
-            data[dataEnd + 1] = ((crc shr 8) and 0xFF).toByte()
-
-            Log.d(TAG, "重新计算CRC: ${crc.toString(16)}, 写入位置: ${dataEnd}-${dataEnd + 1}")
+            // v7.0.8: 不重新计算CRC，不碰文件其他部分。
+            // 行者FIT文件本身不符合标准（data_size不正确，文件末尾有额外消息数据），
+            // 重新计算CRC并写入会覆盖原始消息内容导致文件结构损坏。
+            // iGPSPORT不检查CRC（原始文件CRC也不对但能解析），只修改时间戳即可。
 
             data
         } catch (e: Exception) {
