@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.0.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.0.91-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.0.9 |
+| 当前版本 | v7.0.91 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,31 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.0.91 (2026-09-02) — 修复行者→iGPSPORT经度被误改导致文件损坏
+
+**修复的问题**：
+- 行者→iGPSPORT同步后iGPSPORT无运动记录（上传成功但id=null，文件未入库）
+
+**根因**：
+- v7.0.9错误地把session(global=18)和lap(global=19)的field_num=4当成了time_created
+- 实际上FIT标准中session/lap的field_num=4是**start_position_long（经度）**，不是时间
+- 行者FIT中该字段值约1435606656，按时间解析是2035年（明显错误），按经度解析是120.33度（温州，正确）
+- FitTimeFixer把经度值减8小时，导致经度错误，文件损坏，iGPSPORT解析失败
+
+**修复内容**：
+- 从TIME_FIELDS_BY_MSG中移除session和lap的field_num=4
+- 只修改真正的时间字段：
+  - file_id(global=0)的time_created(field_num=4)
+  - session(global=18)的start_time(field_num=2)
+  - lap(global=19)的start_time(field_num=2)
+  - 所有消息的timestamp(field_num=253)
+
+**验证结果**：
+- 6583个时间字段全部修正
+- session的field_num=4（经度120.3458度）未被修改 ✅
+- file_id time_created、session start_time、第一个record timestamp时间一致（都是UTC 03:00:23）✅
+- 文件末尾16字节完全一致，文件结构完整 ✅
 
 ### v7.0.9 (2026-09-02) — 修复行者→iGPSPORT时间字段不一致导致解析失败
 
