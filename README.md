@@ -191,17 +191,17 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 感谢以下运动平台为广大运动用户提供的数据记录与存储服务，正是因为各平台开放的数据接口，才让数据自由流动成为可能：
 
-| 平台 | 简介 | Slogan |
-|------|------|--------|
-| [iGPSPORT迹驰](https://www.igpsport.com) | 专业骑行智能硬件品牌，专注GPS码表、运动手表及数据服务，产品销往全球40多个国家和地区 | [Innovation for Great Performance @ SPORTS](https://www.igpsport.com) |
-| [行者](https://www.imxingzhe.com) | 国内领先的骑行运动社交平台，提供骑行记录、路线规划与社区功能，注册用户超2000万 | [虽千万里 吾往矣](https://www.imxingzhe.com) |
-| [迈金Magene](https://www.magene.cn) | 智能骑行领域高新技术企业，旗下拥有Magene硬件、顽鹿Onelap软件两大品牌，智能骑行台国内市场占有率第一 | [让运动更科学](https://www.magene.cn) |
-| [黑鸟单车](https://www.blackbirdsport.com) | 国内具有影响力的骑行社区与记录平台，连接数万个骑行俱乐部和数百万骑行爱好者 | [黑鸟单车 骑乐无穷](https://www.blackbirdsport.com) |
-| [百锐腾Bryton](https://www.brytonsport.com) | 专业GPS运动电子产品品牌，由资深GPS研发团队创立，产品覆盖骑行、健身、户外等领域 | [Engineered for Great Performance](https://www.brytonsport.com) |
-| [Outbase](https://outbase.cn) | 户外运动数据聚合平台，支持多品牌设备数据接入与俱乐部运营 | [用运动连接世界](https://outbase.cn) |
-| [佳明Garmin](https://www.garmin.com.cn) | 全球GPS行业标杆企业，产品覆盖航空、航海、车用、户外、运动等领域，Garmin Connect为全球最大运动数据平台之一 | [Engineered on the inside for life on the outside](https://www.garmin.com.cn) |
-| [高驰COROS](https://www.coros.com) | 专业户外运动智能装备品牌，致力于为运动家与冒险家开发智能户外装备，在全球多个国家组建团队 | [保持专注 乐于创新 满怀热情](https://www.coros.com) |
-| [Wahoo](https://www.wahoofitness.com) | 美国健身科技品牌，产品涵盖KICKR室内训练器、ELEMNT GPS码表、TICKR心率带等完整生态 | [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com) |
+| 品牌 | Slogan |
+|------|--------|
+| iGPSPORT迹驰 | [Innovation for Great Performance @ SPORTS](https://www.igpsport.com) |
+| 行者 | [虽千万里 吾往矣](https://www.imxingzhe.com) |
+| 迈金Magene | [让运动更科学](https://www.magene.cn) |
+| 黑鸟单车 | [黑鸟单车 骑乐无穷](https://www.blackbirdsport.com) |
+| 百锐腾Bryton | [Engineered for Great Performance](https://www.brytonsport.com) |
+| Outbase | [用运动连接世界](https://outbase.cn) |
+| 佳明Garmin | [Engineered on the inside for life on the outside](https://www.garmin.com.cn) |
+| 高驰COROS | [保持专注 乐于创新 满怀热情](https://www.coros.com) |
+| Wahoo | [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com) |
 
 > 各平台数据版权归原平台所有，本工具仅用于用户个人数据的迁移与备份，不得用于商业用途或数据爬取。
 
