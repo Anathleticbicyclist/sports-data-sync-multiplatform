@@ -122,10 +122,10 @@ class LoginWebActivity : AppCompatActivity() {
                         android.widget.Toast.makeText(this, "请手动访问: $mfaUrl", android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
-                // v7.0.2: 遇到人机验证时回退到WebView登录
+                // v7.0.2: 遇到人机验证时回退到软件内WebView登录（不跳外部浏览器，确保能提取cookie）
                 val tvFallback = findViewById<android.widget.TextView>(R.id.tvFallbackLogin)
                 tvFallback.setOnClickListener {
-                    android.widget.Toast.makeText(this, "切换到浏览器登录，请手动完成验证", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this, "切换到软件内浏览器登录，请手动完成验证", android.widget.Toast.LENGTH_SHORT).show()
                     findViewById<android.widget.LinearLayout>(R.id.mobileLoginLayout).visibility = android.view.View.GONE
                     webView.visibility = android.view.View.VISIBLE
                     findViewById<android.view.View>(R.id.btnConfirmLogin)?.visibility = android.view.View.VISIBLE
