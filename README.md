@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.4.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.4.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.4.3 |
+| 当前版本 | v7.4.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,24 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.4 (2026-09-03)
+
+**Wahoo登录和佳明中国上传修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo登录回调捕获 | shouldOverrideUrlLoading从返回false改为拦截回调URL，在SSL错误发生前捕获授权码，解决"未捕获到授权码"问题 |
+| 佳明中国上传 | 从OkHttp+cookie改回WebView+connectapi（OkHttp返回403 ForbiddenException，浏览器环境cookie自动携带且请求头更完整） |
+| 佳明中国请求头 | connectApiCookieHeaders保持纯浏览器风格（移除App风格header） |
+
+**根因分析**：
+- Wahoo：shouldOverrideUrlLoading返回false导致WebView自行加载回调URL，localhost的SSL错误使onPageStarted未触发，授权码丢失
+- 佳明中国：upload-service端点对OkHttp的cookie认证返回403，需要浏览器环境的完整请求头和cookie自动携带
+
+**测试要点**：
+1. Wahoo：重新登录（授权时确认勾选所有权限）→ 上传FIT
+2. 佳明中国：重新登录 → 上传FIT → 获取活动列表 → 下载FIT
+
 ### v7.4.3 (2026-09-03)
 
 **Wahoo和佳明中国修复**

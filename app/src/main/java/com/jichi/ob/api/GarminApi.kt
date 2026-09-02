@@ -872,27 +872,19 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
-            // v7.4.3: 中国版优先用OkHttp+cookie调用connectapi上传（纯浏览器风格header）
-            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
-                val url = "${connectApiHost(ds)}/upload-service/upload"
-                val body = MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
-                    .build()
-                val req = Request.Builder().url(url).apply {
-                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
-                    addHeader("Accept", "application/json")
-                }.post(body).build()
-                client.newCall(req).execute().use { resp ->
-                    val result = resp.body?.string() ?: ""
-                    addDebugLog("upload CN(cookie): HTTP ${resp.code}, result=${result.take(200)}")
-                    return@withContext when (resp.code) {
-                        200, 201, 202 -> null
-                        409 -> if (result.contains("Duplicate Activity", true)) "重复活动(已在佳明存在)"
-                               else "佳明上传冲突 HTTP 409: ${result.take(100)}"
-                        400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
-                        else -> "佳明上传失败 HTTP ${resp.code}: ${result.take(100)}"
+            // v7.4.4: 中国版优先用WebView调用connectapi上传（OkHttp+cookie返回403，浏览器环境cookie自动携带）
+            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
+                if (prepareWebView(cred, ds)) {
+                    val url = "${connectApiHost(ds)}/upload-service/upload"
+                    // 浏览器fetch不允许手动设置Cookie header，移除后用credentials:'include'自动携带
+                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }.toMutableMap()
+                    wvHeaders["Accept"] = "application/json"
+                    val result = uploadBinaryViaWebView(url, data, wvHeaders)
+                    if (result != null) {
+                        addDebugLog("upload CN(WebView+connectapi)成功")
+                        return@withContext null
                     }
+                    addDebugLog("upload CN(WebView+connectapi)失败，回退OkHttp")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
