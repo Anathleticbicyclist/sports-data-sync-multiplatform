@@ -236,10 +236,10 @@ class LoginWebActivity : AppCompatActivity() {
                     Log.d(TAG, "[$loginType] PageStarted: $url")
                     // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
                     if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
-                        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+                        val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
-                            Log.i(TAG, "✅ Wahoo 授权码捕获 len=${code.length}")
+                            Log.i(TAG, "✅ Wahoo 授权码捕获(onPageStarted) len=${code.length}")
                             setResult(Activity.RESULT_OK, Intent()
                                 .putExtra(RESULT_TOKEN, code)
                                 .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
@@ -264,7 +264,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val failingUrl = request?.url?.toString()
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for $failingUrl")
                     if (loginType == TYPE_WAHOO && failingUrl != null && failingUrl.contains("localhost:8080") && failingUrl.contains("code=") && !detected) {
-                        val code = try { android.net.Uri.parse(failingUrl).getQueryParameter("code") } catch (_: Exception) { null }
+                        val code = extractWahooCode(failingUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
                             Log.i(TAG, "✅ Wahoo 授权码捕获(onReceivedError) len=${code.length}")
@@ -275,6 +275,12 @@ class LoginWebActivity : AppCompatActivity() {
                         }
                     }
                 }
+                // v7.1.6: 忽略SSL证书错误（https://localhost没有有效证书，不忽略会导致页面加载失败）
+                override fun onReceivedSslError(view: WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
+                    Log.w(TAG, "[$loginType] onReceivedSslError: ${error?.url}")
+                    handler?.proceed()  // 忽略证书错误，继续加载
+                }
+
                 override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
                     Log.e(TAG, "[$loginType] WebView渲染进程崩溃: reason=${detail?.didCrash()}, didCrash=${detail?.didCrash()}")
                     runOnUiThread {
@@ -290,7 +296,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val url = request?.url?.toString()
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
                     if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
-                        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+                        val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
                             Log.i(TAG, "✅ Wahoo 授权码捕获(shouldOverride) len=${code.length}")
@@ -308,7 +314,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     Log.d(TAG, "[$loginType] doUpdateVisitedHistory: $url")
                     if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
-                        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+                        val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
                             Log.i(TAG, "✅ Wahoo 授权码捕获(doUpdateVisitedHistory) len=${code.length}")
@@ -529,14 +535,33 @@ class LoginWebActivity : AppCompatActivity() {
         finish()
     }
 
+
+    /** v7.1.6: 从URL中提取授权码（同时支持query ?code= 和 fragment #code=） */
+    private fun extractWahooCode(url: String): String? {
+        try {
+            // 先尝试query参数
+            val code = android.net.Uri.parse(url).getQueryParameter("code")
+            if (!code.isNullOrEmpty()) return code
+            // 再尝试fragment（#code=xxx）
+            if (url.contains("#") && url.contains("code=")) {
+                val fragment = url.substringAfter("#")
+                val params = fragment.split("&")
+                for (p in params) {
+                    if (p.startsWith("code=")) return p.substringAfter("code=")
+                }
+            }
+        } catch (_: Exception) {}
+        return null
+    }
+
     /** v6.5.0: Wahoo 检测登录 —— OAuth2 回调 localhost:8080?code= 已由 onPageStarted 处理，兜底读 webView.url */
     private fun detectWahoo() {
         val url = webView.url ?: return
         if (!url.contains("localhost:8080") || !url.contains("code=")) return
-        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+        val code = extractWahooCode(url)
         if (code.isNullOrEmpty()) return
         detected = true
-        Log.i(TAG, "✅ Wahoo 授权码捕获 len=${code.length}")
+        Log.i(TAG, "✅ Wahoo 授权码捕获(detectWahoo) len=${code.length}")
         setResult(Activity.RESULT_OK, Intent()
             .putExtra(RESULT_TOKEN, code)
             .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
