@@ -11,8 +11,8 @@ android {
         applicationId "com.jichi.ob.dev"
         minSdk 26
         targetSdk 36
-        versionCode 742
-        versionName "7.4.2"
+        versionCode 743
+        versionName "7.4.3"
     }
 
     buildFeatures {
