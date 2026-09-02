@@ -75,6 +75,26 @@ class LoginWebActivity : AppCompatActivity() {
     }
  
     @SuppressLint("SetJavaScriptEnabled")
+
+    /** 只清除特定域名的cookie，保留其他平台登录态 */
+    private fun clearDomainCookies(vararg domains: String) {
+        val cm = CookieManager.getInstance()
+        domains.forEach { domain ->
+            try {
+                // 获取该域名的所有cookie，逐个设置过期
+                val cookies = cm.getCookie("https://$domain") ?: ""
+                cookies.split(";").forEach { cookie ->
+                    val name = cookie.substringBefore("=").trim()
+                    if (name.isNotEmpty()) {
+                        cm.setCookie("https://$domain", "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/")
+                        cm.setCookie("https://$domain", "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.$domain; path=/")
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        cm.flush()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
@@ -181,7 +201,8 @@ class LoginWebActivity : AppCompatActivity() {
                     mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                     userAgentString = DESKTOP_UA
                 }
-                CookieManager.getInstance().removeAllCookies(null)
+                // v7.4.9: 只清除佳明相关域名cookie，保留其他平台登录态
+                clearDomainCookies("connect.garmin.cn", "connect.garmin.com", "sso.garmin.com", "sso.garmin.cn")
                 webView.addJavascriptInterface(GarminJsBridge(), "GarminBridge")
                 webView.webViewClient = object : WebViewClient() {
                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -245,8 +266,8 @@ class LoginWebActivity : AppCompatActivity() {
                 }
             }
  
-            // 只清相关域cookie，保留其他平台登录态
-            CookieManager.getInstance().removeAllCookies(null)
+            // v7.4.9: 只清除佳明相关域名cookie，保留其他平台登录态
+            clearDomainCookies("connect.garmin.cn", "connect.garmin.com", "sso.garmin.com", "sso.garmin.cn")
 
             // v6.5.6: 佳明专用JS桥——注入页面监听ticket（URL/fragment/postMessage/AJAX全拦截）
             if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) {
