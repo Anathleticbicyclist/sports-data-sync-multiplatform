@@ -129,29 +129,45 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="1. 邮箱或密码错误（注意区分大小写）\n2. 开启了两步验证(MFA)，需先关闭"
+            android:text="1. 邮箱或密码错误（注意区分大小写）\n2. 开启了两步验证(MFA)，需先关闭\n3. 触发人机验证，改用软件内浏览器登录"
             android:textSize="12sp"
             android:textColor="#666666"
             android:lineSpacingExtra="4dp"
             android:layout_marginBottom="12dp" />
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="【关闭两步验证步骤】"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="4dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="① 打开佳明Connect App或访问佳明官网登录\n② 进入「设置」→「账户」→「安全设置」\n③ 找到「两步验证」选项，点击关闭\n④ 确认关闭后，返回本App重新登录"
+            android:textSize="11sp"
+            android:textColor="#888888"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginBottom="8dp" />
+        <TextView
             android:id="@+id/tvMfaGuide"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="关闭两步验证教程 →"
+            android:text="→ 前往佳明账号安全设置（手动关闭）"
             android:textSize="12sp"
             android:textColor="#1989FA"
             android:autoLink="none"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true"
+            android:layout_marginBottom="12dp" />
         <TextView
             android:id="@+id/tvFallbackLogin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="遇到人机验证？用浏览器登录 →"
+            android:text="→ 遇到人机验证？用软件内浏览器登录"
             android:textSize="12sp"
             android:textColor="#FF6B00"
-            android:layout_marginTop="8dp"
             android:clickable="true"
             android:focusable="true" />
     </LinearLayout>
