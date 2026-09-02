@@ -98,9 +98,9 @@ class LoginWebActivity : AppCompatActivity() {
             }
             toolbar.setNavigationOnClickListener { detected = true; finish() }
 
-            // v7.0.1: 国际版和中国版都用mobile SSO登录（不经过Cloudflare）
-            if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) {
-                val isCN = loginType == TYPE_GARMIN_CN
+            // v7.0.5: 只有国际版用mobile SSO登录（中国版DI token交换失败，回退WebView登录）
+            if (loginType == TYPE_GARMIN_COM) {
+                val isCN = false
                 findViewById<android.widget.LinearLayout>(R.id.mobileLoginLayout).visibility = android.view.View.VISIBLE
                 webView = findViewById(R.id.webView)
                 webView.visibility = android.view.View.GONE

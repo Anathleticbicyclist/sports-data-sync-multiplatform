@@ -320,6 +320,27 @@ class GarminApi {
         "Accept-Language" to if (ds == DataSource.GARMIN_CN) "zh-CN,zh;q=0.9" else "en-US,en;q=0.9"
     )
 
+    // v7.0.5: 中国版用cookie调用connectapi（不经过Cloudflare，因为中国版DI token交换失败）
+    private fun connectApiCookieHeaders(sess: GarminSession, ds: DataSource): Map<String, String> {
+        val h = mutableMapOf(
+            "User-Agent" to NATIVE_API_UA,
+            "X-Garmin-User-Agent" to NATIVE_X_GARMIN_UA,
+            "X-Garmin-Paired-App-Version" to "10861",
+            "X-Garmin-Client-Platform" to "Android",
+            "X-App-Ver" to "10861",
+            "X-Lang" to "zh-CN",
+            "X-GCExperience" to "GC5",
+            "DI-Backend" to "connectapi.garmin.cn",
+            "Accept-Language" to "zh-CN,zh;q=0.9",
+            "Accept" to "application/json",
+            "Referer" to "https://connect.garmin.cn/app/home",
+            "Origin" to "https://connect.garmin.cn"
+        )
+        if (sess.cookies.isNotEmpty()) h["Cookie"] = sess.cookies
+        if (sess.csrf.isNotEmpty()) h["connect-csrf-token"] = sess.csrf
+        return h
+    }
+
     // ===== WebView fetch（国际版DI token失败时的回退，保留但不优先使用）=====
     private suspend fun prepareWebView(cred: String): Boolean {
         val wv = sharedWebView ?: return false
@@ -503,6 +524,36 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
+            // v7.0.5: 中国版优先用cookie调用connectapi（不经过Cloudflare）
+            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
+                val req = Request.Builder().url(url).apply {
+                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                }.get().build()
+                client.newCall(req).execute().use { resp ->
+                    addDebugLog("getActivities CN(cookie): HTTP ${resp.code}")
+                    if (resp.code == 200) {
+                        val arr = JSONArray(resp.body?.string() ?: "[]")
+                        val out = mutableListOf<ActivityRecord>()
+                        for (i in 0 until arr.length()) {
+                            val item = arr.getJSONObject(i)
+                            val id = item.optString("activityId")
+                            if (id.isEmpty()) continue
+                            out.add(ActivityRecord(
+                                id,
+                                item.optString("activityName").ifBlank { "佳明活动" },
+                                item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") },
+                                item.optDouble("distance", 0.0) / 1000.0,
+                                item.optInt("duration", 0),
+                                ds
+                            ))
+                        }
+                        addDebugLog("getActivities CN(cookie)成功: ${out.size}条")
+                        return@withContext out
+                    }
+                    addDebugLog("getActivities CN(cookie)失败: HTTP ${resp.code}，回退gc-api")
+                }
+            }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
             if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
                 val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
@@ -584,6 +635,28 @@ class GarminApi {
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
+            // v7.0.5: 中国版优先用cookie调用connectapi（不经过Cloudflare）
+            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
+                val req = Request.Builder().url(url).apply {
+                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                    addHeader("Accept", "*/*")
+                }.get().build()
+                client.newCall(req).execute().use { resp ->
+                    addDebugLog("downloadFit CN(cookie): HTTP ${resp.code}")
+                    if (resp.code == 200) {
+                        val zipBytes = resp.body?.bytes()
+                        if (zipBytes != null) {
+                            val fit = unzipFit(zipBytes)
+                            if (fit != null) {
+                                addDebugLog("downloadFit CN(cookie)成功")
+                                return@withContext fit
+                            }
+                        }
+                    }
+                    addDebugLog("downloadFit CN(cookie)失败，回退gc-api")
+                }
+            }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
             if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
                 val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
@@ -680,6 +753,23 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
+            // v7.0.5: 中国版优先用cookie调用connectapi（不经过Cloudflare）
+            if (ds == DataSource.GARMIN_CN && sess?.cookies?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/upload-service/upload"
+                val req = Request.Builder().url(url).apply {
+                    connectApiCookieHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                }.post(data.toRequestBody("application/octet-stream".toMediaType()))
+                .build()
+                client.newCall(req).execute().use { resp ->
+                    val body = resp.body?.string() ?: ""
+                    addDebugLog("upload CN(cookie): HTTP ${resp.code}, body=${body.take(200)}")
+                    if (resp.code in 200..299) {
+                        addDebugLog("upload CN(cookie)成功")
+                        return@withContext body
+                    }
+                    addDebugLog("upload CN(cookie)失败，回退gc-api")
+                }
+            }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
             if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
                 val url = "${connectApiHost(ds)}/upload-service/upload"
