@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.4.4-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.4.5-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.4.4 |
+| 当前版本 | v7.4.5 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,25 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.5 (2026-09-03)
+
+**Wahoo登录恢复 + 佳明中国上传cookie domain修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo登录方式 | 恢复WahooOAuth2Service后台自动化登录（v7.3.0验证通过的方案），弹出对话框输入邮箱密码，后台自动完成OAuth2授权 |
+| Wahoo上传权限 | SCOPES包含workouts_write，直接登录后即可上传，无需重新授权 |
+| 佳明中国上传403 | 修复cookie domain问题：injectCookies同时注入到主域名.garmin.cn，这样子域名connectapi.garmin.cn也能发送cookie |
+| 佳明中国上传方式 | 保持WebView+connectapi，浏览器环境cookie自动携带 |
+
+**根因分析**：
+- Wahoo：WebView方式反复失败（shouldOverrideUrlLoading/SSL错误等），恢复v7.3.0验证通过的后台自动化登录方案
+- 佳明中国：cookie的domain是.connect.garmin.cn，不会被发送到connectapi.garmin.cn（不同子域名），导致403。修复：同时注入到主域名.garmin.cn
+
+**测试要点**：
+1. Wahoo：输入邮箱密码直接登录 → 上传FIT（登录即含workouts_write权限）
+2. 佳明中国：重新登录 → 上传FIT → 获取活动列表 → 下载FIT
+
 ### v7.4.4 (2026-09-03)
 
 **Wahoo登录和佳明中国上传修复**

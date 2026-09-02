@@ -361,10 +361,13 @@ class GarminApi {
     private fun injectCookies(cred: String, host: String = "connect.garmin.com") {
         val sess = parseCredential(cred) ?: return
         val cm = CookieManager.getInstance()
+        // v7.4.5: 同时注入到主域名（.garmin.cn/.garmin.com），这样子域名connectapi.garmin.cn也能发送cookie
+        val mainDomain = if (host.endsWith(".cn")) "garmin.cn" else "garmin.com"
         sess.cookies.split("; ").forEach { cookie ->
             if (cookie.isNotEmpty()) {
                 cm.setCookie(host, cookie)
                 cm.setCookie(".$host", cookie)
+                cm.setCookie(".$mainDomain", cookie)  // 主域名，所有子域名共享
             }
         }
         cm.flush()

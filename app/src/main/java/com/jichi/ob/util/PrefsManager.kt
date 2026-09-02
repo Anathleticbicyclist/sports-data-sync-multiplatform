@@ -134,6 +134,8 @@ class PrefsManager(context: Context) {
     fun getWahooClientId(): String? = prefs.getString("wahoo_client_id", null)
     fun saveWahooClientSecret(c: String) { prefs.edit().putString("wahoo_client_secret", c).apply() }
     fun getWahooClientSecret(): String? = prefs.getString("wahoo_client_secret", null)
+    fun saveWahooEmail(e: String) { prefs.edit().putString("wahoo_email", e).apply() }
+    fun getWahooEmail(): String? = prefs.getString("wahoo_email", null)
     fun isWahooLoggedIn(): Boolean {
         // v7.3.0: 如果内置凭证已配置，只检查token即可（不需要用户手动配置Client ID）
         if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
