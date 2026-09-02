@@ -348,15 +348,14 @@ class GarminApi {
         val wv = sharedWebView ?: return false
         val host = if (ds == DataSource.GARMIN_CN) "connect.garmin.cn" else "connect.garmin.com"
         injectCookies(cred, host)
-        // v7.4.9: 佳明中国——不手动注入cookie（避免覆盖LoginWebActivity中已有的有效cookie），
-        // 直接用CookieManager中LoginWebActivity登录后已有的cookie加载modern页面
+        // v7.5.0: 佳明中国——加载简单页面(favicon.ico)获取正确origin，避免modern页面重定向到sign-in导致永远ready不了
+        // cookie直接用CookieManager中LoginWebActivity登录后已有的，不手动注入
         if (ds == DataSource.GARMIN_CN) {
-            val cnUrl = "https://connect.garmin.cn/modern/"
+            val cnUrl = "https://connect.garmin.cn/favicon.ico"
             val current = withContext(Dispatchers.Main) { wv.url }
-            // 检查CookieManager中是否已有佳明中国的cookie
             val existingCookies = CookieManager.getInstance().getCookie("https://connect.garmin.cn") ?: ""
-            addDebugLog("prepareWebView CN: CookieManager已有cookie len=${existingCookies.length}, 当前页面=$current")
-            if (current?.contains("connect.garmin.cn") == true && !current.contains("sign-in") && sharedWebViewReady) {
+            android.util.Log.i("GarminApi", "prepareWebView CN: cookie len=${existingCookies.length}, current=$current")
+            if (current?.contains("connect.garmin.cn") == true && sharedWebViewReady) {
                 return true
             }
             sharedWebViewReady = false
@@ -364,23 +363,29 @@ class GarminApi {
             withContext(Dispatchers.Main) {
                 wv.webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
-                        addDebugLog("prepareWebView CN: onPageFinished url=$url")
-                        if (url?.contains("connect.garmin.cn") == true && !url.contains("sign-in")) {
+                        android.util.Log.i("GarminApi", "prepareWebView CN: onPageFinished url=$url")
+                        // favicon.ico可能返回404，但只要页面加载完成且origin是connect.garmin.cn就可以
+                        if (url?.contains("connect.garmin.cn") == true) {
                             sharedWebViewReady = true
                             webViewLoading = false
                         }
                     }
                     override fun onReceivedError(view: WebView?, request: android.webkit.WebResourceRequest?, error: android.webkit.WebResourceError?) {
-                        addDebugLog("prepareWebView CN: onReceivedError ${error?.description}")
+                        android.util.Log.i("GarminApi", "prepareWebView CN: onReceivedError ${error?.description}, url=${request?.url}")
+                        // 即使favicon.ico返回404错误，也认为页面加载完成（origin已经是connect.garmin.cn）
+                        if (request?.url?.toString()?.contains("connect.garmin.cn") == true) {
+                            sharedWebViewReady = true
+                            webViewLoading = false
+                        }
                     }
                 }
                 wv.loadUrl(cnUrl)
             }
             var attempts = 0
-            while ((!sharedWebViewReady || webViewLoading) && attempts < 20) {
-                delay(1000); attempts++
+            while ((!sharedWebViewReady || webViewLoading) && attempts < 10) {
+                delay(500); attempts++
             }
-            addDebugLog("prepareWebView CN: 等待${attempts}秒, ready=$sharedWebViewReady")
+            android.util.Log.i("GarminApi", "prepareWebView CN: 等待${attempts * 0.5}秒, ready=$sharedWebViewReady")
             return sharedWebViewReady
         }
         val currentUrl = withContext(Dispatchers.Main) { wv.url }
