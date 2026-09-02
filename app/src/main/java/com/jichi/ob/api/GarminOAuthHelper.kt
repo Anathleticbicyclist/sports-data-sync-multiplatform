@@ -155,6 +155,108 @@ object GarminOAuthHelper {
     }
 
     /** 完整流程：ticket → OAuth1 → OAuth2 */
+    /**
+     * v7.5.1: 佳明中国专用——用邮箱密码直接登录（模拟garth库mobile SSO流程，不需要WebView）
+     * 流程：访问sign-in设置cookie → POST /mobile/api/login提交邮箱密码 → 获取serviceTicketId → 换OAuth1→OAuth2
+     * 参考：garth库 sso.py login() 方法
+     */
+    fun loginWithCredentialsCn(email: String, password: String): OAuth2Token {
+        val clientId = "GCM_ANDROID_DARK"
+        val serviceUrl = "https://mobile.integration.garmin.cn/gcm/android"
+        val ssoBase = "https://sso.garmin.cn"
+        
+        // 浏览器风格headers（避免Cloudflare挑战）
+        val ssoHeaders = mapOf(
+            "User-Agent" to "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language" to "en-US,en;q=0.9",
+            "Sec-Fetch-Mode" to "navigate",
+            "Sec-Fetch-Dest" to "document"
+        )
+        
+        // Step 1: 访问sign-in页面设置cookie
+        Log.i(TAG, "Step 1: 访问佳明中国sign-in设置cookie...")
+        val signInUrl = "$ssoBase/mobile/sso/en/sign-in?clientId=$clientId"
+        val cookies = mutableMapOf<String, String>()
+        
+        val conn1 = java.net.URL(signInUrl).openConnection() as java.net.HttpURLConnection
+        conn1.requestMethod = "GET"
+        ssoHeaders.forEach { (k, v) -> conn1.setRequestProperty(k, v) }
+        conn1.setRequestProperty("Sec-Fetch-Site", "none")
+        conn1.connectTimeout = 15000
+        conn1.readTimeout = 15000
+        conn1.instanceFollowRedirects = true
+        val code1 = conn1.responseCode
+        // 提取所有Set-Cookie
+        var i = 0
+        while (true) {
+            val headerName = conn1.getHeaderFieldKey(i)
+            val headerValue = conn1.getHeaderField(i)
+            if (headerName == null && headerValue == null) break
+            if ("Set-Cookie".equals(headerName, ignoreCase = true)) {
+                val cookiePart = headerValue.substringBefore(";")
+                val eqIdx = cookiePart.indexOf("=")
+                if (eqIdx > 0) {
+                    cookies[cookiePart.substring(0, eqIdx)] = cookiePart.substring(eqIdx + 1)
+                }
+            }
+            i++
+        }
+        conn1.disconnect()
+        Log.i(TAG, "  sign-in HTTP $code1, 获取到 ${cookies.size} 个cookie")
+        
+        // Step 2: POST /mobile/api/login 提交邮箱密码
+        Log.i(TAG, "Step 2: 提交登录表单...")
+        val loginParams = "clientId=$clientId&locale=en-US&service=${java.net.URLEncoder.encode(serviceUrl, "UTF-8")}"
+        val loginUrl = "$ssoBase/mobile/api/login?$loginParams"
+        val jsonBody = JSONObject().apply {
+            put("username", email)
+            put("password", password)
+            put("rememberMe", false)
+            put("captchaToken", "")
+        }.toString()
+        
+        val conn2 = java.net.URL(loginUrl).openConnection() as java.net.HttpURLConnection
+        conn2.requestMethod = "POST"
+        ssoHeaders.forEach { (k, v) -> conn2.setRequestProperty(k, v) }
+        conn2.setRequestProperty("Content-Type", "application/json")
+        conn2.setRequestProperty("Cookie", cookies.entries.joinToString("; ") { "${it.key}=${it.value}" })
+        conn2.doOutput = true
+        conn2.connectTimeout = 15000
+        conn2.readTimeout = 15000
+        conn2.outputStream.write(jsonBody.toByteArray())
+        conn2.outputStream.flush()
+        
+        val code2 = conn2.responseCode
+        val body2 = if (code2 == 200) conn2.inputStream.bufferedReader().readText()
+                    else conn2.errorStream?.bufferedReader()?.readText() ?: ""
+        conn2.disconnect()
+        Log.i(TAG, "  登录HTTP $code2, 响应: ${body2.take(300)}")
+        
+        if (code2 != 200) throw Exception("佳明中国登录失败: HTTP $code2, $body2")
+        
+        // 解析响应，获取serviceTicketId
+        val respJson = JSONObject(body2)
+        val status = respJson.optJSONObject("responseStatus")
+        val statusType = status?.optString("type", "UNKNOWN") ?: "UNKNOWN"
+        Log.i(TAG, "  登录状态: $statusType")
+        
+        if (statusType == "MFA_REQUIRED") {
+            throw Exception("佳明中国需要两步验证(MFA)，请先在佳明App中关闭两步验证")
+        }
+        if (statusType != "SUCCESSFUL") {
+            val message = status?.optString("message", "") ?: ""
+            throw Exception("佳明中国登录失败: $statusType - $message")
+        }
+        
+        val ticket = respJson.optString("serviceTicketId", "")
+        if (ticket.isEmpty()) throw Exception("佳明中国登录成功但未获取到serviceTicketId")
+        Log.i(TAG, "✅ 获取到serviceTicketId: ${ticket.take(20)}...")
+        
+        // Step 3: 用ticket换OAuth1→OAuth2（复用现有方法）
+        return loginWithTicket(ticket, true, serviceUrl)
+    }
+
     fun loginWithTicket(ticket: String, cn: Boolean, serviceUrl: String): OAuth2Token {
         val oauth1 = exchangeTicketForOAuth1(ticket, cn, serviceUrl)
         Log.i(TAG, "✅ OAuth1 token获取成功: ${oauth1.oauthToken.take(20)}...")

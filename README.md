@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.5.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.5.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.5.0 |
+| 当前版本 | v7.5.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -54,7 +54,7 @@
 | **百锐腾** | ⚠️ | 🚧 开发中 | 官方未开放FIT下载接口 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
 | **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO认证 |
-| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，WebView+gc-api，保存所有cookie(含cf_clearance)绕过Cloudflare |
+| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，mobile SSO+DI Token(参考garth库)，connectapi不经过Cloudflare |
 | **高驰中国** | ✅ | ✅ | COROS中国区，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS国际/欧洲区，AWS S3上传 |
 | **Wahoo** | ✅ | ✅ | Wahoo官方上传API，base64编码+轮询状态 |
@@ -106,6 +106,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.5.1 (2026-09-03)
+- **佳明中国彻底修复**：深度研读garth库源代码，改用mobile SSO+OAuth1→OAuth2 Bearer token方案（和佳明国际完全一样），调用connectapi.garmin.cn，彻底绕过Cloudflare
+- 登录方式：弹出对话框输入邮箱密码，后台自动完成SSO登录+OAuth授权，不需要WebView
+- 之前的WebView+cookie+gc-api方案全部废弃
+
 ### v7.5.0 (2026-09-03)
 - **佳明中国**：prepareWebView加载favicon.ico简单页面（而非modern页面），避免重定向到sign-in导致永远ready不了；origin为connect.garmin.cn，fetch调用gc-api无CORS问题；cookie直接用CookieManager中LoginWebActivity已有的，不手动注入
 - 其他平台未改动
