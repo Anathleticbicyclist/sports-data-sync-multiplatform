@@ -193,7 +193,29 @@ class LoginWebActivity : AppCompatActivity() {
                         if (checkCount == 1) webView.post(checkRunnable)
                         if (!detected) view?.evaluateJavascript(injectGarminListener(), null)
                     }
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?) = false
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url?.toString()
+                    Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
+                    if (url != null) urlHistory.add("shouldOverride: $url")
+                    // v7.4.4: Wahoo回调URL在这里拦截，避免SSL错误导致捕获失败
+                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && !detected) {
+                        val code = extractWahooCode(url)
+                        if (!code.isNullOrEmpty()) {
+                            detected = true
+                            Log.i(TAG, "✅ Wahoo 授权码捕获(shouldOverrideUrlLoading) len=${code.length}")
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, code)
+                                .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+                            finish()
+                            return true
+                        }
+                        // 如果URL包含error参数，记录错误
+                        if (url.contains("error=")) {
+                            Log.e(TAG, "❌ Wahoo授权错误: $url")
+                        }
+                    }
+                    return false
+                }
                 }
                 webView.webChromeClient = object : WebChromeClient() {
                     override fun onProgressChanged(view: WebView?, newProgress: Int) {
