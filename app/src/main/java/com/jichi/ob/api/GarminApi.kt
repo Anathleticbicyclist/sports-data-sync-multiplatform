@@ -348,10 +348,14 @@ class GarminApi {
         val wv = sharedWebView ?: return false
         val host = if (ds == DataSource.GARMIN_CN) "connect.garmin.cn" else "connect.garmin.com"
         injectCookies(cred, host)
-        // v7.4.8: 佳明中国加载modern页面（gc-api的同源页面），确保cookie有效且不重定向
+        // v7.4.9: 佳明中国——不手动注入cookie（避免覆盖LoginWebActivity中已有的有效cookie），
+        // 直接用CookieManager中LoginWebActivity登录后已有的cookie加载modern页面
         if (ds == DataSource.GARMIN_CN) {
             val cnUrl = "https://connect.garmin.cn/modern/"
             val current = withContext(Dispatchers.Main) { wv.url }
+            // 检查CookieManager中是否已有佳明中国的cookie
+            val existingCookies = CookieManager.getInstance().getCookie("https://connect.garmin.cn") ?: ""
+            addDebugLog("prepareWebView CN: CookieManager已有cookie len=${existingCookies.length}, 当前页面=$current")
             if (current?.contains("connect.garmin.cn") == true && !current.contains("sign-in") && sharedWebViewReady) {
                 return true
             }
@@ -360,18 +364,23 @@ class GarminApi {
             withContext(Dispatchers.Main) {
                 wv.webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
+                        addDebugLog("prepareWebView CN: onPageFinished url=$url")
                         if (url?.contains("connect.garmin.cn") == true && !url.contains("sign-in")) {
                             sharedWebViewReady = true
                             webViewLoading = false
                         }
                     }
+                    override fun onReceivedError(view: WebView?, request: android.webkit.WebResourceRequest?, error: android.webkit.WebResourceError?) {
+                        addDebugLog("prepareWebView CN: onReceivedError ${error?.description}")
+                    }
                 }
                 wv.loadUrl(cnUrl)
             }
             var attempts = 0
-            while ((!sharedWebViewReady || webViewLoading) && attempts < 30) {
+            while ((!sharedWebViewReady || webViewLoading) && attempts < 20) {
                 delay(1000); attempts++
             }
+            addDebugLog("prepareWebView CN: 等待${attempts}秒, ready=$sharedWebViewReady")
             return sharedWebViewReady
         }
         val currentUrl = withContext(Dispatchers.Main) { wv.url }
