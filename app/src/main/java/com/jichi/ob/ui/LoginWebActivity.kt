@@ -522,12 +522,15 @@ class LoginWebActivity : AppCompatActivity() {
             val csrf = csrfResult?.trim()?.trim('"') ?: ""
             if (!detected && !isFinishing) {
                 detected = true
+                // v7.4.8: 保存所有cookie（包括cf_clearance等Cloudflare验证cookie），避免后续请求再次触发验证
+                val allCookies = CookieManager.getInstance().getCookie("https://$host") ?: ""
                 val credential = org.json.JSONObject()
                     .put("jwt_web", jwtWeb)
                     .put("session", sessionCookie)
                     .put("csrf", csrf)
+                    .put("cookies", allCookies)
                     .toString()
-                Log.i(TAG, "✅ 佳明${if(cn)"中国"else"国际"}登录成功, JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}, CSRF=${csrf.take(8)}...")
+                Log.i(TAG, "✅ 佳明${if(cn)"中国"else"国际"}登录成功, JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}, 所有cookie len=${allCookies.length}, CSRF=${csrf.take(8)}...")
                 runOnUiThread {
                     setResult(Activity.RESULT_OK, Intent()
                         .putExtra(RESULT_TOKEN, credential)

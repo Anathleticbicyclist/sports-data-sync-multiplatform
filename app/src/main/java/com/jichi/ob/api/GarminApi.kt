@@ -265,10 +265,14 @@ class GarminApi {
                     val csrf = obj.optString("csrf", "")
                     val jwtWeb = obj.optString("jwt_web", "")
                     val sessionCookie = obj.optString("session", "")
-                    val cookies = if (jwtWeb.isNotEmpty() && sessionCookie.isNotEmpty()) {
+                    // v7.4.8: 优先使用保存的所有cookie（包括cf_clearance等），避免只重建JWT_WEB+session导致Cloudflare验证丢失
+                    val savedCookies = obj.optString("cookies", "")
+                    val cookies = if (savedCookies.isNotEmpty()) {
+                        savedCookies
+                    } else if (jwtWeb.isNotEmpty() && sessionCookie.isNotEmpty()) {
                         "JWT_WEB=$jwtWeb; session=$sessionCookie"
                     } else {
-                        obj.optString("cookies", "")
+                        ""
                     }
                     val diToken = obj.optString("di_token", "")
                     val diRefreshToken = obj.optString("di_refresh_token", "")
@@ -344,10 +348,31 @@ class GarminApi {
         val wv = sharedWebView ?: return false
         val host = if (ds == DataSource.GARMIN_CN) "connect.garmin.cn" else "connect.garmin.com"
         injectCookies(cred, host)
-        // v7.4.6: 佳明中国不需要加载connect.garmin.cn页面（被Cloudflare拦截会重定向到sign-in，导致永远ready不了）
-        // 只需要注入cookie到.garmin.cn域名，然后直接在WebView中执行fetch调用connectapi即可
+        // v7.4.8: 佳明中国加载modern页面（gc-api的同源页面），确保cookie有效且不重定向
         if (ds == DataSource.GARMIN_CN) {
-            return true
+            val cnUrl = "https://connect.garmin.cn/modern/"
+            val current = withContext(Dispatchers.Main) { wv.url }
+            if (current?.contains("connect.garmin.cn") == true && !current.contains("sign-in") && sharedWebViewReady) {
+                return true
+            }
+            sharedWebViewReady = false
+            webViewLoading = true
+            withContext(Dispatchers.Main) {
+                wv.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        if (url?.contains("connect.garmin.cn") == true && !url.contains("sign-in")) {
+                            sharedWebViewReady = true
+                            webViewLoading = false
+                        }
+                    }
+                }
+                wv.loadUrl(cnUrl)
+            }
+            var attempts = 0
+            while ((!sharedWebViewReady || webViewLoading) && attempts < 30) {
+                delay(1000); attempts++
+            }
+            return sharedWebViewReady
         }
         val currentUrl = withContext(Dispatchers.Main) { wv.url }
         val onGarmin = currentUrl?.contains(host) == true &&
@@ -366,16 +391,51 @@ class GarminApi {
     private fun injectCookies(cred: String, host: String = "connect.garmin.com") {
         val sess = parseCredential(cred) ?: return
         val cm = CookieManager.getInstance()
-        // v7.4.5: 同时注入到主域名（.garmin.cn/.garmin.com），这样子域名connectapi.garmin.cn也能发送cookie
+        cm.setAcceptCookie(true)
+        // v7.4.8: 修复cookie注入，添加path=/和domain属性，确保cookie在所有子域名有效
         val mainDomain = if (host.endsWith(".cn")) "garmin.cn" else "garmin.com"
         sess.cookies.split("; ").forEach { cookie ->
             if (cookie.isNotEmpty()) {
-                cm.setCookie(host, cookie)
-                cm.setCookie(".$host", cookie)
-                cm.setCookie(".$mainDomain", cookie)  // 主域名，所有子域名共享
+                cm.setCookie(host, "$cookie; path=/")
+                cm.setCookie(".$host", "$cookie; domain=.$host; path=/")
+                cm.setCookie(".$mainDomain", "$cookie; domain=.$mainDomain; path=/")
             }
         }
         cm.flush()
+    }
+
+    // v7.4.7: 佳明中国专用——用WebView直接加载URL获取JSON响应（不使用fetch，避免about:blank的CORS/origin问题）
+    private suspend fun loadJsonViaWebView(url: String, timeoutMs: Long = 30000): String? {
+        val wv = sharedWebView ?: return null
+        return withTimeoutOrNull(timeoutMs) {
+            withContext(Dispatchers.Main) {
+                suspendCancellableCoroutine { cont ->
+                    var done = false
+                    wv.webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView?, pageUrl: String?) {
+                            if (done) return
+                            wv.evaluateJavascript("(function(){ try { return document.body ? document.body.innerText : ''; } catch(e) { return ''; } })()") { result ->
+                                if (done) return@evaluateJavascript
+                                val text = result?.trim()?.trim('"') ?: ""
+                                if (text.isNotEmpty()) {
+                                    done = true
+                                    cont.resume(if (text.startsWith("{") || text.startsWith("[")) text else null)
+                                }
+                            }
+                        }
+                        override fun onReceivedError(view: WebView?, request: android.webkit.WebResourceRequest?, error: android.webkit.WebResourceError?) {
+                            if (done) return
+                            done = true
+                            cont.resume(null)
+                        }
+                    }
+                    wv.loadUrl(url)
+                    wv.postDelayed({
+                        if (!done) { done = true; cont.resume(null) }
+                    }, timeoutMs - 1000)
+                }
+            }
+        }
     }
 
     private suspend fun fetchViaWebView(url: String, method: String = "GET", headers: Map<String, String> = emptyMap(), body: String? = null): String? {
@@ -651,12 +711,13 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
-            // v7.4.6: 中国版优先用WebView调用connectapi（OkHttp+cookie返回403，浏览器环境cookie自动携带）
+            // v7.4.8: 中国版回滚到WebView+gc-api（最开始验证通过的方案，gc-api是Garmin网页本身用的API，浏览器环境Cloudflare不拦截）
             if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
                 if (prepareWebView(cred, ds)) {
-                    val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
-                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }
-                    val result = fetchViaWebView(url, "GET", wvHeaders)
+                    val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
+                    val headers = apiHeaders(ds, cred).toMutableMap()
+                    headers["Accept"] = "application/json"
+                    val result = fetchViaWebView(url, "GET", headers)
                     if (result != null) {
                         val arr = JSONArray(result)
                         val out = mutableListOf<ActivityRecord>()
@@ -673,10 +734,10 @@ class GarminApi {
                                 ds
                             ))
                         }
-                        addDebugLog("getActivities CN(WebView+connectapi)成功: ${out.size}条")
+                        addDebugLog("getActivities CN(WebView+gc-api)成功: ${out.size}条")
                         return@withContext out
                     }
-                    addDebugLog("getActivities CN(WebView+connectapi)失败，回退")
+                    addDebugLog("getActivities CN(WebView+gc-api)失败，回退")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
@@ -760,21 +821,21 @@ class GarminApi {
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
-            // v7.4.6: 中国版优先用WebView调用connectapi下载（OkHttp+cookie返回403，浏览器环境cookie自动携带）
+            // v7.4.8: 中国版回滚到WebView+gc-api下载（最开始验证通过的方案）
             if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
                 if (prepareWebView(cred, ds)) {
-                    val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
-                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }.toMutableMap()
-                    wvHeaders["Accept"] = "*/*"
-                    val zipBytes = downloadViaWebView(url, wvHeaders)
+                    val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
+                    val headers = apiHeaders(ds, cred).toMutableMap()
+                    headers["Accept"] = "*/*"
+                    val zipBytes = downloadViaWebView(url, headers)
                     if (zipBytes != null) {
                         val fit = unzipFit(zipBytes)
                         if (fit != null) {
-                            addDebugLog("downloadFit CN(WebView+connectapi)成功")
+                            addDebugLog("downloadFit CN(WebView+gc-api)成功")
                             return@withContext fit
                         }
                     }
-                    addDebugLog("downloadFit CN(WebView+connectapi)失败，回退")
+                    addDebugLog("downloadFit CN(WebView+gc-api)失败，回退")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
@@ -873,19 +934,18 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
-            // v7.4.4: 中国版优先用WebView调用connectapi上传（OkHttp+cookie返回403，浏览器环境cookie自动携带）
+            // v7.4.8: 中国版回滚到WebView+gc-api上传（最开始验证通过的方案）
             if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
                 if (prepareWebView(cred, ds)) {
-                    val url = "${connectApiHost(ds)}/upload-service/upload"
-                    // 浏览器fetch不允许手动设置Cookie header，移除后用credentials:'include'自动携带
-                    val wvHeaders = apiHeaders(ds, cred).filterKeys { it != "Cookie" }.toMutableMap()
-                    wvHeaders["Accept"] = "application/json"
-                    val result = uploadBinaryViaWebView(url, data, wvHeaders)
+                    val url = "${gcApiHost(ds)}/upload-service/upload"
+                    val headers = apiHeaders(ds, cred).toMutableMap()
+                    headers["Accept"] = "application/json"
+                    val result = uploadBinaryViaWebView(url, data, headers)
                     if (result != null) {
-                        addDebugLog("upload CN(WebView+connectapi)成功")
+                        addDebugLog("upload CN(WebView+gc-api)成功")
                         return@withContext null
                     }
-                    addDebugLog("upload CN(WebView+connectapi)失败，回退OkHttp")
+                    addDebugLog("upload CN(WebView+gc-api)失败，回退")
                 }
             }
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
