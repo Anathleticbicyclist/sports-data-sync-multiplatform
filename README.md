@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.1.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.3 |
+| 当前版本 | v7.1.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,22 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.1.4 (2026-09-02) — 修复Wahoo授权码捕获失败
+
+**修复的问题**：
+- Wahoo授权登录后无反应，提示"未捕获到授权码或未配置凭证"
+
+**根因**：
+- Wahoo OAuth2授权后重定向到`https://localhost:8080/?code=xxx`
+- WebView加载localhost地址会失败，`onPageStarted`可能不会正确触发
+- 原代码只在`onPageStarted`中检测授权码，导致授权码丢失
+
+**修复内容**：
+- 在`shouldOverrideUrlLoading`中拦截URL，在加载前检测授权码（第一道防线）
+- 在`onReceivedError`中从failingUrl检测授权码（第二道防线，localhost加载失败时触发）
+- 保留原有的`onPageStarted`检测（第三道防线）
+- 三道防线确保Wahoo授权码能被正确捕获
 
 ### v7.1.3 (2026-09-02) — Wahoo生产应用已批准，内置生产凭证；回滚行者→iGPSPORT时间修正
 

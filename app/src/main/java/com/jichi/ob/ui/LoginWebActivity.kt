@@ -259,8 +259,21 @@ class LoginWebActivity : AppCompatActivity() {
                         view?.evaluateJavascript(injectGarminListener(), null)
                     }
                 }
+                // v7.1.4: Wahoo localhost加载失败时也尝试从failingUrl捕获授权码
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-                    Log.e(TAG, "[$loginType] Error: ${error?.description} for ${request?.url}")
+                    val failingUrl = request?.url?.toString()
+                    Log.e(TAG, "[$loginType] Error: ${error?.description} for $failingUrl")
+                    if (loginType == TYPE_WAHOO && failingUrl != null && failingUrl.contains("localhost:8080") && failingUrl.contains("code=") && !detected) {
+                        val code = try { android.net.Uri.parse(failingUrl).getQueryParameter("code") } catch (_: Exception) { null }
+                        if (!code.isNullOrEmpty()) {
+                            detected = true
+                            Log.i(TAG, "✅ Wahoo 授权码捕获(onReceivedError) len=${code.length}")
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, code)
+                                .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+                            finish()
+                        }
+                    }
                 }
                 override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
                     Log.e(TAG, "[$loginType] WebView渲染进程崩溃: reason=${detail?.didCrash()}, didCrash=${detail?.didCrash()}")
@@ -272,7 +285,24 @@ class LoginWebActivity : AppCompatActivity() {
                     }
                     return true  // 返回true表示App已处理，不杀死App
                 }
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?) = false
+                // v7.1.4: Wahoo授权码在URL加载前拦截，避免localhost加载失败导致onPageStarted不触发
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url?.toString()
+                    Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
+                    if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
+                        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+                        if (!code.isNullOrEmpty()) {
+                            detected = true
+                            Log.i(TAG, "✅ Wahoo 授权码捕获(shouldOverride) len=${code.length}")
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, code)
+                                .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+                            finish()
+                            return true
+                        }
+                    }
+                    return false
+                }
             }
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
