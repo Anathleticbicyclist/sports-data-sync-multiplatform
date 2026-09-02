@@ -12,7 +12,7 @@
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
 
-> ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。日常使用建议下载[稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase/releases)，更加稳定可靠。
+> ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。日常使用建议下载[稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)，更加稳定可靠。
 
 ---
 
@@ -26,7 +26,7 @@
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
-| 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase/releases)（日常使用建议稳定版，更加稳定） |
+| 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
 ---
