@@ -37,6 +37,7 @@ import com.jichi.ob.api.BlackbirdApi
 import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.api.CorosApi
 import com.jichi.ob.api.GarminApi
+import com.jichi.ob.api.GarminOAuthHelper
 import com.jichi.ob.api.WahooApi
 import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
@@ -59,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -329,7 +331,7 @@ class MainActivity : AppCompatActivity() {
         btnBrytonLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_BRYTON, BrytonApi.LOGIN_URL) }
         btnOutbaseLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_OUTBASE, OutbaseApi.LOGIN_URL) }
         btnGarminComLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_GARMIN_COM, GarminApi.LOGIN_URL_COM) }
-        btnGarminCnLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_GARMIN_CN, GarminApi.LOGIN_URL_CN) }
+        btnGarminCnLogin.setOnClickListener { openGarminCnLogin() }
         btnCorosCnLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_COROS_CN, CorosApi.LOGIN_URL_CN) }
         btnCorosIntLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_COROS_INT, CorosApi.LOGIN_URL_INT) }
         btnWahooLogin.setOnClickListener { openWahooLogin() }
@@ -500,6 +502,70 @@ class MainActivity : AppCompatActivity() {
                             appendLog("❌ Wahoo登录失败，请检查邮箱密码")
                         }
                         updateStatusUI()
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /**
+     * v7.5.1: 佳明中国直接登录（模拟garth库mobile SSO流程，不需要WebView）
+     * 用邮箱密码直接获取OAuth2 Bearer token，调用connectapi.garmin.cn
+     */
+    private fun openGarminCnLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val emailInput = android.widget.EditText(this).apply {
+            hint = "佳明中国邮箱"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "佳明中国密码"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(emailInput)
+        layout.addView(passwordInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("佳明中国直接登录")
+            .setMessage("后台自动完成mobile SSO+OAuth2授权（参考garth库，Bearer token调connectapi）")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val email = emailInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (email.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入邮箱和密码")
+                    return@setPositiveButton
+                }
+                appendLog("🔐 佳明中国直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val oauth2 = GarminOAuthHelper.loginWithCredentialsCn(email, password)
+                        // 保存为diToken格式（GarminApi已支持佳明中国DI token+connectapi）
+                        val cred = JSONObject().apply {
+                            put("di_token", oauth2.accessToken)
+                            put("di_refresh_token", oauth2.refreshToken)
+                            put("di_client_id", "GCM_ANDROID_DARK")
+                            put("jwt_web", "")
+                            put("session", "")
+                            put("csrf", "")
+                        }.toString()
+                        runOnUiThread {
+                            prefs.saveGarminCnToken(cred)
+                            prefs.saveGarminCnCookie("")
+                            appendLog("✅ 佳明中国登录成功(mobile SSO+DI Token)")
+                            fetchUsernameAfterLogin(DataSource.GARMIN_CN)
+                            updateStatusUI()
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            appendLog("❌ 佳明中国登录失败: ${e.message}")
+                            updateStatusUI()
+                        }
                     }
                 }
             }
