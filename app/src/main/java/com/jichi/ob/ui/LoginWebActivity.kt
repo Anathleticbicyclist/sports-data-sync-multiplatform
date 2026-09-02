@@ -61,6 +61,7 @@ class LoginWebActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private var loginType = TYPE_XINGZHE
     private var detected = false
+    private val urlHistory = mutableListOf<String>()  // v7.1.7: URL历史记录，用于调试Wahoo授权码捕获
     private val verifying = AtomicBoolean(false)
     private var checkCount = 0
  
@@ -234,6 +235,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     progressBar.visibility = android.view.View.VISIBLE
                     Log.d(TAG, "[$loginType] PageStarted: $url")
+                    if (url != null) urlHistory.add("pageStarted: $url")
                     // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
                     if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
@@ -263,6 +265,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                     val failingUrl = request?.url?.toString()
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for $failingUrl")
+                    if (failingUrl != null) urlHistory.add("onError: $failingUrl")
                     if (loginType == TYPE_WAHOO && failingUrl != null && failingUrl.contains("localhost:8080") && failingUrl.contains("code=") && !detected) {
                         val code = extractWahooCode(failingUrl)
                         if (!code.isNullOrEmpty()) {
@@ -295,6 +298,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val url = request?.url?.toString()
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
+                    if (url != null) urlHistory.add("shouldOverride: $url")
                     if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
@@ -313,6 +317,7 @@ class LoginWebActivity : AppCompatActivity() {
                 // v7.1.5: 第四道防线——doUpdateVisitedHistory在URL变化(包括302重定向)时触发，最可靠
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     Log.d(TAG, "[$loginType] doUpdateVisitedHistory: $url")
+                    if (url != null) urlHistory.add("doUpdate: $url")
                     if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
@@ -656,7 +661,26 @@ class LoginWebActivity : AppCompatActivity() {
             }
             TYPE_WAHOO -> {
                 detectWahoo()
-                if (!detected) { detected = false; runOnUiThread { android.widget.Toast.makeText(this, "未检测到Wahoo授权码", android.widget.Toast.LENGTH_SHORT).show() }; return }
+                if (!detected) {
+                    detected = false
+                    // v7.1.7: 显示URL历史，帮助调试Wahoo授权码捕获
+                    val historyText = if (urlHistory.isEmpty()) "（无URL记录）" else urlHistory.takeLast(20).joinToString("\n")
+                    val currentUrl = webView.url ?: "（无）"
+                    val debugMsg = "未检测到Wahoo授权码\n\n当前URL: $currentUrl\n\n最近URL历史:\n$historyText\n\n请截图发给开发者"
+                    runOnUiThread {
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("Wahoo调试信息")
+                            .setMessage(debugMsg)
+                            .setPositiveButton("复制到剪贴板") { _, _ ->
+                                val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Wahoo调试", debugMsg))
+                                android.widget.Toast.makeText(this, "已复制到剪贴板", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .setNegativeButton("关闭", null)
+                            .show()
+                    }
+                    return
+                }
             }
         }
         finish()
