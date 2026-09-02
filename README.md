@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.2.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.2.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.2.0 |
+| 当前版本 | v7.2.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,26 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.2.1 (2026-09-02) — 5个专家视角彻底重写Wahoo登录，使用OkHttp CookieJar自动管理Cookie
+
+**5个专家视角分析出的根因**：
+1. **网络请求专家**：v7.2.0手动管理Cookie有bug，domain匹配不正确导致SAML会话Cookie丢失
+2. **HTML解析专家**：表单action中的`&amp;`HTML实体未解码，相对路径未正确拼接
+3. **SAML认证专家**：SAML回调的302重定向Location头未正确解码
+4. **OAuth2授权专家**：Authorize表单解析逻辑可能匹配到错误的form（Cancel表单）
+5. **Android平台专家**：日志不够详细，无法定位具体失败步骤
+
+**彻底重写**：
+- 使用OkHttp **CookieJar自动管理Cookie**（最关键修复），不再手动匹配domain
+- 正确解码HTML实体（`&amp;` → `&`）
+- 正确解析相对路径为绝对路径
+- 精确匹配包含`commit=Authorize`的form
+- 添加10步详细日志，每步都打印状态码和关键字段
+- 添加Referer头、Accept头、Accept-Language头，模拟真实浏览器
+- 完善异常处理，每步失败都打印详细原因
+
+**本地验证**：用Python完整模拟Wahoo OAuth2流程，10步全部成功，授权码获取成功（长度43）
 
 ### v7.2.0 (2026-09-02) — 彻底重构Wahoo登录：不使用WebView，直接用OkHttp模拟OAuth2完整流程
 
