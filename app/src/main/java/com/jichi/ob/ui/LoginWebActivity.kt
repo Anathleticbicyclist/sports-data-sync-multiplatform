@@ -169,6 +169,36 @@ class LoginWebActivity : AppCompatActivity() {
                         }
                     }
                 }
+                // v7.0.3修复: 佳明版本也必须初始化WebView，否则回退登录时loadUrl会跳系统浏览器
+                progressBar = findViewById(R.id.progressBar)
+                webView.settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    @Suppress("DEPRECATION")
+                    databaseEnabled = true
+                    allowContentAccess = true
+                    mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                    userAgentString = DESKTOP_UA
+                }
+                CookieManager.getInstance().removeAllCookies(null)
+                webView.addJavascriptInterface(GarminJsBridge(), "GarminBridge")
+                webView.webViewClient = object : WebViewClient() {
+                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                        progressBar.visibility = android.view.View.VISIBLE
+                    }
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        progressBar.visibility = android.view.View.GONE
+                        checkCount++
+                        if (checkCount == 1) webView.post(checkRunnable)
+                        if (!detected) view?.evaluateJavascript(injectGarminListener(), null)
+                    }
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?) = false
+                }
+                webView.webChromeClient = object : WebChromeClient() {
+                    override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                        progressBar.progress = newProgress
+                    }
+                }
                 return@onCreate
             }
 
