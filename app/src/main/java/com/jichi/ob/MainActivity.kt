@@ -454,90 +454,9 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
-    /** v7.3.0: Wahoo 登录——直接用WahooOAuth2Service模拟OAuth2流程，显示实时调试日志 */
+    /** v7.4.0: Wahoo 登录——改回WebView方式，用户手动登录授权，redirect_uri用ob://wahoo/callback */
     private fun openWahooLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val etEmail = android.widget.EditText(this).apply {
-            hint = "Wahoo账号邮箱"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            setText("zhi21@outlook.com")
-        }
-        val etPassword = android.widget.EditText(this).apply {
-            hint = "密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            setText("Wahoo2026Sync!")
-        }
-        val tvDebug = android.widget.TextView(this).apply {
-            text = "调试日志：\n等待登录..."
-            textSize = 10f
-            setTextColor(0xFF666666.toInt())
-            setPadding(0, 16, 0, 0)
-            maxLines = 20
-            isVerticalScrollBarEnabled = true
-            movementMethod = android.text.method.ScrollingMovementMethod()
-        }
-        val scrollView = android.widget.ScrollView(this).apply {
-            addView(tvDebug)
-            layoutParams = android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                600
-            )
-        }
-        layout.addView(etEmail)
-        layout.addView(etPassword)
-        layout.addView(scrollView)
-
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Wahoo登录（调试模式）")
-            .setView(layout)
-            .setPositiveButton("登录", null)
-            .setNegativeButton("取消", null)
-            .create()
-
-        dialog.show()
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val email = etEmail.text.toString().trim()
-            val password = etPassword.text.toString().trim()
-            if (email.isEmpty() || password.isEmpty()) {
-                android.widget.Toast.makeText(this, "请输入邮箱和密码", android.widget.Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            tvDebug.text = "调试日志：\n开始登录...\n"
-            appendLog("🔐 Wahoo直接登录中...")
-
-            // 设置调试日志回调
-            com.jichi.ob.api.WahooOAuth2Service.debugLogCallback = { msg ->
-                runOnUiThread {
-                    tvDebug.append(msg + "\n")
-                    // 自动滚动到底部
-                    scrollView.post { scrollView.fullScroll(android.widget.ScrollView.FOCUS_DOWN) }
-                }
-            }
-
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = com.jichi.ob.api.WahooOAuth2Service.login(email, password)
-                runOnUiThread {
-                    com.jichi.ob.api.WahooOAuth2Service.debugLogCallback = null
-                    if (result != null) {
-                        prefs.saveWahooToken(result.first)
-                        prefs.saveWahooRefresh(result.second)
-                        appendLog("✅ Wahoo登录成功")
-                        tvDebug.append("\n✅✅✅ 登录成功！\n")
-                        fetchUsernameAfterLogin(DataSource.WAHOO)
-                        updateStatusUI()
-                        android.widget.Toast.makeText(this@MainActivity, "Wahoo登录成功", android.widget.Toast.LENGTH_SHORT).show()
-                        dialog.dismiss()
-                    } else {
-                        appendLog("❌ Wahoo登录失败")
-                        tvDebug.append("\n❌ 登录失败，请查看上方日志\n")
-                        android.widget.Toast.makeText(this@MainActivity, "Wahoo登录失败", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
+        openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl())
     }
 
     /** v7.2.0: Wahoo配置对话框（保留，用于用户自配置凭证） */

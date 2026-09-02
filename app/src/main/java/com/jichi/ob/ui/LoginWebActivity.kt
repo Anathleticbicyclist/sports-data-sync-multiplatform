@@ -237,7 +237,7 @@ class LoginWebActivity : AppCompatActivity() {
                     Log.d(TAG, "[$loginType] PageStarted: $url")
                     if (url != null) urlHistory.add("pageStarted: $url")
                     // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
-                    if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
+                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -266,7 +266,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val failingUrl = request?.url?.toString()
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for $failingUrl")
                     if (failingUrl != null) urlHistory.add("onError: $failingUrl")
-                    if (loginType == TYPE_WAHOO && failingUrl != null && failingUrl.contains("localhost:8080") && failingUrl.contains("code=") && !detected) {
+                    if (loginType == TYPE_WAHOO && failingUrl != null && (failingUrl.contains("localhost:8080") || failingUrl.contains("wahoo/callback")) && failingUrl.contains("code=") && !detected) {
                         val code = extractWahooCode(failingUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -322,7 +322,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val url = request?.url?.toString()
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
                     if (url != null) urlHistory.add("shouldOverride: $url")
-                    if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
+                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -341,7 +341,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     Log.d(TAG, "[$loginType] doUpdateVisitedHistory: $url")
                     if (url != null) urlHistory.add("doUpdate: $url")
-                    if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
+                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true

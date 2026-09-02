@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.3.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.4.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.3.1 |
+| 当前版本 | v7.4.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -54,10 +54,10 @@
 | **百锐腾** | ⚠️ | 🚧 开发中 | 官方未开放FIT下载接口 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
 | **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO认证 |
-| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，WebView通道绕过Cloudflare |
+| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，OkHttp+cookie调用connectapi绕过Cloudflare |
 | **高驰中国** | ✅ | ✅ | COROS中国区，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS国际/欧洲区，AWS S3上传 |
-| **Wahoo** | ✅ | ❌ | 仅下载，无公开上传API |
+| **Wahoo** | ✅ | ✅ | Wahoo官方上传API，base64编码+轮询状态 |
 
 **支持的同步组合**：
 - 任意平台 → Outbase 上传
@@ -104,6 +104,34 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.1 (2026-09-02)
+
+**核心修复：佳明中国上传下载403问题彻底解决**
+
+| 修复项 | 说明 |
+|--------|------|
+| 佳明中国获取活动列表 | 从WebView+gc-api改为OkHttp+cookie调用connectapi（gc-api被Cloudflare拦截，connectapi不拦截） |
+| 佳明中国上传FIT | 同上，OkHttp+cookie+connectapi，Multipart上传 |
+| 佳明中国下载FIT | 同上，OkHttp+cookie+connectapi，下载zip后解压 |
+
+**根因分析**：
+- gc-api端点（`https://connect.garmin.cn/gc-api/...`）被Cloudflare拦截，返回空响应体
+- connectapi端点（`https://connectapi.garmin.cn/...`）Cloudflare不拦截，返回应用层403（JSON格式）
+- 只要有正确的JWT_WEB+session cookie，就能访问connectapi
+- 登录仍用WebView获取cookie，上传下载改用OkHttp直接调用connectapi
+
+### v7.4.0 (2026-09-02)
+
+**Wahoo登录手动化 + Wahoo上传功能开放**
+
+| 更新项 | 说明 |
+|--------|------|
+| Wahoo登录方式 | 从后台自动化改为WebView手动登录，用户全程可见 |
+| Wahoo redirect_uri | 从`https://localhost:8080/`改为`ob://wahoo/callback`（自定义URL scheme，彻底解决SSL证书问题） |
+| Wahoo上传功能 | 开放Wahoo官方上传API，base64编码FIT→POST上传→轮询状态（最多30秒） |
+| Wahoo上传按钮 | 目标平台列表添加Wahoo按钮，四列网格布局排齐 |
+| Wahoo OAuth scope | 添加`workouts_write`权限 |
+
 
 ### v7.3.1 (2026-09-02) — 修复Wahoo登录成功但首页显示未登录的问题
 
