@@ -193,7 +193,7 @@ object FitTimeFixer {
     // timestamp(field_num=253)所有消息都修改；其他时间字段按消息类型判断
     private val TIME_FIELDS_BY_MSG = mapOf(
         0 to setOf(4),      // file_id: time_created
-        18 to setOf(2, 4),  // session: start_time, time_created
+        18 to setOf(2),     // session: start_time（field_num=4是经度start_position_long，不是时间！）
         19 to setOf(2)      // lap: start_time
     )
 
