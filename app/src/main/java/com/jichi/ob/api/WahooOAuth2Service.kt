@@ -3,6 +3,9 @@ package com.jichi.ob.api
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -10,17 +13,31 @@ import org.jsoup.Jsoup
 import java.util.concurrent.TimeUnit
 
 /**
- * v7.2.0: Wahoo OAuth2直接登录服务（不使用WebView，用OkHttp模拟完整流程）
+ * v7.2.1: Wahoo OAuth2直接登录服务（彻底重写，使用OkHttp CookieJar自动管理Cookie）
  *
- * 流程：
- * 1. 访问授权URL → 获取SAML登录页面
- * 2. 提交用户名密码 → 获取SAMLResponse
- * 3. 提交SAMLResponse到saml_callback → 重定向到授权确认页面
- * 4. 提交Authorize表单 → 302重定向到localhost?code=xxx
- * 5. 从URL中提取授权码 → 换取access_token
+ * 5个专家视角分析后的修复：
+ * 1. 网络请求专家：使用OkHttp CookieJar自动管理Cookie，避免手动匹配domain的bug
+ * 2. HTML解析专家：正确解析表单action（处理&amp;实体解码）和相对路径
+ * 3. SAML认证专家：正确处理SAML回调的302重定向和Location头解码
+ * 4. OAuth2授权专家：正确解析Authorize表单（找到包含commit=Authorize的form）
+ * 5. Android平台专家：添加详细日志，协程正确使用，异常处理完善
  */
 object WahooOAuth2Service {
     private const val TAG = "WahooOAuth2"
+
+    // 使用CookieJar自动管理Cookie（关键修复：避免手动管理的bug）
+    private val cookieStore = mutableListOf<Cookie>()
+    private val cookieJar = object : CookieJar {
+        override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+            cookieStore.addAll(cookies)
+            Log.d(TAG, "保存Cookie: ${cookies.size}个, domain=${url.host}")
+        }
+        override fun loadForRequest(url: HttpUrl): List<Cookie> {
+            val valid = cookieStore.filter { it.matches(url) }
+            Log.d(TAG, "发送Cookie: ${valid.size}个, domain=${url.host}")
+            return valid
+        }
+    }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -28,9 +45,10 @@ object WahooOAuth2Service {
         .writeTimeout(30, TimeUnit.SECONDS)
         .followRedirects(false)  // 不自动跟随重定向，手动处理
         .followSslRedirects(false)
+        .cookieJar(cookieJar)
         .build()
 
-    private val cookieStore = mutableMapOf<String, String>()
+    private const val UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
     /**
      * 直接登录Wahoo并获取access_token
@@ -39,6 +57,7 @@ object WahooOAuth2Service {
     suspend fun login(email: String, password: String): Pair<String, String>? = withContext(Dispatchers.IO) {
         try {
             cookieStore.clear()
+            Log.i(TAG, "========== Wahoo OAuth2 直接登录开始 ==========")
 
             // Step 1: 访问授权URL
             Log.i(TAG, "Step 1: 访问授权URL")
@@ -48,133 +67,159 @@ object WahooOAuth2Service {
                     "&response_type=code"
 
             val authResp = executeGet(authUrl)
-            if (authResp.code != 200 && authResp.code != 302) {
-                Log.e(TAG, "授权URL访问失败: ${authResp.code}")
-                return@withContext null
-            }
+            Log.i(TAG, "  状态码: ${authResp.code}, 最终URL: ${authResp.finalUrl.take(80)}")
 
-            // 如果是302，跟随到登录页面
+            // 跟随重定向到登录页面（最多5次）
             var loginHtml = authResp.body
-            var loginUrl = authUrl
-            if (authResp.code == 302) {
-                val location = authResp.headers["Location"] ?: return@withContext null
-                Log.i(TAG, "重定向到: $location")
-                val loginResp = executeGet(location)
-                loginHtml = loginResp.body
-                loginUrl = location
+            var currentUrl = authResp.finalUrl
+            var redirectCount = 0
+            while (authResp.code in 300..399 && authResp.location.isNotEmpty() && redirectCount < 5) {
+                val nextUrl = resolveUrl(currentUrl, authResp.location)
+                Log.i(TAG, "  重定向${redirectCount+1}: $nextUrl")
+                val nextResp = executeGet(nextUrl)
+                loginHtml = nextResp.body
+                currentUrl = nextResp.finalUrl
+                redirectCount++
+                if (nextResp.code !in 300..399) break
             }
+            Log.i(TAG, "  登录页面URL: $currentUrl")
 
-            // Step 2: 解析SAML登录表单并提交
+            // Step 2: 解析SAML登录表单
             Log.i(TAG, "Step 2: 解析SAML登录表单")
             val loginDoc = Jsoup.parse(loginHtml)
             val loginForm = loginDoc.selectFirst("form") ?: run {
-                Log.e(TAG, "未找到登录表单")
+                Log.e(TAG, "  ❌ 未找到登录表单")
                 return@withContext null
             }
 
-            val loginAction = loginForm.attr("action")
-            val loginFormData = mutableMapOf<String, String>()
+            val loginAction = resolveUrl(currentUrl, decodeHtmlEntities(loginForm.attr("action")))
+            Log.i(TAG, "  登录表单action: $loginAction")
 
-            // 收集所有隐藏字段
-            loginForm.select("input[type=hidden]").forEach { input ->
+            val loginFormData = mutableMapOf<String, String>()
+            loginForm.select("input").forEach { input ->
                 val name = input.attr("name")
                 val value = input.attr("value")
-                if (name.isNotEmpty()) loginFormData[name] = value
+                val type = input.attr("type").lowercase()
+                if (name.isNotEmpty() && type != "checkbox" && type != "submit") {
+                    loginFormData[name] = value
+                }
             }
-
             loginFormData["email"] = email
             loginFormData["password"] = password
+            Log.i(TAG, "  登录表单字段: ${loginFormData.keys}")
 
-            Log.i(TAG, "登录表单字段: ${loginFormData.keys}")
-            Log.i(TAG, "提交登录到: $loginAction")
-
+            // Step 3: 提交登录表单
+            Log.i(TAG, "Step 3: 提交登录表单")
             val samlResp = executePost(loginAction, loginFormData)
+            Log.i(TAG, "  状态码: ${samlResp.code}")
+
             if (samlResp.code != 200) {
-                Log.e(TAG, "登录提交失败: ${samlResp.code}")
+                Log.e(TAG, "  ❌ 登录提交失败: ${samlResp.code}")
                 return@withContext null
             }
 
-            // Step 3: 解析SAMLResponse并提交到saml_callback
-            Log.i(TAG, "Step 3: 解析SAMLResponse")
+            // Step 4: 解析SAMLResponse
+            Log.i(TAG, "Step 4: 解析SAMLResponse")
             val samlDoc = Jsoup.parse(samlResp.body)
             val samlForm = samlDoc.selectFirst("form") ?: run {
-                Log.e(TAG, "未找到SAMLResponse表单")
+                Log.e(TAG, "  ❌ 未找到SAMLResponse表单（登录可能失败）")
+                // 检查是否有错误信息
+                val errorText = samlDoc.select(".alert, .error, .flash").text()
+                if (errorText.isNotEmpty()) Log.e(TAG, "  错误信息: $errorText")
                 return@withContext null
             }
 
-            val samlAction = samlForm.attr("action")
+            val samlAction = decodeHtmlEntities(samlForm.attr("action"))
+            Log.i(TAG, "  SAML回调action: $samlAction")
+
             val samlFormData = mutableMapOf<String, String>()
             samlForm.select("input[type=hidden]").forEach { input ->
                 val name = input.attr("name")
                 val value = input.attr("value")
                 if (name.isNotEmpty()) samlFormData[name] = value
             }
+            Log.i(TAG, "  SAML表单字段: ${samlFormData.keys}")
 
-            Log.i(TAG, "SAML表单字段: ${samlFormData.keys}")
-            Log.i(TAG, "提交SAML到: $samlAction")
-
+            // Step 5: 提交SAMLResponse到saml_callback
+            Log.i(TAG, "Step 5: 提交SAMLResponse")
             val callbackResp = executePost(samlAction, samlFormData)
+            Log.i(TAG, "  状态码: ${callbackResp.code}")
+
             if (callbackResp.code != 302) {
-                Log.e(TAG, "SAML回调失败: ${callbackResp.code}")
+                Log.e(TAG, "  ❌ SAML回调失败: ${callbackResp.code}")
                 return@withContext null
             }
 
-            val callbackLocation = callbackResp.headers["Location"] ?: return@withContext null
-            Log.i(TAG, "SAML回调重定向到: ${callbackLocation.take(100)}")
+            val callbackLocation = decodeHtmlEntities(callbackResp.location)
+            Log.i(TAG, "  回调重定向: ${callbackLocation.take(100)}")
 
-            // Step 4: 跟随重定向到授权确认页面
-            Log.i(TAG, "Step 4: 获取授权确认页面")
-            val authorizePageResp = executeGet(callbackLocation)
+            // Step 6: 跟随重定向到授权确认页面
+            Log.i(TAG, "Step 6: 获取授权确认页面")
+            val authorizePageUrl = resolveUrl(samlAction, callbackLocation)
+            val authorizePageResp = executeGet(authorizePageUrl)
+            Log.i(TAG, "  状态码: ${authorizePageResp.code}")
+
             if (authorizePageResp.code != 200) {
-                Log.e(TAG, "授权确认页面获取失败: ${authorizePageResp.code}")
+                Log.e(TAG, "  ❌ 授权确认页面获取失败: ${authorizePageResp.code}")
                 return@withContext null
             }
 
-            // Step 5: 解析Authorize表单并提交
-            Log.i(TAG, "Step 5: 解析Authorize表单")
+            // Step 7: 解析Authorize表单（关键：找到包含commit=Authorize的form）
+            Log.i(TAG, "Step 7: 解析Authorize表单")
             val authorizeDoc = Jsoup.parse(authorizePageResp.body)
 
-            // 找到包含commit=Authorize的表单
             var authorizeForm: org.jsoup.nodes.Element? = null
             for (form in authorizeDoc.select("form")) {
-                val commitInput = form.selectFirst("input[name=commit][value=Authorize]")
-                if (commitInput != null) {
+                val hasAuthorize = form.select("input[name=commit][value=Authorize]").isNotEmpty()
+                if (hasAuthorize) {
                     authorizeForm = form
                     break
                 }
             }
 
             if (authorizeForm == null) {
-                Log.e(TAG, "未找到Authorize表单")
+                Log.e(TAG, "  ❌ 未找到Authorize表单")
                 return@withContext null
             }
 
-            val authorizeAction = authorizeForm.attr("action")
+            val authorizeAction = resolveUrl(authorizePageUrl, decodeHtmlEntities(authorizeForm.attr("action")))
+            Log.i(TAG, "  Authorize表单action: $authorizeAction")
+
             val authorizeFormData = mutableMapOf<String, String>()
             authorizeForm.select("input").forEach { input ->
                 val name = input.attr("name")
                 val value = input.attr("value")
-                val type = input.attr("type")
-                if (name.isNotEmpty() && type != "checkbox") {
+                val type = input.attr("type").lowercase()
+                if (name.isNotEmpty() && type != "checkbox" && type != "submit") {
                     authorizeFormData[name] = value
                 }
             }
+            // 确保commit字段存在
+            if (!authorizeFormData.containsKey("commit")) {
+                authorizeFormData["commit"] = "Authorize"
+            }
+            Log.i(TAG, "  Authorize表单字段: ${authorizeFormData.keys}")
+            Log.i(TAG, "  authenticity_token: ${authorizeFormData["authenticity_token"]?.take(30)}...")
+            Log.i(TAG, "  client_id: ${authorizeFormData["client_id"]}")
+            Log.i(TAG, "  redirect_uri: ${authorizeFormData["redirect_uri"]}")
 
-            Log.i(TAG, "Authorize表单字段: ${authorizeFormData.keys}")
-            Log.i(TAG, "提交Authorize到: $authorizeAction")
-
+            // Step 8: 提交Authorize表单
+            Log.i(TAG, "Step 8: 提交Authorize表单")
             val finalResp = executePost(authorizeAction, authorizeFormData)
+            Log.i(TAG, "  状态码: ${finalResp.code}")
+
             if (finalResp.code != 302) {
-                Log.e(TAG, "Authorize提交失败: ${finalResp.code}")
+                Log.e(TAG, "  ❌ Authorize提交失败: ${finalResp.code}")
+                Log.e(TAG, "  响应内容前500字: ${finalResp.body.take(500)}")
                 return@withContext null
             }
 
-            val finalLocation = finalResp.headers["Location"] ?: return@withContext null
-            Log.i(TAG, "最终重定向URL: $finalLocation")
+            val finalLocation = finalResp.location
+            Log.i(TAG, "  最终重定向URL: $finalLocation")
 
-            // Step 6: 从URL中提取授权码
+            // Step 9: 从URL中提取授权码
             if (!finalLocation.contains("code=")) {
-                Log.e(TAG, "重定向URL中没有授权码: $finalLocation")
+                Log.e(TAG, "  ❌ 重定向URL中没有授权码")
                 return@withContext null
             }
 
@@ -187,24 +232,24 @@ object WahooOAuth2Service {
             }
 
             if (code.isNullOrEmpty()) {
-                Log.e(TAG, "授权码提取失败")
+                Log.e(TAG, "  ❌ 授权码提取失败")
                 return@withContext null
             }
 
-            Log.i(TAG, "✅ 授权码获取成功，长度: ${code.length}")
+            Log.i(TAG, "  ✅ 授权码获取成功，长度: ${code.length}")
 
-            // Step 7: 用授权码换取access_token
-            Log.i(TAG, "Step 7: 换取access_token")
+            // Step 10: 用授权码换取access_token
+            Log.i(TAG, "Step 10: 换取access_token")
             val tokenResp = WahooApi().exchangeToken(code, WahooApi.BUILTIN_CLIENT_ID, WahooApi.BUILTIN_CLIENT_SECRET)
             if (tokenResp == null) {
-                Log.e(TAG, "token换取失败")
+                Log.e(TAG, "  ❌ token换取失败")
                 return@withContext null
             }
 
-            Log.i(TAG, "✅ Wahoo登录成功!")
+            Log.i(TAG, "✅✅✅ Wahoo登录成功!")
             tokenResp
         } catch (e: Exception) {
-            Log.e(TAG, "登录异常: ${e.message}", e)
+            Log.e(TAG, "❌ 登录异常: ${e.message}", e)
             null
         }
     }
@@ -212,16 +257,18 @@ object WahooOAuth2Service {
     private fun executeGet(url: String): HttpResponse {
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-            .header("Cookie", getCookieHeader(url))
+            .header("User-Agent", UA)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+            .get()
             .build()
 
         client.newCall(request).execute().use { response ->
-            saveCookies(url, response.headers("Set-Cookie"))
             return HttpResponse(
                 code = response.code,
                 body = response.body?.string() ?: "",
-                headers = response.headers.toMultimap().mapValues { it.value.firstOrNull() ?: "" }
+                location = response.header("Location") ?: "",
+                finalUrl = response.request.url.toString()
             )
         }
     }
@@ -233,41 +280,46 @@ object WahooOAuth2Service {
 
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-            .header("Cookie", getCookieHeader(url))
+            .header("User-Agent", UA)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+            .header("Referer", url)
             .post(formBody)
             .build()
 
         client.newCall(request).execute().use { response ->
-            saveCookies(url, response.headers("Set-Cookie"))
             return HttpResponse(
                 code = response.code,
                 body = response.body?.string() ?: "",
-                headers = response.headers.toMultimap().mapValues { it.value.firstOrNull() ?: "" }
+                location = response.header("Location") ?: "",
+                finalUrl = response.request.url.toString()
             )
         }
     }
 
-    private fun getCookieHeader(url: String): String {
-        val domain = try { java.net.URI(url).host } catch (_: Exception) { "" }
-        return cookieStore.entries
-            .filter { domain.contains(it.key) || it.key.contains(domain) }
-            .joinToString("; ") { "${it.key}=${it.value}" }
+    /** 解析相对URL为绝对URL */
+    private fun resolveUrl(base: String, relative: String): String {
+        return try {
+            val baseUri = java.net.URI(base)
+            baseUri.resolve(relative).toString()
+        } catch (e: Exception) {
+            if (relative.startsWith("http")) relative else "https://api.wahooligan.com$relative"
+        }
     }
 
-    private fun saveCookies(url: String, cookies: List<String>) {
-        val domain = try { java.net.URI(url).host } catch (_: Exception) { "" }
-        cookies.forEach { cookie ->
-            val parts = cookie.split(";")[0].split("=", limit = 2)
-            if (parts.size == 2) {
-                cookieStore[parts[0]] = parts[1]
-            }
-        }
+    /** 解码HTML实体（&amp; -> &） */
+    private fun decodeHtmlEntities(text: String): String {
+        return text.replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
     }
 
     private data class HttpResponse(
         val code: Int,
         val body: String,
-        val headers: Map<String, String>
+        val location: String,
+        val finalUrl: String
     )
 }
