@@ -68,9 +68,10 @@ object FitTimeFixer {
         val headerSize = data[0].toInt() and 0xFF
         val dataSize = ByteBuffer.wrap(data, 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
         val dataStart = headerSize
-        val dataEnd = dataStart + dataSize
+        // v7.0.5修复: data_size包括末尾2字节CRC，解析数据消息时排除CRC
+        val dataEnd = dataStart + dataSize - 2
 
-        Log.d(TAG, "FIT头: headerSize=$headerSize, dataSize=$dataSize")
+        Log.d(TAG, "FIT头: headerSize=$headerSize, dataSize=$dataSize (含CRC), 数据区内容长度=${dataSize - 2}")
 
         // 输出流：文件头 + 修改后的数据区 + 末尾CRC
         val output = ByteArrayOutputStream()
