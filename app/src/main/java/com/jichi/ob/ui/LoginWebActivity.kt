@@ -98,8 +98,9 @@ class LoginWebActivity : AppCompatActivity() {
             }
             toolbar.setNavigationOnClickListener { detected = true; finish() }
 
-            // v6.7.8: 国际版用mobile SSO登录（不经过Cloudflare），中国版保持WebView登录
-            if (loginType == TYPE_GARMIN_COM) {
+            // v7.0.1: 国际版和中国版都用mobile SSO登录（不经过Cloudflare）
+            if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) {
+                val isCN = loginType == TYPE_GARMIN_CN
                 findViewById<android.widget.LinearLayout>(R.id.mobileLoginLayout).visibility = android.view.View.VISIBLE
                 webView = findViewById(R.id.webView)
                 webView.visibility = android.view.View.GONE
@@ -121,14 +122,14 @@ class LoginWebActivity : AppCompatActivity() {
                     GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
                             val garminApi = com.jichi.ob.api.GarminApi()
-                            val cred = garminApi.loginMobile(email, password)
+                            val cred = garminApi.loginMobile(email, password, isCN)
                             runOnUiThread {
                                 if (cred != null) {
                                     tvStatus.text = "✅ 登录成功！"
                                     detected = true
                                     setResult(Activity.RESULT_OK, Intent()
                                         .putExtra(RESULT_TOKEN, cred)
-                                        .putExtra(RESULT_LOGIN_TYPE, TYPE_GARMIN_COM))
+                                        .putExtra(RESULT_LOGIN_TYPE, loginType))
                                     finish()
                                 } else {
                                     btnLogin.isEnabled = true
