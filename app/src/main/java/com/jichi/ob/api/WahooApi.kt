@@ -28,7 +28,7 @@ class WahooApi {
         const val API_BASE = "https://api.wahooligan.com"
         const val AUTHORIZE_URL = "https://api.wahooligan.com/oauth/authorize"
         const val TOKEN_URL = "https://api.wahooligan.com/oauth/token"
-        const val REDIRECT_URI = "ob://wahoo/callback"
+        const val REDIRECT_URI = "https://localhost:8080/"
         const val SCOPES = "workouts_read workouts_write offline_data user_read"  // v7.4.0: 添加workouts_write支持上传
         private const val UA = "jichi-ob/6.5.1 (Android)"
 
