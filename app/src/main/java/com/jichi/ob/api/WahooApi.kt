@@ -48,7 +48,7 @@ class WahooApi {
 
     /** 构造授权 URL（打开WebView让用户登录） */
     fun authorizeUrl(clientId: String = BUILTIN_CLIENT_ID): String =
-        "$AUTHORIZE_URL?client_id=$clientId&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.replace(" ", "%20")}&response_type=code"
+        "$AUTHORIZE_URL?client_id=$clientId&redirect_uri=${java.net.URLEncoder.encode(REDIRECT_URI, "UTF-8")}&scope=${SCOPES.replace(" ", "%20")}&response_type=code"
 
     /** 用授权码换 token */
     suspend fun exchangeToken(code: String, clientId: String, clientSecret: String): Pair<String, String>? =

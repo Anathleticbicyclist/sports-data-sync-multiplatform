@@ -215,7 +215,7 @@ class LoginWebActivity : AppCompatActivity() {
                 databaseEnabled = true
                 allowContentAccess = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                userAgentString = DESKTOP_UA  // v6.5.2: 佳明改回桌面UA(Mobile UA下SSO登录页异常无反应)
+                userAgentString = if (loginType == TYPE_WAHOO) MOBILE_UA else DESKTOP_UA  // v7.1.5: Wahoo用移动UA(桌面UA下授权页异常), 佳明用桌面UA
                 if (loginType == TYPE_OUTBASE) {
                     useWideViewPort = true
                     loadWithOverviewMode = true
@@ -302,6 +302,23 @@ class LoginWebActivity : AppCompatActivity() {
                         }
                     }
                     return false
+                }
+
+                // v7.1.5: 第四道防线——doUpdateVisitedHistory在URL变化(包括302重定向)时触发，最可靠
+                override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                    Log.d(TAG, "[$loginType] doUpdateVisitedHistory: $url")
+                    if (loginType == TYPE_WAHOO && url != null && url.contains("localhost:8080") && url.contains("code=") && !detected) {
+                        val code = try { android.net.Uri.parse(url).getQueryParameter("code") } catch (_: Exception) { null }
+                        if (!code.isNullOrEmpty()) {
+                            detected = true
+                            Log.i(TAG, "✅ Wahoo 授权码捕获(doUpdateVisitedHistory) len=${code.length}")
+                            setResult(Activity.RESULT_OK, Intent()
+                                .putExtra(RESULT_TOKEN, code)
+                                .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
+                            finish()
+                        }
+                    }
+                    super.doUpdateVisitedHistory(view, url, isReload)
                 }
             }
             webView.webChromeClient = object : WebChromeClient() {
