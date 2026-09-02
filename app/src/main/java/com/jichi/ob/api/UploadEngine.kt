@@ -108,6 +108,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
             DataSource.GARMIN_CN -> uploadToGarmin(credential, uploadData, record, DataSource.GARMIN_CN)
             DataSource.COROS_CN -> uploadToCoros(credential, uploadData, record)
             DataSource.COROS_INT -> uploadToCoros(credential, uploadData, record)
+            DataSource.WAHOO -> uploadToWahoo(credential, uploadData, record)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
@@ -549,6 +550,22 @@ class UploadEngine(private val context: android.content.Context? = null) {
         } catch (e: Exception) {
             Log.e(TAG, "Coros upload error", e)
             UploadResult(false, message = "高驰上传失败: ${e.message}")
+        }
+    }
+
+    // ===== Wahoo 上传（v7.4.0: POST /v1/workout_file_uploads + 轮询状态）=====
+    private suspend fun uploadToWahoo(
+        credential: String,
+        fitData: ByteArray,
+        record: com.jichi.ob.model.ActivityRecord
+    ): UploadResult {
+        return try {
+            val fileName = "Wahoo_${record.id}.fit"
+            val (success, msg) = WahooApi().uploadFit(credential, fitData, fileName)
+            UploadResult(success, message = msg)
+        } catch (e: Exception) {
+            Log.e(TAG, "Wahoo upload error", e)
+            UploadResult(false, message = "Wahoo上传失败: ${e.message}")
         }
     }
 }

@@ -54,7 +54,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     GARMIN_CN(true, "需FIT设备伪装"),
     COROS_CN(true, "OSS+fit/import"),
     COROS_INT(true, "OSS+fit/import"),
-    WAHOO(false, "无上传API");
+    WAHOO(true, "官方上传API");
 
     companion object {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {

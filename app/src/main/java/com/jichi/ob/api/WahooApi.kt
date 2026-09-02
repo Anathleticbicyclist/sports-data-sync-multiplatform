@@ -28,8 +28,8 @@ class WahooApi {
         const val API_BASE = "https://api.wahooligan.com"
         const val AUTHORIZE_URL = "https://api.wahooligan.com/oauth/authorize"
         const val TOKEN_URL = "https://api.wahooligan.com/oauth/token"
-        const val REDIRECT_URI = "https://localhost:8080/"
-        const val SCOPES = "workouts_read offline_data user_read"
+        const val REDIRECT_URI = "ob://wahoo/callback"
+        const val SCOPES = "workouts_read workouts_write offline_data user_read"  // v7.4.0: 添加workouts_write支持上传
         private const val UA = "jichi-ob/6.5.1 (Android)"
 
         // v6.5.1: 内置开发者凭证（App维护者在 developers.wahooligan.com 免费注册一次后填写）
@@ -153,6 +153,94 @@ class WahooApi {
     }
 
     /** 下载 FIT：先取详情拿 file.url，再 GET CDN */
+    /**
+     * v7.4.0: 上传FIT文件到Wahoo
+     * 流程：POST /v1/workout_file_uploads 上传base64 FIT → 返回token → GET /v1/workout_file_uploads/:token 轮询状态
+     * @return Pair(成功?, 消息)
+     */
+    suspend fun uploadFit(token: String, fitData: ByteArray, fileName: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        try {
+            // Step 1: base64编码FIT文件
+            val base64Fit = android.util.Base64.encodeToString(fitData, android.util.Base64.NO_WRAP)
+            Log.i(TAG, "上传FIT: $fileName, ${fitData.size}字节, base64长度: ${base64Fit.length}")
+
+            // Step 2: POST上传
+            val formBody = FormBody.Builder()
+                .add("workout_file_upload[file]", "data:application/vnd.fit;base64,$base64Fit")
+                .add("workout_file_upload[filename]", fileName)
+                .build()
+
+            val requestBuilder = Request.Builder()
+                .url("$API_BASE/v1/workout_file_uploads")
+                .post(formBody)
+            authHeaders(token).forEach { (key, value) -> requestBuilder.header(key, value) }
+            val request = requestBuilder.build()
+
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string() ?: ""
+                Log.i(TAG, "上传响应: ${response.code}, $body")
+
+                if (response.code != 200 && response.code != 201) {
+                    return@withContext Pair(false, "上传失败 HTTP ${response.code}: $body")
+                }
+
+                // Step 3: 解析返回的token
+                val uploadToken = try {
+                    val json = org.json.JSONObject(body)
+                    json.getString("token")
+                } catch (e: Exception) {
+                    // 可能直接返回了workout_summary
+                    Log.w(TAG, "解析token失败，可能直接完成: ${e.message}")
+                    return@withContext Pair(true, "上传成功")
+                }
+
+                if (uploadToken.isEmpty()) {
+                    return@withContext Pair(true, "上传成功")
+                }
+
+                Log.i(TAG, "上传token: $uploadToken, 开始轮询状态...")
+
+                // Step 4: 轮询状态（最多30秒）
+                for (i in 1..15) {
+                    kotlinx.coroutines.delay(2000)
+                    val statusRequestBuilder = Request.Builder()
+                        .url("$API_BASE/v1/workout_file_uploads/$uploadToken")
+                        .get()
+                    authHeaders(token).forEach { (key, value) -> statusRequestBuilder.header(key, value) }
+                    val statusRequest = statusRequestBuilder.build()
+
+                    client.newCall(statusRequest).execute().use { statusResponse ->
+                        val statusBody = statusResponse.body?.string() ?: ""
+                        Log.i(TAG, "轮询${i}: ${statusResponse.code}, $statusBody")
+
+                        val status = try {
+                            val json = org.json.JSONObject(statusBody)
+                            json.getString("status")
+                        } catch (e: Exception) {
+                            "unknown"
+                        }
+
+                        when (status) {
+                            "complete" -> return@withContext Pair(true, "上传成功")
+                            "error" -> {
+                                val errorMsg = try {
+                                    org.json.JSONObject(statusBody).getString("error")
+                                } catch (_: Exception) { "未知错误" }
+                                return@withContext Pair(false, "上传失败: $errorMsg")
+                            }
+                            else -> Log.i(TAG, "状态: $status, 继续等待...")
+                        }
+                    }
+                }
+
+                Pair(false, "上传超时（30秒未完成）")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "上传异常", e)
+            Pair(false, "上传异常: ${e.message}")
+        }
+    }
+
     suspend fun downloadFit(token: String, workoutId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             // 1) 详情拿 file.url
