@@ -59,30 +59,38 @@ object WahooOAuth2Service {
             cookieStore.clear()
             Log.i(TAG, "========== Wahoo OAuth2 直接登录开始 ==========")
 
-            // Step 1: 访问授权URL
+            // Step 1: 访问授权URL（自动跟随重定向到SAML登录页面）
             Log.i(TAG, "Step 1: 访问授权URL")
             val authUrl = "https://api.wahooligan.com/oauth/authorize?client_id=${WahooApi.BUILTIN_CLIENT_ID}" +
                     "&redirect_uri=${java.net.URLEncoder.encode(WahooApi.REDIRECT_URI, "UTF-8")}" +
                     "&scope=${java.net.URLEncoder.encode(WahooApi.SCOPES, "UTF-8")}" +
                     "&response_type=code"
 
-            val authResp = executeGet(authUrl)
-            Log.i(TAG, "  状态码: ${authResp.code}, 最终URL: ${authResp.finalUrl.take(80)}")
+            // 关键修复：使用单独的client自动跟随重定向，避免手动处理的bug
+            val redirectClient = OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .cookieJar(cookieJar)
+                .build()
 
-            // 跟随重定向到登录页面（最多5次）
-            var loginHtml = authResp.body
-            var currentUrl = authResp.finalUrl
-            var redirectCount = 0
-            while (authResp.code in 300..399 && authResp.location.isNotEmpty() && redirectCount < 5) {
-                val nextUrl = resolveUrl(currentUrl, authResp.location)
-                Log.i(TAG, "  重定向${redirectCount+1}: $nextUrl")
-                val nextResp = executeGet(nextUrl)
-                loginHtml = nextResp.body
-                currentUrl = nextResp.finalUrl
-                redirectCount++
-                if (nextResp.code !in 300..399) break
-            }
-            Log.i(TAG, "  登录页面URL: $currentUrl")
+            val authRequest = Request.Builder()
+                .url(authUrl)
+                .header("User-Agent", UA)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+                .get()
+                .build()
+
+            val authResp = redirectClient.newCall(authRequest).execute()
+            val loginHtml = authResp.body?.string() ?: ""
+            val currentUrl = authResp.request.url.toString()
+            authResp.close()
+
+            Log.i(TAG, "  状态码: 200(自动跟随重定向后), 最终URL: ${currentUrl.take(100)}")
+            Log.i(TAG, "  登录页面HTML长度: ${loginHtml.length}")
 
             // Step 2: 解析SAML登录表单
             Log.i(TAG, "Step 2: 解析SAML登录表单")

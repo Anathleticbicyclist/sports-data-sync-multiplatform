@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.2.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.2.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.2.1 |
+| 当前版本 | v7.2.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.2.2 (2026-09-02) — 修复Step 1重定向处理的严重bug
+
+**根因**：v7.2.1中Step 1的while循环条件用错了变量——检查的是第一次请求的响应(`authResp`)，而不是当前响应(`nextResp`)，导致重定向处理完全错误，循环重复请求同一个URL直到达到5次限制。
+
+**修复**：
+- 移除手动重定向处理的while循环
+- 使用单独的OkHttpClient（`followRedirects(true)`）自动跟随重定向到SAML登录页面
+- 确保CookieJar在重定向过程中正确传递Cookie
 
 ### v7.2.1 (2026-09-02) — 5个专家视角彻底重写Wahoo登录，使用OkHttp CookieJar自动管理Cookie
 
