@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.4.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.4.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.4.6 |
+| 当前版本 | v7.4.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -54,7 +54,7 @@
 | **百锐腾** | ⚠️ | 🚧 开发中 | 官方未开放FIT下载接口 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
 | **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO认证 |
-| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，OkHttp+cookie调用connectapi绕过Cloudflare |
+| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，WebView+gc-api，保存所有cookie(含cf_clearance)绕过Cloudflare |
 | **高驰中国** | ✅ | ✅ | COROS中国区，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS国际/欧洲区，AWS S3上传 |
 | **Wahoo** | ✅ | ✅ | Wahoo官方上传API，base64编码+轮询状态 |
@@ -80,7 +80,7 @@
 
 1. **WebView登录**：各平台官方登录页，拦截回调获取Token/Cookie
 2. **佳明国际mobile SSO**：参考garminconnect 0.3.x，通过mobile SSO获取DI OAuth Bearer token，访问connectapi.garmin.com绕过Cloudflare
-3. **佳明中国WebView通道**：WebView登录获取session cookie，WebView执行JavaScript fetch上传下载，利用浏览器TLS指纹绕过Cloudflare
+3. **佳明中国WebView+gc-api通道**：WebView登录获取所有cookie(含JWT_WEB/session/cf_clearance)，WebView执行JavaScript fetch调用gc-api端点上传下载，利用浏览器TLS指纹绕过Cloudflare
 4. **FIT坐标转换**：隐藏WebView执行JavaScript解析FIT二进制
 5. **协程异步**：全部网络请求Kotlin Coroutines，主线程安全
 
@@ -104,6 +104,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.7 (2026-09-03)
+
+**佳明中国尝试WebView直接加载URL方案（测试版，未成功）**
+
+| 项目 | 说明 |
+|------|------|
+| 尝试方案 | 用WebView直接导航到connectapi URL（不是fetch），避免about:blank的CORS/origin问题 |
+| 结果 | 立即返回0条，方案未成功，后续回滚到gc-api |
+
 ### v7.4.8 (2026-09-03)
 
 **佳明中国回滚到最开始验证通过的方案 + 保存所有cookie解决Cloudflare验证问题**
