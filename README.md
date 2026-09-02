@@ -105,6 +105,19 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.0.5 (2026-09-02) — 修复行者→iGPSPORT FIT文件结构损坏
+
+**修复的问题**：
+- v7.0.4中FitTimeFixer解析数据区时把末尾2字节CRC也当作数据消息解析
+- 输出时写入了原始CRC + 又追加新CRC，导致文件多2字节，FIT结构损坏
+- iGPSPORT无法解析损坏的FIT文件，接口返回success但id=null，活动未入库
+
+**修复内容**：
+- 数据区解析范围改为 `dataStart + dataSize - 2`（排除末尾CRC）
+- 输出时只写入数据区内容，最后追加新计算的CRC
+- 修改前后文件大小一致（headerSize + dataSize）
+- 仅对行者→iGPSPORT的FIT文件生效，其他平台互传无影响
+
 ### v7.0.4 (2026-09-02) — 行者→iGPSPORT FIT时间戳修正
 
 **功能实现**：
