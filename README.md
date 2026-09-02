@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.0.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.0.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.0.6 |
+| 当前版本 | v7.0.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,23 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.0.7 (2026-09-02) — 修复佳明中国WebView通道域名错误
+
+**修复的问题**：
+- 佳明中国WebView上传下载全部HTTP 403
+- 佳明中国获取活动列表返回0条
+
+**根因**：
+- prepareWebView硬编码加载connect.garmin.com（国际版），中国版应加载connect.garmin.cn
+- injectCookies硬编码设置.com域名cookie，中国版cookie未注入到.cn域名
+- webViewClient只检测.com域名页面加载完成，中国版页面加载后sharedWebViewReady不触发，导致prepareWebView超时
+
+**修复内容**：
+- prepareWebView增加ds参数，根据国际版/中国版加载对应域名
+- injectCookies增加host参数，设置对应域名的cookie
+- webViewClient同时检测.com和.cn域名，正确设置sharedWebViewReady
+- 所有调用prepareWebView的地方传入ds参数
 
 ### v7.0.6 (2026-09-02) — 佳明中国用WebView绕过Cloudflare + 行者FIT时间修复 + Wahoo用户自配置
 

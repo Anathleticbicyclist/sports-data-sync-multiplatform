@@ -100,7 +100,11 @@ class GarminApi {
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
                             webViewLoading = false
-                            if (url?.contains("connect.garmin.com") == true && !url.contains("logout") && !url.contains("sign-in")) {
+                            val isGarmin = url?.contains("connect.garmin.com") == true ||
+                                           url?.contains("connect.garmin.cn") == true
+                            val notLogout = url?.contains("logout") != true
+                            val notSignIn = url?.contains("sign-in") != true
+                            if (isGarmin && notLogout && notSignIn) {
                                 sharedWebViewReady = true
                             }
                         }
@@ -342,16 +346,17 @@ class GarminApi {
     }
 
     // ===== WebView fetch（国际版DI token失败时的回退，保留但不优先使用）=====
-    private suspend fun prepareWebView(cred: String): Boolean {
+    private suspend fun prepareWebView(cred: String, ds: DataSource = DataSource.GARMIN_COM): Boolean {
         val wv = sharedWebView ?: return false
-        injectCookies(cred)
+        val host = if (ds == DataSource.GARMIN_CN) "connect.garmin.cn" else "connect.garmin.com"
+        injectCookies(cred, host)
         val currentUrl = withContext(Dispatchers.Main) { wv.url }
-        val onGarmin = currentUrl?.contains("connect.garmin.com") == true &&
+        val onGarmin = currentUrl?.contains(host) == true &&
                         !currentUrl.contains("logout") && !currentUrl.contains("sign-in")
         if (onGarmin && sharedWebViewReady) return true
         sharedWebViewReady = false
         webViewLoading = true
-        withContext(Dispatchers.Main) { wv.loadUrl("https://connect.garmin.com/app/home") }
+        withContext(Dispatchers.Main) { wv.loadUrl("https://$host/app/home") }
         var attempts = 0
         while ((!sharedWebViewReady || webViewLoading) && attempts < 30) {
             delay(500); attempts++
@@ -359,13 +364,13 @@ class GarminApi {
         return sharedWebViewReady
     }
 
-    private fun injectCookies(cred: String) {
+    private fun injectCookies(cred: String, host: String = "connect.garmin.com") {
         val sess = parseCredential(cred) ?: return
         val cm = CookieManager.getInstance()
         sess.cookies.split("; ").forEach { cookie ->
             if (cookie.isNotEmpty()) {
-                cm.setCookie("connect.garmin.com", cookie)
-                cm.setCookie(".connect.garmin.com", cookie)
+                cm.setCookie(host, cookie)
+                cm.setCookie(".$host", cookie)
             }
         }
         cm.flush()
@@ -625,7 +630,7 @@ class GarminApi {
             }
             val url = "${gcApiHost(ds)}/userprofile-service/socialProfile"
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
                     if (result != null) return@withContext JSONObject(result).optString("displayName").ifBlank { null }
                 }
@@ -646,7 +651,7 @@ class GarminApi {
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
             // v7.0.6: 中国版优先用WebView调用gc-api（绕过Cloudflare，connectapi不接受cookie认证）
             if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
                     val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
                     if (result != null) {
@@ -705,7 +710,7 @@ class GarminApi {
             // 中国版 + 国际版无DI token时走原路径
             val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
                     if (result != null) {
                         val arr = JSONArray(result)
@@ -754,7 +759,7 @@ class GarminApi {
             val sess = parseCredential(cred)
             // v7.0.6: 中国版优先用WebView下载（绕过Cloudflare）
             if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
                     val headers = apiHeaders(ds, cred).toMutableMap()
                     headers["Accept"] = "*/*"
@@ -785,7 +790,7 @@ class GarminApi {
             }
             val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val wv = sharedWebView!!
                     val headers = apiHeaders(ds, cred).toMutableMap()
                     headers["Accept"] = "*/*"
@@ -867,7 +872,7 @@ class GarminApi {
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
             // v7.0.6: 中国版优先用WebView上传（绕过Cloudflare）
             if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val url = "${gcApiHost(ds)}/upload-service/upload"
                     val result = uploadBinaryViaWebView(url, data, apiHeaders(ds, cred))
                     if (result != null) {
@@ -903,7 +908,7 @@ class GarminApi {
             // 国际版无DI token时回退到WebView/OkHttp
             val url = "${gcApiHost(ds)}/upload-service/upload/"
             if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
-                if (prepareWebView(cred)) {
+                if (prepareWebView(cred, ds)) {
                     val headers = apiHeaders(ds, cred).toMutableMap()
                     headers["Accept"] = "application/json"
                     val result = uploadViaWebView(url, fileName, data, headers)
