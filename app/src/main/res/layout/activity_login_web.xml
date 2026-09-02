@@ -55,6 +55,7 @@
         android:gravity="center_horizontal"
         android:visibility="gone">
         <TextView
+            android:id="@+id/tvMobileLoginTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="佳明国际版登录"
@@ -111,6 +112,48 @@
             android:textColor="#666666"
             android:layout_marginTop="16dp"
             android:gravity="center" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#EEEEEE"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠️ 登录失败常见原因"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. 邮箱或密码错误（注意区分大小写）\n2. 开启了两步验证(MFA)，需先关闭"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="12dp" />
+        <TextView
+            android:id="@+id/tvMfaGuide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="关闭两步验证教程 →"
+            android:textSize="12sp"
+            android:textColor="#1989FA"
+            android:autoLink="none"
+            android:clickable="true"
+            android:focusable="true" />
+        <TextView
+            android:id="@+id/tvFallbackLogin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="遇到人机验证？用浏览器登录 →"
+            android:textSize="12sp"
+            android:textColor="#FF6B00"
+            android:layout_marginTop="8dp"
+            android:clickable="true"
+            android:focusable="true" />
     </LinearLayout>
     <WebView
         android:id="@+id/webView"
