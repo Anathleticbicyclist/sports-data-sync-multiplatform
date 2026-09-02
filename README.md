@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.2.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.3.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.2.2 |
+| 当前版本 | v7.3.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,28 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.3.0 (2026-09-02) — 找到Wahoo登录真正根因：授权按钮是中文"授权"而非英文"Authorize"
+
+**真正根因（历经v7.2.0~v7.2.2共3个版本才找到）**：
+- Wahoo授权确认页面的locale是`zh-Hans`（简体中文）
+- 授权按钮的value是**"授权"（中文）**，不是"Authorize"（英文）
+- 代码中匹配`input[name=commit][value=Authorize]`，永远匹配不到中文按钮
+- 导致Authorize表单解析失败，登录失败
+
+**本地模拟验证过程**：
+1. 用Python完整模拟Wahoo OAuth2 10步流程
+2. Step 6发现Authorize按钮匹配失败
+3. 详细检查页面form，发现按钮value是"授权"（中文）
+4. 确认根因后修复
+
+**修复内容**：
+- 授权按钮匹配同时支持："Authorize"、"授权"、"Allow"、"同意"
+- 排除取消/拒绝按钮："Cancel"、"取消"、"Deny"、"拒绝"
+- CookieJar添加去重逻辑（相同name+domain的Cookie只保留最新）
+- CookieJar添加过期过滤
+- 添加实时调试日志对话框，登录过程显示在界面上
+- 所有异常打印完整堆栈
 
 ### v7.2.2 (2026-09-02) — 修复Step 1重定向处理的严重bug
 
