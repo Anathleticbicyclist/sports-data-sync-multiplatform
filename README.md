@@ -104,6 +104,30 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.8 (2026-09-03)
+
+**佳明中国回滚到最开始验证通过的方案 + 保存所有cookie解决Cloudflare验证问题**
+
+| 修复项 | 说明 |
+|--------|------|
+| 佳明中国API端点 | 从connectapi回滚到gc-api（connect.garmin.cn/gc-api/...），这是Garmin Connect网页本身用的API，浏览器环境下Cloudflare不拦截 |
+| 保存所有cookie | LoginWebActivity登录时保存所有cookie（包括cf_clearance等Cloudflare验证cookie），之前只保存JWT_WEB+session，导致后续请求再次触发验证 |
+| cookie注入修复 | injectCookies添加path=/和domain属性，确保cookie在所有子域名有效 |
+| prepareWebView修复 | 佳明中国加载modern页面（gc-api同源页面），确保cookie有效且不重定向到sign-in |
+| 佳明中国上传下载 | 统一回滚到WebView+gc-api方案（最开始验证通过的方案） |
+
+**根因分析**：
+- 之前尝试connectapi端点，但OkHttp+cookie返回403，WebView+fetch在about:blank页面有CORS/origin问题导致超时
+- 回滚到最开始验证通过的gc-api方案，但需要解决Cloudflare验证问题
+- Cloudflare验证通过后会生成cf_clearance等cookie，之前只保存JWT_WEB+session，丢失了这些验证cookie，导致后续请求再次触发验证
+- 修复：保存所有cookie，包括cf_clearance，这样后续请求就不会再次触发验证了
+
+**测试要点**：
+1. 佳明中国：重新登录（登录过程中如果触发Cloudflare验证，请手动完成）→ 获取活动列表 → 上传FIT → 下载FIT
+2. Wahoo：直接登录 → 上传FIT（v7.4.5已验证通过）
+
+⚠️ 佳明中国必须**重新登录一次**，确保保存所有cookie（包括cf_clearance）。
+
 ### v7.4.6 (2026-09-03)
 
 **佳明中国上传下载彻底修复**
