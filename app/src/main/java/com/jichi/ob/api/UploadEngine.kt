@@ -93,17 +93,26 @@ class UploadEngine(private val context: android.content.Context? = null) {
             } catch (e: Exception) { Log.w(TAG, "目标时区适配失败: ${e.message}"); utcData }
         } else utcData
 
+        // v7.0.4: 行者→iGPSPORT的FIT文件时间戳修正（行者FIT时间戳是北京时间，需减8小时转UTC）
+        // 仅对行者来源 + iGPSPORT目标 + FIT文件生效，其他场景不处理
+        val uploadData = if (!isGpxFile && record.source == DataSource.XINGZHE && target == DataSource.IGPSPORT) {
+            try {
+                val fixed = com.jichi.ob.util.FitTimeFixer.fixXingzheFitTime(finalData)
+                Log.d(TAG, "行者→iGPSPORT FIT时间戳修正: ${finalData.size} -> ${fixed.size} bytes"); fixed
+            } catch (e: Exception) { Log.w(TAG, "行者FIT时间戳修正失败: ${e.message}"); finalData }
+        } else finalData
+
         when (target) {
-            DataSource.OUTBASE -> uploadToOutbase(credential, finalData, record, extra)
-            DataSource.IGPSPORT -> uploadToIgpsport(credential, finalData, record, extra)
-            DataSource.XINGZHE -> uploadToXingzhe(credential, finalData, record, extra)
-            DataSource.MAGENE -> uploadToMagene(credential, finalData, record, extra)
-            DataSource.BLACKBIRD -> uploadToBlackbird(credential, finalData, record, extra)
-            DataSource.BRYTON -> uploadToBryton(credential, finalData, record, extra)
-            DataSource.GARMIN_COM -> uploadToGarmin(credential, finalData, record, DataSource.GARMIN_COM)
-            DataSource.GARMIN_CN -> uploadToGarmin(credential, finalData, record, DataSource.GARMIN_CN)
-            DataSource.COROS_CN -> uploadToCoros(credential, finalData, record)
-            DataSource.COROS_INT -> uploadToCoros(credential, finalData, record)
+            DataSource.OUTBASE -> uploadToOutbase(credential, uploadData, record, extra)
+            DataSource.IGPSPORT -> uploadToIgpsport(credential, uploadData, record, extra)
+            DataSource.XINGZHE -> uploadToXingzhe(credential, uploadData, record, extra)
+            DataSource.MAGENE -> uploadToMagene(credential, uploadData, record, extra)
+            DataSource.BLACKBIRD -> uploadToBlackbird(credential, uploadData, record, extra)
+            DataSource.BRYTON -> uploadToBryton(credential, uploadData, record, extra)
+            DataSource.GARMIN_COM -> uploadToGarmin(credential, uploadData, record, DataSource.GARMIN_COM)
+            DataSource.GARMIN_CN -> uploadToGarmin(credential, uploadData, record, DataSource.GARMIN_CN)
+            DataSource.COROS_CN -> uploadToCoros(credential, uploadData, record)
+            DataSource.COROS_INT -> uploadToCoros(credential, uploadData, record)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
