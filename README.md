@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.4.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.4.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.4.5 |
+| 当前版本 | v7.4.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,26 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+### v7.4.6 (2026-09-03)
+
+**佳明中国上传下载彻底修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| 佳明中国上传卡住 | prepareWebView对于佳明中国不再加载connect.garmin.cn/app/home（被Cloudflare拦截会重定向到sign-in，导致永远ready不了，等待30秒超时），只注入cookie到.garmin.cn主域名后直接返回true |
+| 佳明中国获取活动列表 | 从OkHttp+cookie改为WebView+connectapi（统一方式，OkHttp返回403） |
+| 佳明中国下载 | 从OkHttp+cookie改为WebView+connectapi（统一方式） |
+| 佳明中国上传 | 保持WebView+connectapi，现在prepareWebView不会卡住了 |
+
+**根因分析**：
+- 佳明中国connect.garmin.cn被Cloudflare拦截，访问/app/home会重定向到sign-in页
+- prepareWebView等待onPageFinished且URL包含host且不包含sign-in，但永远等不到，导致30秒超时返回false
+- 修复：佳明中国不需要加载connect.garmin.cn页面，只需要注入cookie到.garmin.cn主域名，然后直接在WebView中执行fetch调用connectapi.garmin.cn即可（cookie根据domain自动发送）
+
+**测试要点**：
+1. 佳明中国：重新登录 → 获取活动列表（应该不再是0条）→ 上传FIT（应该不再卡住）→ 下载FIT
+2. Wahoo：直接登录 → 上传FIT（v7.4.5已验证通过）
+
 ### v7.4.5 (2026-09-03)
 
 **Wahoo登录恢复 + 佳明中国上传cookie domain修复**
