@@ -77,8 +77,10 @@ object FitTimeFixer {
                     pos++
 
                     val fields = mutableListOf<FieldInfo>()
-                    var hasTimestamp = false
-                    var timestampOffset = 0
+                    val timeFieldOffsets = mutableListOf<Int>()
+
+                    // 该消息类型需要修改的时间字段：timestamp(253) + 特定消息的特定字段
+                    val msgTimeFields = TIME_FIELDS_BY_MSG[globalMesgNum]?.let { it + TIMESTAMP_FIELD_NUM } ?: setOf(TIMESTAMP_FIELD_NUM)
 
                     for (i in 0 until numFields) {
                         val fieldNum = data[pos].toInt() and 0xFF
@@ -86,14 +88,13 @@ object FitTimeFixer {
                         val baseType = data[pos + 2].toInt() and 0xFF
                         pos += 3
 
-                        if (fieldNum == TIMESTAMP_FIELD_NUM && size == 4) {
-                            hasTimestamp = true
-                            timestampOffset = i
+                        if (fieldNum in msgTimeFields && size == 4) {
+                            timeFieldOffsets.add(i)
                         }
                         fields.add(FieldInfo(fieldNum, size, baseType))
                     }
 
-                    localDefs[localMesgNum] = FieldDef(globalMesgNum, architecture, fields, hasTimestamp, timestampOffset, 4)
+                    localDefs[localMesgNum] = FieldDef(globalMesgNum, architecture, fields, timeFieldOffsets)
                 } else {
                     // 数据消息
                     val def = localDefs[localMesgNum]
@@ -112,31 +113,34 @@ object FitTimeFixer {
                         break
                     }
 
-                    if (def.hasTimestamp) {
-                        totalTimestamps++
-                        // 计算timestamp字段在消息中的偏移
-                        var tsOffsetInMsg = 0
-                        for (i in 0 until def.timestampOffset) {
-                            tsOffsetInMsg += def.fields[i].size
-                        }
-
-                        val tsPos = msgStart + tsOffsetInMsg
-                        val currentTs = if (def.architecture == 0) {
-                            ByteBuffer.wrap(data, tsPos, 4).order(ByteOrder.LITTLE_ENDIAN).int.toLong() and 0xFFFFFFFFL
-                        } else {
-                            ByteBuffer.wrap(data, tsPos, 4).order(ByteOrder.BIG_ENDIAN).int.toLong() and 0xFFFFFFFFL
-                        }
-
-                        // 减去8小时
-                        val newTs = currentTs - OFFSET_SECONDS
-                        if (newTs > 0) {
-                            val tsBytes = if (def.architecture == 0) {
-                                ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(newTs.toInt()).array()
-                            } else {
-                                ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(newTs.toInt()).array()
+                    if (def.timeFieldOffsets.isNotEmpty()) {
+                        totalTimestamps += def.timeFieldOffsets.size
+                        // 修改所有时间字段
+                        for (tsFieldIdx in def.timeFieldOffsets) {
+                            // 计算该字段在消息中的偏移
+                            var tsOffsetInMsg = 0
+                            for (i in 0 until tsFieldIdx) {
+                                tsOffsetInMsg += def.fields[i].size
                             }
-                            System.arraycopy(tsBytes, 0, data, tsPos, 4)
-                            fixedCount++
+
+                            val tsPos = msgStart + tsOffsetInMsg
+                            val currentTs = if (def.architecture == 0) {
+                                ByteBuffer.wrap(data, tsPos, 4).order(ByteOrder.LITTLE_ENDIAN).int.toLong() and 0xFFFFFFFFL
+                            } else {
+                                ByteBuffer.wrap(data, tsPos, 4).order(ByteOrder.BIG_ENDIAN).int.toLong() and 0xFFFFFFFFL
+                            }
+
+                            // 减去8小时（值为0的字段不修改，如无效的time_created）
+                            val newTs = currentTs - OFFSET_SECONDS
+                            if (newTs > 0) {
+                                val tsBytes = if (def.architecture == 0) {
+                                    ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(newTs.toInt()).array()
+                                } else {
+                                    ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(newTs.toInt()).array()
+                                }
+                                System.arraycopy(tsBytes, 0, data, tsPos, 4)
+                                fixedCount++
+                            }
                         }
                     }
 
@@ -185,6 +189,14 @@ object FitTimeFixer {
         return crc and 0xFFFF
     }
 
+    // 需要修改时间的字段定义：全局消息号 -> 需要修改的field_num集合
+    // timestamp(field_num=253)所有消息都修改；其他时间字段按消息类型判断
+    private val TIME_FIELDS_BY_MSG = mapOf(
+        0 to setOf(4),      // file_id: time_created
+        18 to setOf(2, 4),  // session: start_time, time_created
+        19 to setOf(2)      // lap: start_time
+    )
+
     // 内部数据类
     private data class FieldInfo(
         val fieldNum: Int,
@@ -196,8 +208,6 @@ object FitTimeFixer {
         val globalMesgNum: Int,
         val architecture: Int, // 0=小端, 1=大端
         val fields: List<FieldInfo>,
-        val hasTimestamp: Boolean,
-        val timestampOffset: Int, // timestamp在fields列表中的索引
-        val timestampSize: Int
+        val timeFieldOffsets: List<Int> // 需要修改的时间字段在fields列表中的索引
     )
 }
