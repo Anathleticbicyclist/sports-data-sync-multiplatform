@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.1.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.5 |
+| 当前版本 | v7.1.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,22 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.1.6 (2026-09-02) — 本地测试验证后彻底修复Wahoo授权码捕获
+
+**本地测试验证结果**：
+- 授权URL正常，Wahoo跳转到登录页（login.wahoofitness.com）
+- token端点正常，Client ID/Secret有效（返回invalid_grant而非invalid_client）
+- redirect_uri格式正确
+
+**新增修复**：
+1. **支持fragment中的code** — Wahoo可能用`#code=xxx`而非`?code=xxx`传递授权码，extractWahooCode()同时支持两种格式
+2. **忽略SSL证书错误** — `https://localhost:8080`没有有效SSL证书，不忽略会导致页面加载失败，onReceivedSslError中调用handler.proceed()
+3. **统一授权码提取逻辑** — 四道防线（shouldOverrideUrlLoading/doUpdateVisitedHistory/onPageStarted/onReceivedError）全部使用extractWahooCode()函数
+
+**Wahoo开发者平台配置要求**：
+- Redirect URI必须填：`https://localhost:8080/`（注意末尾斜杠）
+- Scopes：`user_read` `workouts_read` `offline_data`
 
 ### v7.1.5 (2026-09-02) — 彻底修复Wahoo授权码捕获（参考开源项目dofek/wahoolib实现）
 
