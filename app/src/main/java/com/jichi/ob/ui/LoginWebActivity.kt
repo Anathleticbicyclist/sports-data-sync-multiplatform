@@ -109,6 +109,29 @@ class LoginWebActivity : AppCompatActivity() {
                 val etPassword = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPassword)
                 val btnLogin = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnMobileLogin)
                 val tvStatus = findViewById<android.widget.TextView>(R.id.tvMobileLoginStatus)
+                val tvTitle = findViewById<android.widget.TextView>(R.id.tvMobileLoginTitle)
+                val tvMfaGuide = findViewById<android.widget.TextView>(R.id.tvMfaGuide)
+                // v7.0.2: 根据国际版/中国版设置标题和MFA教程链接
+                tvTitle.text = if (isCN) "佳明中国版登录" else "佳明国际版登录"
+                val mfaUrl = if (isCN) "https://connect.garmin.cn/settings/security" else "https://connect.garmin.com/settings/security"
+                tvMfaGuide.setOnClickListener {
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(mfaUrl))
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(this, "请手动访问: $mfaUrl", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+                // v7.0.2: 遇到人机验证时回退到WebView登录
+                val tvFallback = findViewById<android.widget.TextView>(R.id.tvFallbackLogin)
+                tvFallback.setOnClickListener {
+                    android.widget.Toast.makeText(this, "切换到浏览器登录，请手动完成验证", android.widget.Toast.LENGTH_SHORT).show()
+                    findViewById<android.widget.LinearLayout>(R.id.mobileLoginLayout).visibility = android.view.View.GONE
+                    webView.visibility = android.view.View.VISIBLE
+                    findViewById<android.view.View>(R.id.btnConfirmLogin)?.visibility = android.view.View.VISIBLE
+                    val loginUrl = if (isCN) com.jichi.ob.api.GarminApi.LOGIN_URL_CN else com.jichi.ob.api.GarminApi.LOGIN_URL_COM
+                    webView.loadUrl(loginUrl)
+                }
                 btnLogin.setOnClickListener {
                     val email = etEmail.text?.toString()?.trim() ?: ""
                     val password = etPassword.text?.toString() ?: ""
