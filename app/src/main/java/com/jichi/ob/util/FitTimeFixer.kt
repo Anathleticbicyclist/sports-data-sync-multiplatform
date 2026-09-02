@@ -43,10 +43,12 @@ object FitTimeFixer {
             val headerSize = data[0].toInt() and 0xFF
             val dataSize = ByteBuffer.wrap(data, 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
             val dataStart = headerSize
-            // 数据区内容不包括末尾2字节CRC
-            val dataEnd = dataStart + dataSize - 2
+            // v7.1.1: 行者FIT的data_size字段值不正确（比实际小2字节），导致最后一条activity消息超出data_end。
+            // 使用文件实际大小计算data_end，确保所有消息都被处理。最后2字节假设是CRC（不修改）。
+            val actualDataSize = data.size - headerSize
+            val dataEnd = data.size - 2
 
-            Log.d(TAG, "FIT头: headerSize=$headerSize, dataSize=$dataSize, 数据区内容长度=${dataSize - 2}")
+            Log.d(TAG, "FIT头: headerSize=$headerSize, dataSize字段=$dataSize, 实际数据区=$actualDataSize, dataEnd=$dataEnd")
 
             var pos = dataStart
             var fixedCount = 0
@@ -107,7 +109,7 @@ object FitTimeFixer {
                     val msgSize = def.fields.sumOf { it.size }
                     val msgStart = pos
 
-                    // 安全检查：消息超出data_end时停止（行者FIT可能有额外数据，不修改超出部分）
+                    // 安全检查：消息超出data_end时停止
                     if (msgStart + msgSize > dataEnd) {
                         Log.w(TAG, "数据消息超出数据区，停止遍历: msgStart=$msgStart, msgSize=$msgSize, dataEnd=$dataEnd")
                         break
