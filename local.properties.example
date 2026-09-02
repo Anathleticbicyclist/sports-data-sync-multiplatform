@@ -1,0 +1,14 @@
+# 复制此文件为 local.properties，填入真实值
+# local.properties 不会提交到 git
+
+sdk.dir=/path/to/android-sdk
+
+# APK签名密钥（发布构建时需要）
+storeFile=../your-keystore.keystore
+storePassword=your_store_password
+keyAlias=your_key_alias
+keyPassword=your_key_password
+
+# Wahoo开发者应用凭证（可选，不填则使用用户自配置）
+wahoo_client_id=your_wahoo_client_id
+wahoo_client_secret=your_wahoo_client_secret

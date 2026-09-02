@@ -1,6 +1,7 @@
 package com.jichi.ob.api
 
 import android.util.Log
+import com.jichi.ob.BuildConfig
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.model.DataSource
 import kotlinx.coroutines.Dispatchers
@@ -34,8 +35,9 @@ class WahooApi {
 
         // v6.5.1: 内置开发者凭证（App维护者在 developers.wahooligan.com 免费注册一次后填写）
         // 用户无需注册，直接用Wahoo账号登录授权即可。redirect_uri填 https://localhost:8080/
-        const val BUILTIN_CLIENT_ID = "lGMZOR4YVIhQZt6Zao6Z5RzmGXRTFZVgmaqV91JmoeU"
-        const val BUILTIN_CLIENT_SECRET = "w8aErisKTv8WV3ISYSPy70X4LWx0wGnxpwCCNCzXfpA"
+        // Wahoo凭证从BuildConfig读取（来自local.properties，不硬编码到源码）
+        val BUILTIN_CLIENT_ID = BuildConfig.WAHOO_CLIENT_ID
+        val BUILTIN_CLIENT_SECRET = BuildConfig.WAHOO_CLIENT_SECRET
         fun isBuiltinConfigured(): Boolean = BUILTIN_CLIENT_ID.isNotEmpty() && BUILTIN_CLIENT_SECRET.isNotEmpty()
     }
 
