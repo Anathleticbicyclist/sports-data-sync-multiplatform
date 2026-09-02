@@ -105,6 +105,24 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.0.1 (2026-09-02) — 佳明中国版突破Cloudflare + 全平台DI token统一
+
+**功能实现**：
+- 佳明中国版改用mobile SSO + DI OAuth Bearer tokens认证，通过connectapi.garmin.cn访问API，彻底绕过Cloudflare 403拦截
+- 佳明中国版登录改为直接输入邮箱密码，不再使用WebView登录
+- 佳明中国版全流程支持：登录→活动列表→FIT下载→FIT上传
+- 国际版与中国版统一使用DI token架构，代码结构一致
+
+**解决的问题**：
+- 佳明中国版gc-api上传接口被Cloudflare拦截导致全部403（空响应体+cf-ray标识）
+- 佳明中国版JWT_WEB+session+CSRF方案不稳定，易被WAF识别
+- 国际版与中国版认证逻辑不统一，维护成本高
+
+**根因分析**：
+- Cloudflare通过TLS指纹（JA3/JA4）+浏览器特征header（sec-ch-ua/sec-fetch-*）识别OkHttp非浏览器请求
+- 普通curl→403 Cloudflare拦截；curl_cffi模拟Chrome TLS+完整浏览器header→401业务层认证失败
+- connectapi.garmin.cn端点确认存在（返回405 Method Not Allowed），且不经过Cloudflare WAF
+
 ### v7.0.0 (2026-09-01) — 佳明国际版突破 + UI全面优化
 
 **功能实现**：

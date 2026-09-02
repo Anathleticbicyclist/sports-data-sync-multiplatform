@@ -41,12 +41,19 @@ class GarminApi {
         const val LOGIN_URL_COM = "https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fapp%2F"
         const val LOGIN_URL_CN = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
 
-        // ===== 国际版 mobile SSO + DI OAuth 常量（参考garminconnect 0.3.x）=====
+        // ===== 国际版/中国版 mobile SSO + DI OAuth 常量（参考garminconnect 0.3.x）=====
         private const val IOS_SSO_CLIENT_ID = "GCM_IOS_DARK"
-        private const val IOS_SERVICE_URL = "https://mobile.integration.garmin.com/gcm/ios"
+        private const val IOS_SERVICE_URL_COM = "https://mobile.integration.garmin.com/gcm/ios"
+        private const val IOS_SERVICE_URL_CN = "https://mobile.integration.garmin.cn/gcm/ios"
         private const val IOS_LOGIN_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
-        private const val DI_TOKEN_URL = "https://diauth.garmin.com/di-oauth2-service/oauth/token"
-        private const val DI_GRANT_TYPE = "https://connectapi.garmin.com/di-oauth2-service/oauth/grant/service_ticket"
+        private const val DI_TOKEN_URL_COM = "https://diauth.garmin.com/di-oauth2-service/oauth/token"
+        private const val DI_TOKEN_URL_CN = "https://diauth.garmin.cn/di-oauth2-service/oauth/token"
+        private const val DI_GRANT_TYPE_COM = "https://connectapi.garmin.com/di-oauth2-service/oauth/grant/service_ticket"
+        private const val DI_GRANT_TYPE_CN = "https://connectapi.garmin.cn/di-oauth2-service/oauth/grant/service_ticket"
+        private const val CONNECT_API_HOST_COM = "https://connectapi.garmin.com"
+        private const val CONNECT_API_HOST_CN = "https://connectapi.garmin.cn"
+        private const val SSO_LOGIN_URL_COM = "https://sso.garmin.com/mobile/api/login"
+        private const val SSO_LOGIN_URL_CN = "https://sso.garmin.cn/mobile/api/login"
         private val DI_CLIENT_IDS = arrayOf(
             "GARMIN_CONNECT_MOBILE_ANDROID_DI_2025Q2",
             "GARMIN_CONNECT_MOBILE_ANDROID_DI_2024Q4",
@@ -123,14 +130,17 @@ class GarminApi {
     data class DiTokenResult(val accessToken: String, val refreshToken: String?, val clientId: String)
 
     /**
-     * 国际版mobile SSO登录 + DI token交换（不经过Cloudflare）
+     * mobile SSO登录 + DI token交换（不经过Cloudflare），支持国际版和中国版
      * @return JSON凭证字符串 {"di_token":"...","di_refresh_token":"...","di_client_id":"..."}
      */
-    suspend fun loginMobile(email: String, password: String): String? = withContext(Dispatchers.IO) {
+    suspend fun loginMobile(email: String, password: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
         try {
-            addDebugLog("loginMobile: 开始mobile SSO登录...")
+            addDebugLog("loginMobile: 开始mobile SSO登录(isCN=$isCN)...")
             // Step 1: mobile login获取serviceTicketId
-            val loginUrl = "https://sso.garmin.com/mobile/api/login"
+            val loginUrl = if (isCN) SSO_LOGIN_URL_CN else SSO_LOGIN_URL_COM
+            val serviceUrl = if (isCN) IOS_SERVICE_URL_CN else IOS_SERVICE_URL_COM
+            val ssoOrigin = if (isCN) "https://sso.garmin.cn" else "https://sso.garmin.com"
+            val locale = if (isCN) "zh-CN" else "en-US"
             val loginJson = JSONObject().apply {
                 put("username", email)
                 put("password", password)
@@ -138,11 +148,11 @@ class GarminApi {
                 put("captchaToken", "")
             }
             val loginReq = Request.Builder()
-                .url("$loginUrl?clientId=$IOS_SSO_CLIENT_ID&locale=en-US&service=${java.net.URLEncoder.encode(IOS_SERVICE_URL, "UTF-8")}")
+                .url("$loginUrl?clientId=$IOS_SSO_CLIENT_ID&locale=$locale&service=${java.net.URLEncoder.encode(serviceUrl, "UTF-8")}")
                 .addHeader("User-Agent", IOS_LOGIN_UA)
                 .addHeader("Accept", "application/json, text/plain, */*")
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Origin", "https://sso.garmin.com")
+                .addHeader("Origin", ssoOrigin)
                 .post(loginJson.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             val loginResp = client.newCall(loginReq).execute()
@@ -159,7 +169,7 @@ class GarminApi {
                 val respType2 = res2.optJSONObject("responseStatus")?.optString("type") ?: ""
                 if (respType2 != "SUCCESSFUL") return@withContext null
                 val ticket2 = res2.getString("serviceTicketId")
-                return@withContext exchangeDiToken(ticket2)
+                return@withContext exchangeDiToken(ticket2, isCN)
             }
             if (loginResp.code != 200) return@withContext null
             val res = JSONObject(loginBody)
@@ -175,7 +185,7 @@ class GarminApi {
             val ticket = res.getString("serviceTicketId")
             addDebugLog("loginMobile: 获取serviceTicket成功")
             // Step 2: 交换DI token
-            exchangeDiToken(ticket)
+            exchangeDiToken(ticket, isCN)
         } catch (e: Exception) {
             addDebugLog("loginMobile异常: ${e.message}")
             Log.e(TAG, "loginMobile error", e)
@@ -183,21 +193,24 @@ class GarminApi {
         }
     }
 
-    private suspend fun exchangeDiToken(ticket: String): String? = withContext(Dispatchers.IO) {
+    private suspend fun exchangeDiToken(ticket: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
+        val diTokenUrl = if (isCN) DI_TOKEN_URL_CN else DI_TOKEN_URL_COM
+        val grantType = if (isCN) DI_GRANT_TYPE_CN else DI_GRANT_TYPE_COM
+        val serviceUrl = if (isCN) IOS_SERVICE_URL_CN else IOS_SERVICE_URL_COM
         for (clientId in DI_CLIENT_IDS) {
             try {
-                addDebugLog("exchangeDiToken: 尝试clientId=$clientId")
+                addDebugLog("exchangeDiToken: 尝试clientId=$clientId (isCN=$isCN)")
                 val basicAuth = "Basic " + Base64.encodeToString("$clientId:".toByteArray(), Base64.NO_WRAP)
-                val formBody = "client_id=$clientId&service_ticket=$ticket&grant_type=${java.net.URLEncoder.encode(DI_GRANT_TYPE, "UTF-8")}&service_url=${java.net.URLEncoder.encode(IOS_SERVICE_URL, "UTF-8")}"
+                val formBody = "client_id=$clientId&service_ticket=$ticket&grant_type=${java.net.URLEncoder.encode(grantType, "UTF-8")}&service_url=${java.net.URLEncoder.encode(serviceUrl, "UTF-8")}"
                 val req = Request.Builder()
-                    .url(DI_TOKEN_URL)
+                    .url(diTokenUrl)
                     .addHeader("Authorization", basicAuth)
                     .addHeader("User-Agent", NATIVE_API_UA)
                     .addHeader("X-Garmin-User-Agent", NATIVE_X_GARMIN_UA)
                     .addHeader("X-Garmin-Paired-App-Version", "10861")
                     .addHeader("X-Garmin-Client-Platform", "Android")
                     .addHeader("X-App-Ver", "10861")
-                    .addHeader("X-Lang", "en")
+                    .addHeader("X-Lang", if (isCN) "zh-CN" else "en")
                     .addHeader("X-GCExperience", "GC5")
                     .addHeader("Accept", "application/json,text/html;q=0.9,*/*;q=0.8")
                     .addHeader("Content-Type", "application/x-www-form-urlencoded")
@@ -274,8 +287,9 @@ class GarminApi {
     private fun gcApiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/gc-api" else "https://connect.garmin.com/gc-api"
 
-    // 国际版DI token用connectapi.garmin.com（不经过Cloudflare）
-    private fun connectApiHost(): String = "https://connectapi.garmin.com"
+    // 国际版/中国版DI token用connectapi（不经过Cloudflare）
+    private fun connectApiHost(ds: DataSource): String =
+        if (ds == DataSource.GARMIN_CN) CONNECT_API_HOST_CN else CONNECT_API_HOST_COM
 
     private fun apiHeaders(ds: DataSource, cred: String): Map<String, String> {
         val sess = parseCredential(cred)
@@ -292,18 +306,18 @@ class GarminApi {
         return h
     }
 
-    // 国际版DI token的header（用connectapi.garmin.com）
-    private fun diHeaders(sess: GarminSession): Map<String, String> = mapOf(
+    // DI token的header（用connectapi，不经过Cloudflare）
+    private fun diHeaders(sess: GarminSession, ds: DataSource = DataSource.GARMIN_COM): Map<String, String> = mapOf(
         "Authorization" to "Bearer ${sess.diToken}",
         "User-Agent" to NATIVE_API_UA,
         "X-Garmin-User-Agent" to NATIVE_X_GARMIN_UA,
         "X-Garmin-Paired-App-Version" to "10861",
         "X-Garmin-Client-Platform" to "Android",
         "X-App-Ver" to "10861",
-        "X-Lang" to "en",
+        "X-Lang" to if (ds == DataSource.GARMIN_CN) "zh-CN" else "en",
         "X-GCExperience" to "GC5",
-        "DI-Backend" to "connectapi.garmin.com",
-        "Accept-Language" to "en-US,en;q=0.9"
+        "DI-Backend" to if (ds == DataSource.GARMIN_CN) "connectapi.garmin.cn" else "connectapi.garmin.com",
+        "Accept-Language" to if (ds == DataSource.GARMIN_CN) "zh-CN,zh;q=0.9" else "en-US,en;q=0.9"
     )
 
     // ===== WebView fetch（国际版DI token失败时的回退，保留但不优先使用）=====
@@ -457,10 +471,10 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
-            if (ds == DataSource.GARMIN_COM && sess?.diToken?.isNotEmpty() == true) {
-                val url = "${connectApiHost()}/userprofile-service/socialProfile"
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/userprofile-service/socialProfile"
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess).forEach { (k, v) -> addHeader(k, v) }
+                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
                 }.get().build()
                 client.newCall(req).execute().use { resp ->
                     if (resp.code != 200) return@withContext null
@@ -490,10 +504,10 @@ class GarminApi {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
-            if (ds == DataSource.GARMIN_COM && sess?.diToken?.isNotEmpty() == true) {
-                val url = "${connectApiHost()}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess).forEach { (k, v) -> addHeader(k, v) }
+                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
                 }.get().build()
                 client.newCall(req).execute().use { resp ->
                     addDebugLog("getActivities DI: HTTP ${resp.code}")
@@ -571,10 +585,10 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
-            if (ds == DataSource.GARMIN_COM && sess?.diToken?.isNotEmpty() == true) {
-                val url = "${connectApiHost()}/download-service/files/activity/$activityId"
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess).forEach { (k, v) -> addHeader(k, v) }
+                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
                     addHeader("Accept", "*/*")
                 }.get().build()
                 client.newCall(req).execute().use { resp ->
@@ -667,14 +681,14 @@ class GarminApi {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
-            if (ds == DataSource.GARMIN_COM && sess?.diToken?.isNotEmpty() == true) {
-                val url = "${connectApiHost()}/upload-service/upload"
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+                val url = "${connectApiHost(ds)}/upload-service/upload"
                 val body = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
                     .build()
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess).forEach { (k, v) -> addHeader(k, v) }
+                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
                     addHeader("Accept", "application/json")
                 }.post(body).build()
                 client.newCall(req).execute().use { resp ->
@@ -683,9 +697,9 @@ class GarminApi {
                     return@withContext when (resp.code) {
                         200, 201, 202 -> null
                         409 -> if (result.contains("Duplicate Activity", true)) "重复活动(已在佳明存在)"
-                               else "佳明国际上传冲突 HTTP 409: ${result.take(100)}"
+                               else "佳明上传冲突 HTTP 409: ${result.take(100)}"
                         400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
-                        else -> "佳明国际上传失败 HTTP ${resp.code}: ${result.take(100)}"
+                        else -> "佳明上传失败 HTTP ${resp.code}: ${result.take(100)}"
                     }
                 }
             }
