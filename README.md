@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.1.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.6 |
+| 当前版本 | v7.1.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,21 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.1.7 (2026-09-02) — Wahoo调试版：添加URL历史追踪，redirect_uri改HTTP
+
+**修改内容**：
+1. redirect_uri从`https://localhost:8080/`改为`http://localhost:8080/`（HTTPS localhost证书错误可能导致WebView异常）
+2. 添加URL历史记录：记录shouldOverrideUrlLoading/onPageStarted/onReceivedError/doUpdateVisitedHistory所有URL变化
+3. 添加调试对话框：用户授权后点击"确认登录"按钮，如果未检测到授权码，会显示当前URL和最近20条URL历史，可复制到剪贴板
+
+**使用方法**：
+1. 打开Wahoo登录，完成授权
+2. 如果没有自动登录成功，点击右上角"确认登录"按钮
+3. 会弹出调试对话框，显示当前URL和URL历史
+4. 点击"复制到剪贴板"，把调试信息发给开发者
+
+**注意**：Wahoo开发者平台的Redirect URI必须改为`http://localhost:8080/`（HTTP，不是HTTPS）
 
 ### v7.1.6 (2026-09-02) — 本地测试验证后彻底修复Wahoo授权码捕获
 
