@@ -38,6 +38,7 @@ import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.api.CorosApi
 import com.jichi.ob.api.GarminApi
 import com.jichi.ob.api.WahooApi
+import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.OutbaseApi
@@ -454,9 +455,56 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
-    /** v7.4.0: Wahoo 登录——改回WebView方式，用户手动登录授权，redirect_uri用ob://wahoo/callback */
+    /** v7.4.5: Wahoo 登录——恢复WahooOAuth2Service后台自动化登录（v7.3.0验证通过的方案），SCOPES含workouts_write支持上传 */
     private fun openWahooLogin() {
-        openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl())
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val emailInput = android.widget.EditText(this).apply {
+            hint = "Wahoo邮箱"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            setText(prefs.getWahooEmail() ?: "")
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "Wahoo密码"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(emailInput)
+        layout.addView(passwordInput)
+        
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Wahoo直接登录")
+            .setMessage("后台自动完成OAuth2授权（含workouts_write上传权限）")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val email = emailInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (email.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入邮箱和密码")
+                    return@setPositiveButton
+                }
+                prefs.saveWahooEmail(email)
+                appendLog("🔐 Wahoo直接登录中...")
+                WahooOAuth2Service.debugLogCallback = { msg -> runOnUiThread { appendLog(msg) } }
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = WahooOAuth2Service.login(email, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveWahooToken(result.first)
+                            prefs.saveWahooRefresh(result.second)
+                            appendLog("✅ Wahoo登录成功（含上传权限）")
+                            fetchUsernameAfterLogin(DataSource.WAHOO)
+                        } else {
+                            appendLog("❌ Wahoo登录失败，请检查邮箱密码")
+                        }
+                        updateStatusUI()
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     /** v7.2.0: Wahoo配置对话框（保留，用于用户自配置凭证） */
