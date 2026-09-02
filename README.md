@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.4-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.1.5-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.4 |
+| 当前版本 | v7.1.5 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,34 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.1.5 (2026-09-02) — 彻底修复Wahoo授权码捕获（参考开源项目dofek/wahoolib实现）
+
+**修复的问题**：
+- Wahoo授权登录后无反应，提示"未捕获到授权码或未配置凭证"
+
+**根因分析（参考开源项目dofek的Wahoo文档）**：
+1. redirect_uri未URL编码 — `https://localhost:8080/`中的特殊字符应编码
+2. Wahoo用了桌面UA — 桌面UA下Wahoo授权页面可能异常，改用移动UA
+3. 只靠onPageStarted检测 — 302重定向时onPageStarted可能不触发，需要多道防线
+
+**修复内容（四道防线确保授权码捕获）**：
+
+| 防线 | 方法 | 触发时机 | 可靠性 |
+|---|---|---|---|
+| 1 | `shouldOverrideUrlLoading` | URL加载前拦截 | 高 |
+| 2 | `doUpdateVisitedHistory` | URL变化(包括302重定向) | 最高 |
+| 3 | `onPageStarted` | 页面开始加载 | 中 |
+| 4 | `onReceivedError` | localhost加载失败时从failingUrl提取 | 兜底 |
+
+**其他修复**：
+- redirect_uri参数进行URL编码（符合OAuth2规范）
+- Wahoo登录页使用移动UA（桌面UA下授权页异常）
+- 内置Wahoo生产凭证，用户无需手动配置
+
+**参考开源项目**：
+- [dofek Wahoo Provider](https://github.com/Asherlc/dofek/blob/main/docs/wahoo.md) — Wahoo要求HTTPS redirect_uri
+- [wahoolib Wahoo API](https://github.com/parkerhancock/wahoolib) — 标准OAuth2授权码流程
 
 ### v7.1.4 (2026-09-02) — 修复Wahoo授权码捕获失败
 
