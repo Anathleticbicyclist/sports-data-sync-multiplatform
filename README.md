@@ -105,6 +105,24 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.0.6 (2026-09-02) — 修复佳明中国登录失败 + 中国版用cookie调用connectapi
+
+**修复的问题**：
+- 佳明中国版mobile SSO登录失败（中国版DI token交换接口返回unsupported_grant_type）
+- 中国版获取不到DI token，只能用gc-api接口，被Cloudflare 403拦截
+
+**修复内容**：
+- 佳明中国版回退到WebView登录（JWT_WEB+session cookie），国际版继续用mobile SSO+DI token
+- 中国版API调用优先用cookie调用connectapi.garmin.cn（不经过Cloudflare）
+- 覆盖getActivities/downloadFit/uploadActivity三个核心接口
+- 如果connectapi用cookie调用失败，自动回退到gc-api
+
+**根因分析**：
+- 中国版mobile login能成功（返回serviceTicketId）
+- 但中国版DI token交换接口不支持service_ticket grant_type
+- 导致exchangeDiToken失败，loginMobile返回null，登录失败
+- 中国版connectapi.garmin.cn端点存在，用cookie认证可能可用（待真机验证）
+
 ### v7.0.5 (2026-09-02) — 修复行者→iGPSPORT FIT文件结构损坏
 
 **修复的问题**：

@@ -200,7 +200,7 @@ class MainActivity : AppCompatActivity() {
                     LoginWebActivity.TYPE_GARMIN_CN -> if (token.length > 20) {
                         prefs.saveGarminCnToken(token)
                         prefs.saveGarminCnCookie("")
-                        appendLog("✅ 佳明中国登录成功(mobile SSO+DI Token)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
+                        appendLog("✅ 佳明中国登录成功(JWT_WEB+session)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
                     } else appendLog("⚠️ 佳明中国登录失败: 未获取到token")
                     LoginWebActivity.TYPE_COROS_CN -> if (sid.length > 10) {
                         prefs.saveCorosCnToken(sid)
