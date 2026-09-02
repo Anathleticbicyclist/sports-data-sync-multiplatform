@@ -1,4 +1,4 @@
-# 复制此文件为 local.properties，填入真实值
+# 复制此文件为 local.properties，填入真实值！！
 # local.properties 不会提交到 git
 
 sdk.dir=/path/to/android-sdk
