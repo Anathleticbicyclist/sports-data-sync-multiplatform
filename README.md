@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.1.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.1.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间自由同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.1.8 |
+| 当前版本 | v7.1.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -104,6 +104,25 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.1.9 (2026-09-02) — 本地模拟Wahoo OAuth2完整流程后增强SSL错误授权码捕获
+
+**本地模拟验证**：
+- 用Python完整模拟了Wahoo OAuth2流程：SAML登录 → SAML回调 → 授权确认页面 → 重定向到localhost
+- 确认授权成功后重定向URL格式：`https://localhost:8080/?code=xxx`
+- 确认授权失败后重定向URL格式：`https://localhost:8080/?error=access_denied`
+- 确认Wahoo登录后会显示授权确认页面，需要用户手动点击"Authorize"按钮
+
+**修复内容**：
+- 增强`onReceivedSslError`中的授权码捕获：同时检查`error.url`和`view.url`（两个URL都可能包含授权码）
+- 添加更详细的SSL错误日志，记录sslUrl和webViewUrl
+- 保留五道防线和URL历史调试功能
+
+**Wahoo登录步骤**：
+1. 打开Wahoo登录
+2. 输入Wahoo账号密码登录
+3. 登录成功后会显示授权确认页面，点击"Authorize"按钮
+4. App自动捕获授权码并完成登录
 
 ### v7.1.8 (2026-09-02) — 修复Wahoo授权码捕获：在SSL证书错误时提取授权码（最关键修复）
 
