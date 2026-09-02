@@ -211,11 +211,13 @@ class MainActivity : AppCompatActivity() {
                         appendLog("✅ 高驰国际登录成功"); fetchUsernameAfterLogin(DataSource.COROS_INT)
                     } else appendLog("⚠️ 高驰国际登录失败: 未捕获到token")
                     LoginWebActivity.TYPE_WAHOO -> {
-                        // v6.5.1: Wahoo 返回 OAuth2 授权码，用内置凭证换取 access_token
-                        if (sid.length > 5 && com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
+                        // v7.0.6: Wahoo 返回 OAuth2 授权码，用用户配置的凭证换取 access_token
+                        val clientId = prefs.getWahooClientId()
+                        val clientSecret = prefs.getWahooClientSecret()
+                        if (sid.length > 5 && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
                             val code = sid
                             lifecycleScope.launch(Dispatchers.IO) {
-                                val fresh = wahooApi.exchangeToken(code, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET)
+                                val fresh = wahooApi.exchangeToken(code, clientId, clientSecret)
                                 runOnUiThread {
                                     if (fresh != null) {
                                         prefs.saveWahooToken(fresh.first)
@@ -225,7 +227,7 @@ class MainActivity : AppCompatActivity() {
                                     updateStatusUI()
                                 }
                             }
-                        } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码")
+                        } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码或未配置凭证")
                     }
                 }
                 updateStatusUI()
@@ -452,17 +454,53 @@ class MainActivity : AppCompatActivity() {
         loginLauncher.launch(intent)
     }
 
-    /** v6.5.1: Wahoo 登录——使用内置开发者凭证（维护者注册一次，用户无需注册） */
+    /** v7.0.6: Wahoo 登录——用户自行配置开发者凭证（沙箱免费申请） */
     private fun openWahooLogin() {
-        if (!com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Wahoo 暂未配置")
-                .setMessage("Wahoo 同步功能待开发者配置凭证后启用。请使用其他平台同步，或等待后续版本更新。")
-                .setPositiveButton("知道了", null)
-                .show()
-            return
+        val savedId = prefs.getWahooClientId() ?: ""
+        val savedSecret = prefs.getWahooClientSecret() ?: ""
+
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
         }
-        openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl())
+
+        val etId = android.widget.EditText(this).apply {
+            hint = "Client ID"
+            setText(savedId)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        }
+        val etSecret = android.widget.EditText(this).apply {
+            hint = "Client Secret"
+            setText(savedSecret)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val tvTutorial = android.widget.TextView(this).apply {
+            text = "申请沙箱教程：\n1. 打开 developers.wahooligan.com/applications\n2. 注册/登录后点击 New Application\n3. 填写名称，Redirect URI 填 http://localhost:8080\n4. Scopes 勾选 user_read、workouts_read、offline_data\n5. 提交后复制 Client ID 和 Client Secret 填入上方\n（沙箱免费，审核通过后即可使用）"
+            textSize = 11f
+            setTextColor(0xFF888888.toInt())
+            setPadding(0, 24, 0, 0)
+        }
+
+        layout.addView(etId)
+        layout.addView(etSecret)
+        layout.addView(tvTutorial)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Wahoo 开发者凭证配置")
+            .setView(layout)
+            .setPositiveButton("保存并登录") { _, _ ->
+                val id = etId.text.toString().trim()
+                val secret = etSecret.text.toString().trim()
+                if (id.isEmpty() || secret.isEmpty()) {
+                    android.widget.Toast.makeText(this, "请填写 Client ID 和 Client Secret", android.widget.Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                prefs.saveWahooClientId(id)
+                prefs.saveWahooClientSecret(secret)
+                openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl(id))
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun getSelectedSource(): DataSource {
@@ -843,11 +881,13 @@ class MainActivity : AppCompatActivity() {
             DataSource.COROS_CN -> corosApi.getActivities(cred, skip, limit)
             DataSource.COROS_INT -> corosApi.getActivities(cred, skip, limit)
             DataSource.WAHOO -> {
-                // v6.5.1: Wahoo用内置凭证刷新token
+                // v7.0.6: Wahoo用用户配置的凭证刷新token
                 var token = cred
                 val refresh = prefs.getWahooRefresh()
-                if (refresh != null && com.jichi.ob.api.WahooApi.isBuiltinConfigured()) {
-                    val fresh = wahooApi.refreshToken(refresh, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID, com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET)
+                val clientId = prefs.getWahooClientId()
+                val clientSecret = prefs.getWahooClientSecret()
+                if (refresh != null && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
+                    val fresh = wahooApi.refreshToken(refresh, clientId, clientSecret)
                     if (fresh != null) {
                         prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
                         token = fresh.first

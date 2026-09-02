@@ -105,23 +105,22 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
-### v7.0.6 (2026-09-02) — 修复佳明中国登录失败 + 中国版用cookie调用connectapi
+### v7.0.6 (2026-09-02) — 佳明中国用WebView绕过Cloudflare + 行者FIT时间修复 + Wahoo用户自配置
 
 **修复的问题**：
-- 佳明中国版mobile SSO登录失败（中国版DI token交换接口返回unsupported_grant_type）
-- 中国版获取不到DI token，只能用gc-api接口，被Cloudflare 403拦截
+- 佳明中国版上传下载全部HTTP 403（Cloudflare拦截OkHttp的TLS指纹）
+- 行者→iGPSPORT FIT文件结构损坏（FitTimeFixer重新构建输出流导致多2字节）
+- Wahoo需开发者内置凭证，用户无法自行配置
 
 **修复内容**：
-- 佳明中国版回退到WebView登录（JWT_WEB+session cookie），国际版继续用mobile SSO+DI token
-- 中国版API调用优先用cookie调用connectapi.garmin.cn（不经过Cloudflare）
-- 覆盖getActivities/downloadFit/uploadActivity三个核心接口
-- 如果connectapi用cookie调用失败，自动回退到gc-api
+- 佳明中国版：WebView登录 + WebView执行JS上传下载（绕过Cloudflare，TLS指纹=浏览器）
+- 佳明国际版：继续用mobile SSO+DI token+connectapi（已验证稳定）
+- 行者→iGPSPORT：FitTimeFixer改为直接修改原始数组时间戳，不动文件结构，只重算CRC
+- Wahoo：改为用户自行配置Client ID/Client Secret，配置弹窗底部附沙箱申请教程
 
 **根因分析**：
-- 中国版mobile login能成功（返回serviceTicketId）
-- 但中国版DI token交换接口不支持service_ticket grant_type
-- 导致exchangeDiToken失败，loginMobile返回null，登录失败
-- 中国版connectapi.garmin.cn端点存在，用cookie认证可能可用（待真机验证）
+- 佳明中国：connectapi只接受DI token不接受cookie，中国版DI接口返回unsupported_grant_type，gc-api经过Cloudflare拦截OkHttp。WebView的TLS指纹与浏览器一致，能通过Cloudflare的JS挑战
+- 行者FIT：重新构建输出流的方式不可靠，容易多写/少写字节导致文件结构损坏。直接修改原始数组中的timestamp字段值，只改值不动结构，最可靠
 
 ### v7.0.5 (2026-09-02) — 修复行者→iGPSPORT FIT文件结构损坏
 

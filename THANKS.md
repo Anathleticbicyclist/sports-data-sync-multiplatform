@@ -13,6 +13,8 @@
 | **百锐腾（Bryton）** | [brytonsport.com](https://www.brytonsport.com) | 专业骑行码表品牌，提供GPS骑行数据记录 |
 | **Outbase** | [outbase.cn](https://outbase.cn) | 户外运动数据聚合平台，支持多品牌设备数据接入 |
 
+🔗 [点击加入俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)
+
 > 各平台数据版权归原平台所有，本工具仅用于用户个人数据的迁移与备份，不得用于商业用途或数据爬取。
 
 ---
@@ -62,7 +64,6 @@
 
 欢迎加入开发者俱乐部，与主理人和其他开发者一起交流、测试、反馈：
 
-🔗 [点击加入俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)
 
 > 如有问题，欢迎加入俱乐部跟主理人反馈。开发中功能招募测试人员，欢迎联系主理人~
 
