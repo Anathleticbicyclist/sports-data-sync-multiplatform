@@ -191,17 +191,17 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 感谢以下运动平台为广大运动用户提供的数据记录与存储服务，正是因为各平台开放的数据接口，才让数据自由流动成为可能：
 
-| 平台 | 公司 | 成立 | 地址 | 简介 |
-|------|------|------|------|------|
-| **iGPSPORT迹驰** | 武汉齐物科技有限公司 | 2012年 | 湖北省武汉市洪山区野芷湖西路16号 | 专注运动智能硬件研发、制造、销售及数据服务的创新型科技企业，产品销往40多个国家和地区，服务全球超200万骑行爱好者 |
-| **行者** | 上海大不自多信息科技有限公司 | 2014年 | 上海市杨浦区政学路77号二楼201室 | 国内主流骑行运动平台，行者APP拥有注册用户超2000万，提供骑行记录、路线规划与社交功能 |
-| **迈金Magene** | 青岛迈金智能科技股份有限公司 | 2015年 | 山东省青岛市城阳区书雨路126号 | 深耕智能骑行领域的高新技术企业，旗下拥有Magene、顽鹿Onelap两大品牌，智能骑行台国内市场占有率第一，产品远销100多个国家和地区 |
-| **黑鸟单车** | 北京黑鸟科技有限公司 | 2015年 | 北京市海淀区安宁庄村南北方丝绸厂3幢一层10室 | 专注骑行领域的科技企业，核心产品"黑鸟单车"App是国内具有影响力的骑行社区，连接数万个骑行俱乐部和数百万骑行爱好者 |
-| **百锐腾Bryton** | Bryton Inc.（总部台湾） | 2009年 | 总部台湾新北，大陆上海/深圳设有运营中心 | 由一群专精GPS消费性电子产业的精英组成，专注GPS专业运动电子产品研发，产品营销到全世界40几个国家及地区 |
-| **Outbase** | 北京世元造物文化有限公司 | - | 北京 | 户外运动数据聚合平台，支持多品牌设备数据接入，用运动连接世界 |
-| **佳明Garmin** | Garmin Ltd.（瑞士注册），大陆：上海佳明航电企业管理有限公司 | 1989年 | 大陆：上海市徐汇区桂平路391号新漕河泾国际商务中心A座37楼 | 全球最具指标性的GPS企业，由高民环博士与Gary Burrell共同创立，研发总部美国，亚洲总部台湾新北，产品覆盖航空、航海、车用、户外、运动等领域 |
-| **高驰COROS** | 高驰运动科技（深圳）有限公司 | 2014年 | 深圳市南山区粤海街道高新区社区科技南八路12号超多维科技大厦1402 | 致力于为全球户外运动爱好者设计制造科技产品，为体能训练和户外探索提供支持，在多个国家组建团队，与世界各国的运动家、探险家合作 |
-| **Wahoo** | Wahoo Fitness LLC | 2009年 | 美国佐治亚州亚特兰大市90 West Wieuca Road NE, Suite 110 | 由Chip Hawkins创立的健身科技公司，产品包括KICKR系列室内骑行训练器、ELEMNT系列GPS码表、TICKR系列心率带等，在伦敦、柏林、东京、里诺、博尔德和布里斯班设有办事处 |
+| 平台 | 简介 | Slogan |
+|------|------|--------|
+| [iGPSPORT迹驰](https://www.igpsport.com) | 专业骑行智能硬件品牌，专注GPS码表、运动手表及数据服务，产品销往全球40多个国家和地区 | [Innovation for Great Performance @ SPORTS](https://www.igpsport.com) |
+| [行者](https://www.imxingzhe.com) | 国内领先的骑行运动社交平台，提供骑行记录、路线规划与社区功能，注册用户超2000万 | [虽千万里 吾往矣](https://www.imxingzhe.com) |
+| [迈金Magene](https://www.magene.cn) | 智能骑行领域高新技术企业，旗下拥有Magene硬件、顽鹿Onelap软件两大品牌，智能骑行台国内市场占有率第一 | [让运动更科学](https://www.magene.cn) |
+| [黑鸟单车](https://www.blackbirdsport.com) | 国内具有影响力的骑行社区与记录平台，连接数万个骑行俱乐部和数百万骑行爱好者 | [黑鸟单车 骑乐无穷](https://www.blackbirdsport.com) |
+| [百锐腾Bryton](https://www.brytonsport.com) | 专业GPS运动电子产品品牌，由资深GPS研发团队创立，产品覆盖骑行、健身、户外等领域 | [Engineered for Great Performance](https://www.brytonsport.com) |
+| [Outbase](https://outbase.cn) | 户外运动数据聚合平台，支持多品牌设备数据接入与俱乐部运营 | [用运动连接世界](https://outbase.cn) |
+| [佳明Garmin](https://www.garmin.com.cn) | 全球GPS行业标杆企业，产品覆盖航空、航海、车用、户外、运动等领域，Garmin Connect为全球最大运动数据平台之一 | [Engineered on the inside for life on the outside](https://www.garmin.com.cn) |
+| [高驰COROS](https://www.coros.com) | 专业户外运动智能装备品牌，致力于为运动家与冒险家开发智能户外装备，在全球多个国家组建团队 | [保持专注 乐于创新 满怀热情](https://www.coros.com) |
+| [Wahoo](https://www.wahoofitness.com) | 美国健身科技品牌，产品涵盖KICKR室内训练器、ELEMNT GPS码表、TICKR心率带等完整生态 | [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com) |
 
 > 各平台数据版权归原平台所有，本工具仅用于用户个人数据的迁移与备份，不得用于商业用途或数据爬取。
 
