@@ -189,7 +189,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ### 🏢 平台鸣谢
 
-感谢以下运动平台为广大运动用户提供的数据记录与存储服务，正是因为各平台开放的数据接口，才让数据自由流动成为可能：
+感谢iGPSPORT、行者、迈金、黑鸟单车、百锐腾、Outbase、佳明、高驰、Wahoo为运动用户提供的数据记录与存储服务。
 
 - iGPSPORT迹驰 — [Innovation for Great Performance @ SPORTS](https://www.igpsport.com)
 - 行者 — [虽千万里 吾往矣](https://www.imxingzhe.com)
