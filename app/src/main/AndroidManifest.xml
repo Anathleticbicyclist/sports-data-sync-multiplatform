@@ -49,5 +49,10 @@
         </provider>
 
         <!-- v7.5.5: 后台自动同步改用WorkManager(AutoSyncWorker)，移除原前台Service -->
+        <!-- v7.5.6: WorkManager setForeground()所需的前台服务声明（Android14+必须，否则闪退） -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
     </application>
 </manifest>
