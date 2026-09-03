@@ -526,6 +526,8 @@ class UploadEngine(private val context: android.content.Context? = null) {
             val err = garminApi.uploadActivity(target, cred, faked, fileName)
             Log.d(TAG, "Garmin upload result: ${err ?: "ok"}")
             if (err == null) UploadResult(true, message = "${target.displayName}上传成功")
+            // v7.6.0: 佳明重复活动(已在佳明存在) → 归为跳过，与Wahoo 422/行者9006一致
+            else if (err.contains("重复活动")) UploadResult(false, message = "重复文件已上传过，自动跳过", skipped = true)
             else UploadResult(false, message = err)
         } catch (e: Exception) {
             Log.e(TAG, "Garmin upload error", e)

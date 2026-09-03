@@ -121,11 +121,15 @@ class GarminApi {
         }
     }
 
+    // v7.6.0: 强制HTTP/1.1，修复佳明中国偶发"Required SETTINGS preface not received"
+    // 根因：OkHttp默认HTTPS协商HTTP/2，佳明中国服务器HTTP/2握手不稳定，偶发连接层IOException
+    // HTTP/1.1对multipart上传无任何影响（佳明一次一条串行上传）
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(300, TimeUnit.SECONDS)
         .followRedirects(true)
+        .protocols(listOf(okhttp3.Protocol.HTTP_1_1))
         .build()
 
     fun initWebView(context: Context) = initSharedWebView(context)
@@ -832,7 +836,26 @@ class GarminApi {
         }
     }
 
+    /**
+     * v7.6.0: 佳明下载（含连接层错误自动重试，与上传uploadActivity一致）
+     * 原逻辑抽到downloadFitOnce；此处仅处理"连接层IOException"重试（最多3次，间隔1秒），
+     * 业务失败（HTTP非200/解压失败等）不重试
+     */
     suspend fun downloadFit(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
+        repeat(3) { attempt ->
+            try {
+                val r = downloadFitOnce(ds, cred, activityId)
+                if (r != null) return@withContext r
+                return@withContext null  // 业务失败，不重试
+            } catch (e: java.io.IOException) {
+                addDebugLog("downloadFit第${attempt + 1}次连接错误，1秒后重试: ${e.message}")
+                if (attempt < 2) kotlinx.coroutines.delay(1000L)
+            }
+        }
+        null
+    }
+
+    private suspend fun downloadFitOnce(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
             // v7.4.8: 中国版回滚到WebView+gc-api下载（最开始验证通过的方案）
@@ -916,6 +939,10 @@ class GarminApi {
                 if (resp.code != 200) return@withContext null
                 unzipFit(resp.body?.bytes() ?: return@withContext null)
             }
+        } catch (e: java.io.IOException) {
+            // v7.6.0: 连接层错误（含Required SETTINGS preface not received）→ 抛给外层重试
+            addDebugLog("downloadFit连接错误: ${e.message}")
+            throw e
         } catch (e: Exception) {
             addDebugLog("downloadFit异常: ${e.message}")
             null
@@ -944,7 +971,30 @@ class GarminApi {
         }
     }
 
+    /**
+     * v7.6.0: 佳明上传（含连接层错误自动重试）
+     * 原逻辑抽到uploadActivityOnce；此处仅处理"连接层IOException"重试（最多3次，间隔1秒），
+     * 业务错误（重复活动/文件拒绝等）不重试
+     */
     suspend fun uploadActivity(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
+        var lastErr: String? = null
+        repeat(3) { attempt ->
+            val r = uploadActivityOnce(ds, cred, data, fileName)
+            if (r == null) return@withContext null  // 上传成功
+            if (r.startsWith("佳明上传异常(连接错误)")) {
+                lastErr = r
+                if (attempt < 2) {
+                    addDebugLog("uploadActivity第${attempt + 1}次连接错误，1秒后重试: ${r.take(120)}")
+                    kotlinx.coroutines.delay(1000L)
+                }
+            } else {
+                return@withContext r  // 业务失败（重复/拒绝/其他），不重试直接返回
+            }
+        }
+        lastErr
+    }
+
+    private suspend fun uploadActivityOnce(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
@@ -1022,6 +1072,10 @@ class GarminApi {
                     else -> "佳明上传失败 HTTP ${resp.code}: ${result.take(100)}"
                 }
             }
+        } catch (e: java.io.IOException) {
+            // v7.6.0: 连接层错误（含Required SETTINGS preface not received）→ 标记可重试
+            addDebugLog("uploadActivity连接错误: ${e.message}")
+            "佳明上传异常(连接错误): ${e.message}"
         } catch (e: Exception) {
             addDebugLog("uploadActivity异常: ${e.message}")
             "佳明上传异常: ${e.message}"
