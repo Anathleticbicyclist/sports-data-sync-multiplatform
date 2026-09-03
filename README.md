@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.6.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.6.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.6.0 |
+| 当前版本 | v7.6.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -199,11 +199,21 @@ A: Wahoo规定每个用户在本应用下最多保留 **10枚未撤销令牌**�
 - iGPSPORT / 行者 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo 之间任意互传
 - 国内区↔国际区互传：佳明国际↔佳明中国、高驰中国↔高驰国际
 
+### 迈金坐标转换（亮点功能）
+
+迈金设备导出的FIT文件使用 **GCJ-02（火星坐标）**，直接上传到支持 WGS84 坐标的平台会发生**坐标偏移**（青岛地区实测约450米），导致无法匹配赛段/路段、排行榜定位不准。
+
+本软件内置 **GCJ-02 → WGS84 坐标转换引擎**（移植自开源算法，隐藏WebView执行JavaScript解析FIT二进制），迈金文件在上传前**自动完成坐标纠偏**：
+
+- 上传到其他平台后**坐标无偏移**，可正常匹配赛段、路段、排行榜
+- 引擎启动时自动就绪（日志"✅ 迈金坐标转换引擎已就绪"），全程无需手动操作
+- 仅针对迈金（GCJ-02）文件启用，其他平台文件不受影响
+
 ### 核心功能
 
 - **数据来源记忆**：自动记住上次选择，重启恢复
 - **文件本地存储**：下载文件保存到 `Download/鸡翅幸哲迈进OB/`
-- **迈金坐标转换**：GCJ-02→WGS84，青岛地区实测偏移约450米
+- **迈金坐标转换**：GCJ-02→WGS84自动纠偏（青岛实测偏移约450米），保证上传其他平台后坐标无偏移、可匹配赛段
 - **同步记忆**：已同步记录自动跳过，上限10000条
 - **后台自动同步**：WorkManager系统调度，间隔15分钟~1小时，跨开机/杀进程后仍可执行，更省电
 - **测试下载**：单条下载验证功能
@@ -216,7 +226,7 @@ A: Wahoo规定每个用户在本应用下最多保留 **10枚未撤销令牌**�
 1. **佳明国际/中国 mobile SSO**：参考garth库，通过mobile SSO登录获取serviceTicket → OAuth1 preauthorized → OAuth2 exchange → DI Bearer token，访问connectapi.garmin.com/cn绕过Cloudflare
 2. **Wahoo OAuth2直接登录**：OkHttp模拟浏览器完成SAML登录+OAuth2授权全流程，自动识别中文"授权"按钮，获取access_token（含workouts_write上传权限）
 3. **Wahoo上传下载**：官方API，base64编码上传+轮询处理状态，支持FIT文件
-4. **FIT坐标转换**：隐藏WebView执行JavaScript解析FIT二进制
+4. **FIT坐标转换（迈金亮点）**：隐藏WebView执行JavaScript解析FIT二进制，迈金GCJ-02→WGS84自动纠偏，上传其他平台坐标无偏移、可匹配赛段
 5. **协程异步**：全部网络请求Kotlin Coroutines，主线程安全
 6. **后台自动同步（WorkManager方案）**：v7.5.5起改用WorkManager系统调度替代原前台Service方案。新方案跨开机自动恢复、杀进程/关APP后仍可执行、Doze省电模式下不受影响、仅在网络已连接时执行，更加省电可靠。代价是最低间隔15分钟（PeriodicWorkRequest系统限制），实际执行时间由系统优化不保证精确。状态栏通知：同步进行中显示前台通知（源→目标平台、当前动作、间隔），同步完成后显示可清除摘要通知（新上传X条/无最新、最近活动日期、下次检测时间）。**版本说明**：v7.5.5首次启用但不稳定（Android16+ InvalidForegroundServiceTypeException闪退），v7.5.6~v7.5.7持续修复仍未解决根因，**v7.5.8修复根因（ForegroundInfo三参数构造函数显式指定DATA_SYNC类型）后稳定，建议使用v7.5.8及以上版本**。v7.5.4及以前为前台Service方案（间隔精确可短至30秒，但耗电、国产ROM易被杀、不跨开机）。
 
@@ -288,6 +298,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.6.1 (2026-09-03)
+**已解决**：
+- 修复Outbase登录凭据检测误判：user/info校验接口header不完整，导致有效sessionId被误判失效、每次启动都需重新登录。现用完整header校验+回退warmUp可靠校验+网络异常保守判定，有效sessionId直接确认已登录，不再误清凭证
+- 启动登录检测增强：自动刷新后校验新token有效性并输出明确日志（如"🔄 迈金 登录态失效，已自动刷新 ✅ 登录有效 (用户名)"），成功/失败一目了然
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
 ### v7.6.0 (2026-09-03)
 **已解决**：
 - 佳明中国上传/下载稳定：强制HTTP/1.1连接 + 连接错误自动重试，根治"Required SETTINGS preface not received"（此前约24%上传失败率，下载同因失败）

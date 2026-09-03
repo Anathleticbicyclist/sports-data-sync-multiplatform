@@ -812,7 +812,18 @@ class MainActivity : AppCompatActivity() {
                 if (newCred != null && newCred != cred) {
                     refreshed++
                     prefs.saveCredential(ds, newCred)
-                    runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新") }
+                    // v7.6.1: 刷新后校验新token是否真实可用，输出明确成功/失败日志
+                    val verifyName = try {
+                        when (ds) {
+                            DataSource.MAGENE -> mageneApi.getUsername(newCred)
+                            DataSource.WAHOO -> wahooApi.getUsername(newCred)
+                            else -> null
+                        }
+                    } catch (e: Exception) { null }
+                    val suffix = if (verifyName.isNullOrBlank())
+                        "（校验未通过，同步失败请重新登录）"
+                    else " ✅ 登录有效 ($verifyName)"
+                    runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新$suffix") }
                 } else {
                     invalid++
                     if (ds == DataSource.WAHOO) {

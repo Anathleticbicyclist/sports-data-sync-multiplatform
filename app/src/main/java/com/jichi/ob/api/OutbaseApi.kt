@@ -52,23 +52,43 @@ class OutbaseApi {
         return "%04d%02d%02d".format(cal.get(1), cal.get(2) + 1, cal.get(5))
     }
  
-    /** 会话校验: POST upload/list */
+    /**
+     * v7.6.0: 校验Outbase sessionId有效性并返回用户名（迈金式检测机制落地）
+     * 此前user/info接口header不完整被服务器拒绝→误判失效→误清凭证→每次启动都"未登录"。
+     * 现在：1) user/info用完整header(与warmUp一致)  2) 拿不到用户名回退warmUp可靠校验
+     *      3) 网络异常保守判定有效（网络问题≠凭证失效，避免误清凭证）
+     */
     suspend fun getUsername(sessionId: String): String? = withContext(Dispatchers.IO) {
         try {
+            // 1) user/info + 完整header（与warmUp/upload同款）
             val req = Request.Builder().url("https://melon-gateway.immomo.com/zeusfit/api/h5/user/info")
                 .addHeader("Sessionid", sessionId)
-                .addHeader("Uagent", "Mozilla/5.0")
+                .addHeader("Uagent", UAGENT)
+                .addHeader("User-Agent", BROWSER_UA)
+                .addHeader("Accept", "application/json, text/plain, */*")
+                .addHeader("Origin", "https://outbase.cn")
+                .addHeader("Referer", "https://outbase.cn/")
                 .get().build()
             val resp = client.newCall(req).execute()
             val body = resp.body?.string() ?: ""
-            val json = JSONObject(body)
-            if (json.optInt("code", -1) == 0 || json.optInt("status", -1) == 0) {
-                val data = json.optJSONObject("data") ?: json
-                data.optString("nickname")?.takeIf { it.isNotEmpty() }
-                    ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
-                    ?: data.optString("name")?.takeIf { it.isNotEmpty() }
-            } else null
-        } catch (e: Exception) { Log.w(TAG, "getUsername: ${e.message}"); null }
+            val json = try { JSONObject(body) } catch (e: Exception) { null }
+            if (json != null) {
+                val ok = json.optInt("code", -1) == 0 || json.optInt("status", -1) == 0 || json.optInt("ec", -1) == 0
+                if (ok) {
+                    val data = json.optJSONObject("data") ?: json
+                    val name = data.optString("nickname").takeIf { it.isNotEmpty() }
+                        ?: data.optString("userName").takeIf { it.isNotEmpty() }
+                        ?: data.optString("name").takeIf { it.isNotEmpty() }
+                    if (name != null) return@withContext name
+                }
+            }
+            // 2) user/info拿不到 → 回退warmUp（upload/list，同步链路已验证可靠）确认有效性
+            return@withContext if (warmUp(sessionId)) "Outbase用户" else null
+        } catch (e: Exception) {
+            // 3) 网络异常：保守判定有效，避免误清凭证导致每次启动都需重新登录
+            Log.e(TAG, "getUsername 网络异常，保守判定有效", e)
+            "Outbase用户"
+        }
     }
 
     suspend fun warmUp(sessionId: String): Boolean = withContext(Dispatchers.IO) {
