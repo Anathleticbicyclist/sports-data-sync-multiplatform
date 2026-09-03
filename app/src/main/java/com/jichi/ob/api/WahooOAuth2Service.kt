@@ -26,6 +26,10 @@ object WahooOAuth2Service {
 
     // 调试日志回调（用于在界面上显示）
     var debugLogCallback: ((String) -> Unit)? = null
+    // v7.5.4: 最近一次登录失败的具体原因标识（用于MainActivity弹出针对性引导）
+    var lastError: String? = null
+    // v7.5.4: token数量超限错误标识
+    const val ERROR_TOKEN_LIMIT = "TOKEN_LIMIT_EXCEEDED"
 
     // v7.5.3: PKCE code_verifier，全程保留直到换取token完成
     private var currentCodeVerifier: String? = null
@@ -316,11 +320,23 @@ object WahooOAuth2Service {
                 logError("PKCE code_verifier为空，无法换取token")
                 return@withContext null
             }
-            val tokenResp = WahooApi().exchangeToken(code, WahooApi.BUILTIN_CLIENT_ID, WahooApi.BUILTIN_CLIENT_SECRET, verifier)
+            // v7.5.4: 复用同一个WahooApi实例，便于读取真实错误响应体
+            val api = WahooApi()
+            api.debugLogCallback = { msg -> log(msg) }
+            val tokenResp = api.exchangeToken(code, WahooApi.BUILTIN_CLIENT_ID, WahooApi.BUILTIN_CLIENT_SECRET, verifier)
             // v7.5.3: 换取token后销毁code_verifier
             currentCodeVerifier = null
             if (tokenResp == null) {
-                logError("token换取失败（请查看上方WahooApi打印的响应体）")
+                // v7.5.4: 展示真实错误原因（如token数量超限），不再笼统报"请检查邮箱密码"
+                val err = api.lastExchangeError ?: "未知错误"
+                if (err.contains("Too many unrevoked access tokens")) {
+                    lastError = ERROR_TOKEN_LIMIT
+                    logError("Wahoo令牌数量超限：该账号下未撤销token已达10枚上限")
+                    log("📌 解决方法：打开Wahoo官方App → 设置(Settings) → 已授权应用(Authorized Apps) → 找到\"鸡翅幸哲迈进OB\" → 点击撤销授权(Deauthorize) → 回到本应用重新登录")
+                } else {
+                    lastError = err
+                    logError("token换取失败: $err")
+                }
                 return@withContext null
             }
 
