@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.5.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.5.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.5.8 |
+| 当前版本 | v7.5.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -40,7 +40,7 @@
 | **佳明中国速度较慢** | 佳明中国上传/下载 | 佳明中国connectapi服务器处理速度较慢，上传约需30-60秒（服务器端解析FIT、校验重复、入库），获取活动列表约需10-30秒。功能正常，仅速度较慢 | 已知问题，服务器端限制 |
 | **百锐腾下载不支持** | 百锐腾作为数据源 | 百锐腾官方未开放FIT下载接口，无法从百锐腾下载活动记录 | 平台限制，无法解决 |
 | **迈金上传开发中** | 迈金作为同步目标 | 迈金上传功能尚未完成，当前仅支持从迈金下载 | 开发中 |
-| **迈金重启后需重新登录** | 迈金作为数据源/同步目标 | 应用重新打开后，迈金(顽鹿OTM)登录态未自动恢复，直接点击同步会提示"获取列表失败"或"同步失败"。需在登录页重新登录迈金，可能需多次重试直至列表加载成功，登录态恢复后即可正常同步 | 已知问题，待优化 |
+| **迈金重启后需重新登录** | 迈金作为数据源/同步目标 | 应用重启后迈金(顽鹿OTM)登录态可能失效，直接同步会提示"获取列表失败"或"同步失败"。**v7.5.9 起已解决**：启动时自动登录检测，检测到迈金登录态失效会尝试用 refresh_token 自动刷新，无需手动重登；仅当刷新失败（refresh_token 也失效）时需重新登录 | v7.5.9 自动处理 |
 | **Outbase仅支持上传** | Outbase作为数据源 | Outbase为聚合上传平台，仅支持上传，不支持从Outbase下载 | 平台限制 |
 | **iGPSPORT→Wahoo部分文件上传失败** | iGPSPORT上传到Wahoo | 部分iGPSPORT导出的FIT文件存在时间戳溢出（接近2^32）和字符串字段混入二进制数据的问题，导致Wahoo服务器解析失败（报错invalid ASCII control character或Mysql2::Error），这部分文件成功被解析的概率为50~80%，格式正常的文件可正常上传 | 已知问题，考虑FIT转GPX方案（可能丢失功率、心率、踏频等传感器数据） |
 | **两步验证(MFA)** | 佳明中国/国际登录 | 佳明账号若开启两步验证，需先在佳明App中关闭，当前版本不支持MFA验证码输入 | 已知限制 |
@@ -123,12 +123,12 @@ A: 佳明中国connectapi服务器处理速度较慢（上传约30-60秒），�
 A: 已解决。v7.5.2起行者→iGPSPORT改用GPX优先下载，时间戳正确，无8小时时差。
 
 **Q: 迈金同步提示"获取列表失败"或"同步失败"怎么办？**
-A: 这是迈金(顽鹿OTM)的已知问题。应用重启后迈金登录态不会自动恢复，直接点击同步可能失败。解决办法：
+A: 这是迈金(顽鹿OTM)登录态失效的已知问题。**v7.5.9 起已自动处理**：应用启动时会自动检测迈金登录态，若失效会尝试用 refresh_token 自动刷新（日志显示"🔄 迈金 登录态失效，已自动刷新"），无需手动操作。仅当 refresh_token 也失效（日志显示"❌ 迈金 登录失效，请重新登录"）时，需要手动重登：
 1. 前往登录页重新登录迈金账号
 2. 若首次登录后仍失败，可再点一次重新登录，直到活动列表加载成功
 3. 登录态恢复后即可正常同步
 
-> ⚠️ **提示**：建议每次打开应用后，先到登录页确认迈金显示"已登录"状态，再执行同步操作，可避免"获取列表失败"。
+> ⚠️ **提示**：若启动日志显示"❌ 迈金 登录失效，请重新登录"，说明自动刷新失败，需到登录页重新登录迈金；登录成功后下次启动即会自动检测并保持登录态。
 
 ---
 
@@ -244,6 +244,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.5.9 (2026-09-03)
+**已解决**：
+- Wahoo重复文件(HTTP 422 Duplicate workout file detected)改为归为"跳过"而非"失败"，并自动记入同步记忆，下次检测直接跳过
+- 行者重复文件(HTTP 400 code:9006"文件已上传")同样归为"跳过"，统计更准确
+- 新增启动登录检测：启动时校验已登录平台的登录态，失效平台自动尝试刷新（迈金/Wahoo支持），刷新失败清除凭证并提示重新登录，登录状态变未登录
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
 ### v7.5.8 (2026-09-03)
 **已解决**：
 - 修复自动同步闪退根因：WorkManager ForegroundInfo必须用三参数构造函数显式指定foregroundServiceType=DATA_SYNC，否则Android16+报InvalidForegroundServiceTypeException(type none)闪退
