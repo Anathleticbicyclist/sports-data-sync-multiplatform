@@ -52,8 +52,8 @@ class WahooApi {
     fun authorizeUrl(clientId: String = BUILTIN_CLIENT_ID): String =
         "$AUTHORIZE_URL?client_id=$clientId&redirect_uri=${java.net.URLEncoder.encode(REDIRECT_URI, "UTF-8")}&scope=${SCOPES.replace(" ", "%20")}&response_type=code"
 
-    /** 用授权码换 token */
-    suspend fun exchangeToken(code: String, clientId: String, clientSecret: String): Pair<String, String>? =
+    /** 用授权码换 token（v7.5.3: 添加PKCE code_verifier参数，失败时打印响应体） */
+    suspend fun exchangeToken(code: String, clientId: String, clientSecret: String, codeVerifier: String): Pair<String, String>? =
         withContext(Dispatchers.IO) {
             try {
                 val form = FormBody.Builder()
@@ -62,11 +62,16 @@ class WahooApi {
                     .add("client_id", clientId)
                     .add("client_secret", clientSecret)
                     .add("redirect_uri", REDIRECT_URI)
+                    .add("code_verifier", codeVerifier)
                     .build()
                 val req = Request.Builder().url(TOKEN_URL).post(form).build()
                 client.newCall(req).execute().use { resp ->
-                    if (resp.code != 200) return@withContext null
-                    val json = JSONObject(resp.body?.string() ?: "{}")
+                    val body = resp.body?.string() ?: ""
+                    if (resp.code != 200) {
+                        Log.e(TAG, "exchangeToken失败 HTTP ${resp.code}: $body")
+                        return@withContext null
+                    }
+                    val json = JSONObject(body)
                     val access = json.optString("access_token", "")
                     val refresh = json.optString("refresh_token", "")
                     if (access.isNotEmpty()) access to refresh else null
@@ -75,6 +80,46 @@ class WahooApi {
                 Log.e(TAG, "exchangeToken error", e); null
             }
         }
+
+    /** v7.5.3: 旧WebView登录方式的重载（不带PKCE，可能被Wahoo拒绝，仅保留兼容） */
+    suspend fun exchangeToken(code: String, clientId: String, clientSecret: String): Pair<String, String>? =
+        exchangeToken(code, clientId, clientSecret, "")
+
+    /**
+     * v7.5.3: 确保Wahoo token有效，过期则用refresh_token刷新
+     * 类似佳明的ensureValidToken，用于上传前自动刷新
+     * @return 有效的access_token
+     */
+    suspend fun ensureValidToken(currentToken: String, refreshToken: String?, clientId: String, clientSecret: String): String {
+        if (refreshToken.isNullOrEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
+            return currentToken
+        }
+        // 先测试当前token是否有效（调用user接口）
+        return try {
+            val testReq = Request.Builder().url("$API_BASE/v1/user").apply {
+                authHeaders(currentToken).forEach { (k, v) -> addHeader(k, v) }
+            }.get().build()
+            client.newCall(testReq).execute().use { resp ->
+                if (resp.code == 200) {
+                    Log.i(TAG, "Wahoo token有效，无需刷新")
+                    currentToken
+                } else {
+                    Log.i(TAG, "Wahoo token过期(HTTP ${resp.code})，尝试刷新...")
+                    val fresh = refreshToken(refreshToken, clientId, clientSecret)
+                    if (fresh != null) {
+                        Log.i(TAG, "Wahoo token刷新成功")
+                        fresh.first
+                    } else {
+                        Log.w(TAG, "Wahoo token刷新失败，返回原token")
+                        currentToken
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Wahoo ensureValidToken异常，返回原token", e)
+            currentToken
+        }
+    }
 
     /** 刷新 token */
     suspend fun refreshToken(refresh: String, clientId: String, clientSecret: String): Pair<String, String>? =
