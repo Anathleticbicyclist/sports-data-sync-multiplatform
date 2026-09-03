@@ -1062,6 +1062,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopAutoSync() {
         WorkManager.getInstance(this).cancelAllWorkByTag(AutoSyncWorker.WORK_TAG)
+        // v7.5.6: 关闭自动同步时立即取消状态栏通知（前台+摘要）
+        AutoSyncWorker.cancelAllNotifications(this)
         appendLog("⏰ 后台自动同步已关闭")
     }
 

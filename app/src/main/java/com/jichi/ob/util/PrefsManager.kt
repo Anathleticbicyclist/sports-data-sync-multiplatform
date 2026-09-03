@@ -20,6 +20,9 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_TARGET = "last_target"
         private const val KEY_AUTO_SYNC = "auto_sync"
         private const val KEY_AUTO_INTERVAL = "auto_interval"
+        private const val KEY_LAST_AUTO_SYNC_TIME = "last_auto_sync_time"
+        private const val KEY_LAST_AUTO_SYNC_RESULT = "last_auto_sync_result"
+        private const val KEY_LAST_DETECTED_DATE = "last_detected_date"
         private const val KEY_GCJ02_CONVERT = "gcj02_convert"
         private const val KEY_SAVE_DIR = "save_dir"
     }
@@ -224,6 +227,14 @@ class PrefsManager(context: Context) {
     fun setAutoSync(b: Boolean) = prefs.edit().putBoolean(KEY_AUTO_SYNC, b).apply()
     fun getAutoInterval(): Int = prefs.getInt(KEY_AUTO_INTERVAL, 300) // 默认5分钟
     fun setAutoInterval(sec: Int) = prefs.edit().putInt(KEY_AUTO_INTERVAL, sec).apply()
+    // v7.5.6: 最近一次自动同步的时间和结果（用于状态栏显示）
+    fun getLastAutoSyncTime(): Long = prefs.getLong(KEY_LAST_AUTO_SYNC_TIME, 0)
+    fun setLastAutoSyncTime(t: Long) = prefs.edit().putLong(KEY_LAST_AUTO_SYNC_TIME, t).apply()
+    fun getLastAutoSyncResult(): String = prefs.getString(KEY_LAST_AUTO_SYNC_RESULT, "尚未同步") ?: "尚未同步"
+    fun setLastAutoSyncResult(s: String) = prefs.edit().putString(KEY_LAST_AUTO_SYNC_RESULT, s).apply()
+    // v7.5.6: 最近一次检测到的源平台最新活动日期
+    fun getLastDetectedDate(): String = prefs.getString(KEY_LAST_DETECTED_DATE, "") ?: ""
+    fun setLastDetectedDate(s: String) = prefs.edit().putString(KEY_LAST_DETECTED_DATE, s).apply()
     fun isGcj02Convert(): Boolean = prefs.getBoolean(KEY_GCJ02_CONVERT, false)
     fun setGcj02Convert(b: Boolean) = prefs.edit().putBoolean(KEY_GCJ02_CONVERT, b).apply()
     fun getSaveDir(): String = prefs.getString(KEY_SAVE_DIR, "") ?: ""
