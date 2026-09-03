@@ -491,18 +491,53 @@ class MainActivity : AppCompatActivity() {
                 appendLog("🔐 Wahoo直接登录中...")
                 WahooOAuth2Service.debugLogCallback = { msg -> runOnUiThread { appendLog(msg) } }
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val result = WahooOAuth2Service.login(email, password)
-                    runOnUiThread {
+                    // v7.5.4: 登录前先尝试复用已有token，避免每次登录都新建token导致"Too many unrevoked access tokens"上限
+                    val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                    val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                    val savedToken = prefs.getWahooToken()
+                    val savedRefresh = prefs.getWahooRefresh()
+                    var reused: Pair<String, String>? = null
+                    if (!savedToken.isNullOrEmpty() && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
+                        appendLog("🔎 检测到已保存的Wahoo令牌，尝试复用（避免新建token超限）...")
+                        reused = wahooApi.getUsableTokenOrNull(savedToken, savedRefresh, clientId, clientSecret)
+                        if (reused != null) {
+                            appendLog("✅ 复用已有Wahoo令牌成功，无需重新授权")
+                        } else {
+                            appendLog("ℹ️ 已有令牌已失效，尝试撤销旧令牌后重新授权...")
+                            // v7.5.4: 用旧token撤销全部授权（即使已失效也无害），尽量清空token名额
+                            if (wahooApi.deauthorize(savedToken)) appendLog("✅ 旧Wahoo令牌已撤销")
+                            else appendLog("ℹ️ 旧令牌撤销失败（可能已失效），继续重新授权")
+                        }
+                    }
+                    if (reused != null) {
+                        prefs.saveWahooToken(reused.first)
+                        prefs.saveWahooRefresh(reused.second)
+                        appendLog("✅ Wahoo登录成功（含上传权限）")
+                        fetchUsernameAfterLogin(DataSource.WAHOO)
+                    } else {
+                        appendLog("🔐 开始Wahoo OAuth2重新授权...")
+                        val result = WahooOAuth2Service.login(email, password)
                         if (result != null) {
                             prefs.saveWahooToken(result.first)
                             prefs.saveWahooRefresh(result.second)
                             appendLog("✅ Wahoo登录成功（含上传权限）")
                             fetchUsernameAfterLogin(DataSource.WAHOO)
                         } else {
-                            appendLog("❌ Wahoo登录失败，请检查邮箱密码")
+                            // v7.5.4: 错误原因已在WahooOAuth2Service日志中详细展示
+                            appendLog("❌ Wahoo登录失败，详见上方日志")
+                            // v7.5.4: token数量超限时弹出针对性引导
+                            if (WahooOAuth2Service.lastError == WahooOAuth2Service.ERROR_TOKEN_LIMIT) {
+                                runOnUiThread {
+                                    androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                                        .setTitle("Wahoo令牌数量超限")
+                                        .setMessage("该Wahoo账号下\"鸡翅幸哲迈进OB\"的未撤销令牌已达10枚上限，无法继续登录。\n\n解决方法：\n1. 打开手机上的Wahoo官方App\n2. 进入 设置(Settings) → 已授权应用(Authorized Apps)\n3. 找到\"鸡翅幸哲迈进OB\"，点击 撤销授权(Deauthorize)\n4. 回到本应用重新登录即可")
+                                        .setPositiveButton("我知道了", null)
+                                        .show()
+                                }
+                            }
                         }
-                        updateStatusUI()
                     }
+                    runOnUiThread { updateStatusUI() }
                 }
             }
             .setNegativeButton("取消", null)
