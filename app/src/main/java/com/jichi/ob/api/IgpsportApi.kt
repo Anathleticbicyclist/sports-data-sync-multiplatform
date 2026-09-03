@@ -53,8 +53,37 @@ class IgpsportApi {
         "Referer" to "https://app.igpsport.cn/"
     )
  
+    /**
+     * v7.6.0: 校验iGPSPORT token真实性并返回用户名
+     * 关键：user/info接口可能对有效token也返回403（不同网关服务），不能据此判失效。
+     * 用getActivities同款可靠接口queryMyActivity校验token；用户名从JWT payload解析。
+     * @return null 表示token确实失效（HTTP 401/403 或业务码非0）
+     */
     suspend fun getUsername(token: String): String? = withContext(Dispatchers.IO) {
-        // 优先解析JWT payload（iGPSPORT token也是JWT）
+        // 1) 用queryMyActivity真实校验token（该接口同步全链路已验证可靠）
+        val valid = try {
+            val url = "$ACTIVITY_URL?pageNo=1&pageSize=1&reqType=0&sort=1"
+            val req = Request.Builder().url(url)
+                .apply { authHeaders(token).forEach { (k, v) -> addHeader(k, v) } }
+                .get().build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            if (resp.code == 401 || resp.code == 403) false
+            else if (resp.code != 200) {
+                Log.w(TAG, "getUsername queryMyActivity HTTP ${resp.code}")
+                false
+            } else {
+                val json = try { JSONObject(body) } catch (e: Exception) { null }
+                json?.optInt("code", -1) == 0
+            }
+        } catch (e: Exception) {
+            // 网络异常：保守判定有效（避免误判失效触发重新登录），同步时会自行报错引导
+            Log.e(TAG, "getUsername 校验网络异常，保守判定有效", e)
+            true
+        }
+        if (!valid) return@withContext null
+
+        // 2) token有效 → 从JWT payload解析用户名（不校验exp，仅取显示名）
         try {
             val parts = token.split(".")
             if (parts.size >= 2) {
@@ -68,26 +97,9 @@ class IgpsportApi {
                     ?: payload.optString("username")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("account")?.takeIf { it.isNotEmpty() }
                     ?: "用户${payload.optString("userId").take(6)}"
-            } else null
-        } catch (e: Exception) {
-            // JWT解析失败，回退到API
-            try {
-                val req = Request.Builder().url("$BASE/web-gateway/web-user/user/info")
-                    .apply { authHeaders(token).forEach { (k, v) -> addHeader(k, v) } }
-                    .get().build()
-                val resp = client.newCall(req).execute()
-                val body = resp.body?.string() ?: ""
-                val json = JSONObject(body)
-                if (json.optInt("code", -1) == 200 || json.optString("status") == "success") {
-                    val data = json.optJSONObject("data") ?: json
-                    data.optString("nickname")?.takeIf { it.isNotEmpty() }
-                        ?: data.optString("userName")?.takeIf { it.isNotEmpty() }
-                        ?: data.optString("username")?.takeIf { it.isNotEmpty() }
-                } else null
-            } catch (e2: Exception) { Log.e(TAG, "getUsername fallback error", e2); null }
-        }
+            } else "用户"
+        } catch (e: Exception) { Log.e(TAG, "getUsername JWT解析失败", e); "用户" }
     }
-
     suspend fun getActivities(token: String, offset: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             val result = mutableListOf<ActivityRecord>()

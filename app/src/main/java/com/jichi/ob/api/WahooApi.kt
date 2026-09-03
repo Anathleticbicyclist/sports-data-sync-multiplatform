@@ -100,6 +100,25 @@ class WahooApi {
      * 类似佳明的ensureValidToken，用于上传前自动刷新
      * @return 有效的access_token
      */
+    /**
+     * v7.6.0: 用token调 /v1/user 验证有效性（返回是否200）
+     * Wahoo规则：刷新后用新token成功调用API，旧token才被撤销。
+     * 因此任何刷新后的新token都必须先过本验证，避免未撤销token累积超10枚上限。
+     */
+    suspend fun verifyToken(token: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$API_BASE/v1/user").apply {
+                authHeaders(token).forEach { (k, v) -> addHeader(k, v) }
+            }.get().build()
+            client.newCall(req).execute().use { resp ->
+                Log.i(TAG, "verifyToken: HTTP ${resp.code}")
+                resp.code == 200
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "verifyToken异常", e); false
+        }
+    }
+
     suspend fun ensureValidToken(currentToken: String, refreshToken: String?, clientId: String, clientSecret: String): String {
         if (refreshToken.isNullOrEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
             return currentToken
@@ -117,8 +136,14 @@ class WahooApi {
                     Log.i(TAG, "Wahoo token过期(HTTP ${resp.code})，尝试刷新...")
                     val fresh = refreshToken(refreshToken, clientId, clientSecret)
                     if (fresh != null) {
-                        Log.i(TAG, "Wahoo token刷新成功")
-                        fresh.first
+                        // v7.6.0: 刷新后用新token调API验证（撤销旧token），验证失败则视同刷新失败
+                        if (verifyToken(fresh.first)) {
+                            Log.i(TAG, "Wahoo token刷新成功")
+                            fresh.first
+                        } else {
+                            Log.w(TAG, "Wahoo刷新后新token验证失败，返回原token")
+                            currentToken
+                        }
                     } else {
                         Log.w(TAG, "Wahoo token刷新失败，返回原token")
                         currentToken
@@ -158,9 +183,14 @@ class WahooApi {
      */
     suspend fun getUsableTokenOrNull(currentToken: String?, refreshToken: String?, clientId: String, clientSecret: String): Pair<String, String>? =
         withContext(Dispatchers.IO) {
+            // v7.6.0: refresh后必须用新token调API验证（撤销旧token），否则旧token未撤销会累积超10枚上限
+            suspend fun refreshAndVerify(): Pair<String, String>? {
+                val fresh = refreshToken(refreshToken ?: "", clientId, clientSecret) ?: return null
+                return if (verifyToken(fresh.first)) fresh else null
+            }
             if (currentToken.isNullOrEmpty()) {
                 if (refreshToken.isNullOrEmpty()) return@withContext null
-                return@withContext refreshToken(refreshToken, clientId, clientSecret)
+                return@withContext refreshAndVerify()
             }
             try {
                 val testReq = Request.Builder().url("$API_BASE/v1/user").apply {
@@ -172,12 +202,12 @@ class WahooApi {
                         currentToken to (refreshToken ?: "")
                     } else if (!refreshToken.isNullOrEmpty()) {
                         Log.i(TAG, "Wahoo已存token过期(HTTP ${resp.code})，尝试refresh刷新...")
-                        refreshToken(refreshToken, clientId, clientSecret)
+                        refreshAndVerify()
                     } else null
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "getUsableTokenOrNull异常", e)
-                if (!refreshToken.isNullOrEmpty()) refreshToken(refreshToken, clientId, clientSecret) else null
+                if (!refreshToken.isNullOrEmpty()) refreshAndVerify() else null
             }
         }
     /**
@@ -215,7 +245,10 @@ class WahooApi {
             client.newCall(req).execute().use { resp ->
                 if (resp.code != 200) return@withContext null
                 val json = JSONObject(resp.body?.string() ?: "{}")
-                (json.optString("first_name") + " " + json.optString("last_name")).trim().ifBlank { null }
+                val name = (json.optString("first_name") + " " + json.optString("last_name")).trim()
+                // v7.6.0: token有效但账号未设置姓名的，用email/id兜底，避免启动检测误判"登录失效"
+                if (name.isNotEmpty()) name
+                else json.optString("email").ifBlank { json.optString("id").ifBlank { "Wahoo用户" } }
             }
         } catch (e: Exception) { null }
     }

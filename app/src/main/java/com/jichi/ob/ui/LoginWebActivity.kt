@@ -19,7 +19,9 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.jichi.ob.R
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.XingzheApi
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -61,6 +63,7 @@ class LoginWebActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private var loginType = TYPE_XINGZHE
     private var detected = false
+    private var igpReloadCount = 0  // v7.6.0: iGPSPORT token校验失败重载计数(限2次)
     private val urlHistory = mutableListOf<String>()  // v7.1.7: URL历史记录，用于调试Wahoo授权码捕获
     private val verifying = AtomicBoolean(false)
     private var checkCount = 0
@@ -774,12 +777,37 @@ class LoginWebActivity : AppCompatActivity() {
                 val raw = value?.removeSurrounding("\"")?.replace("\\u0022", "\"")?.replace("\\/", "/") ?: ""
                 if (raw.startsWith("Bearer ") && raw.length > 80) {
                     val token = raw.removePrefix("Bearer ")
-                    detected = true
-                    Log.i(TAG, "✅ iGPSPORT token len=${token.length}")
-                    setResult(Activity.RESULT_OK, Intent()
-                        .putExtra(RESULT_TOKEN, token)
-                        .putExtra(RESULT_LOGIN_TYPE, TYPE_IGPSPORT))
-                    finish()
+                    // v7.6.0: 提取到token后先调API校验有效性，避免提取到旧的过期token（旧通行证）
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val username = try { com.jichi.ob.api.IgpsportApi().getUsername(token) } catch (e: Exception) { null }
+                        runOnUiThread {
+                            if (username != null) {
+                                Log.i(TAG, "✅ iGPSPORT token有效 len=${token.length}")
+                                detected = true
+                                setResult(Activity.RESULT_OK, Intent()
+                                    .putExtra(RESULT_TOKEN, token)
+                                    .putExtra(RESULT_LOGIN_TYPE, TYPE_IGPSPORT))
+                                finish()
+                            } else {
+                                // token无效 → 清localStorage+cookie强制重新登录（限2次避免死循环）
+                                if (igpReloadCount < 2) {
+                                    igpReloadCount++
+                                    Log.w(TAG, "[igp] token无效(第${igpReloadCount}次)，清缓存重载登录页")
+                                    webView.evaluateJavascript("localStorage.clear();") {
+                                        // v7.6.0: 等cookie清除完成再reload，避免旧cookie仍在导致反复跳转
+                                        CookieManager.getInstance().removeAllCookies {
+                                            webView.postDelayed({ webView.reload() }, 300)
+                                        }
+                                    }
+                                } else {
+                                    Log.e(TAG, "[igp] token多次校验无效，放弃登录")
+                                    detected = true
+                                    setResult(Activity.RESULT_CANCELED)
+                                    finish()
+                                }
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "[igp] parse error", e)
