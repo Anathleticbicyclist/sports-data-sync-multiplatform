@@ -201,7 +201,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 高驰COROS — [保持专注 乐于创新 满怀热情](https://www.coros.com)
 - Wahoo — [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com)
 
-> 各平台数据版权归原平台所有，本工具仅用于用户个人数据的迁移与备份，不得用于商业用途或数据爬取。
+> 各平台运动数据的相关权益归该数据产生用户及相应平台依法各自享有。本工具仅用于用户本人数据在其已授权账号之间的迁移与备份，不得用于商业用途、批量数据爬取或任何侵犯他人合法权益的行为。用户应对其使用本工具处理数据的合法性负责，因数据迁移产生的纠纷由用户自行承担。
 
 ### 👥 测试人员鸣谢
 
