@@ -74,11 +74,25 @@ class AutoSyncWorker(
         val intervalSec = prefs.getAutoInterval().coerceAtLeast(900)
         val intervalMin = intervalSec / 60
 
-        // 前台通知：同步进行中显示
-        setForeground(createForegroundInfo(
-            "正在检测: ${source.displayName}→${target.displayName}",
-            source, target, intervalMin
-        ))
+        // v7.5.7: setForeground()在部分ROM(如vivo OriginOS+Android16)可能抛异常导致闪退
+        // 包进try-catch，失败时降级为普通通知，保证不闪退
+        var foregroundOk = false
+        try {
+            setForeground(createForegroundInfo(
+                "正在检测: ${source.displayName}→${target.displayName}",
+                source, target, intervalMin
+            ))
+            foregroundOk = true
+            Log.d(TAG, "setForeground成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "setForeground失败，降级为普通通知: ${e.message}", e)
+            // 降级：发普通通知（不可保持后台存活，但不闪退）
+            val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIF_ID_FOREGROUND, buildForegroundNotification(
+                "正在检测: ${source.displayName}→${target.displayName}",
+                source, target, intervalMin
+            ))
+        }
 
         return try {
             val (synced, lastTitle, detectedDate) = doSync(source, target)
@@ -95,13 +109,17 @@ class AutoSyncWorker(
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Auto sync error", e)
-            updateForeground("同步出错: ${e.message?.take(30) ?: "未知"}", source, target, intervalMin)
+            try {
+                updateForeground("同步出错: ${e.message?.take(30) ?: "未知"}", source, target, intervalMin)
+            } catch (_: Exception) {}
             Result.retry()
         } finally {
             // v7.5.6: Worker正常结束或被取消(用户关闭自动同步)时，取消前台通知
             // CoroutineWorker.onStopped是final不可override，用finally替代
-            val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.cancel(NOTIF_ID_FOREGROUND)
+            try {
+                val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                nm.cancel(NOTIF_ID_FOREGROUND)
+            } catch (_: Exception) {}
         }
     }
 

@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.5.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.5.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.5.6 |
+| 当前版本 | v7.5.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -234,6 +234,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.5.7 (2026-09-03)
+**已解决**：
+- 修复开启自动同步后闪退（setForeground()包try-catch降级，startAutoSync包try-catch，全局崩溃捕获写入文件）
+- 新增全局崩溃捕获：闪退时堆栈写入本地文件，下次启动显示在运行日志中，便于定位问题
+- setForeground()失败时自动降级为普通通知，保证不闪退
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
 ### v7.5.6 (2026-09-03)
 **已解决**：
 - 修复开启自动同步后闪退（Android14+ WorkManager前台服务需声明foregroundServiceType）
