@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -193,7 +194,13 @@ class AutoSyncWorker(
     // ==================== 通知构建 ====================
 
     private fun createForegroundInfo(message: String, source: DataSource, target: DataSource, intervalMin: Int): ForegroundInfo {
-        return ForegroundInfo(NOTIF_ID_FOREGROUND, buildForegroundNotification(message, source, target, intervalMin))
+        // v7.5.8: 必须用三参数构造函数显式指定foregroundServiceType，
+        // 否则Android16+报InvalidForegroundServiceTypeException(type none)闪退
+        return ForegroundInfo(
+            NOTIF_ID_FOREGROUND,
+            buildForegroundNotification(message, source, target, intervalMin),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        )
     }
 
     /** 同步进行中的前台通知：不可清除，显示源→目标、间隔、当前动作 */
