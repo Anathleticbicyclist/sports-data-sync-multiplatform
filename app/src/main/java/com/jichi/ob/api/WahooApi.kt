@@ -48,6 +48,14 @@ class WahooApi {
         .followRedirects(true)
         .build()
 
+    // v7.5.4: 界面日志回调（登录失败时把真实错误响应体显示到界面，便于定位）
+    var debugLogCallback: ((String) -> Unit)? = null
+    // v7.5.4: 最近一次exchangeToken的错误响应体（用于定位"token数量超限"等问题）
+    var lastExchangeError: String? = null
+    private fun log(msg: String) {
+        Log.i(TAG, msg)
+        debugLogCallback?.invoke(msg)
+    }
     /** 构造授权 URL（打开WebView让用户登录） */
     fun authorizeUrl(clientId: String = BUILTIN_CLIENT_ID): String =
         "$AUTHORIZE_URL?client_id=$clientId&redirect_uri=${java.net.URLEncoder.encode(REDIRECT_URI, "UTF-8")}&scope=${SCOPES.replace(" ", "%20")}&response_type=code"
@@ -68,7 +76,9 @@ class WahooApi {
                 client.newCall(req).execute().use { resp ->
                     val body = resp.body?.string() ?: ""
                     if (resp.code != 200) {
-                        Log.e(TAG, "exchangeToken失败 HTTP ${resp.code}: $body")
+                        // v7.5.4: 记录并透传真实错误响应体（如"Too many unrevoked access tokens"）
+                        lastExchangeError = body
+                        log("exchangeToken失败 HTTP ${resp.code}: $body")
                         return@withContext null
                     }
                     val json = JSONObject(body)
@@ -141,6 +151,54 @@ class WahooApi {
                 }
             } catch (e: Exception) { Log.e(TAG, "refreshToken error", e); null }
         }
+    /**
+     * v7.5.4: 复用已有token：有效则直接用；无效则用refresh_token刷新；都失败返回null。
+     * 用于登录前避免每次重新授权产生新token（防止"Too many unrevoked access tokens"上限）。
+     * @return Pair(access_token, refresh_token)，refresh_token可能已轮换
+     */
+    suspend fun getUsableTokenOrNull(currentToken: String?, refreshToken: String?, clientId: String, clientSecret: String): Pair<String, String>? =
+        withContext(Dispatchers.IO) {
+            if (currentToken.isNullOrEmpty()) {
+                if (refreshToken.isNullOrEmpty()) return@withContext null
+                return@withContext refreshToken(refreshToken, clientId, clientSecret)
+            }
+            try {
+                val testReq = Request.Builder().url("$API_BASE/v1/user").apply {
+                    authHeaders(currentToken).forEach { (k, v) -> addHeader(k, v) }
+                }.get().build()
+                client.newCall(testReq).execute().use { resp ->
+                    if (resp.code == 200) {
+                        Log.i(TAG, "Wahoo已存token仍有效，直接复用")
+                        currentToken to (refreshToken ?: "")
+                    } else if (!refreshToken.isNullOrEmpty()) {
+                        Log.i(TAG, "Wahoo已存token过期(HTTP ${resp.code})，尝试refresh刷新...")
+                        refreshToken(refreshToken, clientId, clientSecret)
+                    } else null
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "getUsableTokenOrNull异常", e)
+                if (!refreshToken.isNullOrEmpty()) refreshToken(refreshToken, clientId, clientSecret) else null
+            }
+        }
+    /**
+     * v7.5.4: 撤销当前应用的全部授权（DELETE /v1/permissions），释放token名额。
+     * 重新授权前调用，可清理该账号下本应用的旧token。
+     * @return 是否撤销成功（token有效时返回204/200）
+     */
+    suspend fun deauthorize(token: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$API_BASE/v1/permissions").apply {
+                authHeaders(token).forEach { (k, v) -> addHeader(k, v) }
+            }.delete().build()
+            client.newCall(req).execute().use { resp ->
+                val body = resp.body?.string() ?: ""
+                Log.i(TAG, "deauthorize: HTTP ${resp.code}, $body")
+                resp.code == 204 || resp.code == 200
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deauthorize error", e); false
+        }
+    }
 
     private fun authHeaders(token: String) = mapOf(
         "Authorization" to "Bearer $token",
