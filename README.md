@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.5.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.5.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.5.2 |
+| 当前版本 | v7.5.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -233,6 +233,19 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.5.3 (2026-09-03)
+**已解决**：
+- Wahoo OAuth2 PKCE实现：生成code_verifier + code_challenge(SHA256)，授权URL带code_challenge，换token带code_verifier（修复"拿到授权码但换token失败"的根本原因）
+- Wahoo SAML表单action相对路径bug：用resolveUrl补全域名（修复Expected URL scheme崩溃）
+- Wahoo token换取失败时打印响应体（便于定位真实错误码）
+- Wahoo上传前自动刷新token（ensureValidToken，类似佳明的处理）
+- Wahoo上传401时自动刷新token并重试一次
+
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
 
 ### v7.5.2 (2026-09-03)
 **已解决**：
