@@ -161,6 +161,41 @@ class PrefsManager(context: Context) {
         DataSource.COROS_INT -> getCorosIntToken()
         DataSource.WAHOO -> getWahooToken()
     }
+    /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
+    fun saveCredential(ds: DataSource, cred: String) {
+        when (ds) {
+            DataSource.IGPSPORT -> saveIgpsportToken(cred)
+            DataSource.XINGZHE -> saveXingzheSessionId(cred)
+            DataSource.MAGENE -> saveMageneToken(cred)
+            DataSource.BLACKBIRD -> saveBlackbirdCookie(cred)
+            DataSource.BRYTON -> saveBrytonCookie(cred)
+            DataSource.OUTBASE -> saveOutbaseSessionId(cred)
+            DataSource.GARMIN_COM -> saveGarminComToken(cred)
+            DataSource.GARMIN_CN -> saveGarminCnToken(cred)
+            DataSource.COROS_CN -> saveCorosCnToken(cred)
+            DataSource.COROS_INT -> saveCorosIntToken(cred)
+            DataSource.WAHOO -> saveWahooToken(cred)
+        }
+    }
+    /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
+    fun clearCredential(ds: DataSource) {
+        val e = prefs.edit()
+        when (ds) {
+            DataSource.IGPSPORT -> e.remove("igpsport_token")
+            DataSource.XINGZHE -> e.remove("xingzhe_session_id")
+            DataSource.MAGENE -> { e.remove("magene_token"); e.remove("magene_refresh_token") }
+            DataSource.BLACKBIRD -> e.remove("blackbird_cookie")
+            DataSource.BRYTON -> { e.remove("bryton_cookie"); e.remove("bryton_token"); e.remove("bryton_user_id") }
+            DataSource.OUTBASE -> { e.remove("outbase_session_id"); e.remove("gateway_cookies") }
+            DataSource.GARMIN_COM -> { e.remove("garmin_com_token"); e.remove("garmin_com_cookie") }
+            DataSource.GARMIN_CN -> { e.remove("garmin_cn_token"); e.remove("garmin_cn_cookie") }
+            DataSource.COROS_CN -> { e.remove("coros_cn_token"); e.remove("coros_cn_cookie"); e.remove("coros_cn_region") }
+            DataSource.COROS_INT -> { e.remove("coros_int_token"); e.remove("coros_int_cookie"); e.remove("coros_int_region") }
+            DataSource.WAHOO -> { e.remove("wahoo_token"); e.remove("wahoo_refresh"); e.remove("wahoo_email") }
+        }
+        e.remove("username_${ds.shortName}")
+        e.apply()
+    }
     fun isLoggedIn(ds: DataSource): Boolean = when (ds) {
         DataSource.IGPSPORT -> isIgpsportLoggedIn()
         DataSource.XINGZHE -> isXingzheLoggedIn()

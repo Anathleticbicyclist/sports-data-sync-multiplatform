@@ -289,6 +289,8 @@ class MainActivity : AppCompatActivity() {
             appendLog("📱 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLog("📂 存储目录: ${saveDir.absolutePath}")
             appendLog("💾 已同步记录: ${prefs.getSyncedCount()} 条")
+            // v7.5.9: 启动登录检测（异步，不阻塞界面）
+            checkAllLogins()
             // v7.5.7: 显示上次崩溃信息（如果有）
             if (crashFile.exists()) {
                 try {
@@ -756,6 +758,97 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * v7.5.9: 启动登录检测
+     * 校验本地已存凭证的各平台登录态：
+     * - 有效 → 保持已登录，更新用户名
+     * - 失效 → 尝试刷新（仅支持刷新的平台：迈金/Wahoo/佳明）
+     * - 刷新失败或无刷新 → 清除凭证，UI变未登录，提示重新登录
+     * 异步执行，不阻塞界面；各平台串行+300ms间隔避免触发风控
+     */
+    private fun checkAllLogins() {
+        appendLog("🔍 启动登录检测中...")
+        lifecycleScope.launch(Dispatchers.IO) {
+            var valid = 0
+            var refreshed = 0
+            var invalid = 0
+            val platforms = listOf(
+                DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
+                DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
+                DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO
+            )
+            for (ds in platforms) {
+                if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
+                kotlinx.coroutines.delay(300)  // 间隔避免并发触发风控
+                val cred = prefs.getCredential(ds) ?: continue
+                val username = try {
+                    when (ds) {
+                        DataSource.IGPSPORT -> igpsportApi.getUsername(cred)
+                        DataSource.XINGZHE -> xingzheApi.getUsername(cred)
+                        DataSource.MAGENE -> mageneApi.getUsername(cred)
+                        DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
+                        DataSource.BRYTON -> brytonApi.getUsername(cred)
+                        DataSource.OUTBASE -> outbaseApi.getUsername(cred)
+                        DataSource.GARMIN_COM -> garminApi.getUsername(ds, cred)
+                        DataSource.GARMIN_CN -> garminApi.getUsername(ds, cred)
+                        DataSource.COROS_CN -> corosApi.getUsername(cred)
+                        DataSource.COROS_INT -> corosApi.getUsername(cred)
+                        DataSource.WAHOO -> wahooApi.getUsername(cred)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "启动登录检测 ${ds.displayName} 异常: ${e.message}")
+                    null
+                }
+                if (!username.isNullOrBlank()) {
+                    valid++
+                    prefs.saveUsername(ds, username)
+                    runOnUiThread { appendLog("✅ 登录有效: ${ds.displayName} ($username)") }
+                    continue
+                }
+                // 登录态失效 → 尝试刷新
+                val newCred = refreshCredentialOnStart(ds, cred)
+                if (newCred != null && newCred != cred) {
+                    refreshed++
+                    prefs.saveCredential(ds, newCred)
+                    runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新") }
+                } else {
+                    invalid++
+                    prefs.clearCredential(ds)
+                    runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录") }
+                }
+            }
+            runOnUiThread {
+                updateStatusUI()
+                appendLog("📊 登录检测完成: ${valid}有效 / ${refreshed}刷新成功 / ${invalid}失效")
+            }
+        }
+    }
+
+    /**
+     * v7.5.9: 启动检测时尝试刷新失效平台的登录态
+     * 仅支持有刷新机制的平台；返回 null 表示无法刷新（需重新登录）
+     */
+    private suspend fun refreshCredentialOnStart(ds: DataSource, cred: String): String? = when (ds) {
+        DataSource.MAGENE -> {
+            val refresh = prefs.getMageneRefreshToken()
+            if (refresh.isNullOrEmpty()) null else mageneApi.refreshToken(refresh)
+        }
+        DataSource.WAHOO -> {
+            val refresh = prefs.getWahooRefresh()
+            val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured())
+                com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+            val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured())
+                com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+            if (refresh.isNullOrEmpty() || clientId.isNullOrEmpty() || clientSecret.isNullOrEmpty()) null
+            else {
+                val newToken = wahooApi.ensureValidToken(cred, refresh, clientId, clientSecret)
+                if (newToken == cred) null else newToken
+            }
+        }
+        DataSource.GARMIN_COM, DataSource.GARMIN_CN -> null  // 佳明无自动刷新，需重新登录
+        else -> null
     }
 
     private fun updateStatusUI() {

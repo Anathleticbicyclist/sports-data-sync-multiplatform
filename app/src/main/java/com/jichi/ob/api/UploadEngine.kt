@@ -350,10 +350,24 @@ class UploadEngine(private val context: android.content.Context? = null) {
                         if (code == 0 && workoutId > 0) {
                             UploadResult(true, targetId = workoutId.toString(), message = "行者上传成功(id=$workoutId)")
                         } else {
-                            UploadResult(false, message = "行者上传失败: ${json?.optString("msg") ?: result.take(100)}")
+                            // v7.5.9: 行者重复文件识别（code:9006 或 "文件已上传"）→ 归为跳过
+                            val isDuplicate = result.contains("文件已上传") || result.contains("9006")
+                            if (isDuplicate) {
+                                UploadResult(false, message = "重复文件已上传过，自动跳过", skipped = true)
+                            } else {
+                                UploadResult(false, message = "行者上传失败: ${json?.optString("msg") ?: result.take(100)}")
+                            }
                         }
                     }
-                    else -> UploadResult(false, message = "行者上传失败: HTTP ${resp.code} ${result.take(100)}")
+                    else -> {
+                        // v7.5.9: 行者重复文件识别（HTTP 400 + code:9006 + "文件已上传"）→ 归为跳过
+                        val isDuplicate = resp.code == 400 && (result.contains("9006") || result.contains("文件已上传"))
+                        if (isDuplicate) {
+                            UploadResult(false, message = "重复文件已上传过，自动跳过", skipped = true)
+                        } else {
+                            UploadResult(false, message = "行者上传失败: HTTP ${resp.code} ${result.take(100)}")
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -562,7 +576,12 @@ class UploadEngine(private val context: android.content.Context? = null) {
         return try {
             val fileName = "Wahoo_${record.id}.fit"
             val (success, msg) = WahooApi().uploadFit(credential, fitData, fileName)
-            UploadResult(success, message = msg)
+            // v7.5.9: Wahoo重复文件检测(HTTP 422 Duplicate workout file detected) → 归为"跳过"而非"失败"
+            if (!success && msg.contains("Duplicate workout file detected")) {
+                UploadResult(false, message = "重复文件已上传过，自动跳过", skipped = true)
+            } else {
+                UploadResult(success, message = msg)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Wahoo upload error", e)
             UploadResult(false, message = "Wahoo上传失败: ${e.message}")
