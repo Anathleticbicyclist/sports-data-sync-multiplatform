@@ -866,6 +866,20 @@ class MainActivity : AppCompatActivity() {
                             else prefs.saveGarminCnToken(targetCred)
                         }
                     }
+                    // v7.5.3: Wahoo目标平台token过期自动刷新（refresh_token轮换）
+                    if (target == DataSource.WAHOO) {
+                        val wahooRefresh = prefs.getWahooRefresh()
+                        val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                        val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                        if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
+                            val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
+                            if (newToken != targetCred) {
+                                appendLog("🔄 Wahoo token已自动刷新")
+                                targetCred = newToken
+                                prefs.saveWahooToken(targetCred)
+                            }
+                        }
+                    }
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
                     // v6.2.5: 迈金上传优先走HTTP(u.onelap.cn/upload/fit, v6.2.2实测OK、快且不卡UI)，
@@ -887,7 +901,30 @@ class MainActivity : AppCompatActivity() {
                     val tCost = System.currentTimeMillis() - t0
                     if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
                     else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
-                    else { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
+                    else {
+                        // v7.5.3: Wahoo 401自动刷新token并重试一次
+                        var retrySuccess = false
+                        if (target == DataSource.WAHOO && result.message.contains("401")) {
+                            appendLog("🔄 Wahoo返回401，刷新token后重试...")
+                            val wahooRefresh = prefs.getWahooRefresh()
+                            val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                            val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                            if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
+                                val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
+                                if (newToken != targetCred) {
+                                    targetCred = newToken
+                                    prefs.saveWahooToken(targetCred)
+                                    val retryResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                                    if (retryResult.success) {
+                                        retrySuccess = true
+                                        success++; prefs.addSyncedId(syncKey)
+                                        appendLog("✅ 重试上传成功(${System.currentTimeMillis() - t0}ms): ${retryResult.message}")
+                                    }
+                                }
+                            }
+                        }
+                        if (!retrySuccess) { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
+                    }
                     withContext(Dispatchers.Main) { progressBar.progress = i + 1; tvSyncedCount.text = "已同步: ${prefs.getSyncedCount()} 条" }
                     delay(150) // v6.2.4: 缩短条间间隔，减少多活动同步累计等待
                 }

@@ -10,16 +10,25 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
 import java.util.concurrent.TimeUnit
 
 /**
- * v7.3.0: Wahoo OAuth2直接登录服务（CookieJar去重+界面调试日志+完整异常堆栈）
+ * v7.5.3: Wahoo OAuth2直接登录服务
+ * - 修复PKCE: 生成code_verifier + code_challenge(SHA256)，授权URL带code_challenge，换token带code_verifier
+ * - 修复SAML表单action相对路径bug: 用resolveUrl补全域名
+ * - token换取失败时打印响应体
  */
 object WahooOAuth2Service {
     private const val TAG = "WahooOAuth2"
 
     // 调试日志回调（用于在界面上显示）
     var debugLogCallback: ((String) -> Unit)? = null
+
+    // v7.5.3: PKCE code_verifier，全程保留直到换取token完成
+    private var currentCodeVerifier: String? = null
 
     private fun log(msg: String) {
         Log.i(TAG, msg)
@@ -30,6 +39,21 @@ object WahooOAuth2Service {
         Log.e(TAG, msg, e)
         debugLogCallback?.invoke("❌ $msg")
         e?.let { debugLogCallback?.invoke("   ${it.javaClass.simpleName}: ${it.message}") }
+    }
+
+    // v7.5.3: 生成PKCE code_verifier (43-128字符的随机字符串)
+    private fun generateCodeVerifier(): String {
+        val random = SecureRandom()
+        val bytes = ByteArray(32)
+        random.nextBytes(bytes)
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    }
+
+    // v7.5.3: 计算code_challenge = BASE64URL(SHA256(code_verifier))
+    private fun generateCodeChallenge(verifier: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(verifier.toByteArray(Charsets.UTF_8))
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(hash)
     }
 
     // CookieJar：去重+过期过滤
@@ -70,10 +94,17 @@ object WahooOAuth2Service {
 
             // Step 1: 访问授权URL（自动跟随重定向）
             log("Step 1: 访问授权URL...")
+            // v7.5.3: 生成PKCE code_verifier和code_challenge
+            currentCodeVerifier = generateCodeVerifier()
+            val codeChallenge = generateCodeChallenge(currentCodeVerifier!!)
+            log("  🔑 PKCE code_verifier长度: ${currentCodeVerifier!!.length}, code_challenge长度: ${codeChallenge.length}")
+
             val authUrl = "https://api.wahooligan.com/oauth/authorize?client_id=${WahooApi.BUILTIN_CLIENT_ID}" +
                     "&redirect_uri=${java.net.URLEncoder.encode(WahooApi.REDIRECT_URI, "UTF-8")}" +
                     "&scope=${java.net.URLEncoder.encode(WahooApi.SCOPES, "UTF-8")}" +
-                    "&response_type=code"
+                    "&response_type=code" +
+                    "&code_challenge=${java.net.URLEncoder.encode(codeChallenge, "UTF-8")}" +
+                    "&code_challenge_method=S256"
 
             val redirectClient = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
@@ -157,7 +188,8 @@ object WahooOAuth2Service {
                 return@withContext null
             }
 
-            val samlAction = decodeHtmlEntities(samlForm.attr("action"))
+            // v7.5.3: 修复SAML回调action相对路径bug，用resolveUrl补全域名
+            val samlAction = resolveUrl(samlResp.finalUrl, decodeHtmlEntities(samlForm.attr("action")))
             log("  SAML回调action: $samlAction")
 
             val samlFormData = mutableMapOf<String, String>()
@@ -277,11 +309,18 @@ object WahooOAuth2Service {
 
             log("  ✅ 授权码获取成功，长度: ${code.length}")
 
-            // Step 10: 换取access_token
+            // Step 10: 换取access_token（传入PKCE code_verifier）
             log("Step 10: 换取access_token...")
-            val tokenResp = WahooApi().exchangeToken(code, WahooApi.BUILTIN_CLIENT_ID, WahooApi.BUILTIN_CLIENT_SECRET)
+            val verifier = currentCodeVerifier
+            if (verifier.isNullOrEmpty()) {
+                logError("PKCE code_verifier为空，无法换取token")
+                return@withContext null
+            }
+            val tokenResp = WahooApi().exchangeToken(code, WahooApi.BUILTIN_CLIENT_ID, WahooApi.BUILTIN_CLIENT_SECRET, verifier)
+            // v7.5.3: 换取token后销毁code_verifier
+            currentCodeVerifier = null
             if (tokenResp == null) {
-                logError("token换取失败")
+                logError("token换取失败（请查看上方WahooApi打印的响应体）")
                 return@withContext null
             }
 
