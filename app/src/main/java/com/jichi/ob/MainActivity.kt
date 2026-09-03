@@ -815,8 +815,15 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新") }
                 } else {
                     invalid++
-                    prefs.clearCredential(ds)
-                    runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录") }
+                    if (ds == DataSource.WAHOO) {
+                        // v7.6.0: Wahoo失效时【绝不】清除凭证！
+                        // token/refresh_token有复用价值（v7.5.4复用机制），清除会导致手动重登走完整OAuth新建token，
+                        // 旧token未撤销不断累积 → 触发每用户10枚未撤销token上限
+                        runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录（已保留令牌，重登时将自动复用/刷新，不会新建令牌）") }
+                    } else {
+                        prefs.clearCredential(ds)
+                        runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录") }
+                    }
                 }
             }
             runOnUiThread {
@@ -843,8 +850,14 @@ class MainActivity : AppCompatActivity() {
                 com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
             if (refresh.isNullOrEmpty() || clientId.isNullOrEmpty() || clientSecret.isNullOrEmpty()) null
             else {
-                val newToken = wahooApi.ensureValidToken(cred, refresh, clientId, clientSecret)
-                if (newToken == cred) null else newToken
+                // v7.6.0: 用getUsableTokenOrNull（先测token→失效则refresh→刷新后用新token验证撤销旧token）
+                // 刷新成功必须同时保存新access_token和新refresh_token（refresh_token是轮换令牌，旧的作废）
+                val usable = wahooApi.getUsableTokenOrNull(cred, refresh, clientId, clientSecret)
+                if (usable != null) {
+                    prefs.saveWahooToken(usable.first)
+                    prefs.saveWahooRefresh(usable.second)
+                    usable.first
+                } else null
             }
         }
         DataSource.GARMIN_COM, DataSource.GARMIN_CN -> null  // 佳明无自动刷新，需重新登录
