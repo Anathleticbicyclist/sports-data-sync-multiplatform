@@ -48,9 +48,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <service
-            android:name=".AutoSyncService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
+        <!-- v7.5.5: 后台自动同步改用WorkManager(AutoSyncWorker)，移除原前台Service -->
     </application>
 </manifest>
