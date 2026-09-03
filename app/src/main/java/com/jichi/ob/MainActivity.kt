@@ -68,6 +68,8 @@ import kotlin.coroutines.resume
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -247,6 +249,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // v7.5.7: 全局崩溃捕获，堆栈写入文件，下次启动显示在日志中定位闪退
+        val crashFile = File(cacheDir, "last_crash.txt")
+        val oldHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val sw = StringWriter()
+                throwable.printStackTrace(PrintWriter(sw))
+                val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                crashFile.writeText("时间: $time\n线程: ${thread.name}\n\n$sw")
+            } catch (_: Exception) {}
+            oldHandler?.uncaughtException(thread, throwable)
+        }
         super.onCreate(savedInstanceState)
         try {
             setContentView(R.layout.activity_main)
@@ -275,6 +289,14 @@ class MainActivity : AppCompatActivity() {
             appendLog("📱 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLog("📂 存储目录: ${saveDir.absolutePath}")
             appendLog("💾 已同步记录: ${prefs.getSyncedCount()} 条")
+            // v7.5.7: 显示上次崩溃信息（如果有）
+            if (crashFile.exists()) {
+                try {
+                    val crashText = crashFile.readText()
+                    appendLog("⚠️ 检测到上次崩溃:\n$crashText")
+                    crashFile.delete()
+                } catch (_: Exception) {}
+            }
         } catch (e: Exception) {
             Log.e(TAG, "onCreate failed", e)
         }
@@ -1045,19 +1067,25 @@ class MainActivity : AppCompatActivity() {
     // v7.5.5: 后台自动同步改用WorkManager（系统调度，跨开机，最低15分钟）
     private fun startAutoSync() {
         val intervalSec = prefs.getAutoInterval().coerceAtLeast(15 * 60)
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-        val request = PeriodicWorkRequestBuilder<AutoSyncWorker>(intervalSec.toLong(), TimeUnit.SECONDS)
-            .setConstraints(constraints)
-            .addTag(AutoSyncWorker.WORK_TAG)
-            .build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            AutoSyncWorker.WORK_TAG,
-            ExistingPeriodicWorkPolicy.UPDATE,
-            request
-        )
-        appendLog("⏰ 后台自动同步已开启，间隔 ${intervalSec / 60}分钟（WorkManager调度，跨开机）")
+        // v7.5.7: WorkManager调用包try-catch，防止任何异常导致闪退
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+            val request = PeriodicWorkRequestBuilder<AutoSyncWorker>(intervalSec.toLong(), TimeUnit.SECONDS)
+                .setConstraints(constraints)
+                .addTag(AutoSyncWorker.WORK_TAG)
+                .build()
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                AutoSyncWorker.WORK_TAG,
+                ExistingPeriodicWorkPolicy.UPDATE,
+                request
+            )
+            appendLog("⏰ 后台自动同步已开启，间隔 ${intervalSec / 60}分钟（WorkManager调度，跨开机）")
+        } catch (e: Exception) {
+            Log.e(TAG, "startAutoSync failed", e)
+            appendLog("❌ 自动同步开启失败: ${e.message?.take(50)}")
+        }
     }
 
     private fun stopAutoSync() {
