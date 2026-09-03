@@ -24,6 +24,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import android.widget.GridLayout
@@ -66,6 +71,7 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -338,8 +344,10 @@ class MainActivity : AppCompatActivity() {
         sliderCount.addOnChangeListener { _, v, _ -> tvCount.text = v.toInt().toString() }
         sliderSkip.addOnChangeListener { _, v, _ -> tvSkip.text = v.toInt().toString() }
         sliderAutoInterval.addOnChangeListener { _, v, _ ->
-            val sec = v.toInt()
-            tvAutoInterval.text = if (sec >= 60) "${sec / 60}分钟" else "${sec}秒"
+            // v7.5.5: WorkManager最低间隔15分钟，自动钳制
+            val sec = v.toInt().coerceAtLeast(15 * 60)
+            prefs.setAutoInterval(sec)
+            tvAutoInterval.text = "${sec / 60}分钟"
         }
         btnSync.setOnClickListener { startSync() }
         btnStop.setOnClickListener { stopSync() }
@@ -422,9 +430,9 @@ class MainActivity : AppCompatActivity() {
         }
         switchGcj02.isChecked = prefs.isGcj02Convert()
         switchAutoSync.isChecked = prefs.isAutoSync()
-        val interval = prefs.getAutoInterval()
+        val interval = prefs.getAutoInterval().coerceAtLeast(15 * 60)
         sliderAutoInterval.value = interval.toFloat()
-        tvAutoInterval.text = if (interval >= 60) "${interval / 60}分钟" else "${interval}秒"
+        tvAutoInterval.text = "${interval / 60}分钟"
         tvSyncedCount.text = "已同步: ${prefs.getSyncedCount()} 条"
     }
 
@@ -808,7 +816,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setSyncing(syncing: Boolean) {
-        AutoSyncService.syncing = syncing
+        AutoSyncWorker.syncing = syncing
         runOnUiThread {
             btnSync.isEnabled = !syncing
             btnStop.isEnabled = syncing
@@ -1034,14 +1042,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // v7.5.5: 后台自动同步改用WorkManager（系统调度，跨开机，最低15分钟）
     private fun startAutoSync() {
-        val interval = prefs.getAutoInterval()
-        appendLog("⏰ 后台自动同步已开启，间隔 ${if (interval >= 60) "${interval/60}分钟" else "${interval}秒"}")
-        AutoSyncService.start(this, interval)
+        val intervalSec = prefs.getAutoInterval().coerceAtLeast(15 * 60)
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val request = PeriodicWorkRequestBuilder<AutoSyncWorker>(intervalSec.toLong(), TimeUnit.SECONDS)
+            .setConstraints(constraints)
+            .addTag(AutoSyncWorker.WORK_TAG)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            AutoSyncWorker.WORK_TAG,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            request
+        )
+        appendLog("⏰ 后台自动同步已开启，间隔 ${intervalSec / 60}分钟（WorkManager调度，跨开机）")
     }
 
     private fun stopAutoSync() {
-        AutoSyncService.stop(this)
+        WorkManager.getInstance(this).cancelAllWorkByTag(AutoSyncWorker.WORK_TAG)
         appendLog("⏰ 后台自动同步已关闭")
     }
 
