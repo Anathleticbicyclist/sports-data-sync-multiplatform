@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.6.2"
+            android:text="开发体验版 v7.6.3"
             android:textColor="@color/primary"
             android:textSize="13sp" />
         <TextView
@@ -70,12 +70,12 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="2dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.2)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 迈金OTM上传改造：API直传替代WebView（顽鹿新版接口，更快更稳）\n2. 迈金上传可正确入库，不再依赖页面自动化\n3. 上传失败自动回退WebView通道" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.2" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 全新四页面布局：登录 / 数据同步设置 / 同步 / 关于，操作更直观\n2. 底部导航栏快速切换页面\n3. 同步数量/跳过数量支持手动输入\n4. 登录页恢复原版布局，Outbase独占一行\n5. 修复Outbase登录过期凭证误判问题" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复Outbase登录过期凭证误判，不再闪退提示已登录\n2. 启动登录检测：自动刷新后明确显示成功/失败" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.0" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 佳明中国上传/下载稳定（强制HTTP/1.1+自动重试）\n2. Wahoo令牌自动复用/刷新，杜绝令牌超限\n3. iGPSPORT登录态真实校验，不再登录成功仍403\n4. 重复活动统一归为跳过" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

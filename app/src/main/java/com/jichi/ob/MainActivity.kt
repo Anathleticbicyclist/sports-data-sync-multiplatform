@@ -692,9 +692,7 @@ class MainActivity : AppCompatActivity() {
                     } catch (_: Exception) {}
                     val t0 = System.currentTimeMillis()
                     appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
-                    if (target == DataSource.MAGENE) {
-                        appendLog("⏳ 正在打开顽鹿页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
-                    } else if (target == DataSource.BRYTON) {
+                    if (target == DataSource.BRYTON) {
                         appendLog("⏳ 正在打开百锐腾页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
                     }
                     var targetCred = prefs.getCredential(target) ?: ""
@@ -728,10 +726,11 @@ class MainActivity : AppCompatActivity() {
                     // v6.2.4: 百锐腾同为Meteor无REST上传，走WebView真实文件选择（/activities 页"+"→file input）
                     val result = if (target == DataSource.MAGENE) {
                         val mToken = prefs.getCredential(DataSource.MAGENE) ?: ""
+                        // v7.6.3: 迈金主通道改顽鹿OTM API直传（jilu0字段+token，2026-09实测可入库），失败再走WebView兜底
                         val httpResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
                         if (httpResult.success) httpResult
                         else {
-                            appendLog("↩️ 迈金HTTP上传失败(${httpResult.message})，改用顽鹿WebView通道重试...")
+                            appendLog("↩️ 迈金API直传失败(${httpResult.message})，改用顽鹿WebView通道重试...")
                             uploadToMageneViaWebView(localFile.absolutePath, mToken)
                         }
                     } else if (target == DataSource.BRYTON) {

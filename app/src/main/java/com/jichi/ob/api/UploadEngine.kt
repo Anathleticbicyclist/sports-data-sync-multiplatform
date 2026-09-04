@@ -29,6 +29,10 @@ class UploadEngine(private val context: android.content.Context? = null) {
 
     companion object {
         private const val TAG = "UploadEngine"
+
+        /** v7.6.3: 顽鹿OTM新上传接口（2026-09实测可用，字段名 jilu0 + token鉴权） */
+        private const val MAGENE_BASE = "https://otm.onelap.cn"
+        private const val MAGENE_UPLOAD_URL = "$MAGENE_BASE/api/otm/ride_record/upload/fit"
     }
 
     /** v6.2.6: Outbase GPX→FIT 转换桥（Outbase官方gpx2fit库，复用WebBridge/bridge.html/gpx2fit.js） */
@@ -377,51 +381,44 @@ class UploadEngine(private val context: android.content.Context? = null) {
     }
 
     private fun uploadToMagene(
-        cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
+        token: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            val token = extra["_token"] ?: ""
+            if (token.isBlank()) return UploadResult(false, message = "迈金未登录，请先登录迈金")
             val fileName = FileNameGenerator.generate(DataSource.MAGENE, record, "fit")
 
+            // v7.6.3: 顽鹿OTM新上传接口（2026-09-04 实测可用）
+            // 关键：multipart 字段名必须是 jilu0（JS网页里是jilu但程序化上传需jilu0），
+            // 鉴权 Authorization 直接带登录token，需带 Origin/Referer。
+            // 上传为异步入库（约15-20秒出现在列表），接口返回 success_count>=1 即接收成功。
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("jilu", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
-                .addFormDataPart("filename", fileName)
-                .addFormDataPart("_token", token)
+                .addFormDataPart("jilu0", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
                 .build()
-
-            // 尝试多个候选上传接口，迈金(顽鹿)网页版上传
-            val candidates = listOf(
-                "https://u.onelap.cn/upload/fit",
-                "https://www.onelap.cn/upload/fit"
-            )
-            var lastError = "无候选接口"
-            for (url in candidates) {
-                try {
-                    val req = Request.Builder()
-                        .url(url)
-                        .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                        .addHeader("Cookie", cookie)
-                        .addHeader("Origin", "https://www.onelap.cn")
-                        .addHeader("Referer", "https://www.onelap.cn/")
-                        .addHeader("Authorization", if (token.isNotEmpty()) token else "")
-                        .post(body)
-                        .build()
-                    client.newCall(req).execute().use { resp ->
-                        val result = resp.body?.string() ?: ""
-                        val cost = System.currentTimeMillis() - start
-                        Log.d(TAG, "Magene upload ${url} HTTP ${resp.code} (${cost}ms): ${result.take(200)}")
-                        if (resp.code == 200 && (result.contains("成功") || result.contains("success") || result.contains("\"code\":0") || result.contains("\"code\":200") || result.contains("\"id\""))) {
-                            return UploadResult(true, message = "迈金上传成功")
-                        }
-                        lastError = "HTTP ${resp.code} ${result.take(100)}"
+            val req = Request.Builder()
+                .url(MAGENE_UPLOAD_URL)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                .addHeader("Authorization", token)
+                .addHeader("Origin", MAGENE_BASE)
+                .addHeader("Referer", MAGENE_BASE + "/analysis")
+                .post(body)
+                .build()
+            client.newCall(req).execute().use { resp ->
+                val result = resp.body?.string() ?: ""
+                val cost = System.currentTimeMillis() - start
+                Log.d(TAG, "Magene upload HTTP ${resp.code} (${cost}ms): ${result.take(200)}")
+                if (resp.code == 200) {
+                    // {"code":200,"message":"全部文件上传成功","data":{"success_count":1,...}}
+                    val json = try { JSONObject(result) } catch (e: Exception) { null }
+                    val code = json?.optInt("code", -1) ?: -1
+                    val successCount = json?.optJSONObject("data")?.optInt("success_count", 0) ?: 0
+                    if (code == 200 && successCount >= 1) {
+                        return UploadResult(true, message = "迈金上传成功(OTM API)")
                     }
-                } catch (e: Exception) {
-                    lastError = e.message ?: "网络错误"
                 }
+                UploadResult(false, message = "迈金上传失败: HTTP ${resp.code} ${result.take(100)}")
             }
-            UploadResult(false, message = "迈金上传失败: $lastError")
         } catch (e: Exception) {
             Log.e(TAG, "Magene upload error", e)
             UploadResult(false, message = "迈金上传失败: ${e.message}")
