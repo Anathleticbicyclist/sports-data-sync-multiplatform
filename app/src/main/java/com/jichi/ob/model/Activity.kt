@@ -47,7 +47,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     OUTBASE(true, ""),
     IGPSPORT(true, "官方第三方上传API"),
     XINGZHE(true, "官方开放API"),
-    MAGENE(false, "开发中"),
+    MAGENE(true, "顽鹿OTM API直传"),
     BLACKBIRD(true, "官方上传通道，仅接受FIT"),
     BRYTON(false, "开发中"),
     GARMIN_COM(true, "需FIT设备伪装"),

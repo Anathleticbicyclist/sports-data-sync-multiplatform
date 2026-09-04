@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.6.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.6.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.6.2 |
+| 当前版本 | v7.6.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -31,7 +31,7 @@
 
 ---
 
-## 📱 界面预览（v7.6.2 四页面布局）
+## 📱 界面预览（四页面布局）
 
 <p align="center">
   <img src="screenshots/page1_login.png" width="200" alt="登录页"/>
@@ -57,7 +57,7 @@
 |------|---------|------|------|
 | **佳明中国速度较慢** | 佳明中国上传/下载 | 佳明中国connectapi服务器处理速度较慢，上传约需30-60秒（服务器端解析FIT、校验重复、入库），获取活动列表约需10-30秒。功能正常，仅速度较慢 | 已知问题，服务器端限制 |
 | **百锐腾下载不支持** | 百锐腾作为数据源 | 百锐腾官方未开放FIT下载接口，无法从百锐腾下载活动记录 | 平台限制，无法解决 |
-| **迈金上传开发中** | 迈金作为同步目标 | 迈金上传功能尚未完成，当前仅支持从迈金下载 | 开发中 |
+| **迈金上传API直传** | 迈金作为同步目标 | **v7.6.3 已支持**：顽鹿OTM新上传接口API直传（`/api/otm/ride_record/upload/fit`，字段`jilu0`+token鉴权），上传后约15-20秒异步入库，可在顽鹿官网"自行车→OTM→我的活动"查看；失败自动回退WebView通道 | v7.6.3已支持 |
 | **迈金重启后需重新登录** | 迈金作为数据源/同步目标 | 应用重启后迈金(顽鹿OTM)登录态可能失效。已自动处理：启动时自动登录检测，失效自动用 refresh_token 刷新；仅当刷新失败时才需手动重新登录 | 自动处理 |
 | **Outbase仅支持上传** | Outbase作为数据源 | Outbase为聚合上传平台，仅支持上传，不支持从Outbase下载 | 平台限制 |
 | **iGPSPORT→Wahoo部分文件上传失败** | iGPSPORT上传到Wahoo | 部分iGPSPORT导出的FIT文件存在时间戳溢出（接近2^32）和字符串字段混入二进制数据的问题，导致Wahoo服务器解析失败（报错invalid ASCII control character或Mysql2::Error），这部分文件成功被解析的概率为50~80%，格式正常的文件可正常上传 | 已知问题，考虑FIT转GPX方案（可能丢失功率、心率、踏频等传感器数据） |
@@ -202,7 +202,7 @@ A: Wahoo规定每个用户在本应用下最多保留 **10枚未撤销令牌**�
 |------|:---:|:---:|------|
 | **iGPSPORT** | ✅ | ✅ | 迹驰码表数据，OSS直传上传 |
 | **行者** | ✅ | ✅ | 行者APP数据，官方开放API |
-| **迈金** | ✅ | 🚧 开发中 | 支持GCJ-02→WGS84坐标转换 |
+| **迈金** | ✅ | ✅ | 顽鹿OTM API直传上传（v7.6.3），支持GCJ-02→WGS84坐标转换 |
 | **黑鸟单车** | ✅ | ✅ | 仅接受FIT，GPX自动转换 |
 | **百锐腾** | ⚠️ | 🚧 开发中 | 官方未开放FIT下载接口 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
@@ -214,7 +214,7 @@ A: Wahoo规定每个用户在本应用下最多保留 **10枚未撤销令牌**�
 
 **支持的同步组合**：
 - 任意平台 → Outbase 上传
-- iGPSPORT / 行者 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo 之间任意互传
+- iGPSPORT / 行者 / 迈金 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo 之间任意互传
 - 国内区↔国际区互传：佳明国际↔佳明中国、高驰中国↔高驰国际
 
 ### 迈金坐标转换（亮点功能）
@@ -316,6 +316,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.6.3 (2026-09-04)
+**已解决**：
+- **迈金上传功能完成**：顽鹿OTM新接口API直传（`/api/otm/ride_record/upload/fit`，multipart字段`jilu0`+token鉴权），替代原WebView页面自动化上传，上传更快更稳、可正确入库
+- 迈金同步目标按钮由"开发中"转为正式可用
+- 迈金上传失败自动回退WebView通道兜底，双保险
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
 ### v7.6.2 (2026-09-04)
 **已解决**：
 - 全新四页面布局：登录 / 数据同步设置 / 同步 / 关于，底部导航快速切换，操作更直观
