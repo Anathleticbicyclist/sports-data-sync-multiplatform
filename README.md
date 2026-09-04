@@ -7,12 +7,12 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.6.1-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.6.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
 
-> ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。日常使用建议下载[稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)，更加稳定可靠。
+> ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
 ---
 
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.6.1 |
+| 当前版本 | v7.6.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -298,6 +298,17 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v7.6.2 (2026-09-04)
+**已解决**：
+- 全新四页面布局：登录 / 数据同步设置 / 同步 / 关于，底部导航快速切换，操作更直观
+- 登录页恢复原版布局，Outbase独占一行，Slogan移至关于页
+- 同步数量/跳过数量支持手动输入
+- 修复Outbase登录过期凭证误判问题
+- 关于页新增版本号对应、本次及最近两版本更新日志、鸣谢、赞赏支持
+- 历史安装包统一归档至"历史apk"目录，仓库根目录仅保留当前版本
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
 ### v7.6.1 (2026-09-03)
 **已解决**：
 - 修复Outbase登录凭据检测误判：user/info校验接口header不完整，导致有效sessionId被误判失效、每次启动都需重新登录。现用完整header校验+回退warmUp可靠校验+网络异常保守判定，有效sessionId直接确认已登录，不再误清凭证
@@ -504,3 +515,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - v6.2.2: UI首页标题修正 + 黑鸟GPX标识动态化
 
 ---
+
+---
+
+## 📌 说明
+
+**关于版本选择**
+- ⚠️ 开发版仅供测试体验，部分平台功能有限制，详见上方"已知问题与限制"
+- 日常使用建议下载[稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)，更加稳定可靠
+- 应用信息表中的"稳定版下载"入口同样可获取稳定版
