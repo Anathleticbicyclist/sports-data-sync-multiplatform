@@ -31,6 +31,24 @@
 
 ---
 
+## 📱 界面预览（v7.6.2 四页面布局）
+
+<p align="center">
+  <img src="screenshots/page1_login.png" width="200" alt="登录页"/>
+  <img src="screenshots/page2_settings.png" width="200" alt="数据同步设置页"/>
+  <img src="screenshots/page3_sync.png" width="200" alt="同步页"/>
+  <img src="screenshots/page4_about.png" width="200" alt="关于页"/>
+</p>
+
+| 页面 | 功能 |
+|------|------|
+| 登录 | 十一平台登录状态与登录入口 |
+| 数据同步设置 | 数据来源/目标选择、同步数量/跳过手动输入、迈金坐标转换 |
+| 同步 | 后台自动同步、开始/停止/测试/复制/清记忆、运行日志 |
+| 关于 | 版本信息、更新日志、鸣谢、赞赏支持 |
+
+---
+
 ## ⚠️ 已知问题与限制
 
 使用前请务必了解以下已知问题：
