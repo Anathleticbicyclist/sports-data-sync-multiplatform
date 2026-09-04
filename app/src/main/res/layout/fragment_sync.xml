@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/grey_light"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+                <!-- 自动同步 -->
+                <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="2dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp">
+                <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchAutoSync" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⏰ 后台自动同步" android:textSize="13sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="检测间隔:" android:textSize="12sp" />
+                <com.google.android.material.slider.Slider android:id="@+id/sliderAutoInterval" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="900" android:valueTo="3600" android:stepSize="60" android:value="900" app:thumbColor="@color/primary" app:trackColorActive="@color/primary" />
+                <TextView android:id="@+id/tvAutoInterval" android:layout_width="50dp" android:layout_height="wrap_content" android:text="15分钟" android:textSize="12sp" android:textStyle="bold" android:gravity="center" android:textColor="@color/primary" />
+                </LinearLayout>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="💡 WorkManager系统调度：跨开机自动恢复，关闭APP/杀进程后仍可执行，最低间隔15分钟，实际时间由系统优化" android:textSize="10sp" android:textColor="@color/text_secondary" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnPowerGuide" android:layout_width="match_parent" android:layout_height="36dp" android:layout_marginTop="4dp" android:text="🔋 后台常驻指引 &amp; 电池保护设置" android:textSize="11sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:cornerRadius="8dp" />
+                </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+                
+                <!-- 按钮区 -->
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnSync" android:layout_width="match_parent" android:layout_height="52dp" android:insetTop="0dp" android:insetBottom="0dp" android:text="🚴 开始同步" android:textSize="15sp" app:backgroundTint="@color/primary" app:cornerRadius="10dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:layout_marginBottom="6dp" android:orientation="horizontal">
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnStop" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:maxLines="1" android:singleLine="true" android:ellipsize="none" android:paddingStart="2dp" android:paddingEnd="2dp" android:gravity="center" android:text="⏹ 停止" android:textSize="12sp" android:enabled="false" app:backgroundTint="@color/red" app:cornerRadius="10dp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnTestDownload" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:maxLines="1" android:singleLine="true" android:ellipsize="none" android:paddingStart="2dp" android:paddingEnd="2dp" android:gravity="center" android:text="🧪 测试" android:textSize="12sp" app:backgroundTint="@color/igp_green" app:cornerRadius="10dp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnCopyLog" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:maxLines="1" android:singleLine="true" android:ellipsize="none" android:paddingStart="2dp" android:paddingEnd="2dp" android:gravity="center" android:text="📋 复制" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:cornerRadius="10dp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnClearSync" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:maxLines="1" android:singleLine="true" android:ellipsize="none" android:paddingStart="2dp" android:paddingEnd="2dp" android:gravity="center" android:text="🗑 清记忆" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:cornerRadius="10dp" />
+                </LinearLayout>
+                
+                <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progressBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="4dp" android:visibility="gone" app:indicatorColor="@color/primary" app:trackColor="@color/grey_light" />
+                
+                <!-- 日志 -->
+                <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" app:cardCornerRadius="10dp" app:cardElevation="2dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 运行日志" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <ScrollView android:id="@+id/svLog" android:layout_width="match_parent" android:layout_height="240dp" android:nestedScrollingEnabled="true" android:layout_marginTop="4dp" android:background="#F0F0F0" android:padding="4dp">
+                <TextView android:id="@+id/tvLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="等待操作..." android:textSize="10sp" android:fontFamily="monospace" android:textColor="@color/text_primary" />
+                </ScrollView>
+                </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

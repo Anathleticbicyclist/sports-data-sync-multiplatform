@@ -82,6 +82,10 @@ class MainActivity : AppCompatActivity() {
         // 动态读取BuildConfig版本号，保证启动日志与当前版本一一对应
         private val APP_VERSION = "v${BuildConfig.VERSION_NAME}"
         private const val APP_EDITION = "开发体验版"
+        // v7.6.2: 存储目录（Fragment共用）
+        val SAVE_DIR: File by lazy {
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "鸡翅幸哲迈进OB")
+        }
     }
 
     private lateinit var prefs: PrefsManager
@@ -96,60 +100,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var wahooApi: WahooApi
     private lateinit var uploadEngine: UploadEngine
 
-    private lateinit var tvIgpStatus: TextView
-    private lateinit var tvXingzheStatus: TextView
-    private lateinit var tvMageneStatus: TextView
-    private lateinit var tvBlackbirdStatus: TextView
-    private lateinit var tvBrytonStatus: TextView
-    private lateinit var tvOutbaseStatus: TextView
-    private lateinit var tvGarminComStatus: TextView
-    private lateinit var tvGarminCnStatus: TextView
-    private lateinit var tvCorosCnStatus: TextView
-    private lateinit var tvCorosIntStatus: TextView
-    private lateinit var tvWahooStatus: TextView
-    private lateinit var btnIgpLogin: MaterialButton
-    private lateinit var btnXingzheLogin: MaterialButton
-    private lateinit var btnMageneLogin: MaterialButton
-    private lateinit var btnBlackbirdLogin: MaterialButton
-    private lateinit var btnBrytonLogin: MaterialButton
-    private lateinit var btnOutbaseLogin: MaterialButton
-    private lateinit var btnGarminComLogin: MaterialButton
-    private lateinit var btnGarminCnLogin: MaterialButton
-    private lateinit var btnCorosCnLogin: MaterialButton
-    private lateinit var btnCorosIntLogin: MaterialButton
-    private lateinit var btnWahooLogin: MaterialButton
-    private lateinit var btnSync: MaterialButton
-    private lateinit var btnStop: MaterialButton
-    private lateinit var btnTestDownload: MaterialButton
-    private lateinit var btnPowerGuide: MaterialButton
-    private lateinit var btnCopyLog: MaterialButton
-    private lateinit var btnClearSync: MaterialButton
-    private lateinit var sliderCount: Slider
-    private lateinit var tvCount: TextView
-    private lateinit var sliderSkip: Slider
-    private lateinit var tvSkip: TextView
-    private lateinit var tvLog: TextView
-    private lateinit var progressBar: LinearProgressIndicator
-    private lateinit var gridSource: GridLayout
-    private lateinit var gridTarget: GridLayout
-    private var selectedSourceTag = "xz"
-    private var selectedTargetTag = "ob"
-    private lateinit var logScrollView: ScrollView
-    private lateinit var switchGcj02: SwitchMaterial
-    private lateinit var switchAutoSync: SwitchMaterial
-    private lateinit var sliderAutoInterval: Slider
-    private lateinit var tvAutoInterval: TextView
-    private lateinit var tvSaveDir: TextView
-    private lateinit var tvSyncedCount: TextView
+    // v7.6.2: 四页面Fragment引用
+    private lateinit var loginFragment: com.jichi.ob.ui.LoginFragment
+    private lateinit var settingsFragment: com.jichi.ob.ui.SyncSettingsFragment
+    private lateinit var syncFragment: com.jichi.ob.ui.SyncFragment
+    private lateinit var aboutFragment: com.jichi.ob.ui.AboutFragment
 
     private var syncJob: Job? = null
     private var autoSyncJob: Job? = null
     private lateinit var fixWebView: android.webkit.WebView
     private var fixJsReady = false
-    private val saveDir: File by lazy {
-        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "鸡翅幸哲迈进OB")
-    }
-
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -235,13 +195,13 @@ class MainActivity : AppCompatActivity() {
                                         prefs.saveWahooRefresh(fresh.second)
                                         appendLog("✅ Wahoo登录成功"); fetchUsernameAfterLogin(DataSource.WAHOO)
                                     } else appendLog("⚠️ Wahoo token换取失败")
-                                    updateStatusUI()
+                                    loginFragment.updateStatus()
                                 }
                             }
                         } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码或未配置凭证")
                     }
                 }
-                updateStatusUI()
+                loginFragment.updateStatus()
             }
         } catch (e: Exception) {
             Log.e(TAG, "login result error", e)
@@ -276,18 +236,14 @@ class MainActivity : AppCompatActivity() {
             corosApi = CorosApi()
             wahooApi = WahooApi()
             uploadEngine = UploadEngine(this)
-            if (!saveDir.exists()) saveDir.mkdirs()
-            initViews()
-            setupListeners()
-            restoreSettings()
-            updateStatusUI()
-            updateTargetChips()
+            if (!SAVE_DIR.exists()) SAVE_DIR.mkdirs()
+            initFragments()
             initFixWebView()
             requestNotificationPermission()
             appendLog("🚴 鸡翅幸哲迈进OB($APP_EDITION) $APP_VERSION 启动")
             appendLog("🎯 让运动数据自由流动")
             appendLog("📱 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-            appendLog("📂 存储目录: ${saveDir.absolutePath}")
+            appendLog("📂 存储目录: ${SAVE_DIR.absolutePath}")
             appendLog("💾 已同步记录: ${prefs.getSyncedCount()} 条")
             // v7.5.9: 启动登录检测（异步，不阻塞界面）
             checkAllLogins()
@@ -304,184 +260,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initViews() {
-        tvIgpStatus = findViewById(R.id.tvIgpStatus)
-        tvXingzheStatus = findViewById(R.id.tvXingzheStatus)
-        tvMageneStatus = findViewById(R.id.tvMageneStatus)
-        tvBlackbirdStatus = findViewById(R.id.tvBlackbirdStatus)
-        tvBrytonStatus = findViewById(R.id.tvBrytonStatus)
-        tvOutbaseStatus = findViewById(R.id.tvOutbaseStatus)
-        tvGarminComStatus = findViewById(R.id.tvGarminComStatus)
-        tvGarminCnStatus = findViewById(R.id.tvGarminCnStatus)
-        tvCorosCnStatus = findViewById(R.id.tvCorosCnStatus)
-        tvCorosIntStatus = findViewById(R.id.tvCorosIntStatus)
-        tvWahooStatus = findViewById(R.id.tvWahooStatus)
-        btnIgpLogin = findViewById(R.id.btnIgpLogin)
-        btnXingzheLogin = findViewById(R.id.btnXingzheLogin)
-        btnMageneLogin = findViewById(R.id.btnMageneLogin)
-        btnBlackbirdLogin = findViewById(R.id.btnBlackbirdLogin)
-        btnBrytonLogin = findViewById(R.id.btnBrytonLogin)
-        btnOutbaseLogin = findViewById(R.id.btnOutbaseLogin)
-        btnGarminComLogin = findViewById(R.id.btnGarminComLogin)
-        btnGarminCnLogin = findViewById(R.id.btnGarminCnLogin)
-        btnCorosCnLogin = findViewById(R.id.btnCorosCnLogin)
-        btnCorosIntLogin = findViewById(R.id.btnCorosIntLogin)
-        btnWahooLogin = findViewById(R.id.btnWahooLogin)
-        btnSync = findViewById(R.id.btnSync)
-        btnStop = findViewById(R.id.btnStop)
-        btnTestDownload = findViewById(R.id.btnTestDownload)
-        btnPowerGuide = findViewById(R.id.btnPowerGuide)
-        btnCopyLog = findViewById(R.id.btnCopyLog)
-        btnClearSync = findViewById(R.id.btnClearSync)
-        sliderCount = findViewById(R.id.sliderCount)
-        tvCount = findViewById(R.id.tvCount)
-        sliderSkip = findViewById(R.id.sliderSkip)
-        tvSkip = findViewById(R.id.tvSkip)
-        tvLog = findViewById(R.id.tvLog)
-        progressBar = findViewById(R.id.progressBar)
-        gridSource = findViewById(R.id.gridSource)
-        gridTarget = findViewById(R.id.gridTarget)
-        setupSourceButtons()
-        setupTargetButtons()
-        logScrollView = findViewById(R.id.svLog)
-        switchGcj02 = findViewById(R.id.switchGcj02)
-        switchAutoSync = findViewById(R.id.switchAutoSync)
-        sliderAutoInterval = findViewById(R.id.sliderAutoInterval)
-        tvAutoInterval = findViewById(R.id.tvAutoInterval)
-        tvSaveDir = findViewById(R.id.tvSaveDir)
-        tvSyncedCount = findViewById(R.id.tvSyncedCount)
-        tvSaveDir.text = saveDir.absolutePath
-    }
-
-    private fun setupListeners() {
-        btnIgpLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_IGPSPORT, IgpsportApi.LOGIN_URL) }
-        btnXingzheLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_XINGZHE, XingzheApi.LOGIN_URL) }
-        btnMageneLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_MAGENE, MageneApi.LOGIN_URL) }
-        btnBlackbirdLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_BLACKBIRD, BlackbirdApi.LOGIN_URL) }
-        btnBrytonLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_BRYTON, BrytonApi.LOGIN_URL) }
-        btnOutbaseLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_OUTBASE, OutbaseApi.LOGIN_URL) }
-        btnGarminComLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_GARMIN_COM, GarminApi.LOGIN_URL_COM) }
-        btnGarminCnLogin.setOnClickListener { openGarminCnLogin() }
-        btnCorosCnLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_COROS_CN, CorosApi.LOGIN_URL_CN) }
-        btnCorosIntLogin.setOnClickListener { openLogin(LoginWebActivity.TYPE_COROS_INT, CorosApi.LOGIN_URL_INT) }
-        btnWahooLogin.setOnClickListener { openWahooLogin() }
-        sliderCount.addOnChangeListener { _, v, _ -> tvCount.text = v.toInt().toString() }
-        sliderSkip.addOnChangeListener { _, v, _ -> tvSkip.text = v.toInt().toString() }
-        sliderAutoInterval.addOnChangeListener { _, v, _ ->
-            // v7.5.5: WorkManager最低间隔15分钟，自动钳制
-            val sec = v.toInt().coerceAtLeast(15 * 60)
-            prefs.setAutoInterval(sec)
-            tvAutoInterval.text = "${sec / 60}分钟"
-        }
-        btnSync.setOnClickListener { startSync() }
-        btnStop.setOnClickListener { stopSync() }
-        btnTestDownload.setOnClickListener { testDownload() }
-        btnPowerGuide.setOnClickListener { showPowerGuide() }
-        btnClearSync.setOnClickListener { clearSyncMemory() }
-        btnCopyLog.setOnClickListener {
-            val log = tvLog.text?.toString() ?: ""
-            if (log.isNotBlank()) {
-                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                    .setPrimaryClip(ClipData.newPlainText("运行日志", log))
-                Toast.makeText(this, "日志已复制", Toast.LENGTH_SHORT).show()
-            }
-        }
-        switchAutoSync.setOnCheckedChangeListener { _, checked ->
-            prefs.setAutoSync(checked)
-            if (checked) startAutoSync() else stopAutoSync()
-        }
-        switchGcj02.setOnCheckedChangeListener { _, checked -> prefs.setGcj02Convert(checked) }
-        findViewById<TextView>(R.id.tvClubLink)?.setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                "https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f"
-            )))
-        }
-        // v6.2.8: 更新链接改为"标题可点、冒号后说明为注释不可点"
-        setupLinkWithNote(
-            findViewById(R.id.tvUpdateLink),
-            "📦 鸡翅幸哲迈进OB(开发体验版)",
-            "开发版不稳定且用且珍惜",
-            "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform"
-        )
-        setupLinkWithNote(
-            findViewById(R.id.tvOfficialLink),
-            "🚴 鸡翅幸哲迈进OB正式版",
-            "正式版稳定可用，开发版不稳定请下载正式版",
-            "https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase"
-        )
-    }
-
-    /** 底部更新链接：标题蓝色可点击(无下划线)、说明注释另起一行灰色 */
-    private fun setupLinkWithNote(tv: TextView?, link: String, note: String, url: String) {
-        if (tv == null) return
-        val sb = SpannableStringBuilder()
-        sb.append(link)
-        sb.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            }
-            override fun updateDrawState(ds: TextPaint) {
-                super.updateDrawState(ds)
-                ds.color = Color.parseColor("#1E88E5") // 蓝色
-                ds.isUnderlineText = false // 取消下划线
-            }
-        }, 0, link.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.append("\n")
-        sb.append(note)
-        // 注释部分灰色
-        sb.setSpan(android.text.style.ForegroundColorSpan(Color.parseColor("#999999")),
-            link.length + 1, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        tv.text = sb
-        tv.textSize = 11f
-        tv.movementMethod = LinkMovementMethod.getInstance()
-        tv.highlightColor = Color.TRANSPARENT
-    }
-
-    private fun restoreSettings() {
-        val lastSrc = prefs.getLastSource()
-        if (lastSrc.isNotBlank()) selectedSourceTag = lastSrc
-        for (i in 0 until gridSource.childCount) {
-            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
-            val tag = btn.tag as? String ?: continue
-            setButtonSelected(btn, tag == selectedSourceTag, tag)
-        }
-        val lastTgt = prefs.getLastTarget()
-        selectedTargetTag = if (lastTgt.isNotBlank()) lastTgt else "ob"
-        for (i in 0 until gridTarget.childCount) {
-            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
-            val tag = btn.tag as? String ?: continue
-            setButtonSelected(btn, tag == selectedTargetTag, tag)
-        }
-        switchGcj02.isChecked = prefs.isGcj02Convert()
-        switchAutoSync.isChecked = prefs.isAutoSync()
-        val interval = prefs.getAutoInterval().coerceAtLeast(15 * 60)
-        sliderAutoInterval.value = interval.toFloat()
-        tvAutoInterval.text = "${interval / 60}分钟"
-        tvSyncedCount.text = "已同步: ${prefs.getSyncedCount()} 条"
-    }
-
-    private fun updateTargetChips() {
-        for (i in 0 until gridTarget.childCount) {
-            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
-            val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
-            val support = UploadSupport.fromDataSource(ds)
-            if (!support.available) {
-                btn.isEnabled = false
-                // 两行显示：第一行平台名(10sp)，第二行"开发中"(8sp)
-                val name = ds.displayName
-                val spannable = SpannableString("$name\n开发中")
-                spannable.setSpan(AbsoluteSizeSpan(11, true), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                spannable.setSpan(AbsoluteSizeSpan(8, true), name.length + 1, spannable.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                btn.text = spannable
-                btn.maxLines = 2
-                btn.setBackgroundColor(0xFFE8E8E8.toInt())
-                btn.setTextColor(0xFFB0B0B0.toInt())
-                btn.alpha = 0.7f
-            }
-        }
-    }
-
-    private fun openLogin(type: String, url: String) {
+    internal fun openLogin(type: String, url: String) {
         appendLog("🔐 打开登录页...")
         val intent = Intent(this, LoginWebActivity::class.java)
         intent.putExtra(LoginWebActivity.EXTRA_LOGIN_TYPE, type)
@@ -490,7 +269,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** v7.4.5: Wahoo 登录——恢复WahooOAuth2Service后台自动化登录（v7.3.0验证通过的方案），SCOPES含workouts_write支持上传 */
-    private fun openWahooLogin() {
+    internal fun openWahooLogin() {
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(48, 24, 48, 24)
@@ -569,7 +348,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    runOnUiThread { updateStatusUI() }
+                    runOnUiThread { loginFragment.updateStatus() }
                 }
             }
             .setNegativeButton("取消", null)
@@ -580,7 +359,7 @@ class MainActivity : AppCompatActivity() {
      * v7.5.1: 佳明中国直接登录（模拟garth库mobile SSO流程，不需要WebView）
      * 用邮箱密码直接获取OAuth2 Bearer token，调用connectapi.garmin.cn
      */
-    private fun openGarminCnLogin() {
+    internal fun openGarminCnLogin() {
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(48, 24, 48, 24)
@@ -626,12 +405,12 @@ class MainActivity : AppCompatActivity() {
                             prefs.saveGarminCnCookie("")
                             appendLog("✅ 佳明中国登录成功(mobile SSO+DI Token)")
                             fetchUsernameAfterLogin(DataSource.GARMIN_CN)
-                            updateStatusUI()
+                            loginFragment.updateStatus()
                         }
                     } catch (e: Exception) {
                         runOnUiThread {
                             appendLog("❌ 佳明中国登录失败: ${e.message}")
-                            updateStatusUI()
+                            loginFragment.updateStatus()
                         }
                     }
                 }
@@ -689,85 +468,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun getSelectedSource(): DataSource {
-        return DataSource.fromShortName(selectedSourceTag) ?: DataSource.XINGZHE
-    }
-
-    private fun getSelectedTarget(): DataSource {
-        return DataSource.fromShortName(selectedTargetTag) ?: DataSource.OUTBASE
-    }
-
-
-    // v6.7.9: 平台主题色映射
-    private fun platformColor(tag: String): Int = when (tag) {
-        "igp" -> getColor(R.color.igp_green)
-        "xz" -> getColor(R.color.xingzhe_blue)
-        "mg" -> getColor(R.color.magene_blue)
-        "bb" -> getColor(R.color.blackbird_dark)
-        "br" -> getColor(R.color.bryton_red)
-        "gm", "gcn" -> getColor(R.color.garmin_blue)
-        "cscn", "cs" -> getColor(R.color.coros_red)
-        "wahoo" -> getColor(R.color.wahoo_red)
-        "ob" -> getColor(R.color.outbase_orange)
-        else -> getColor(R.color.primary)
-    }
-
-    private fun setButtonSelected(btn: MaterialButton, selected: Boolean, tag: String) {
-        if (!btn.isEnabled) {
-            // 开发中/不可用：更浅的灰底+更浅的文字+半透明，明显区分
-            btn.setBackgroundColor(0xFFE8E8E8.toInt())
-            btn.setTextColor(0xFFB0B0B0.toInt())
-            btn.alpha = 0.6f
-            return
-        }
-        btn.alpha = 1.0f
-        if (selected) {
-            btn.setBackgroundColor(platformColor(tag))
-            btn.setTextColor(getColor(R.color.white))
-        } else {
-            btn.setBackgroundColor(getColor(R.color.grey_light))
-            btn.setTextColor(getColor(R.color.text_primary))
-        }
-    }
-
-    private fun setupSourceButtons() {
-        for (i in 0 until gridSource.childCount) {
-            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
-            val tag = btn.tag as? String ?: continue
-            btn.setOnClickListener {
-                if (!btn.isEnabled) return@setOnClickListener
-                selectedSourceTag = tag
-                for (j in 0 until gridSource.childCount) {
-                    val b = gridSource.getChildAt(j) as? MaterialButton ?: continue
-                    setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
-                }
-            }
-        }
-    }
-
-    private fun setupTargetButtons() {
-        for (i in 0 until gridTarget.childCount) {
-            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
-            val tag = btn.tag as? String ?: continue
-            btn.setOnClickListener {
-                if (!btn.isEnabled) return@setOnClickListener
-                selectedTargetTag = tag
-                for (j in 0 until gridTarget.childCount) {
-                    val b = gridTarget.getChildAt(j) as? MaterialButton ?: continue
-                    setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
-                }
-            }
-        }
-    }
-
-    /**
-     * v7.5.9: 启动登录检测
-     * 校验本地已存凭证的各平台登录态：
-     * - 有效 → 保持已登录，更新用户名
-     * - 失效 → 尝试刷新（仅支持刷新的平台：迈金/Wahoo/佳明）
-     * - 刷新失败或无刷新 → 清除凭证，UI变未登录，提示重新登录
-     * 异步执行，不阻塞界面；各平台串行+300ms间隔避免触发风控
-     */
     private fun checkAllLogins() {
         appendLog("🔍 启动登录检测中...")
         lifecycleScope.launch(Dispatchers.IO) {
@@ -838,7 +538,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             runOnUiThread {
-                updateStatusUI()
+                loginFragment.updateStatus()
                 appendLog("📊 登录检测完成: ${valid}有效 / ${refreshed}刷新成功 / ${invalid}失效")
             }
         }
@@ -875,33 +575,6 @@ class MainActivity : AppCompatActivity() {
         else -> null
     }
 
-    private fun updateStatusUI() {
-        setStatus(tvIgpStatus, btnIgpLogin, DataSource.IGPSPORT)
-        setStatus(tvXingzheStatus, btnXingzheLogin, DataSource.XINGZHE)
-        setStatus(tvMageneStatus, btnMageneLogin, DataSource.MAGENE)
-        setStatus(tvBlackbirdStatus, btnBlackbirdLogin, DataSource.BLACKBIRD)
-        setStatus(tvBrytonStatus, btnBrytonLogin, DataSource.BRYTON)
-        setStatus(tvOutbaseStatus, btnOutbaseLogin, DataSource.OUTBASE)
-        setStatus(tvGarminComStatus, btnGarminComLogin, DataSource.GARMIN_COM)
-        setStatus(tvGarminCnStatus, btnGarminCnLogin, DataSource.GARMIN_CN)
-        setStatus(tvCorosCnStatus, btnCorosCnLogin, DataSource.COROS_CN)
-        setStatus(tvCorosIntStatus, btnCorosIntLogin, DataSource.COROS_INT)
-        setStatus(tvWahooStatus, btnWahooLogin, DataSource.WAHOO)
-    }
-
-    private fun setStatus(tv: TextView, btn: MaterialButton, ds: DataSource) {
-        val logged = prefs.isLoggedIn(ds)
-        val username = prefs.getUsername(ds)
-        // v6.7.2: 佳明的displayName是UUID(用户ID)，不显示，直接显示已登录
-        val hideUsername = ds == DataSource.GARMIN_CN || ds == DataSource.GARMIN_COM
-        tv.text = if (logged) {
-            if (username != null && !hideUsername) "✅ $username" else "✅ 已登录"
-        } else "❌ 未登录"
-        tv.setTextColor(getColor(if (logged) R.color.green else R.color.red))
-        btn.text = if (logged) "重新登录" else "登录${ds.displayName}"
-    }
-
-    /** 登录后异步获取用户名并保存 */
     private fun fetchUsernameAfterLogin(ds: DataSource) {
         lifecycleScope.launch(Dispatchers.IO) {
             val cred = prefs.getCredential(ds) ?: return@launch
@@ -922,33 +595,25 @@ class MainActivity : AppCompatActivity() {
             if (name != null) {
                 prefs.saveUsername(ds, name)
                 appendLog("👤 ${ds.displayName}用户: $name")
-                runOnUiThread { updateStatusUI() }
+                runOnUiThread { loginFragment.updateStatus() }
             }
         }
     }
 
+    // v7.6.2: 日志/进度/同步态统一转发给SyncFragment
     private fun appendLog(message: String) {
-        val ts = try { SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) } catch (_: Exception) { "??:??:??" }
         Log.i(TAG, message)
-        runOnUiThread {
-            val cur = tvLog.text?.toString() ?: ""
-            tvLog.text = if (cur.isBlank() || cur == "等待操作...") "[$ts] $message" else "$cur\n[$ts] $message"
-            logScrollView.post { try { logScrollView.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
-        }
+        runOnUiThread { syncFragment.appendLog(message) }
     }
 
-    // v6.7.5: 输出GarminApi调试日志到界面
+    // v6.7.5: 输出GarminApi调试日志到界面（转发SyncFragment）
     private fun flushGarminDebugLogs() {
         try {
             val logs = GarminApi.debugLogs
             synchronized(logs) {
                 if (logs.isNotEmpty()) {
-                    for (line in logs) {
-                        val cur = tvLog.text?.toString() ?: ""
-                        tvLog.text = if (cur.isBlank() || cur == "等待操作...") line else "$cur\n$line"
-                    }
+                    for (line in logs) { syncFragment.appendLog(line) }
                     logs.clear()
-                    logScrollView.post { try { logScrollView.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
                 }
             }
         } catch (_: Exception) {}
@@ -956,20 +621,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun setSyncing(syncing: Boolean) {
         AutoSyncWorker.syncing = syncing
-        runOnUiThread {
-            btnSync.isEnabled = !syncing
-            btnStop.isEnabled = syncing
-            btnSync.text = if (syncing) "⏳ 同步中..." else "🚴 开始同步"
-            progressBar.visibility = if (syncing) View.VISIBLE else View.GONE
-            if (syncing) progressBar.isIndeterminate = true
-        }
+        runOnUiThread { syncFragment.setSyncing(syncing) }
     }
 
-    private fun startSync() {
-        val source = getSelectedSource()
-        val target = getSelectedTarget()
-        val count = sliderCount.value.toInt()
-        val skip = sliderSkip.value.toInt()
+    internal fun startSync() {
+        val source = settingsFragment.getSelectedSource()
+        val target = settingsFragment.getSelectedTarget()
+        val count = settingsFragment.getCount()
+        val skip = settingsFragment.getSkip()
         if (source == target) { Toast.makeText(this, "来源和目标不能相同", Toast.LENGTH_SHORT).show(); return }
         val support = UploadSupport.fromDataSource(target)
         if (!support.available) { Toast.makeText(this, "${target.displayName}上传功能${support.note}", Toast.LENGTH_SHORT).show(); return }
@@ -1004,23 +663,23 @@ class MainActivity : AppCompatActivity() {
                         setSyncing(false); return@launch
                     }
                 }
-                withContext(Dispatchers.Main) { progressBar.isIndeterminate = false; progressBar.max = activities.size; progressBar.progress = 0 }
+                withContext(Dispatchers.Main) { syncFragment.setProgressIndeterminate(false); syncFragment.setProgressMax(activities.size); syncFragment.setProgress(0) }
                 var success = 0; var skipped = 0; var failed = 0
                 for ((i, act) in activities.withIndex()) {
                     if (!isActive) break
                     val syncKey = "${source.shortName}_${act.id}_to_${target.shortName}"
                     if (prefs.isSynced(syncKey)) {
                         skipped++; appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")
-                        withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
+                        withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
                     val fileData = try { downloadActivity(source, target, act) } catch (e: Exception) {
                         appendLog("❌ 下载失败: ${e.message}"); failed++
-                        withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
+                        withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     if (fileData == null || fileData.size < 100) {
                         appendLog("❌ 文件数据无效"); failed++
-                        withContext(Dispatchers.Main) { progressBar.progress = i + 1 }; continue
+                        withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     val ext = if (isFit(fileData)) "fit" else "gpx"
                     val localName = FileNameGenerator.generate(source, act, ext)
@@ -1107,7 +766,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         if (!retrySuccess) { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
                     }
-                    withContext(Dispatchers.Main) { progressBar.progress = i + 1; tvSyncedCount.text = "已同步: ${prefs.getSyncedCount()} 条" }
+                    withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1); settingsFragment.setSyncedCount(prefs.getSyncedCount()) }
                     delay(150) // v6.2.4: 缩短条间间隔，减少多活动同步累计等待
                 }
                 appendLog("━━━━━━━━━━━━━━━━━━━━━━")
@@ -1117,7 +776,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
+    internal fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
 
     /**
      * v6.2.3: 顽鹿(迈金OTM)上传 —— WebView 真实文件选择通道
@@ -1168,11 +827,11 @@ class MainActivity : AppCompatActivity() {
     /**
      * 清除上传记忆：删除全部已同步记录ID，下次同步将重新全量上传（便于频繁测试）
      */
-    private fun clearSyncMemory() {
+    internal fun clearSyncMemory() {
         try {
             val before = prefs.getSyncedCount()
             prefs.clearSyncedIds()
-            tvSyncedCount.text = "已同步: 0 条"
+            settingsFragment.setSyncedCount(0)
             appendLog("🗑 已清除上传记忆($before 条) → 下次同步将重新全量上传")
             Toast.makeText(this, "上传记忆已清除($before 条)", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
@@ -1182,7 +841,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // v7.5.5: 后台自动同步改用WorkManager（系统调度，跨开机，最低15分钟）
-    private fun startAutoSync() {
+    internal fun startAutoSync() {
         val intervalSec = prefs.getAutoInterval().coerceAtLeast(15 * 60)
         // v7.5.7: WorkManager调用包try-catch，防止任何异常导致闪退
         try {
@@ -1205,7 +864,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun stopAutoSync() {
+    internal fun stopAutoSync() {
         WorkManager.getInstance(this).cancelAllWorkByTag(AutoSyncWorker.WORK_TAG)
         // v7.5.6: 关闭自动同步时立即取消状态栏通知（前台+摘要）
         AutoSyncWorker.cancelAllNotifications(this)
@@ -1341,6 +1000,38 @@ class MainActivity : AppCompatActivity() {
 
     /** 初始化坐标转换WebView (加载magene_fix.js) */
     @SuppressLint("SetJavaScriptEnabled")
+    // v7.6.2: 四页面Fragment初始化 + 底部导航切换
+    private fun initFragments() {
+        loginFragment = com.jichi.ob.ui.LoginFragment()
+        settingsFragment = com.jichi.ob.ui.SyncSettingsFragment()
+        syncFragment = com.jichi.ob.ui.SyncFragment()
+        aboutFragment = com.jichi.ob.ui.AboutFragment()
+        supportFragmentManager.beginTransaction()
+            .add(R.id.fragmentContainer, loginFragment, "login")
+            .add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
+            .add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
+            .add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
+            .commit()
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_login -> showFragment(loginFragment)
+                R.id.nav_settings -> showFragment(settingsFragment)
+                R.id.nav_sync -> showFragment(syncFragment)
+                R.id.nav_about -> showFragment(aboutFragment)
+            }
+            true
+        }
+        bottomNav.selectedItemId = R.id.nav_login
+    }
+
+    private fun showFragment(target: androidx.fragment.app.Fragment) {
+        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment).filter { it !== target }
+        val tr = supportFragmentManager.beginTransaction()
+        for (o in others) tr.hide(o)
+        tr.show(target).commit()
+    }
+
     private fun initFixWebView() {
         fixWebView = android.webkit.WebView(this)
         fixWebView.settings.javaScriptEnabled = true
@@ -1404,8 +1095,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 测试下载: 下载1条记录保存到本地，验证下载功能 */
-    private fun testDownload() {
-        val source = getSelectedSource()
+    internal fun testDownload() {
+        val source = settingsFragment.getSelectedSource()
         if (!prefs.isLoggedIn(source)) {
             Toast.makeText(this, "请先登录${source.displayName}", Toast.LENGTH_SHORT).show()
             return
@@ -1434,7 +1125,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 电源保护指引: 显示各品牌后台常驻和电池优化设置 */
-    private fun showPowerGuide() {
+    internal fun showPowerGuide() {
         val guide = """
             🔋 后台常驻 & 电池保护设置指引
 
