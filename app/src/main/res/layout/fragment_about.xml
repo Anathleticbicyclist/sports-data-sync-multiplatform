@@ -36,8 +36,8 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.6.3"
-            android:textColor="@color/primary"
+            android:text="开发体验版 v7.6.4"
+            android:textColor="@color/green"
             android:textSize="13sp" />
         <TextView
             android:layout_width="match_parent"
@@ -45,7 +45,7 @@
             android:gravity="center"
             android:layout_marginTop="4dp"
             android:text="🎯 让运动数据自由流动"
-            android:textColor="@color/primary"
+            android:textColor="@color/green"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -70,24 +70,23 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="2dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.4)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复高驰活动列表只能拉取200条的问题：改为循环翻页，支持拉取全部活动记录\n2. 高驰分页拉取时遇到错误返回已获取部分，不再整体失败" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.3" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 迈金OTM上传改造：API直传替代WebView（顽鹿新版接口，更快更稳）\n2. 迈金上传可正确入库，不再依赖页面自动化\n3. 上传失败自动回退WebView通道" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.2" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 全新四页面布局：登录 / 数据同步设置 / 同步 / 关于，操作更直观\n2. 底部导航栏快速切换页面\n3. 同步数量/跳过数量支持手动输入\n4. 登录页恢复原版布局，Outbase独占一行\n5. 修复Outbase登录过期凭证误判问题" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复Outbase登录过期凭证误判，不再闪退提示已登录\n2. 启动登录检测：自动刷新后明确显示成功/失败" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- 链接（只保留俱乐部+开发版） -->
-        <TextView android:id="@+id/tvClubLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="🏠 鸡翅幸哲迈进OB同步工具开发者俱乐部" android:textColor="@color/primary" android:textSize="11sp" android:padding="2dp" />
-        <TextView android:id="@+id/tvUpdateLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="📦 鸡翅幸哲迈进OB(开发体验版)
-开发版不稳定且用且珍惜" android:textColor="@color/primary" android:textSize="11sp" android:padding="2dp" />
+        <TextView android:id="@+id/tvClubLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸡翅幸哲迈进OB同步工具:开发者俱乐部" android:textColor="@color/text_primary" android:textSize="11sp" android:padding="2dp" />
+        <TextView android:id="@+id/tvUpdateLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="➠更新地址鸡翅幸哲迈进OB（开发体验版） 开发版:Github项目" android:textColor="@color/text_primary" android:textSize="11sp" android:padding="2dp" />
 
         <!-- 鸣谢（与原版一致） -->
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:layout_marginTop="4dp" android:text="🙏 鸣谢" android:textColor="@color/text_primary" android:textSize="11sp" android:textStyle="bold" android:padding="2dp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、高驰、佳明、Wahoo、Outbase为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸣谢青岛AUV俱乐部" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="8dp" />
 
