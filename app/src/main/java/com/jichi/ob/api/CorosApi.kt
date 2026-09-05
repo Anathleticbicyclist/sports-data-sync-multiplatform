@@ -159,28 +159,33 @@ class CorosApi {
         val (token, regionId, _) = parseCredential(cred)
         if (token.isEmpty()) return@withContext emptyList()
         try {
-            val page = (offset / 200) + 1
-            val url = "${teamApi(regionId)}/activity/query?modeList=&pageNumber=$page&size=200"
-            val req = Request.Builder().url(url).apply {
-                authHeaders(token, regionId).forEach { (k, v) -> addHeader(k, v) }
-            }.get().build()
-            client.newCall(req).execute().use { resp ->
-                val body = resp.body?.string() ?: ""
-                if (resp.code != 200) {
-                    Log.w(TAG, "getActivities HTTP ${resp.code}: ${body.take(150)}")
-                    return@withContext emptyList()
-                }
-                val json = JSONObject(body)
-                if (json.optString("result") != "0000") {
-                    Log.w(TAG, "getActivities result=${json.optString("result")}: ${json.optString("message")}")
-                    return@withContext emptyList()
-                }
-                val data = json.optJSONObject("data")
-                val list = data?.optJSONArray("dataList") ?: return@withContext emptyList()
-                val out = mutableListOf<ActivityRecord>()
-                var skip = offset - (page - 1) * 200
-                for (i in 0 until list.length()) {
-                    val item = list.getJSONObject(i)
+            val out = mutableListOf<ActivityRecord>()
+            var currentOffset = offset
+            // v7.6.4: 循环翻页，修复此前只拉一页(最多200条)的问题
+            while (out.size < limit) {
+                val page = (currentOffset / 200) + 1
+                val url = "${teamApi(regionId)}/activity/query?modeList=&pageNumber=$page&size=200"
+                val req = Request.Builder().url(url).apply {
+                    authHeaders(token, regionId).forEach { (k, v) -> addHeader(k, v) }
+                }.get().build()
+                val pageList = client.newCall(req).execute().use { resp ->
+                    val body = resp.body?.string() ?: ""
+                    if (resp.code != 200) {
+                        Log.w(TAG, "getActivities HTTP ${resp.code}: ${body.take(150)}")
+                        return@withContext out
+                    }
+                    val json = JSONObject(body)
+                    if (json.optString("result") != "0000") {
+                        Log.w(TAG, "getActivities result=${json.optString("result")}: ${json.optString("message")}")
+                        return@withContext out
+                    }
+                    val data = json.optJSONObject("data")
+                    data?.optJSONArray("dataList")
+                } ?: break
+                if (pageList.length() == 0) break
+                var skip = currentOffset - (page - 1) * 200
+                for (i in 0 until pageList.length()) {
+                    val item = pageList.getJSONObject(i)
                     if (skip > 0) { skip--; continue }
                     if (out.size >= limit) break
                     val labelId = item.optString("labelId")
@@ -192,8 +197,10 @@ class CorosApi {
                     out.add(ActivityRecord(labelId, title, startTime, distance, duration, DataSource.COROS_CN,
                         extra = "sportType=$sportType"))
                 }
-                out
+                if (pageList.length() < 200) break // 最后一页，没有更多数据
+                currentOffset = page * 200
             }
+            out
         } catch (e: Exception) {
             Log.e(TAG, "getActivities error", e); emptyList()
         }
