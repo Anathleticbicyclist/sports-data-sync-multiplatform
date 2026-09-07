@@ -53,6 +53,7 @@ class SyncSettingsFragment : Fragment() {
         val sliderSkip = view.findViewById<Slider>(R.id.sliderSkip)
         val tvSkip = view.findViewById<TextView>(R.id.tvSkip)
         val switchGcj02 = view.findViewById<SwitchMaterial>(R.id.switchGcj02)
+        val switchForce = view.findViewById<SwitchMaterial>(R.id.switchForceRetransmit)
 
         sliderCount.addOnChangeListener { _, v, _ -> tvCount.text = v.toInt().toString() }
         sliderSkip.addOnChangeListener { _, v, _ -> tvSkip.text = v.toInt().toString() }
@@ -60,12 +61,18 @@ class SyncSettingsFragment : Fragment() {
         tvCount.setOnClickListener { showInputDialog("同步数量", sliderCount, tvCount, 1, 1000) }
         tvSkip.setOnClickListener { showInputDialog("跳过前N条", sliderSkip, tvSkip, 0, 10000) }
         switchGcj02.setOnCheckedChangeListener { _, checked -> prefs.setGcj02Convert(checked) }
+        // v7.6.8: 忽略记忆，强制重传 —— 仅在单选(用户可控)时写偏好；多选时UI强制开但保留用户单选偏好
+        switchForce.setOnCheckedChangeListener { _, checked ->
+            if (switchForce.isEnabled) prefs.setForceRetransmit(checked)
+            updateForceRetransmitState()
+        }
 
         setupSourceButtons()
         setupTargetButtons()
         updateSourceChips()
         updateTargetChips()
         restoreSettings(view)
+        updateForceRetransmitState()
     }
 
     // ===== 源/目标选择 =====
@@ -157,6 +164,28 @@ class SyncSettingsFragment : Fragment() {
             setButtonSelected(b, (b.tag as? String)?.let { selectedTargetTags.contains(it) } == true, b.tag as? String ?: "")
         }
         updateTargetCountLabel()
+        updateForceRetransmitState()
+    }
+
+    /**
+     * v7.6.8: 忽略记忆强制重传开关状态
+     * - 多目标(>1)：强制开启且不可操作（同步逻辑按 targets.size>1 强制忽略记忆）
+     * - 单选(1)：用户自选（prefs保存偏好）
+     */
+    private fun updateForceRetransmitState() {
+        val sw = view?.findViewById<SwitchMaterial>(R.id.switchForceRetransmit) ?: return
+        val hint = view?.findViewById<TextView>(R.id.tvForceRetransmitHint) ?: return
+        val multi = selectedTargetTags.size > 1
+        if (multi) {
+            sw.isChecked = true
+            sw.isEnabled = false
+            hint.text = "多目标同步已自动开启强制重传：每次同步都会重新上传到所有目标"
+        } else {
+            sw.isEnabled = true
+            sw.isChecked = prefs.isForceRetransmit()
+            hint.text = if (sw.isChecked) "已开启：忽略同步记忆，本次同步将重新上传"
+            else "已关闭：已在同步记忆中的记录将自动跳过"
+        }
     }
 
     private fun updateTargetCountLabel() {
@@ -193,6 +222,7 @@ class SyncSettingsFragment : Fragment() {
             saveDir.text = "下载/鸡翅幸哲迈进OB"
         }
         view.findViewById<TextView>(R.id.tvSyncedCount).text = "已同步: ${prefs.getSyncedCount()} 条"
+        updateForceRetransmitState()
     }
 
     private fun updateTargetChips() {
@@ -267,6 +297,7 @@ class SyncSettingsFragment : Fragment() {
             }
             updateTargetChips()
             updateTargetCountLabel()
+            updateForceRetransmitState()
         } catch (e: Exception) {
             // 忽略刷新异常
         }
