@@ -1023,6 +1023,7 @@ class MainActivity : AppCompatActivity() {
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
         tr.show(target).commit()
+        // 注：登录/注销状态刷新已由各Fragment的onResume自行处理（v7.6.7）
     }
 
     private fun initFixWebView() {

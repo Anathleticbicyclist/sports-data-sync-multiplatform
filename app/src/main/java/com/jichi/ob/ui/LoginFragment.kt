@@ -20,6 +20,7 @@ import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.model.DataSource
 import com.jichi.ob.util.PrefsManager
 import android.widget.TextView
+import android.widget.Toast
 
 /**
  * v7.6.2: 四页面布局 - 页面1 登录页
@@ -30,6 +31,7 @@ class LoginFragment : Fragment() {
     private lateinit var prefs: PrefsManager
     private val statusViews = mutableMapOf<DataSource, TextView>()
     private val btnViews = mutableMapOf<DataSource, MaterialButton>()
+    private val logoutViews = mutableMapOf<DataSource, TextView>()  // v7.6.7: 注销按钮
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_login, container, false)
@@ -63,6 +65,36 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.COROS_INT] = view.findViewById(R.id.btnCorosIntLogin)
         btnViews[DataSource.WAHOO] = view.findViewById(R.id.btnWahooLogin)
 
+        // v7.6.7: 注销按钮（每个卡片头部右上角，仅登录后显示）
+        logoutViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogout)
+        logoutViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogout)
+        logoutViews[DataSource.MAGENE] = view.findViewById(R.id.btnMageneLogout)
+        logoutViews[DataSource.BLACKBIRD] = view.findViewById(R.id.btnBlackbirdLogout)
+        logoutViews[DataSource.BRYTON] = view.findViewById(R.id.btnBrytonLogout)
+        logoutViews[DataSource.OUTBASE] = view.findViewById(R.id.btnOutbaseLogout)
+        logoutViews[DataSource.GARMIN_COM] = view.findViewById(R.id.btnGarminComLogout)
+        logoutViews[DataSource.GARMIN_CN] = view.findViewById(R.id.btnGarminCnLogout)
+        logoutViews[DataSource.COROS_CN] = view.findViewById(R.id.btnCorosCnLogout)
+        logoutViews[DataSource.COROS_INT] = view.findViewById(R.id.btnCorosIntLogout)
+        logoutViews[DataSource.WAHOO] = view.findViewById(R.id.btnWahooLogout)
+
+        // 注销点击 → 确认后清除凭证并刷新
+        for ((ds, tv) in logoutViews) {
+            tv.setOnClickListener {
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("注销登录")
+                    .setMessage("确定注销${ds.displayName}吗？注销后该平台将无法同步。")
+                    .setPositiveButton("注销") { _, _ ->
+                        prefs.clearCredential(ds)
+                        // 若该平台被选为来源/目标，同步记忆残留不影响，登录页刷新即可
+                        updateStatus()
+                        Toast.makeText(requireContext(), "已注销${ds.displayName}", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            }
+        }
+
         // 登录按钮点击 → MainActivity处理
         btnViews[DataSource.IGPSPORT]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_IGPSPORT, IgpsportApi.LOGIN_URL) }
         btnViews[DataSource.XINGZHE]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_XINGZHE, XingzheApi.LOGIN_URL) }
@@ -75,6 +107,13 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.COROS_CN]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_COROS_CN, CorosApi.LOGIN_URL_CN) }
         btnViews[DataSource.COROS_INT]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_COROS_INT, CorosApi.LOGIN_URL_INT) }
         btnViews[DataSource.WAHOO]?.setOnClickListener { (activity as? MainActivity)?.openWahooLogin() }
+
+        // v7.6.7: fragment可见时刷新登录状态（登录返回/注销后自动同步）
+        lifecycle.addObserver(object : androidx.lifecycle.LifecycleEventObserver {
+            override fun onStateChanged(source: androidx.lifecycle.LifecycleOwner, event: androidx.lifecycle.Lifecycle.Event) {
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) updateStatus()
+            }
+        })
 
         updateStatus()
     }
@@ -93,6 +132,8 @@ class LoginFragment : Fragment() {
             tv.setTextColor(ctx.getColor(if (logged) R.color.green else R.color.red))
             val btn = btnViews[ds] ?: continue
             btn.text = if (logged) "重新登录" else "登录${ds.displayName}"
+            // v7.6.7: 注销按钮仅登录后显示
+            logoutViews[ds]?.visibility = if (logged) View.VISIBLE else View.GONE
         }
     }
 }

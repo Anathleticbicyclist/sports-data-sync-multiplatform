@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
@@ -40,6 +41,12 @@ class SyncSettingsFragment : Fragment() {
         prefs = PrefsManager(requireContext())
         gridSource = view.findViewById(R.id.gridSource)
         gridTarget = view.findViewById(R.id.gridTarget)
+        // v7.6.7: fragment可见时刷新登录状态（登录/注销后切回本页自动同步按钮可用性）
+        lifecycle.addObserver(object : androidx.lifecycle.LifecycleEventObserver {
+            override fun onStateChanged(source: androidx.lifecycle.LifecycleOwner, event: androidx.lifecycle.Lifecycle.Event) {
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) refreshLoginState()
+            }
+        })
 
         val sliderCount = view.findViewById<Slider>(R.id.sliderCount)
         val tvCount = view.findViewById<TextView>(R.id.tvCount)
@@ -56,6 +63,8 @@ class SyncSettingsFragment : Fragment() {
 
         setupSourceButtons()
         setupTargetButtons()
+        updateSourceChips()
+        updateTargetChips()
         restoreSettings(view)
     }
 
@@ -96,6 +105,18 @@ class SyncSettingsFragment : Fragment() {
             val tag = btn.tag as? String ?: continue
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
+                val ds = DataSource.fromShortName(tag)
+                // 未登录平台不可选
+                if (ds == null || !prefs.isLoggedIn(ds)) {
+                    Toast.makeText(requireContext(), "请先登录${ds?.displayName ?: "该平台"}", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                // 互斥：来源与目标不能为同一平台
+                if (selectedTargetTags.contains(tag)) {
+                    Toast.makeText(requireContext(), "选择同步来源不能相同，已从同步目标移除", Toast.LENGTH_SHORT).show()
+                    selectedTargetTags.remove(tag)
+                    refreshTargetButtons()
+                }
                 selectedSourceTag = tag
                 for (j in 0 until gridSource.childCount) {
                     val b = gridSource.getChildAt(j) as? MaterialButton ?: continue
@@ -111,6 +132,17 @@ class SyncSettingsFragment : Fragment() {
             val tag = btn.tag as? String ?: continue
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
+                val ds = DataSource.fromShortName(tag)
+                // 未登录平台不可选
+                if (ds == null || !prefs.isLoggedIn(ds)) {
+                    Toast.makeText(requireContext(), "请先登录${ds?.displayName ?: "该平台"}", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                // 互斥：目标不能与来源为同一平台
+                if (tag == selectedSourceTag) {
+                    Toast.makeText(requireContext(), "选择同步来源不能相同", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 // v7.6.7: 一对多 - 点击toggle选中/取消
                 if (selectedTargetTags.contains(tag)) selectedTargetTags.remove(tag)
                 else selectedTargetTags.add(tag)
@@ -141,9 +173,11 @@ class SyncSettingsFragment : Fragment() {
             val tag = btn.tag as? String ?: continue
             setButtonSelected(btn, tag == selectedSourceTag, tag)
         }
-        // v7.6.7: 一对多 - 恢复多个目标
+        // v7.6.7: 一对多 - 恢复多个目标（过滤未登录和与来源相同的平台）
         selectedTargetTags.clear()
-        selectedTargetTags.addAll(prefs.getLastTargets())
+        selectedTargetTags.addAll(prefs.getLastTargets().filter { t ->
+            t != selectedSourceTag && (DataSource.fromShortName(t)?.let { prefs.isLoggedIn(it) } ?: false)
+        })
         for (i in 0 until gridTarget.childCount) {
             val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
             val tag = btn.tag as? String ?: continue
@@ -166,6 +200,7 @@ class SyncSettingsFragment : Fragment() {
             val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
             val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
             val support = UploadSupport.fromDataSource(ds)
+            // v7.6.7: 开发中平台优先标记（如百锐腾），无论登录与否都显示"开发中"且不可选
             if (!support.available) {
                 btn.isEnabled = false
                 val name = ds.displayName
@@ -177,7 +212,63 @@ class SyncSettingsFragment : Fragment() {
                 btn.setBackgroundColor(0xFFE8E8E8.toInt())
                 btn.setTextColor(0xFFB0B0B0.toInt())
                 btn.alpha = 0.7f
+                continue
             }
+            // v7.6.7: 未登录平台置灰不可点（点击有Toast提示"请先登录"）
+            if (!prefs.isLoggedIn(ds)) {
+                btn.isEnabled = false
+                btn.setBackgroundColor(0xFFE8E8E8.toInt())
+                btn.setTextColor(0xFFB0B0B0.toInt())
+                btn.alpha = 0.7f
+            }
+        }
+    }
+
+    /** v7.6.7: 来源网格未登录平台置灰不可点 */
+    private fun updateSourceChips() {
+        for (i in 0 until gridSource.childCount) {
+            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
+            val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
+            if (!prefs.isLoggedIn(ds)) {
+                btn.isEnabled = false
+                btn.setBackgroundColor(0xFFE8E8E8.toInt())
+                btn.setTextColor(0xFFB0B0B0.toInt())
+                btn.alpha = 0.7f
+            } else {
+                // 登录后恢复可点（重新应用选中态）
+                btn.isEnabled = true
+                btn.alpha = 1.0f
+                setButtonSelected(btn, (btn.tag as? String) == selectedSourceTag, btn.tag as? String ?: "")
+            }
+        }
+    }
+
+    /**
+     * v7.6.7: 登录状态变化后刷新设置页（MainActivity在切换页面时调用）
+     * - 重新置灰未登录平台
+     * - 恢复登录平台可点
+     * - 自动清理目标中未登录/与来源相同的平台
+     */
+    fun refreshLoginState() {
+        try {
+            updateSourceChips()
+            // 清理目标中未登录/与来源相同的平台
+            selectedTargetTags.removeAll { t ->
+                val ds = DataSource.fromShortName(t)
+                ds == null || !prefs.isLoggedIn(ds) || t == selectedSourceTag
+            }
+            // 恢复目标网格按钮（重新应用选中态）
+            for (i in 0 until gridTarget.childCount) {
+                val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+                val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
+                btn.isEnabled = prefs.isLoggedIn(ds) && UploadSupport.fromDataSource(ds).available
+                btn.alpha = if (btn.isEnabled) 1.0f else 0.7f
+                if (btn.isEnabled) setButtonSelected(btn, selectedTargetTags.contains(btn.tag as? String ?: ""), btn.tag as? String ?: "")
+            }
+            updateTargetChips()
+            updateTargetCountLabel()
+        } catch (e: Exception) {
+            // 忽略刷新异常
         }
     }
 
