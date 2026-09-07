@@ -626,18 +626,28 @@ class MainActivity : AppCompatActivity() {
 
     internal fun startSync() {
         val source = settingsFragment.getSelectedSource()
-        val target = settingsFragment.getSelectedTarget()
+        // v7.6.7: 一对多同步 - 支持多目标
+        var targets = settingsFragment.getSelectedTargets().distinct().filter { it != source }
+        if (targets.isEmpty()) { Toast.makeText(this, "请选择至少一个同步目标", Toast.LENGTH_SHORT).show(); return }
         val count = settingsFragment.getCount()
         val skip = settingsFragment.getSkip()
-        if (source == target) { Toast.makeText(this, "来源和目标不能相同", Toast.LENGTH_SHORT).show(); return }
-        val support = UploadSupport.fromDataSource(target)
-        if (!support.available) { Toast.makeText(this, "${target.displayName}上传功能${support.note}", Toast.LENGTH_SHORT).show(); return }
+        // 过滤不可用目标（开发中）
+        val unavailable = targets.filter { !UploadSupport.fromDataSource(it).available }
+        if (unavailable.isNotEmpty()) {
+            Toast.makeText(this, "${unavailable.joinToString { it.displayName }}上传功能不可用，已移除", Toast.LENGTH_SHORT).show()
+            targets = targets.filter { UploadSupport.fromDataSource(it).available }
+        }
+        if (targets.isEmpty()) return
         if (!prefs.isLoggedIn(source)) { Toast.makeText(this, "请先登录${source.displayName}", Toast.LENGTH_SHORT).show(); return }
-        if (!prefs.isLoggedIn(target)) { Toast.makeText(this, "请先登录${target.displayName}", Toast.LENGTH_SHORT).show(); return }
+        val notLoggedIn = targets.filter { !prefs.isLoggedIn(it) }
+        if (notLoggedIn.isNotEmpty()) {
+            Toast.makeText(this, "请先登录${notLoggedIn.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
+        }
         prefs.setLastSource(source.shortName)
-        prefs.setLastTarget(target.shortName)
+        prefs.setLastTargets(targets.map { it.shortName })
+        val targetNames = targets.joinToString("、") { it.displayName }
         appendLog("━━━━━━━━━━━━━━━━━━━━━━")
-        appendLog("🚀 开始同步: ${source.displayName} → ${target.displayName} (跳过$skip, 同步$count)")
+        appendLog("🚀 开始同步: ${source.displayName} → $targetNames (跳过$skip, 同步$count)")
         setSyncing(true)
         // v6.7.5: 输出GarminApi调试日志
         flushGarminDebugLogs()
@@ -648,32 +658,44 @@ class MainActivity : AppCompatActivity() {
                 appendLog("📋 获取到 ${activities.size} 条活动")
                 flushGarminDebugLogs()
                 if (activities.isEmpty()) { appendLog("❌ 未获取到任何活动"); setSyncing(false); return@launch }
-                if (target == DataSource.OUTBASE) {
-                    val obSid = prefs.getOutbaseSessionId()!!
-                    appendLog("🔍 校验Outbase会话...")
-                    if (outbaseApi.warmUp(obSid)) appendLog("✅ Outbase会话有效") else appendLog("⚠️ Outbase会话校验未通过")
-                }
-                if (target == DataSource.XINGZHE) {
-                    val xzSid = prefs.getXingzheSessionId() ?: ""
-                    appendLog("🔍 校验行者会话...")
-                    if (xzSid.isNotEmpty() && xingzheApi.verifySession(xzSid)) {
-                        appendLog("✅ 行者会话有效")
-                    } else {
-                        appendLog("⚠️ 行者登录已过期或未登录，请重新登录行者后重试")
-                        setSyncing(false); return@launch
+                // 多目标会话预校验
+                for (t in targets) {
+                    when (t) {
+                        DataSource.OUTBASE -> {
+                            val obSid = prefs.getOutbaseSessionId()
+                            if (obSid == null) { appendLog("⚠️ Outbase会话缺失"); continue }
+                            appendLog("🔍 校验Outbase会话...")
+                            if (outbaseApi.warmUp(obSid)) appendLog("✅ Outbase会话有效") else appendLog("⚠️ Outbase会话校验未通过")
+                        }
+                        DataSource.XINGZHE -> {
+                            val xzSid = prefs.getXingzheSessionId() ?: ""
+                            appendLog("🔍 校验行者会话...")
+                            if (xzSid.isNotEmpty() && xingzheApi.verifySession(xzSid)) {
+                                appendLog("✅ 行者会话有效")
+                            } else {
+                                appendLog("⚠️ 行者登录已过期或未登录，请重新登录行者后重试")
+                                targets = targets.filter { it != DataSource.XINGZHE }
+                                if (targets.isEmpty()) { setSyncing(false); return@launch }
+                            }
+                        }
+                        else -> {}
                     }
                 }
                 withContext(Dispatchers.Main) { syncFragment.setProgressIndeterminate(false); syncFragment.setProgressMax(activities.size); syncFragment.setProgress(0) }
                 var success = 0; var skipped = 0; var failed = 0
                 for ((i, act) in activities.withIndex()) {
                     if (!isActive) break
-                    val syncKey = "${source.shortName}_${act.id}_to_${target.shortName}"
-                    if (prefs.isSynced(syncKey)) {
+                    // v7.6.7: 一条活动只要任一目标未同步就下载；下载一次，上传到所有未同步目标
+                    val pendingTargets = targets.filter { t ->
+                        val syncKey = "${source.shortName}_${act.id}_to_${t.shortName}"
+                        !prefs.isSynced(syncKey)
+                    }
+                    if (pendingTargets.isEmpty()) {
                         skipped++; appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
-                    val fileData = try { downloadActivity(source, target, act) } catch (e: Exception) {
+                    val fileData = try { downloadActivity(source, targets.first(), act) } catch (e: Exception) {
                         appendLog("❌ 下载失败: ${e.message}"); failed++
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
@@ -690,80 +712,74 @@ class MainActivity : AppCompatActivity() {
                         val savedPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, localName, fileData)
                         appendLog("💾 已存: $savedPath (${fileData.size}字节)")
                     } catch (_: Exception) {}
-                    val t0 = System.currentTimeMillis()
-                    appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
-                    if (target == DataSource.BRYTON) {
-                        appendLog("⏳ 正在打开百锐腾页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
-                    }
-                    var targetCred = prefs.getCredential(target) ?: ""
-                    // v6.5.3: 佳明目标平台token过期自动刷新
-                    if (target == DataSource.GARMIN_COM || target == DataSource.GARMIN_CN) {
-                        val newCred = garminApi.ensureValidToken(target, targetCred)
-                        if (newCred != targetCred) {
-                            targetCred = newCred
-                            if (target == DataSource.GARMIN_COM) prefs.saveGarminComToken(targetCred)
-                            else prefs.saveGarminCnToken(targetCred)
+                    // v7.6.7: 内层循环目标上传（同一文件，多目标复用）
+                    for (target in pendingTargets) {
+                        if (!isActive) break
+                        val syncKey = "${source.shortName}_${act.id}_to_${target.shortName}"
+                        val t0 = System.currentTimeMillis()
+                        appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
+                        if (target == DataSource.BRYTON) {
+                            appendLog("⏳ 正在打开百锐腾页面并注入登录态，页面加载约5-15秒，期间界面短暂无响应属正常...")
                         }
-                    }
-                    // v7.5.3: Wahoo目标平台token过期自动刷新（refresh_token轮换）
-                    if (target == DataSource.WAHOO) {
-                        val wahooRefresh = prefs.getWahooRefresh()
-                        val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
-                        val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
-                        if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
-                            val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
-                            if (newToken != targetCred) {
-                                appendLog("🔄 Wahoo token已自动刷新")
-                                targetCred = newToken
-                                prefs.saveWahooToken(targetCred)
+                        var targetCred = prefs.getCredential(target) ?: ""
+                        // v6.5.3: 佳明目标平台token过期自动刷新
+                        if (target == DataSource.GARMIN_COM || target == DataSource.GARMIN_CN) {
+                            val newCred = garminApi.ensureValidToken(target, targetCred)
+                            if (newCred != targetCred) {
+                                targetCred = newCred
+                                if (target == DataSource.GARMIN_COM) prefs.saveGarminComToken(targetCred)
+                                else prefs.saveGarminCnToken(targetCred)
                             }
                         }
-                    }
-                    val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
-                    val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                    // v6.2.5: 迈金上传优先走HTTP(u.onelap.cn/upload/fit, v6.2.2实测OK、快且不卡UI)，
-                    // HTTP失败再走顽鹿WebView真实文件选择兜底(v6.2.3实测OK)
-                    // v6.2.4: 百锐腾同为Meteor无REST上传，走WebView真实文件选择（/activities 页"+"→file input）
-                    val result = if (target == DataSource.MAGENE) {
-                        val mToken = prefs.getCredential(DataSource.MAGENE) ?: ""
-                        // v7.6.3: 迈金主通道改顽鹿OTM API直传（jilu0字段+token，2026-09实测可入库），失败再走WebView兜底
-                        val httpResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
-                        if (httpResult.success) httpResult
-                        else {
-                            appendLog("↩️ 迈金API直传失败(${httpResult.message})，改用顽鹿WebView通道重试...")
-                            uploadToMageneViaWebView(localFile.absolutePath, mToken)
-                        }
-                    } else if (target == DataSource.BRYTON) {
-                        uploadToBrytonViaWebView(localFile.absolutePath)
-                    } else {
-                        uploadEngine.upload(target, targetCred, fileData, act, upExtra)
-                    }
-                    val tCost = System.currentTimeMillis() - t0
-                    if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
-                    else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
-                    else {
-                        // v7.5.3: Wahoo 401自动刷新token并重试一次
-                        var retrySuccess = false
-                        if (target == DataSource.WAHOO && result.message.contains("401")) {
-                            appendLog("🔄 Wahoo返回401，刷新token后重试...")
+                        // v7.5.3: Wahoo目标平台token过期自动刷新（refresh_token轮换）
+                        if (target == DataSource.WAHOO) {
                             val wahooRefresh = prefs.getWahooRefresh()
                             val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
                             val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
                             if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
                                 val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
                                 if (newToken != targetCred) {
+                                    appendLog("🔄 Wahoo token已自动刷新")
                                     targetCred = newToken
                                     prefs.saveWahooToken(targetCred)
-                                    val retryResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
-                                    if (retryResult.success) {
-                                        retrySuccess = true
-                                        success++; prefs.addSyncedId(syncKey)
-                                        appendLog("✅ 重试上传成功(${System.currentTimeMillis() - t0}ms): ${retryResult.message}")
-                                    }
                                 }
                             }
                         }
-                        if (!retrySuccess) { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
+                        val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
+                        val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+                        // v7.6.7: 迈金纯API直传（顽鹿OTM接口，已移除WebView兜底）
+                        val result = if (target == DataSource.BRYTON) {
+                            uploadToBrytonViaWebView(localFile.absolutePath)
+                        } else {
+                            uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                        }
+                        val tCost = System.currentTimeMillis() - t0
+                        if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
+                        else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
+                        else {
+                            // v7.5.3: Wahoo 401自动刷新token并重试一次
+                            var retrySuccess = false
+                            if (target == DataSource.WAHOO && result.message.contains("401")) {
+                                appendLog("🔄 Wahoo返回401，刷新token后重试...")
+                                val wahooRefresh = prefs.getWahooRefresh()
+                                val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                                val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                                if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
+                                    val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
+                                    if (newToken != targetCred) {
+                                        targetCred = newToken
+                                        prefs.saveWahooToken(targetCred)
+                                        val retryResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                                        if (retryResult.success) {
+                                            retrySuccess = true
+                                            success++; prefs.addSyncedId(syncKey)
+                                            appendLog("✅ 重试上传成功(${System.currentTimeMillis() - t0}ms): ${retryResult.message}")
+                                        }
+                                    }
+                                }
+                            }
+                            if (!retrySuccess) { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
+                        }
                     }
                     withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1); settingsFragment.setSyncedCount(prefs.getSyncedCount()) }
                     delay(150) // v6.2.4: 缩短条间间隔，减少多活动同步累计等待
@@ -776,28 +792,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     internal fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
-
-    /**
-     * v6.2.3: 顽鹿(迈金OTM)上传 —— WebView 真实文件选择通道
-     *
-     * 逆向结论：顽鹿 POST /api/otm/ride_record/upload/fit 对"程序化构造的File"一律返回
-     * 422 {"code":422,"message":"没有上传文件"}；只有"真实文件选择"（浏览器原生input[type=file]）
-     * 才能成功落库。故 Android 端用隐藏 WebView + onShowFileChooser 把本地FIT喂给页面，
-     * 等价用户手动在顽鹿网页上选择文件上传。
-     */
-    private suspend fun uploadToMageneViaWebView(fitPath: String, token: String): com.jichi.ob.api.UploadEngine.UploadResult =
-        suspendCancellableCoroutine { cont ->
-            val uploader = MageneWebUploader(this, token)
-            uploader.upload(fitPath) { ok, msg ->
-                uploader.destroy()
-                if (ok) {
-                    cont.resume(com.jichi.ob.api.UploadEngine.UploadResult(true, message = msg))
-                } else {
-                    cont.resume(com.jichi.ob.api.UploadEngine.UploadResult(false, message = msg))
-                }
-            }
-            cont.invokeOnCancellation { uploader.destroy() }
-        }
 
     /**
      * v6.2.4: 百锐腾上传 —— WebView 真实文件选择通道

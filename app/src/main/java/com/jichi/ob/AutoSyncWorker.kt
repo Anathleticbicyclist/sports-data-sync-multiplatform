@@ -16,6 +16,7 @@ import androidx.work.WorkerParameters
 import com.jichi.ob.api.*
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.model.DataSource
+import com.jichi.ob.model.UploadSupport
 import com.jichi.ob.util.PrefsManager
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -71,17 +72,20 @@ class AutoSyncWorker(
         createNotificationChannel()
 
         val source = DataSource.fromShortName(prefs.getLastSource()) ?: DataSource.IGPSPORT
-        val target = DataSource.fromShortName(prefs.getLastTarget()) ?: DataSource.OUTBASE
+        // v7.6.7: 一对多 - 自动同步读取多目标
+        var targets = prefs.getLastTargets().mapNotNull { DataSource.fromShortName(it) }.distinct().filter { it != source }
+        if (targets.isEmpty()) targets = listOf(DataSource.fromShortName(prefs.getLastTarget()) ?: DataSource.OUTBASE)
         val intervalSec = prefs.getAutoInterval().coerceAtLeast(900)
         val intervalMin = intervalSec / 60
+        val targetNames = targets.joinToString("、") { it.displayName }
 
         // v7.5.7: setForeground()在部分ROM(如vivo OriginOS+Android16)可能抛异常导致闪退
         // 包进try-catch，失败时降级为普通通知，保证不闪退
         var foregroundOk = false
         try {
             setForeground(createForegroundInfo(
-                "正在检测: ${source.displayName}→${target.displayName}",
-                source, target, intervalMin
+                "正在检测: ${source.displayName}→$targetNames",
+                source, targets.first(), intervalMin
             ))
             foregroundOk = true
             Log.d(TAG, "setForeground成功")
@@ -90,13 +94,13 @@ class AutoSyncWorker(
             // 降级：发普通通知（不可保持后台存活，但不闪退）
             val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.notify(NOTIF_ID_FOREGROUND, buildForegroundNotification(
-                "正在检测: ${source.displayName}→${target.displayName}",
-                source, target, intervalMin
+                "正在检测: ${source.displayName}→$targetNames",
+                source, targets.first(), intervalMin
             ))
         }
 
         return try {
-            val (synced, lastTitle, detectedDate) = doSync(source, target)
+            val (synced, lastTitle, detectedDate) = doSync(source, targets)
 
             // 记录最近同步信息
             prefs.setLastAutoSyncTime(System.currentTimeMillis())
@@ -105,13 +109,13 @@ class AutoSyncWorker(
             prefs.setLastAutoSyncResult(resultText)
 
             // 同步完成后发摘要通知（可手动清除，显示最近状态+下次检测时间）
-            postSummaryNotification(source, target, intervalMin, synced, lastTitle, detectedDate)
+            postSummaryNotification(source, targets.first(), intervalMin, synced, lastTitle, detectedDate, targetNames)
 
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Auto sync error", e)
             try {
-                updateForeground("同步出错: ${e.message?.take(30) ?: "未知"}", source, target, intervalMin)
+                updateForeground("同步出错: ${e.message?.take(30) ?: "未知"}", source, targets.first(), intervalMin)
             } catch (_: Exception) {}
             Result.retry()
         } finally {
@@ -124,9 +128,14 @@ class AutoSyncWorker(
         }
     }
 
-    private suspend fun doSync(source: DataSource, target: DataSource): Triple<Int, String, String> {
+    private suspend fun doSync(source: DataSource, targets: List<DataSource>): Triple<Int, String, String> {
         val sourceCred = prefs.getCredential(source) ?: return Triple(0, "", "未登录")
-        val targetCred = prefs.getCredential(target) ?: return Triple(0, "", "目标未登录")
+        // v7.6.7: 过滤未登录/不可用目标；迈金已走API可后台同步，百锐腾仍需前台
+        val validTargets = targets.filter { t ->
+            prefs.isLoggedIn(t) && (UploadSupport.fromDataSource(t).available)
+                    && t != DataSource.BRYTON
+        }
+        if (validTargets.isEmpty()) return Triple(0, "", "无可用目标")
         syncing = true
         try {
             val activities = when (source) {
@@ -145,27 +154,30 @@ class AutoSyncWorker(
             var lastTitle = ""
             for (record in activities.take(5)) {
                 try {
-                    val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
-                    if (prefs.isSynced(syncKey)) continue
-                    val data = downloadActivity(source, sourceCred, record) ?: continue
-                    val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
-                    val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                    // 迈金/百锐腾上传需WebView真实文件选择（需前台Activity），后台跳过
-                    if (target == DataSource.MAGENE) { lastTitle = "迈金上传需前台同步"; continue }
-                    if (target == DataSource.BRYTON) { lastTitle = "百锐腾上传需前台同步"; continue }
-                    val result = uploadEngine.upload(target, targetCred, data, record, upExtra)
-                    if (result.success) {
-                        prefs.addSyncedId(syncKey)
-                        synced++
-                        lastTitle = record.title.take(15)
-                        updateForeground(
-                            "已上传${synced}条: ${record.title.take(12)}",
-                            source, target, intervalMin = prefs.getAutoInterval().coerceAtLeast(900) / 60
-                        )
-                    } else {
-                        Log.w(TAG, "AutoSync upload failed: ${result.message}")
+                    // v7.6.7: 多目标 - 任一目标未同步则处理；下载一次，上传到所有未同步目标
+                    val pendingTargets = validTargets.filter { t ->
+                        !prefs.isSynced("${source.shortName}_${record.id}_to_${t.shortName}")
                     }
-                    delay(200)
+                    if (pendingTargets.isEmpty()) continue
+                    val data = downloadActivity(source, sourceCred, record) ?: continue
+                    for (target in pendingTargets) {
+                        val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
+                        val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
+                        val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+                        val result = uploadEngine.upload(target, prefs.getCredential(target) ?: continue, data, record, upExtra)
+                        if (result.success) {
+                            prefs.addSyncedId(syncKey)
+                            synced++
+                            lastTitle = record.title.take(15)
+                            updateForeground(
+                                "已上传${synced}条: ${record.title.take(12)}",
+                                source, target, intervalMin = prefs.getAutoInterval().coerceAtLeast(900) / 60
+                            )
+                        } else {
+                            Log.w(TAG, "AutoSync upload failed: ${result.message}")
+                        }
+                        delay(200)
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "AutoSync item error", e)
                 }
@@ -231,7 +243,8 @@ class AutoSyncWorker(
      */
     private fun postSummaryNotification(
         source: DataSource, target: DataSource, intervalMin: Int,
-        synced: Int, lastTitle: String, detectedDate: String
+        synced: Int, lastTitle: String, detectedDate: String,
+        targetNames: String
     ) {
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val pendingIntent = getLaunchPendingIntent()
@@ -242,7 +255,7 @@ class AutoSyncWorker(
         } else {
             "📋 无最新 | 最近: $dateStr(已上传)"
         }
-        val bigText = "$statusLine\n${source.displayName}→${target.displayName} | 间隔${intervalMin}分钟 | 下次检测: 约${intervalMin}分钟后"
+        val bigText = "$statusLine\n${source.displayName}→$targetNames | 间隔${intervalMin}分钟 | 下次检测: 约${intervalMin}分钟后"
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle("鸡翅幸哲迈进OB 自动同步")
