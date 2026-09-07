@@ -155,8 +155,10 @@ class AutoSyncWorker(
             for (record in activities.take(5)) {
                 try {
                     // v7.6.7: 多目标 - 任一目标未同步则处理；下载一次，上传到所有未同步目标
+                    // v7.6.8: 自动同步保持增量，仅按用户"忽略记忆"开关强制重传（不对多目标强制，避免后台频繁重复上传）
+                    val forceRetransmit = prefs.isForceRetransmit()
                     val pendingTargets = validTargets.filter { t ->
-                        !prefs.isSynced("${source.shortName}_${record.id}_to_${t.shortName}")
+                        forceRetransmit || !prefs.isSynced("${source.shortName}_${record.id}_to_${t.shortName}")
                     }
                     if (pendingTargets.isEmpty()) continue
                     val data = downloadActivity(source, sourceCred, record) ?: continue
