@@ -513,6 +513,8 @@ class MainActivity : AppCompatActivity() {
                     refreshed++
                     prefs.saveCredential(ds, newCred)
                     // v7.6.1: 刷新后校验新token是否真实可用，输出明确成功/失败日志
+                    // v7.6.8: 迈金刷新成功即保存新token；校验失败不再提示"同步失败请重新登录"（新token已保存，
+                    //         同步时若真失效会有明确的401报错兜底，避免刷新成功却误报需重登）
                     val verifyName = try {
                         when (ds) {
                             DataSource.MAGENE -> mageneApi.getUsername(newCred)
@@ -521,16 +523,16 @@ class MainActivity : AppCompatActivity() {
                         }
                     } catch (e: Exception) { null }
                     val suffix = if (verifyName.isNullOrBlank())
-                        "（校验未通过，同步失败请重新登录）"
+                        "（已自动刷新，同步时将自动校验）"
                     else " ✅ 登录有效 ($verifyName)"
                     runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新$suffix") }
                 } else {
                     invalid++
-                    if (ds == DataSource.WAHOO) {
-                        // v7.6.0: Wahoo失效时【绝不】清除凭证！
-                        // token/refresh_token有复用价值（v7.5.4复用机制），清除会导致手动重登走完整OAuth新建token，
-                        // 旧token未撤销不断累积 → 触发每用户10枚未撤销token上限
-                        runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录（已保留令牌，重登时将自动复用/刷新，不会新建令牌）") }
+                    if (ds == DataSource.WAHOO || ds == DataSource.COROS_CN || ds == DataSource.COROS_INT) {
+                        // v7.6.8: Wahoo/高驰失效时【绝不】清除凭证！
+                        // Wahoo: token/refresh_token有复用价值，清除会导致重登走完整OAuth新建token触发10枚上限
+                        // 高驰: 凭证含regionId/cookie，保留后重登时WebView可复用cookie自动登录，无需重新选区域输账号
+                        runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录（已保留令牌，重登时自动复用/刷新，不会新建令牌）") }
                     } else {
                         prefs.clearCredential(ds)
                         runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录") }
@@ -686,9 +688,11 @@ class MainActivity : AppCompatActivity() {
                 for ((i, act) in activities.withIndex()) {
                     if (!isActive) break
                     // v7.6.7: 一条活动只要任一目标未同步就下载；下载一次，上传到所有未同步目标
+                    // v7.6.8: 忽略记忆强制重传 —— 1对多(targets>1)自动强制开启；1对1按用户开关(prefs.isForceRetransmit)
+                    val forceRetransmit = prefs.isForceRetransmit() || targets.size > 1
                     val pendingTargets = targets.filter { t ->
                         val syncKey = "${source.shortName}_${act.id}_to_${t.shortName}"
-                        !prefs.isSynced(syncKey)
+                        forceRetransmit || !prefs.isSynced(syncKey)
                     }
                     if (pendingTargets.isEmpty()) {
                         skipped++; appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")

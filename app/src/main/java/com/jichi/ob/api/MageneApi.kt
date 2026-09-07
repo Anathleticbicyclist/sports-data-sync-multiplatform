@@ -120,7 +120,7 @@ class MageneApi {
      * @param limit 需要的条数
      */
     suspend fun getUsername(token: String): String? = withContext(Dispatchers.IO) {
-        // 优先解析JWT payload（迈金token是JWT，内含用户信息）
+        // 1) 优先解析JWT payload（迈金登录token是JWT，内含用户信息）
         try {
             val parts = token.split(".")
             if (parts.size >= 2) {
@@ -128,34 +128,36 @@ class MageneApi {
                 val padded = payloadB64 + "=".repeat((4 - payloadB64.length % 4) % 4)
                 val decoded = String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT), Charsets.UTF_8)
                 val payload = JSONObject(decoded)
-                payload.optString("nickname")?.takeIf { it.isNotEmpty() }
+                val name = payload.optString("nickname")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("userName")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("name")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("username")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("account")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("mobile")?.takeIf { it.isNotEmpty() }
                     ?: "用户${payload.optString("uid").take(6)}"
-            } else null
-        } catch (e: Exception) {
-            // JWT解析失败，回退到API
-            try {
-                val req = Request.Builder().url("$BASE/api/otm/user/info")
-                    .addHeader("Authorization", token)
-                    .addHeader("User-Agent", "Mozilla/5.0")
-                    .addHeader("Origin", BASE)
-                    .addHeader("Referer", "$BASE/calendar")
-                    .get().build()
-                val resp = client.newCall(req).execute()
-                val body = resp.body?.string() ?: ""
-                val json = JSONObject(body)
-                if (json.optInt("code", -1) == 200) {
-                    val data = json.optJSONObject("data")
-                    data?.optString("nickname")?.takeIf { it.isNotEmpty() }
-                        ?: data?.optString("userName")?.takeIf { it.isNotEmpty() }
-                        ?: data?.optString("name")?.takeIf { it.isNotEmpty() }
-                } else null
-            } catch (e2: Exception) { Log.w(TAG, "getUsername fallback: ${e2.message}"); null }
-        }
+                return@withContext name
+            }
+        } catch (e: Exception) { Log.w(TAG, "JWT解析失败: ${e.message}") }
+        // 2) 非JWT 或 JWT解析异常 → 用列表接口校验（v7.6.8: 改用确定可用的列表接口而非user/info——
+        //    /api/otm/ride_record/list 与 getActivities 同款、验证可用，code==200 即 token 有效）
+        try {
+            val body = JSONObject().apply {
+                put("page", 1)
+                put("limit", 1)
+            }
+            val req = Request.Builder()
+                .url("$BASE/api/otm/ride_record/list")
+                .addHeader("Authorization", token)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0")
+                .addHeader("Origin", BASE)
+                .addHeader("Referer", "$BASE/calendar")
+                .post(body.toString().toRequestBody(JSON))
+                .build()
+            val resp = client.newCall(req).execute()
+            val respBody = resp.body?.string() ?: ""
+            val json = try { JSONObject(respBody) } catch (e: Exception) { return@withContext null }
+            if (resp.code == 200 && json.optInt("code", -1) == 200) "迈金用户" else null
+        } catch (e2: Exception) { Log.w(TAG, "getUsername API: ${e2.message}"); null }
     }
 
     suspend fun getActivities(token: String, skip: Int, limit: Int): List<ActivityRecord> =

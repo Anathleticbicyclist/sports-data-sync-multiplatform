@@ -65,6 +65,11 @@
                 
                 <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchGcj02" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="迈金 GCJ-02→WGS84 坐标转换" android:textSize="12sp" />
                 
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">
+                <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchForceRetransmit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="忽略记忆，强制重传" android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/tvForceRetransmitHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="2" />
+                
                 <TextView android:id="@+id/tvSaveDir" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="1" android:ellipsize="middle" />
                 <TextView android:id="@+id/tvSyncedCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/green" />
                 </LinearLayout>

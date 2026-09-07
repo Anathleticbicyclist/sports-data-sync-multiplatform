@@ -137,7 +137,8 @@ class AutoSyncService : Service() {
             for (record in activities.take(5)) {
                 try {
                     val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
-                    if (prefs.isSynced(syncKey)) continue
+                    // v7.6.8: 忽略记忆强制重传（1对1按用户开关）
+                    if (!prefs.isForceRetransmit() && prefs.isSynced(syncKey)) continue
                     val data = downloadActivity(source, sourceCred, record) ?: continue
                     val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                     val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()

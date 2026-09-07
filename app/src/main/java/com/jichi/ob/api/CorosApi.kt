@@ -85,14 +85,36 @@ class CorosApi {
         return Triple(token, regionId, cookie)
     }
 
-    /** 获取用户名（/account 或 user 接口） */
+    /**
+     * 获取用户名 / 校验登录态（v7.6.8 修复：原实现永远返回null，导致启动检测永远误判高驰登录失效）
+     * 用 {teamapi}/activity/query 校验 accessToken（与 getActivities 同款、验证可用的接口；
+     * 不使用 /account——该接口在高驰端不稳定，getUserId 里它失败后会回退到 activity/query）
+     * result=="0000" 即 token 有效
+     */
     suspend fun getUsername(cred: String): String? = withContext(Dispatchers.IO) {
         try {
             val (token, regionId, _) = parseCredential(cred)
             if (token.isEmpty()) return@withContext null
-            // 高驰无统一user接口，尝试从 cookie / token 前缀返回占位
+            val url = "${teamApi(regionId)}/activity/query?modeList=&pageNumber=1&size=1"
+            val req = Request.Builder().url(url).apply {
+                authHeaders(token, regionId).forEach { (k, v) -> addHeader(k, v) }
+            }.get().build()
+            client.newCall(req).execute().use { resp ->
+                val body = resp.body?.string() ?: ""
+                Log.d(TAG, "getUsername activity/query HTTP ${resp.code}: ${body.take(300)}")
+                if (resp.code != 200) return@withContext null
+                val json = try { JSONObject(body) } catch (e: Exception) { return@withContext null }
+                if (json.optString("result") != "0000") {
+                    Log.w(TAG, "getUsername result=${json.optString("result")}: ${json.optString("message")}")
+                    return@withContext null
+                }
+                // result==0000 即 token 有效
+                "高驰用户"
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "getUsername error: ${e.message}")
             null
-        } catch (e: Exception) { null }
+        }
     }
 
     /**

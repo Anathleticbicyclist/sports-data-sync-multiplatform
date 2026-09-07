@@ -26,6 +26,7 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_DETECTED_DATE = "last_detected_date"
         private const val KEY_GCJ02_CONVERT = "gcj02_convert"
         private const val KEY_SAVE_DIR = "save_dir"
+        private const val KEY_FORCE_RETRANSMIT = "force_retransmit"
     }
 
     private val prefs: SharedPreferences =
@@ -290,6 +291,9 @@ class PrefsManager(context: Context) {
     fun setGcj02Convert(b: Boolean) = prefs.edit().putBoolean(KEY_GCJ02_CONVERT, b).apply()
     fun getSaveDir(): String = prefs.getString(KEY_SAVE_DIR, "") ?: ""
     fun setSaveDir(d: String) = prefs.edit().putString(KEY_SAVE_DIR, d).apply()
+    // v7.6.8: 忽略记忆，强制重传（1对1时用户自选；1对多时强制开启）
+    fun isForceRetransmit(): Boolean = prefs.getBoolean(KEY_FORCE_RETRANSMIT, false)
+    fun setForceRetransmit(b: Boolean) = prefs.edit().putBoolean(KEY_FORCE_RETRANSMIT, b).apply()
 
     fun clearAll() = prefs.edit().clear().apply()
 }
