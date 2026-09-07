@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.6.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.6.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.6.5 |
+| 当前版本 | v7.6.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -359,6 +359,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.6.6 (2026-09-07)
+**已解决**：
+- **全新UI界面（微信风格）**：整体改为浅蓝色调（白色淡蓝基调），页面背景、工具栏、卡片样式全面升级，操作更直观
+- **新增1秒开屏动画**：浅蓝渐变背景 + 软件名「鸡翅幸哲迈进OB」与slogan「让运动数据自由流动」缩放呼吸动画
+- **平台品牌色修正**：依据各平台官方品牌色重新校准（iGPSPORT迹驰改为橙红、黑鸟单车绿色、百锐腾Bryton官方绿等），登录页选中态保留各平台品牌色
+- 优化整体使用体验，修复若干细节问题
 
 ### v7.6.5 (2026-09-06)
 **已解决**：
