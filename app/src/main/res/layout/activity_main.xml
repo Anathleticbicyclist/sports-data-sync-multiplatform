@@ -5,15 +5,17 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="@color/grey_light">
+    android:background="@color/bg_light">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:title="鸡翅幸哲迈进OB(开发体验版)"
-        app:titleTextColor="@color/white" />
+        android:background="@color/bg_light"
+        app:title="鸡翅幸哲迈进OB"
+        app:titleTextColor="@color/text_primary"
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/TextAppearance.JichiOB.Toolbar" />
 
     <!-- 四页面内容容器 -->
     <FrameLayout
@@ -22,12 +24,12 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- 底部导航栏 -->
+    <!-- 底部导航栏（微信式） -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
+        android:background="@color/card_white"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@color/bottom_nav_selector"
         app:itemTextColor="@color/bottom_nav_selector"

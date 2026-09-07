@@ -1,23 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#1989FA</color>
+    <!-- 浅蓝基调（微信风格） -->
+    <color name="bg_light">#F0F7FF</color>          <!-- 页面背景：极淡蓝 -->
+    <color name="primary">#1989FA</color>           <!-- 主色：天蓝 -->
     <color name="primary_dark">#0D6ED8</color>
-    <color name="igp_green">#00B96B</color>
-    <color name="xingzhe_blue">#1989FA</color>
-    <color name="magene_blue">#2B5797</color>
-    <color name="outbase_orange">#FF6B00</color>
-    <color name="garmin_blue">#003B70</color>
-    <color name="coros_red">#E54B3B</color>
-    <color name="wahoo_red">#E60012</color>
-    <color name="blackbird_dark">#2c3e50</color>
-    <color name="bryton_red">#F44336</color>
+    <color name="splash_start">#C9E5FF</color>      <!-- 开屏渐变起始：淡蓝 -->
+    <color name="splash_end">#4DAAFF</color>        <!-- 开屏渐变结束：天蓝 -->
+    <color name="card_white">#FFFFFF</color>        <!-- 卡片白 -->
+    <color name="divider">#E8EEF4</color>           <!-- 细分割线 -->
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#999999</color>
+    <color name="grey_light">#F5F7FA</color>
+
+    <!-- 平台官方品牌色（网络调研确认） -->
+    <color name="igp_green">#FF5A00</color>         <!-- iGPSPORT 迹驰：橙红（i上红点） -->
+    <color name="xingzhe_blue">#1989FA</color>      <!-- 行者：蓝 -->
+    <color name="magene_blue">#2B6CB0</color>       <!-- 顽鹿/迈金：蓝 -->
+    <color name="outbase_orange">#FF6B00</color>    <!-- Outbase：橙 -->
+    <color name="garmin_blue">#003B70</color>       <!-- 佳明：深蓝 -->
+    <color name="coros_red">#E54B3B</color>         <!-- 高驰：红 -->
+    <color name="wahoo_red">#E60012</color>         <!-- Wahoo：红 -->
+    <color name="blackbird_dark">#2c3e50</color>    <!-- 黑鸟：深灰（图标绿底） -->
+    <color name="blackbird_green">#4CAF50</color>   <!-- 黑鸟：绿 -->
+    <color name="bryton_red">#00A651</color>        <!-- 百锐腾 Bryton：绿（官方） -->
+
+    <!-- 基础色 -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
-    <color name="grey_light">#F5F5F5</color>
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#999999</color>
 </resources>
- 
-

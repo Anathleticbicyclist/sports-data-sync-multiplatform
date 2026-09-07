@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/grey_light"
+    android:background="@color/bg_light"
     android:fillViewport="true">
 
     <LinearLayout
@@ -63,11 +63,11 @@
                     app:cardCornerRadius="10dp" app:cardElevation="2dp">
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="#2c3e50" />
+                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/blackbird_green" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="黑鸟" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
                         </LinearLayout>
                         <TextView android:id="@+id/tvBlackbirdStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="❌ 未登录" android:textColor="@color/red" android:textSize="11sp" />
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnBlackbirdLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录黑鸟" android:textSize="11sp" app:backgroundTint="#2c3e50" app:cornerRadius="8dp" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnBlackbirdLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录黑鸟" android:textSize="11sp" app:backgroundTint="@color/blackbird_green" app:cornerRadius="8dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
@@ -76,11 +76,11 @@
                     app:cardCornerRadius="10dp" app:cardElevation="2dp">
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/red" />
+                            <View android:layout_width="4dp" android:layout_height="26dp" android:background="@color/bryton_red" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="百锐腾" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
                         </LinearLayout>
                         <TextView android:id="@+id/tvBrytonStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="❌ 未登录" android:textColor="@color/red" android:textSize="11sp" />
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnBrytonLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录百锐腾" android:textSize="11sp" app:backgroundTint="@color/red" app:cornerRadius="8dp" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnBrytonLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录百锐腾" android:textSize="11sp" app:backgroundTint="@color/bryton_red" app:cornerRadius="8dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView

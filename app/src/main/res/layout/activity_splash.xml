@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <FrameLayout
+        android:id="@+id/splashRoot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 渐变背景 -->
+        <View
+            android:id="@+id/splashBg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- 居中文字区（无Logo） -->
+        <LinearLayout
+            android:id="@+id/splashText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvSplashTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="鸡翅幸哲迈进OB"
+                android:textColor="@android:color/white"
+                android:textSize="34sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06"
+                android:shadowColor="#33000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="4" />
+
+            <TextView
+                android:id="@+id/tvSplashSlogan"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="让运动数据自由流动"
+                android:textColor="#CCFFFFFF"
+                android:textSize="16sp"
+                android:letterSpacing="0.15" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>
