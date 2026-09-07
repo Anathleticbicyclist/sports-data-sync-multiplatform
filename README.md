@@ -31,18 +31,20 @@
 
 ---
 
-## 📱 界面预览（四页面布局）
+## 📱 界面预览（五个界面）
 
 <p align="center">
-  <img src="screenshots/page1_login.png" width="200" alt="登录页"/>
-  <img src="screenshots/page2_settings.png" width="200" alt="数据同步设置页"/>
-  <img src="screenshots/page3_sync.png" width="200" alt="同步页"/>
-  <img src="screenshots/page4_about.png" width="200" alt="关于页"/>
+  <img src="screenshots/page0_splash.png" width="170" alt="开屏动画"/>
+  <img src="screenshots/page1_login.png" width="170" alt="登录页"/>
+  <img src="screenshots/page2_settings.png" width="170" alt="数据同步设置页"/>
+  <img src="screenshots/page3_sync.png" width="170" alt="同步页"/>
+  <img src="screenshots/page4_about.png" width="170" alt="关于页"/>
 </p>
 
 | 页面 | 功能 |
 |------|------|
-| 登录 | 十一平台登录状态与登录入口 |
+| 开屏动画 | 1秒浅蓝开屏，软件名"鸡翅幸哲迈进OB · 让运动数据自由流动" |
+| 登录 | 十一平台登录状态与登录入口（已登录平台右上角可注销） |
 | 数据同步设置 | 数据来源/目标选择、同步数量/跳过手动输入、迈金坐标转换 |
 | 同步 | 后台自动同步、开始/停止/测试/复制/清记忆、运行日志 |
 | 关于 | 版本信息、更新日志、鸣谢、赞赏支持 |
@@ -370,6 +372,10 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - **一对多同步**：数据来源单选、同步目标多选，一条运动下载一次自动分发上传到多个目标平台（同步设置页目标支持多选）
 - **迈金后台自动同步支持**：迈金已走顽鹿OTM API直传，后台自动同步不再跳过迈金（百锐腾仍仅前台同步）
 - **移除迈金WebView兜底**：迈金上传改为纯API直传，更稳更快
+- **同步设置页交互优化**：来源与目标不能选同一平台（提示"选择同步来源不能相同"）；未登录平台不可选中（提示"请先登录"）；登录/注销后切回设置页自动刷新平台可选状态
+- **登录页注销功能**：每个已登录平台卡片右上角新增"注销"按钮，一键清除该平台登录凭证
+- **百锐腾同步目标标注"开发中"**：作为同步目标显示开发中且不可选（上传功能尚未开放）
+- 修复启动登录检测被异常中断的问题，恢复完整的启动检测日志
 
 ### v7.6.6 (2026-09-07)
 **已解决**：
