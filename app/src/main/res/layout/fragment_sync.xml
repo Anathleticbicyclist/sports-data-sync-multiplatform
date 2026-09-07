@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/grey_light"
+    android:background="@color/bg_light"
     android:fillViewport="true">
 
     <LinearLayout
@@ -40,13 +40,13 @@
                 <com.google.android.material.button.MaterialButton android:id="@+id/btnClearSync" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:maxLines="1" android:singleLine="true" android:ellipsize="none" android:paddingStart="2dp" android:paddingEnd="2dp" android:gravity="center" android:text="🗑 清记忆" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:cornerRadius="10dp" />
                 </LinearLayout>
                 
-                <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progressBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="4dp" android:visibility="gone" app:indicatorColor="@color/primary" app:trackColor="@color/grey_light" />
+                <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progressBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="4dp" android:visibility="gone" app:indicatorColor="@color/primary" app:trackColor="@color/bg_light" />
                 
                 <!-- 日志 -->
                 <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" app:cardCornerRadius="10dp" app:cardElevation="2dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 运行日志" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <ScrollView android:id="@+id/svLog" android:layout_width="match_parent" android:layout_height="240dp" android:nestedScrollingEnabled="true" android:layout_marginTop="4dp" android:background="#F0F0F0" android:padding="4dp">
+                <ScrollView android:id="@+id/svLog" android:layout_width="match_parent" android:layout_height="240dp" android:nestedScrollingEnabled="true" android:layout_marginTop="4dp" android:background="#F4F8FC" android:padding="4dp">
                 <TextView android:id="@+id/tvLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="等待操作..." android:textSize="10sp" android:fontFamily="monospace" android:textColor="@color/text_primary" />
                 </ScrollView>
                 </LinearLayout>
