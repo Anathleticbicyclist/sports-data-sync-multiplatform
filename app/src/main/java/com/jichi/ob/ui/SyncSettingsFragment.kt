@@ -29,7 +29,7 @@ class SyncSettingsFragment : Fragment() {
     private lateinit var gridSource: GridLayout
     private lateinit var gridTarget: GridLayout
     private var selectedSourceTag = "xz"
-    private var selectedTargetTag = "ob"
+    private val selectedTargetTags = LinkedHashSet<String>()  // v7.6.7: 一对多多选
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_sync_settings, container, false)
@@ -111,13 +111,26 @@ class SyncSettingsFragment : Fragment() {
             val tag = btn.tag as? String ?: continue
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
-                selectedTargetTag = tag
-                for (j in 0 until gridTarget.childCount) {
-                    val b = gridTarget.getChildAt(j) as? MaterialButton ?: continue
-                    setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
-                }
+                // v7.6.7: 一对多 - 点击toggle选中/取消
+                if (selectedTargetTags.contains(tag)) selectedTargetTags.remove(tag)
+                else selectedTargetTags.add(tag)
+                refreshTargetButtons()
             }
         }
+    }
+
+    private fun refreshTargetButtons() {
+        for (j in 0 until gridTarget.childCount) {
+            val b = gridTarget.getChildAt(j) as? MaterialButton ?: continue
+            setButtonSelected(b, (b.tag as? String)?.let { selectedTargetTags.contains(it) } == true, b.tag as? String ?: "")
+        }
+        updateTargetCountLabel()
+    }
+
+    private fun updateTargetCountLabel() {
+        view?.findViewById<TextView>(R.id.tvTargetHint)?.text =
+            if (selectedTargetTags.isEmpty()) "同步目标 (可多选，点击切换):"
+            else "同步目标 (可多选): 已选 ${selectedTargetTags.size} 个"
     }
 
     private fun restoreSettings(view: View) {
@@ -128,14 +141,16 @@ class SyncSettingsFragment : Fragment() {
             val tag = btn.tag as? String ?: continue
             setButtonSelected(btn, tag == selectedSourceTag, tag)
         }
-        val lastTgt = prefs.getLastTarget()
-        selectedTargetTag = if (lastTgt.isNotBlank()) lastTgt else "ob"
+        // v7.6.7: 一对多 - 恢复多个目标
+        selectedTargetTags.clear()
+        selectedTargetTags.addAll(prefs.getLastTargets())
         for (i in 0 until gridTarget.childCount) {
             val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
             val tag = btn.tag as? String ?: continue
-            setButtonSelected(btn, tag == selectedTargetTag, tag)
+            setButtonSelected(btn, selectedTargetTags.contains(tag), tag)
         }
         updateTargetChips()
+        updateTargetCountLabel()
         view.findViewById<SwitchMaterial>(R.id.switchGcj02).isChecked = prefs.isGcj02Convert()
         val saveDir = view.findViewById<TextView>(R.id.tvSaveDir)
         try {
@@ -191,7 +206,13 @@ class SyncSettingsFragment : Fragment() {
 
     // ===== MainActivity调用 =====
     fun getSelectedSource(): DataSource = DataSource.fromShortName(selectedSourceTag) ?: DataSource.XINGZHE
-    fun getSelectedTarget(): DataSource = DataSource.fromShortName(selectedTargetTag) ?: DataSource.OUTBASE
+    @Deprecated("v7.6.7改用getSelectedTargets")
+    fun getSelectedTarget(): DataSource = getSelectedTargets().firstOrNull() ?: DataSource.OUTBASE
+    /** v7.6.7: 一对多 - 返回所有勾选的目标 */
+    fun getSelectedTargets(): List<DataSource> {
+        val list = selectedTargetTags.mapNotNull { DataSource.fromShortName(it) }
+        return if (list.isEmpty()) listOf(DataSource.OUTBASE) else list
+    }
     fun getCount(): Int = requireView().findViewById<Slider>(R.id.sliderCount).value.toInt()
     fun getSkip(): Int = requireView().findViewById<Slider>(R.id.sliderSkip).value.toInt()
     fun setSyncedCount(n: Int) {
