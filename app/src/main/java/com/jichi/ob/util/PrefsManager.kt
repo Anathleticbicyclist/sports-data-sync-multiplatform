@@ -18,6 +18,7 @@ class PrefsManager(context: Context) {
         private const val KEY_SYNCED_IDS = "synced_ids"
         private const val KEY_LAST_SOURCE = "last_source"
         private const val KEY_LAST_TARGET = "last_target"
+        private const val KEY_LAST_TARGETS = "last_targets"
         private const val KEY_AUTO_SYNC = "auto_sync"
         private const val KEY_AUTO_INTERVAL = "auto_interval"
         private const val KEY_LAST_AUTO_SYNC_TIME = "last_auto_sync_time"
@@ -258,6 +259,21 @@ class PrefsManager(context: Context) {
     fun setLastSource(s: String) = prefs.edit().putString(KEY_LAST_SOURCE, s).apply()
     fun getLastTarget(): String = prefs.getString(KEY_LAST_TARGET, DataSource.OUTBASE.shortName) ?: DataSource.OUTBASE.shortName
     fun setLastTarget(s: String) = prefs.edit().putString(KEY_LAST_TARGET, s).apply()
+    // v7.6.7: 一对多同步 - 多个目标平台（逗号分隔），空时回退到旧单选
+    fun getLastTargets(): List<String> {
+        val raw = prefs.getString(KEY_LAST_TARGETS, "") ?: ""
+        val list = raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        return if (list.isNotEmpty()) list else {
+            val single = getLastTarget()
+            listOf(single).filter { it.isNotEmpty() }
+        }
+    }
+    fun setLastTargets(targets: List<String>) {
+        val s = targets.distinct().joinToString(",")
+        prefs.edit().putString(KEY_LAST_TARGETS, s).apply()
+        // 同步旧的单选字段（第一个目标），保持兼容
+        if (targets.isNotEmpty()) setLastTarget(targets.first())
+    }
     fun isAutoSync(): Boolean = prefs.getBoolean(KEY_AUTO_SYNC, false)
     fun setAutoSync(b: Boolean) = prefs.edit().putBoolean(KEY_AUTO_SYNC, b).apply()
     fun getAutoInterval(): Int = prefs.getInt(KEY_AUTO_INTERVAL, 300) // 默认5分钟

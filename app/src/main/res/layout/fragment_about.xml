@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.6.6"
+            android:text="开发体验版 v7.6.7"
             android:textColor="@color/green"
             android:textSize="13sp" />
         <TextView
@@ -70,12 +70,12 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="2dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.6)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，解决一些bug" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.7)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 一对多同步：一个来源平台可同时同步到多个目标平台，每条运动下载一次自动分发上传\n2. 迈金上传改为纯API直传（移除WebView兜底），后台自动同步也支持迈金\n3. 自动同步支持多目标：一次后台检测同时推送多个平台" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.6" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="全新UI界面：浅蓝色调，操作更直观；新增1秒开屏动画；优化体验，解决一些bug" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.5" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 黑鸟下载改为构建标准FIT文件（替代GPX）：内置距离字段、坐标高精度、平台兼容性好\n2. 解决黑鸟数据距离不准、坐标漂移、被目标服务器拒收等问题\n3. FIT构建失败自动回退GPX，双保险" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.4" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复高驰活动列表只能拉取200条的问题：改为循环翻页，支持拉取全部活动记录\n2. 高驰分页拉取时遇到错误返回已获取部分，不再整体失败" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
