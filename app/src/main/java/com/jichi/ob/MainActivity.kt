@@ -504,6 +504,23 @@ class MainActivity : AppCompatActivity() {
                 if (!username.isNullOrBlank()) {
                     valid++
                     prefs.saveUsername(ds, username)
+                    // v7.6.9: 迈金JWT若快过期(<1小时)，后台主动刷新，避免同步时才401
+                    if (ds == DataSource.MAGENE) {
+                        try {
+                            val expLeft = mageneApi.getJwtExpRemainingSec(cred)
+                            if (expLeft != null && expLeft < 3600) {
+                                val refresh = prefs.getMageneRefreshToken()
+                                if (!refresh.isNullOrEmpty()) {
+                                    val newTok = mageneApi.refreshToken(refresh)
+                                    if (newTok != null && newTok != cred) {
+                                        prefs.saveCredential(ds, newTok)
+                                        prefs.saveMageneRefreshToken(refresh)
+                                        runOnUiThread { appendLog("🔄 ${ds.displayName} token将过期，已后台提前刷新") }
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) { Log.w(TAG, "迈金提前刷新异常: ${e.message}") }
+                    }
                     runOnUiThread { appendLog("✅ 登录有效: ${ds.displayName} ($username)") }
                     continue
                 }
@@ -605,6 +622,8 @@ class MainActivity : AppCompatActivity() {
     // v7.6.2: 日志/进度/同步态统一转发给SyncFragment
     private fun appendLog(message: String) {
         Log.i(TAG, message)
+        // v7.6.9: 同步日志持久化，App重开/后台自动同步日志仍可见
+        prefs.appendPersistLog(message)
         runOnUiThread { syncFragment.appendLog(message) }
     }
 
@@ -855,6 +874,13 @@ class MainActivity : AppCompatActivity() {
                 request
             )
             appendLog("⏰ 后台自动同步已开启，间隔 ${intervalSec / 60}分钟（WorkManager调度，跨开机）")
+            // v7.6.9: 检测电池优化白名单，未加入则提示（后台可能被系统限制，导致自动同步不执行）
+            try {
+                val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                    appendLog("⚠️ 未加入电池优化白名单，后台可能被系统限制，建议在同步页点击「后台常驻指引」申请")
+                }
+            } catch (_: Exception) {}
         } catch (e: Exception) {
             Log.e(TAG, "startAutoSync failed", e)
             appendLog("❌ 自动同步开启失败: ${e.message?.take(50)}")
@@ -877,6 +903,25 @@ class MainActivity : AppCompatActivity() {
                 cred = newCred
                 if (source == DataSource.GARMIN_COM) prefs.saveGarminComToken(cred)
                 else prefs.saveGarminCnToken(cred)
+            }
+        }
+        // v7.6.9: 迈金源token过期(401)自动刷新后重试一次
+        if (source == DataSource.MAGENE) {
+            try {
+                return mageneApi.getActivities(cred, skip, limit)
+            } catch (e: Exception) {
+                if (e.message?.contains("过期") == true || e.message?.contains("401") == true) {
+                    val refresh = prefs.getMageneRefreshToken()
+                    if (!refresh.isNullOrEmpty()) {
+                        appendLog("🔄 迈金登录已过期，自动刷新token后重试...")
+                        val newTok = mageneApi.refreshToken(refresh)
+                        if (newTok != null) {
+                            prefs.saveMageneToken(newTok)
+                            return mageneApi.getActivities(newTok, skip, limit)
+                        }
+                    }
+                }
+                throw e
             }
         }
         return when (source) {

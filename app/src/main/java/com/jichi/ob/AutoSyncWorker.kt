@@ -62,11 +62,15 @@ class AutoSyncWorker(
     private val mageneApi = MageneApi()
     private val blackbirdApi = BlackbirdApi()
     private val brytonApi = BrytonApi()
-    private val uploadEngine = UploadEngine()
+    private val garminApi = GarminApi()
+    private val wahooApi = WahooApi()
+    private val uploadEngine = UploadEngine(applicationContext)
 
     override suspend fun doWork(): Result {
         if (syncing) {
             Log.d(TAG, "手动同步进行中，跳过本次自动同步")
+            // v7.6.9: 跳过也要留痕，避免"假同步"用户无感知
+            plog("⏭️ 自动同步被跳过：手动同步正在进行中")
             return Result.success()
         }
         createNotificationChannel()
@@ -100,22 +104,25 @@ class AutoSyncWorker(
         }
 
         return try {
-            val (synced, lastTitle, detectedDate) = doSync(source, targets)
+            val result = doSync(source, targets)
 
             // 记录最近同步信息
             prefs.setLastAutoSyncTime(System.currentTimeMillis())
-            prefs.setLastDetectedDate(detectedDate)
-            val resultText = if (synced > 0) "新上传${synced}条" else "无最新(已上传)"
+            prefs.setLastDetectedDate(result.detectedDate)
+            val resultText = if (result.synced > 0) "新上传${result.synced}条" else "无最新(已上传)"
             prefs.setLastAutoSyncResult(resultText)
 
             // 同步完成后发摘要通知（可手动清除，显示最近状态+下次检测时间）
-            postSummaryNotification(source, targets.first(), intervalMin, synced, lastTitle, detectedDate, targetNames)
+            postSummaryNotification(source, targets.first(), intervalMin, result, targetNames)
 
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Auto sync error", e)
+            plog("❌ 自动同步出错: ${e.message?.take(60)}")
             try {
                 updateForeground("同步出错: ${e.message?.take(30) ?: "未知"}", source, targets.first(), intervalMin)
+                // v7.6.9: 失败也发通知，避免"假同步"用户无感知
+                postFailureNotification(e.message?.take(60) ?: "未知错误", source, targetNames)
             } catch (_: Exception) {}
             Result.retry()
         } finally {
@@ -128,63 +135,165 @@ class AutoSyncWorker(
         }
     }
 
-    private suspend fun doSync(source: DataSource, targets: List<DataSource>): Triple<Int, String, String> {
-        val sourceCred = prefs.getCredential(source) ?: return Triple(0, "", "未登录")
+    private data class AutoSyncResult(
+        val synced: Int, val skipped: Int, val failed: Int,
+        val lastTitle: String, val detectedDate: String,
+        val failedDetails: MutableList<String> = mutableListOf(),
+        val successDetails: MutableList<String> = mutableListOf(),
+        val skippedDetails: MutableList<String> = mutableListOf()
+    )
+
+    /** v7.6.9: 自动同步日志统一加[自动]前缀，与手动同步区分 */
+    private fun plog(msg: String) = prefs.appendPersistLog("[自动] $msg")
+
+    /** v7.6.9: 迈金列表401自动刷新token后重试一次 */
+    private suspend fun getMageneActivitiesWithRefresh(token: String, skip: Int, limit: Int): List<ActivityRecord> {
+        try {
+            return mageneApi.getActivities(token, skip, limit)
+        } catch (e: Exception) {
+            if (e.message?.contains("过期") == true || e.message?.contains("401") == true) {
+                val refresh = prefs.getMageneRefreshToken()
+                if (!refresh.isNullOrEmpty()) {
+                    val newTok = mageneApi.refreshToken(refresh)
+                    if (newTok != null) {
+                        prefs.saveMageneToken(newTok)
+                        plog("🔄 迈金登录已过期，自动刷新token后重试")
+                        return mageneApi.getActivities(newTok, skip, limit)
+                    }
+                }
+            }
+            throw e
+        }
+    }
+
+    private suspend fun doSync(source: DataSource, targets: List<DataSource>): AutoSyncResult {
+        val sourceCred = prefs.getCredential(source) ?: run {
+            plog("❌ 自动同步: ${source.displayName} 未登录")
+            return AutoSyncResult(0, 0, 0, "", "无记录")
+        }
         // v7.6.7: 过滤未登录/不可用目标；迈金已走API可后台同步，百锐腾仍需前台
         val validTargets = targets.filter { t ->
             prefs.isLoggedIn(t) && (UploadSupport.fromDataSource(t).available)
                     && t != DataSource.BRYTON
         }
-        if (validTargets.isEmpty()) return Triple(0, "", "无可用目标")
+        if (validTargets.isEmpty()) {
+            plog("⏭️ 自动同步: 无可用目标（未登录或上传不可用）")
+            return AutoSyncResult(0, 0, 0, "", "无记录")
+        }
+        val validTargetNames = validTargets.joinToString("、") { it.displayName }
+        // v7.6.9: 自动同步过程写入持久日志，用户可在同步页查看
+        plog("⏰ 自动同步开始: ${source.displayName} → $validTargetNames")
         syncing = true
         try {
-            val activities = when (source) {
-                DataSource.IGPSPORT -> igpsportApi.getActivities(sourceCred, 0, 8)
-                DataSource.XINGZHE -> xingzheApi.getActivities(sourceCred, 0, 8)
-                DataSource.MAGENE -> mageneApi.getActivities(sourceCred, 0, 8)
-                DataSource.BLACKBIRD -> blackbirdApi.getActivities(sourceCred, 0, 8)
-                DataSource.BRYTON -> brytonApi.getActivities(sourceCred, 0, 8)
-                else -> emptyList()
+            plog("📥 [${source.displayName}] 获取活动列表...")
+            val activities = try {
+                when (source) {
+                    DataSource.IGPSPORT -> igpsportApi.getActivities(sourceCred, 0, 8)
+                    DataSource.XINGZHE -> xingzheApi.getActivities(sourceCred, 0, 8)
+                    DataSource.MAGENE -> getMageneActivitiesWithRefresh(sourceCred, 0, 8)
+                    DataSource.BLACKBIRD -> blackbirdApi.getActivities(sourceCred, 0, 8)
+                    DataSource.BRYTON -> brytonApi.getActivities(sourceCred, 0, 8)
+                    else -> emptyList()
+                }
+            } catch (e: Exception) {
+                plog("❌ 自动同步: 获取列表失败 ${e.message?.take(60)}")
+                throw e
             }
+            plog("📋 获取到 ${activities.size} 条活动")
 
             // 记录源平台最新活动日期（用于通知显示"最近检测的运动日期"）
             val detectedDate = activities.firstOrNull()?.startTime ?: "无记录"
 
             var synced = 0
+            var skipped = 0
+            var failed = 0
             var lastTitle = ""
+            val failedDetails = mutableListOf<String>()
+            val successDetails = mutableListOf<String>()
+            val skippedDetails = mutableListOf<String>()
             for (record in activities.take(5)) {
                 try {
                     // v7.6.7: 多目标 - 任一目标未同步则处理；下载一次，上传到所有未同步目标
-                    // v7.6.8: 自动同步保持增量，仅按用户"忽略记忆"开关强制重传（不对多目标强制，避免后台频繁重复上传）
-                    val forceRetransmit = prefs.isForceRetransmit()
+                    // v7.6.9: 自动同步保持【纯增量】（不读"忽略记忆"开关）——强制重传只作用于手动同步。
+                    //   原因：多目标模式下"忽略记忆"开关曾被自动开启并污染prefs，导致自动同步每次全量重传最近5条，
+                    //   通知恒显示"新上传5条"但实际平台已存在/去重，用户误以为"假同步"。自动同步本质是增量同步新记录。
                     val pendingTargets = validTargets.filter { t ->
-                        forceRetransmit || !prefs.isSynced("${source.shortName}_${record.id}_to_${t.shortName}")
+                        !prefs.isSynced("${source.shortName}_${record.id}_to_${t.shortName}")
                     }
-                    if (pendingTargets.isEmpty()) continue
-                    val data = downloadActivity(source, sourceCred, record) ?: continue
+                    if (pendingTargets.isEmpty()) {
+                        skipped++
+                        plog("⏭️ 已同步跳过: ${record.title.take(20)}")
+                        continue
+                    }
+                    val data = downloadActivity(source, sourceCred, record)
+                    if (data == null || data.size < 100) {
+                        failed++
+                        plog("❌ 下载失败: ${record.title.take(20)}")
+                        failedDetails.add("下载失败:${record.title.take(10)}")
+                        continue
+                    }
+                    plog("⬇️ 下载: ${record.title.take(20)} (${data.size}字节)")
                     for (target in pendingTargets) {
                         val syncKey = "${source.shortName}_${record.id}_to_${target.shortName}"
+                        var targetCred = prefs.getCredential(target) ?: continue
+                        // v7.6.9: 佳明/Wahoo目标token过期自动刷新（与手动同步一致，避免后台上传直接失败）
+                        if (target == DataSource.GARMIN_COM || target == DataSource.GARMIN_CN) {
+                            val newCred = garminApi.ensureValidToken(target, targetCred)
+                            if (newCred != targetCred) {
+                                targetCred = newCred
+                                if (target == DataSource.GARMIN_COM) prefs.saveGarminComToken(targetCred)
+                                else prefs.saveGarminCnToken(targetCred)
+                                plog("🔄 ${target.displayName} token已自动刷新")
+                            }
+                        }
+                        if (target == DataSource.WAHOO) {
+                            val wahooRefresh = prefs.getWahooRefresh()
+                            val wahooClientId = if (WahooApi.isBuiltinConfigured()) WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                            val wahooClientSecret = if (WahooApi.isBuiltinConfigured()) WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                            if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
+                                val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
+                                if (newToken != targetCred) {
+                                    targetCred = newToken
+                                    prefs.saveWahooToken(targetCred)
+                                    plog("🔄 Wahoo token已自动刷新")
+                                }
+                            }
+                        }
                         val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
                         val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
-                        val result = uploadEngine.upload(target, prefs.getCredential(target) ?: continue, data, record, upExtra)
+                        plog("📤 上传到 ${target.displayName}...")
+                        val result = uploadEngine.upload(target, targetCred, data, record, upExtra)
                         if (result.success) {
                             prefs.addSyncedId(syncKey)
                             synced++
                             lastTitle = record.title.take(15)
+                            successDetails.add("${formatDate(record.startTime)} ${record.title.take(20)} → ${target.displayName}")
+                            plog("✅ 上传成功: ${target.displayName} - ${record.title.take(20)}")
                             updateForeground(
                                 "已上传${synced}条: ${record.title.take(12)}",
                                 source, target, intervalMin = prefs.getAutoInterval().coerceAtLeast(900) / 60
                             )
+                        } else if (result.skipped) {
+                            skipped++
+                            prefs.addSyncedId(syncKey)
+                            skippedDetails.add("${formatDate(record.startTime)} ${record.title.take(20)} → ${target.displayName}")
+                            plog("⏭️ 已存在跳过: ${target.displayName}")
                         } else {
-                            Log.w(TAG, "AutoSync upload failed: ${result.message}")
+                            failed++
+                            failedDetails.add("${record.title.take(12)}→${target.displayName}:${result.message.take(20)}")
+                            plog("❌ 上传失败: ${target.displayName} - ${result.message.take(60)}")
                         }
                         delay(200)
                     }
                 } catch (e: Exception) {
+                    failed++
+                    failedDetails.add(e.message?.take(20) ?: "未知")
                     Log.w(TAG, "AutoSync item error", e)
+                    plog("❌ 自动同步单条异常: ${e.message?.take(50)}")
                 }
             }
-            return Triple(synced, lastTitle, detectedDate)
+            plog("📊 自动同步完成: 成功$synced / 跳过$skipped / 失败$failed")
+            return AutoSyncResult(synced, skipped, failed, lastTitle, detectedDate, failedDetails, successDetails, skippedDetails)
         } finally {
             syncing = false
         }
@@ -195,7 +304,16 @@ class AutoSyncWorker(
             DataSource.IGPSPORT -> igpsportApi.downloadFitFile(cred, record.id, record.extra)
             DataSource.XINGZHE -> { val (bytes, _) = xingzheApi.downloadGpxOrFit(cred, record.id); bytes }
             DataSource.MAGENE -> {
-                try { mageneApi.downloadFit(cred, record.id).data } catch (_: Exception) { null }
+                try {
+                    val result = mageneApi.downloadFit(cred, record.id)
+                    // v7.6.9: 与手动同步一致——fit_content接口下载的GCJ-02坐标FIT需转WGS84；
+                    // 后台无WebView，用纯Kotlin实现FitGcj02Fixer（算法与WebView版magene_fix.js完全一致）
+                    if (prefs.isGcj02Convert() && result.fromFitContent && isFit(result.data)) {
+                        plog("🔄 迈金fit_content(GCJ-02)坐标转WGS84...")
+                        val fixed = com.jichi.ob.util.FitGcj02Fixer.fix(result.data)
+                        if (fixed != null) fixed else result.data
+                    } else result.data
+                } catch (_: Exception) { null }
             }
             DataSource.BLACKBIRD -> blackbirdApi.downloadActivity(cred, record.id)
             DataSource.BRYTON -> {
@@ -204,6 +322,9 @@ class AutoSyncWorker(
             else -> null
         }
     }
+
+    private fun isFit(bytes: ByteArray): Boolean =
+        bytes.size >= 14 && bytes[8] == '.'.code.toByte() && bytes[9] == 'F'.code.toByte()
 
     // ==================== 通知构建 ====================
 
@@ -239,37 +360,66 @@ class AutoSyncWorker(
 
     /**
      * v7.5.6: 同步完成后的摘要通知（可手动清除）
-     * - 有新文件: "✅ 新上传X条 | 最近: 日期 标题"
-     * - 无新文件: "📋 无最新 | 最近: 日期(已上传)"
-     * - 底部: 源→目标 | 间隔 | 下次检测时间
+     * v7.6.9: 显示成功/跳过/失败明细与目标平台
      */
     private fun postSummaryNotification(
         source: DataSource, target: DataSource, intervalMin: Int,
-        synced: Int, lastTitle: String, detectedDate: String,
-        targetNames: String
+        result: AutoSyncResult, targetNames: String
     ) {
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val pendingIntent = getLaunchPendingIntent()
 
-        val dateStr = formatDate(detectedDate)
-        val statusLine = if (synced > 0) {
-            "✅ 新上传${synced}条 | 最近: $dateStr $lastTitle"
-        } else {
-            "📋 无最新 | 最近: $dateStr(已上传)"
+        val hasFail = result.failed > 0
+        val statusLine = buildString {
+            if (result.synced > 0) append("✅ 新上传${result.synced}条")
+            if (result.synced > 0 && hasFail) append(" · ")
+            if (hasFail) append("❌ 失败${result.failed}条")
+            if (result.synced == 0 && !hasFail) append("📋 无新记录")
+            if (result.skipped > 0) append(" · 跳过${result.skipped}")
         }
-        val bigText = "$statusLine\n${source.displayName}→$targetNames | 间隔${intervalMin}分钟 | 下次检测: 约${intervalMin}分钟后"
+        val detail = buildString {
+            if (result.synced > 0) {
+                append("✅ 新上传${result.synced}条\n")
+                result.successDetails.forEach { append(" · $it\n") }
+            }
+            if (result.failed > 0) {
+                append("❌ 失败${result.failed}条\n")
+                result.failedDetails.forEach { append(" · $it\n") }
+            }
+            if (result.skipped > 0) append("⏭️ 跳过${result.skipped}条（已在同步记忆）\n")
+            append("源:${source.displayName} → $targetNames | 间隔${intervalMin}分钟 | 下次约${intervalMin}分钟后")
+        }
 
+        // v7.6.9: 有失败→红色错误图标 + 标题标注，但保持LOW静默（不响铃不震动，避免夜间自动同步骚扰）
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle("鸡翅幸哲迈进OB 自动同步")
+            .setContentTitle(if (hasFail) "鸡翅幸哲迈进OB 自动同步（部分失败）" else "鸡翅幸哲迈进OB 自动同步")
             .setContentText(statusLine)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
-            .setSmallIcon(android.R.drawable.ic_popup_sync)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+            .setSmallIcon(if (hasFail) android.R.drawable.stat_notify_error else android.R.drawable.ic_popup_sync)
             .setOngoing(false)  // 可手动清除
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         nm.notify(NOTIF_ID_SUMMARY, notification)
+    }
+
+    /** v7.6.9: 自动同步异常通知（用户可感知，不再静默失败） */
+    private fun postFailureNotification(error: String, source: DataSource, targetNames: String) {
+        try {
+            val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val pendingIntent = getLaunchPendingIntent()
+            val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                .setContentTitle("鸡翅幸哲迈进OB 自动同步出错")
+                .setContentText(error)
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$error\n${source.displayName}→$targetNames"))
+                .setSmallIcon(android.R.drawable.stat_notify_error)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .build()
+            nm.notify(NOTIF_ID_SUMMARY, notification)
+        } catch (e: Exception) { Log.e(TAG, "postFailureNotification error", e) }
     }
 
     private fun getLaunchPendingIntent(): PendingIntent {

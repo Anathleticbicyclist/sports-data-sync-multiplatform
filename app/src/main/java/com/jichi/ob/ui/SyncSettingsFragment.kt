@@ -177,8 +177,10 @@ class SyncSettingsFragment : Fragment() {
         val hint = view?.findViewById<TextView>(R.id.tvForceRetransmitHint) ?: return
         val multi = selectedTargetTags.size > 1
         if (multi) {
-            sw.isChecked = true
+            // v7.6.9: 必须先禁用再置勾选，否则 setChecked(true) 触发 listener 时 isEnabled 仍为 true，
+            // 会把 prefs.isForceRetransmit 误写为 true（多目标污染单目标偏好，导致自动同步也一直强制重传）
             sw.isEnabled = false
+            sw.isChecked = true
             hint.text = "多目标同步已自动开启强制重传：每次同步都会重新上传到所有目标"
         } else {
             sw.isEnabled = true

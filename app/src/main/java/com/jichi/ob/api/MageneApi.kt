@@ -128,6 +128,16 @@ class MageneApi {
                 val padded = payloadB64 + "=".repeat((4 - payloadB64.length % 4) % 4)
                 val decoded = String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT), Charsets.UTF_8)
                 val payload = JSONObject(decoded)
+                // v7.6.9: 校验JWT过期时间(exp, Unix秒) —— 迈金token是JWT但getUsername之前不校验exp，
+                // 导致token已过期仍显示"✅ 登录有效"，同步时才401。exp存在且已过期→判定失效，走刷新。
+                val exp = payload.optLong("exp", 0L)
+                if (exp > 0) {
+                    val nowSec = System.currentTimeMillis() / 1000
+                    if (nowSec >= exp) {
+                        Log.w(TAG, "getUsername: JWT已过期(exp=$exp, now=$nowSec)")
+                        return@withContext null
+                    }
+                }
                 val name = payload.optString("nickname")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("userName")?.takeIf { it.isNotEmpty() }
                     ?: payload.optString("name")?.takeIf { it.isNotEmpty() }
@@ -158,6 +168,24 @@ class MageneApi {
             val json = try { JSONObject(respBody) } catch (e: Exception) { return@withContext null }
             if (resp.code == 200 && json.optInt("code", -1) == 200) "迈金用户" else null
         } catch (e2: Exception) { Log.w(TAG, "getUsername API: ${e2.message}"); null }
+    }
+
+    /**
+     * v7.6.9: JWT剩余有效期（秒）。<0表示已过期；null表示无法解析（视为无exp信息）
+     */
+    fun getJwtExpRemainingSec(token: String): Long? {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+            val payloadB64 = parts[1].replace('-', '+').replace('_', '/')
+            val padded = payloadB64 + "=".repeat((4 - payloadB64.length % 4) % 4)
+            val decoded = String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT), Charsets.UTF_8)
+            val exp = JSONObject(decoded).optLong("exp", 0L)
+            if (exp <= 0) null else exp - System.currentTimeMillis() / 1000
+        } catch (e: Exception) {
+            Log.w(TAG, "getJwtExpRemainingSec: ${e.message}")
+            null
+        }
     }
 
     suspend fun getActivities(token: String, skip: Int, limit: Int): List<ActivityRecord> =
