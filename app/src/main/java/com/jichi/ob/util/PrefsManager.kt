@@ -6,6 +6,9 @@ import android.util.Log
 import com.jichi.ob.model.DataSource
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 本地存储：六平台凭证 + 同步记忆 + 设置（v6.1.1）
@@ -27,6 +30,8 @@ class PrefsManager(context: Context) {
         private const val KEY_GCJ02_CONVERT = "gcj02_convert"
         private const val KEY_SAVE_DIR = "save_dir"
         private const val KEY_FORCE_RETRANSMIT = "force_retransmit"
+        private const val KEY_PERSIST_LOG = "persist_log"
+        private const val MAX_LOG_LINES = 400
     }
 
     private val prefs: SharedPreferences =
@@ -294,6 +299,23 @@ class PrefsManager(context: Context) {
     // v7.6.8: 忽略记忆，强制重传（1对1时用户自选；1对多时强制开启）
     fun isForceRetransmit(): Boolean = prefs.getBoolean(KEY_FORCE_RETRANSMIT, false)
     fun setForceRetransmit(b: Boolean) = prefs.edit().putBoolean(KEY_FORCE_RETRANSMIT, b).apply()
+
+    // ===== v7.6.9: 持久化日志（自动同步/手动同步写入，App重开仍可见）=====
+    fun appendPersistLog(msg: String) {
+        try {
+            val ts = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            val cur = prefs.getString(KEY_PERSIST_LOG, "") ?: ""
+            val lines = (cur + "\n" + "[$ts] $msg").split("\n").takeLast(MAX_LOG_LINES)
+            prefs.edit().putString(KEY_PERSIST_LOG, lines.joinToString("\n")).apply()
+        } catch (_: Exception) {}
+    }
+    fun getPersistLogs(): List<String> {
+        val cur = prefs.getString(KEY_PERSIST_LOG, "") ?: ""
+        return cur.split("\n").filter { it.isNotBlank() }
+    }
+    fun clearPersistLogs() {
+        try { prefs.edit().remove(KEY_PERSIST_LOG).apply() } catch (_: Exception) {}
+    }
 
     fun clearAll() = prefs.edit().clear().apply()
 }

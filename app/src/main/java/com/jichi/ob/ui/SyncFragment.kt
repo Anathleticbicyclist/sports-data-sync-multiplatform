@@ -80,6 +80,17 @@ class SyncFragment : Fragment() {
 
         tvLogReady = true
         flushPendingLogs()
+        // v7.6.9: 加载持久化日志（自动同步/历史同步记录），App重开仍可见，避免"假同步"无日志
+        try {
+            val logs = prefs.getPersistLogs().takeLast(80)
+            if (logs.isNotEmpty()) {
+                val tv = tvLog
+                if (tv != null) {
+                    tv.text = "━━━ 最近同步记录 ━━━\n" + logs.joinToString("\n")
+                    logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     private fun flushPendingLogs() {
