@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.6.9"
+            android:text="开发体验版 v7.7.1"
             android:textColor="@color/green"
             android:textSize="13sp" />
         <TextView
@@ -70,8 +70,8 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="2dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.6.9)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复迈金登录态误判：启动检测真实校验token有效期，token将过期自动后台刷新，同步401自动刷新重试\n2. 修复自动同步假同步：同步过程写入日志（同步页可见+通知栏显示明细），失败也发通知，后台电池优化白名单检测提示" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.1)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复佳明国际上传HTTP 403误报失败（实际已接收），上传后自动校验佳明列表，已入库判为成功\n2. 修复迈金登录态误判：启动检测真实校验token有效期，token将过期自动后台刷新，同步401自动刷新重试\n3. 修复自动同步假同步：同步过程写入日志（同步页可见+通知栏显示明细），失败也发通知" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.8" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="修复高驰、迈金软件重新打开后登录失效，刷新" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.7" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />

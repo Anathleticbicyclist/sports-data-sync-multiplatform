@@ -494,6 +494,22 @@ class UploadEngine(private val context: android.content.Context? = null) {
     }
 
     // ===== 佳明 上传（v6.5.0：FIT设备伪装 + upload-service/upload）=====
+    /**
+     * v7.6.9: 通用时间→epoch秒解析。支持 epoch秒/毫秒、yyyy-MM-dd HH:mm[:ss]、yyyy/MM/dd HH:mm[:ss]、ISO(T分隔)
+     */
+    private fun parseEpoch(s: String?): Long? {
+        if (s.isNullOrBlank()) return null
+        val t = s.trim()
+        t.toLongOrNull()?.let { v -> return if (v > 1_000_000_000_000L) v / 1000 else v }
+        var norm = t.replace('T', ' ').substringBefore('.')
+        val m = Regex("""(\d{4})[-/](\d{1,2})[-/](\d{1,2})[ ]+(\d{1,2}):(\d{2})(?::(\d{2}))?""").find(norm) ?: return null
+        val (y, mo, d, h, mi, sec) = m.destructured
+        val c = java.util.Calendar.getInstance()
+        c.clear()
+        c.set(y.toInt(), mo.toInt() - 1, d.toInt(), h.toInt(), mi.toInt(), sec.toIntOrNull() ?: 0)
+        return c.timeInMillis / 1000
+    }
+
     private suspend fun uploadToGarmin(
         cred: String, fitData: ByteArray, record: ActivityRecord, target: DataSource
     ): UploadResult {
@@ -525,6 +541,21 @@ class UploadEngine(private val context: android.content.Context? = null) {
             if (err == null) UploadResult(true, message = "${target.displayName}上传成功")
             // v7.6.0: 佳明重复活动(已在佳明存在) → 归为跳过，与Wahoo 422/行者9006一致
             else if (err.contains("重复活动")) UploadResult(false, message = "重复文件已上传过，自动跳过", skipped = true)
+            // v7.6.9: 佳明上传HTTP 403但可能实际已入库（响应异常/二次处理）——拉最近活动二次校验，避免误报失败
+            else if (err.contains("403")) {
+                val received = try {
+                    val recEpoch = parseEpoch(record.startTime)
+                    if (recEpoch != null) {
+                        val recent = garminApi.getActivities(target, cred, 0, 8)
+                        recent.any { a ->
+                            val ae = parseEpoch(a.startTime)
+                            ae != null && Math.abs(ae - recEpoch) < 3 * 60
+                        }
+                    } else false
+                } catch (e: Exception) { Log.w(TAG, "佳明403二次校验异常: ${e.message}"); false }
+                if (received) UploadResult(true, message = "${target.displayName}已接收(403但列表已存在)")
+                else UploadResult(false, message = err)
+            }
             else UploadResult(false, message = err)
         } catch (e: Exception) {
             Log.e(TAG, "Garmin upload error", e)
