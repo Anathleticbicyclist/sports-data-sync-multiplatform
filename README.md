@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.6.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.6.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.6.8 |
+| 当前版本 | v7.6.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -366,6 +366,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.6.9 (2026-09-08)
+**已解决**：
+- **修复迈金登录态误判**：启动检测真实校验token有效期，不再显示"已登录"却同步失败；token将过期自动后台刷新，同步401自动刷新重试
+- **修复自动同步"假同步"**：自动同步保持纯增量，不再重复全量上传；同步过程写入持久日志（同步页可见，App重开保留），通知显示逐条明细（日期/标题→平台）与成功/跳过/失败计数，失败也发通知
+- **自动同步后台稳定性**：迈金源坐标GCJ-02自动转WGS84（纯Kotlin实现，与手动同步一致）；佳明/Wahoo上传token自动刷新；恢复官方FIT转换通道（黑鸟等平台GPX转FIT更可靠）
+- 后台电池优化白名单检测提示，避免自动同步被系统限制
 
 ### v7.6.8 (2026-09-07)
 **已解决**：
