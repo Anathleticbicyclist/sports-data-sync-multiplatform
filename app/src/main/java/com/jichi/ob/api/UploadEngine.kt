@@ -541,20 +541,33 @@ class UploadEngine(private val context: android.content.Context? = null) {
             if (err == null) UploadResult(true, message = "${target.displayName}上传成功")
             // v7.6.0: 佳明重复活动(已在佳明存在) → 归为跳过，与Wahoo 422/行者9006一致
             else if (err.contains("重复活动")) UploadResult(false, message = "重复文件已上传过，自动跳过", skipped = true)
-            // v7.6.9: 佳明上传HTTP 403但可能实际已入库（响应异常/二次处理）——拉最近活动二次校验，避免误报失败
+            // v7.7.2: 佳明国际DI通道上传403≈文件已入库但响应异常（用户实测确认）。
+            // 等待佳明入库后用列表多次核对（时间±20分钟/标题匹配）区分真失败：
+            // 核对到=已接收归成功；多次核对仍查不到=明确提示"未能确认请核对"，不静默成功也不谎报失败
             else if (err.contains("403")) {
-                val received = try {
-                    val recEpoch = parseEpoch(record.startTime)
-                    if (recEpoch != null) {
-                        val recent = garminApi.getActivities(target, cred, 0, 8)
-                        recent.any { a ->
-                            val ae = parseEpoch(a.startTime)
-                            ae != null && Math.abs(ae - recEpoch) < 3 * 60
+                val recEpoch = parseEpoch(record.startTime)
+                val title = record.title.trim()
+                var received = false
+                repeat(3) { attempt ->
+                    if (received) return@repeat
+                    // 首次立即核对（上传请求已耗时数十秒，文件大概率已入库，无需再等）；未查到再间隔5秒重试
+                    if (attempt > 0) kotlinx.coroutines.delay(5000)
+                    try {
+                        val recent = garminApi.getActivities(target, cred, 0, 15)
+                        received = recent.any { a ->
+                            val timeMatch = recEpoch != null && run {
+                                val ae = parseEpoch(a.startTime)
+                                ae != null && Math.abs(ae - recEpoch) < 20 * 60
+                            }
+                            val titleMatch = title.isNotBlank() && a.title.isNotBlank() &&
+                                (a.title.contains(title) || title.contains(a.title.trim()))
+                            timeMatch || titleMatch
                         }
-                    } else false
-                } catch (e: Exception) { Log.w(TAG, "佳明403二次校验异常: ${e.message}"); false }
-                if (received) UploadResult(true, message = "${target.displayName}已接收(403但列表已存在)")
-                else UploadResult(false, message = err)
+                        Log.d(TAG, "佳明403核对第${attempt + 1}次: ${if (received) "已找到" else "未找到"} (最近${recent.size}条)")
+                    } catch (e: Exception) { Log.w(TAG, "佳明403核对异常: ${e.message}") }
+                }
+                if (received) UploadResult(true, message = "${target.displayName}已接收(403已确认)")
+                else UploadResult(false, message = "${target.displayName}佳明返回403，未能确认是否已接收，请到佳明核对")
             }
             else UploadResult(false, message = err)
         } catch (e: Exception) {
