@@ -75,13 +75,12 @@ class PrefsManager(context: Context) {
     fun getBlackbirdCookie(): String? = prefs.getString("blackbird_cookie", null)
     fun isBlackbirdLoggedIn(): Boolean = !getBlackbirdCookie().isNullOrEmpty()
 
-    // ===== 百锐腾: Meteor token + userId + cookie =====
+    // ===== 百锐腾: Meteor token + userId + cookie（v7.8.0 保留，下载开发中）=====
     fun saveBrytonCookie(cookie: String) {
         Log.d(TAG, "saveBrytonCookie: ${cookie.length}")
         prefs.edit().putString("bryton_cookie", cookie).apply()
     }
     fun getBrytonCookie(): String? = prefs.getString("bryton_cookie", null)
-    /** v6.2.4: 百锐腾是Meteor应用，登录态主要存localStorage(Meteor.loginToken/Meteor.userId)，cookie仅辅助 */
     fun saveBrytonToken(token: String) {
         Log.d(TAG, "saveBrytonToken: ${token.length}")
         prefs.edit().putString("bryton_token", token).apply()
@@ -92,6 +91,16 @@ class PrefsManager(context: Context) {
     }
     fun getBrytonUserId(): String? = prefs.getString("bryton_user_id", null)
     fun isBrytonLoggedIn(): Boolean = !getBrytonToken().isNullOrEmpty() || !getBrytonCookie().isNullOrEmpty()
+
+    // ===== 捷安特: user_token（v7.8.0 新增，纯API账号密码登录，仅上传）=====
+    fun saveGiantToken(token: String) {
+        Log.d(TAG, "saveGiantToken: ${token.length}")
+        prefs.edit().putString("giant_token", token).apply()
+    }
+    fun getGiantToken(): String? = prefs.getString("giant_token", null)
+    fun isGiantLoggedIn(): Boolean = !getGiantToken().isNullOrEmpty()
+    fun saveGiantAccount(account: String) = prefs.edit().putString("giant_account", account).apply()
+    fun getGiantAccount(): String? = prefs.getString("giant_account", null)
 
     // ===== Outbase: sessionId + 网关cookie =====
     fun saveOutbaseSessionId(sid: String) {
@@ -161,6 +170,7 @@ class PrefsManager(context: Context) {
         DataSource.MAGENE -> getMageneToken()
         DataSource.BLACKBIRD -> getBlackbirdCookie()
         DataSource.BRYTON -> getBrytonCookie()
+        DataSource.GIANT -> getGiantToken()
         DataSource.OUTBASE -> getOutbaseSessionId()
         DataSource.GARMIN_COM -> getGarminComToken()
         DataSource.GARMIN_CN -> getGarminCnToken()
@@ -176,6 +186,7 @@ class PrefsManager(context: Context) {
             DataSource.MAGENE -> saveMageneToken(cred)
             DataSource.BLACKBIRD -> saveBlackbirdCookie(cred)
             DataSource.BRYTON -> saveBrytonCookie(cred)
+            DataSource.GIANT -> saveGiantToken(cred)
             DataSource.OUTBASE -> saveOutbaseSessionId(cred)
             DataSource.GARMIN_COM -> saveGarminComToken(cred)
             DataSource.GARMIN_CN -> saveGarminCnToken(cred)
@@ -193,6 +204,7 @@ class PrefsManager(context: Context) {
             DataSource.MAGENE -> { e.remove("magene_token"); e.remove("magene_refresh_token") }
             DataSource.BLACKBIRD -> e.remove("blackbird_cookie")
             DataSource.BRYTON -> { e.remove("bryton_cookie"); e.remove("bryton_token"); e.remove("bryton_user_id") }
+            DataSource.GIANT -> e.remove("giant_token")
             DataSource.OUTBASE -> { e.remove("outbase_session_id"); e.remove("gateway_cookies") }
             DataSource.GARMIN_COM -> { e.remove("garmin_com_token"); e.remove("garmin_com_cookie") }
             DataSource.GARMIN_CN -> { e.remove("garmin_cn_token"); e.remove("garmin_cn_cookie") }
@@ -209,6 +221,7 @@ class PrefsManager(context: Context) {
         DataSource.MAGENE -> isMageneLoggedIn()
         DataSource.BLACKBIRD -> isBlackbirdLoggedIn()
         DataSource.BRYTON -> isBrytonLoggedIn()
+        DataSource.GIANT -> isGiantLoggedIn()
         DataSource.OUTBASE -> isOutbaseLoggedIn()
         DataSource.GARMIN_COM -> isGarminComLoggedIn()
         DataSource.GARMIN_CN -> isGarminCnLoggedIn()

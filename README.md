@@ -7,10 +7,10 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.7.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.7.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中）。
 
 > ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.7.3 |
+| 当前版本 | v7.7.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -91,7 +91,7 @@
 | 行者 | 账号登录 |
 | 迈金 | 账号登录 |
 | 黑鸟单车 | 账号登录 |
-| 百锐腾 | 账号登录 |
+| 捷安特 | 账号登录（纯API直传） |
 | Outbase | 手机号验证码登录 |
 | 佳明国际 | 账号登录 |
 | 佳明中国 | 账号登录 |
@@ -272,6 +272,7 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 | **迈金** | ✅ | ✅ | 顽鹿OTM API直传上传（v7.6.3），支持GCJ-02→WGS84坐标转换 |
 | **黑鸟单车** | ✅ | ✅ | v7.6.5起导出为标准FIT（含累计distance），各平台解析一致 |
 | **百锐腾** | ⚠️ | 🚧 开发中 | 官方未开放FIT下载接口 |
+| **捷安特** | ❌ | ✅ | 捷安特骑行，账号密码纯API直传（v7.7.4），暂不支持下载 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
 | **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO+DI Token |
 | **佳明中国** | ✅ | ✅ | Garmin Connect中国区，mobile SSO+DI Token（参考garth库），connectapi不经过Cloudflare（⚠️速度较慢） |
@@ -382,6 +383,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.7.4 (2026-09-10)
+**已解决**：
+- **新增捷安特骑行同步目标**：账号密码纯 API 直传（login/upload_fit/fit_list），无需 WebView，支持后台自动同步；登录页百锐腾卡片替换为捷安特（百锐腾保留为下载数据源，开发中）
+- **修复捷安特登录后目标不能立即选择**：登录成功自动刷新设置页来源/目标网格，无需重启 App
+- **修复注销后无法切换账号**：WebView 登录类平台注销时清空全部 cookie（覆盖 HttpOnly 登录态，如高驰 CPL-coros-token），注销后重新登录可输入新账号；佳明/Wahoo 除外
 
 ### v7.7.3 (2026-09-10)
 **已解决**：
