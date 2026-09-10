@@ -67,8 +67,13 @@ class LoginWebActivity : AppCompatActivity() {
          * v7.7.3: 注销时清除指定平台的 WebView 登录态（localStorage + cookie），不影响其他平台登录态。
          * 修复"注销后重新登录仍用旧账号自动登录"的问题。
          * 仅按平台域名清除，Wahoo等平台的令牌存于App内（PrefsManager），天然隔离不受影响。
+         *
+         * v7.7.4: 新增 wipeAllCookies 参数。WebView 登录类平台（高驰等）的登录态是 HttpOnly cookie
+         * （如 CPL-coros-token），CookieManager.setCookie(过期) 无法覆盖 HttpOnly cookie，按域清除无效，
+         * 导致注销后重登仍沿用旧账号。故对这类平台清空全部 WebView cookie（App 内凭证是日常主凭证，
+         * 已登录平台不受影响；仅"需要重新打开 WebView 登录"的平台受影响，而它们本就处于重登流程）。
          */
-        fun clearPlatformWebLogin(type: String) {
+        fun clearPlatformWebLogin(type: String, wipeAllCookies: Boolean = false) {
             val origins: List<String>
             val domains: List<String>
             when (type) {
@@ -109,8 +114,17 @@ class LoginWebActivity : AppCompatActivity() {
                     }
                 } catch (_: Exception) {}
             }
+            // v7.7.4: 清空全部WebView cookie，确保 HttpOnly 登录态（如高驰 CPL-coros-token）也被清除，
+            // 使注销后重新登录可切换账号（不再沿用旧账号自动登录）
+            if (wipeAllCookies) {
+                try {
+                    val latch = java.util.concurrent.CountDownLatch(1)
+                    cm.removeAllCookies { latch.countDown() }
+                    try { latch.await(2, java.util.concurrent.TimeUnit.SECONDS) } catch (_: Exception) {}
+                } catch (_: Exception) {}
+            }
             cm.flush()
-            Log.i(TAG, "clearPlatformWebLogin: 已清除 $type 的WebView登录态(localStorage+cookie)")
+            Log.i(TAG, "clearPlatformWebLogin: 已清除 $type 的WebView登录态(localStorage+cookie${if (wipeAllCookies) "+全量cookie" else ""})")
         }
     }
  
@@ -521,8 +535,14 @@ class LoginWebActivity : AppCompatActivity() {
 
             // v7.7.3: 若该平台未登录（如刚注销），首次加载完成后清理WebView残留登录态再重载，
             // 确保弹出登录窗口、可用新账号登录，而不是沿用旧登录态自动登录
+            // v7.7.4: 追加"加载前即清理"，避免轮询检测在onPageFinished清理前就读到旧cookie（尤其HttpOnly cookie）
             try {
                 pendingClean = !PrefsManager(this).isLoggedIn(loginTypeToDataSource())
+                if (pendingClean) {
+                    Log.i(TAG, "[$loginType] 未登录状态，加载前清理WebView残留登录态")
+                    val wipeAll = loginType != TYPE_GARMIN_COM && loginType != TYPE_GARMIN_CN && loginType != TYPE_WAHOO
+                    clearPlatformWebLogin(loginType, wipeAllCookies = wipeAll)
+                }
             } catch (_: Exception) { pendingClean = false }
 
             if (url.isNotBlank()) webView.loadUrl(url) else finish()
