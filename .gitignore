@@ -11,3 +11,6 @@
 local.properties
 
 /build*.log
+# 签名密钥（切勿提交/推送）
+*.keystore
+jichi-ob-dev.keystore

@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.7.3"
+            android:text="开发体验版 v7.7.4"
             android:textColor="@color/green"
             android:textSize="13sp" />
         <TextView
@@ -70,12 +70,12 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="2dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.4)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 新增「捷安特骑行」同步目标：账号密码直接登录，纯API直传，支持同步上传\n2. 登录页百锐腾替换为捷安特（百锐腾下载入口保留，开发中）\n3. 修复捷安特登录后目标不能立即选择：登录成功自动刷新设置页，无需重启App\n4. 修复注销后无法切换账号：彻底清除WebView登录态（高驰等平台），注销后重登可输新账号" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.3" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复iGPSPORT登录页在部分机型WebView加载失败（改用移动UA+兼容性优化）\n2. 修复注销后重新登录沿用旧账号、看不到登录窗口（注销时清除该平台WebView登录态）\n3. 优化佳明登录失败提示（区分风控/限流），登录稳定性优化" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.2" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复佳明国际上传403误报失败：403视为已接收（实测确认已入库），自动校验佳明列表确认，不再误报失败" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复佳明国际上传HTTP 403误报失败（实际已接收），上传后自动校验佳明列表，已入库判为成功\n2. 修复迈金登录态误判：启动检测真实校验token有效期，token将过期自动后台刷新，同步401自动刷新重试\n3. 修复自动同步假同步：同步过程写入日志（同步页可见+通知栏显示明细），失败也发通知" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

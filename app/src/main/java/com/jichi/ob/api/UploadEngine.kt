@@ -5,6 +5,7 @@ import com.jichi.ob.GpxToFitConverter
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.api.BlackbirdApi
 import com.jichi.ob.api.BrytonApi
+import com.jichi.ob.api.GiantApi
 import com.jichi.ob.model.DataSource
 import com.jichi.ob.model.UploadSupport
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +23,8 @@ import com.jichi.ob.util.GpxTimeFixer
 
 /**
  * 统一上传引擎（v6.1.1 逆向流动核心）
- * 支持上传到：Outbase / iGPSPORT / 行者 / 迈金
- * 黑鸟单车 / 百锐腾：开发中
+ * 支持上传到：Outbase / iGPSPORT / 行者 / 迈金 / 黑鸟 / 捷安特
+ * v7.8.0: 新增捷安特(纯API直传)；百锐腾仍为开发中
  */
 class UploadEngine(private val context: android.content.Context? = null) {
 
@@ -50,6 +51,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
     private val outbaseApi = OutbaseApi()
     private val blackbirdApi = BlackbirdApi()
     private val brytonApi = BrytonApi()
+    private val giantApi = GiantApi()
     private val garminApi = GarminApi()
     private val corosApi = CorosApi()
 
@@ -108,6 +110,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
             DataSource.MAGENE -> uploadToMagene(credential, uploadData, record, extra)
             DataSource.BLACKBIRD -> uploadToBlackbird(credential, uploadData, record, extra)
             DataSource.BRYTON -> uploadToBryton(credential, uploadData, record, extra)
+            DataSource.GIANT -> uploadToGiant(credential, uploadData, record, extra)
             DataSource.GARMIN_COM -> uploadToGarmin(credential, uploadData, record, DataSource.GARMIN_COM)
             DataSource.GARMIN_CN -> uploadToGarmin(credential, uploadData, record, DataSource.GARMIN_CN)
             DataSource.COROS_CN -> uploadToCoros(credential, uploadData, record)
@@ -476,20 +479,25 @@ class UploadEngine(private val context: android.content.Context? = null) {
         }
     }
 
-    // ===== 百锐腾 上传 =====
+    // ===== 百锐腾 上传（开发中，available=false 提前返回，此分支为占位）=====
     private suspend fun uploadToBryton(
         cookie: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
+    ): UploadResult = UploadResult(false, message = "百锐腾上传开发中")
+
+    // ===== 捷安特 上传（v7.8.0：纯API直传，实测可用）=====
+    private suspend fun uploadToGiant(
+        token: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
-            val fileName = FileNameGenerator.generate(DataSource.BRYTON, record, "fit")
-            val ok = brytonApi.uploadActivity(cookie, fitData, fileName)
-            Log.d(TAG, "Bryton upload result: $ok (${System.currentTimeMillis() - start}ms)")
-            if (ok) UploadResult(true, message = "百锐腾上传成功")
-            else UploadResult(false, message = "百锐腾上传失败（HTTP详见日志）")
+            val fileName = FileNameGenerator.generate(DataSource.GIANT, record, "fit")
+            val err = giantApi.uploadFit(token, fitData, fileName)
+            Log.d(TAG, "Giant upload result: ${err ?: "ok"} (${System.currentTimeMillis() - start}ms)")
+            if (err == null) UploadResult(true, message = "捷安特上传成功")
+            else UploadResult(false, message = err)
         } catch (e: Exception) {
-            Log.e(TAG, "Bryton upload error", e)
-            UploadResult(false, message = "百锐腾上传失败: ${e.message}")
+            Log.e(TAG, "Giant upload error", e)
+            UploadResult(false, message = "捷安特上传失败: ${e.message}")
         }
     }
 

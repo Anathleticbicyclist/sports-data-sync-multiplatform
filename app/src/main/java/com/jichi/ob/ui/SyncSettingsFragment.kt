@@ -82,6 +82,7 @@ class SyncSettingsFragment : Fragment() {
         "mg" -> requireContext().getColor(R.color.magene_blue)
         "bb" -> requireContext().getColor(R.color.blackbird_dark)
         "br" -> requireContext().getColor(R.color.bryton_red)
+        "gt" -> requireContext().getColor(R.color.giant_blue)
         "gm", "gcn" -> requireContext().getColor(R.color.garmin_blue)
         "cscn", "cs" -> requireContext().getColor(R.color.coros_red)
         "wahoo" -> requireContext().getColor(R.color.wahoo_red)

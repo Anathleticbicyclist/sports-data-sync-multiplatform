@@ -43,6 +43,7 @@ import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.api.CorosApi
 import com.jichi.ob.api.GarminApi
 import com.jichi.ob.api.GarminOAuthHelper
+import com.jichi.ob.api.GiantApi
 import com.jichi.ob.api.WahooApi
 import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
@@ -94,6 +95,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mageneApi: MageneApi
     private lateinit var blackbirdApi: BlackbirdApi
     private lateinit var brytonApi: BrytonApi
+    private lateinit var giantApi: GiantApi
     private lateinit var outbaseApi: OutbaseApi
     private lateinit var garminApi: GarminApi
     private lateinit var corosApi: CorosApi
@@ -202,6 +204,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 loginFragment.updateStatus()
+                // v7.7.4: 登录成功后刷新设置页来源/目标网格，目标立即可选，无需重启App
+                try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
             }
         } catch (e: Exception) {
             Log.e(TAG, "login result error", e)
@@ -230,6 +234,7 @@ class MainActivity : AppCompatActivity() {
             mageneApi = MageneApi()
             blackbirdApi = BlackbirdApi()
             brytonApi = BrytonApi()
+            giantApi = GiantApi()
             outbaseApi = OutbaseApi()
             garminApi = GarminApi()
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
@@ -419,6 +424,58 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** v7.8.0: 捷安特直接登录——账号密码原生表单直调 GiantApi（纯API，无需WebView） */
+    internal fun openGiantLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val accountInput = android.widget.EditText(this).apply {
+            hint = "捷安特账号（手机号/邮箱）"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setText(prefs.getGiantAccount() ?: "")
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "捷安特密码"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(accountInput)
+        layout.addView(passwordInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("登录捷安特")
+            .setMessage("账号密码直接登录，支持同步上传（捷安特暂不支持下载）")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val account = accountInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (account.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入捷安特账号和密码")
+                    return@setPositiveButton
+                }
+                prefs.saveGiantAccount(account)
+                appendLog("🔐 捷安特直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = giantApi.login(account, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveGiantToken(result.token)
+                            prefs.saveUsername(DataSource.GIANT, result.nickname)
+                            appendLog("✅ 捷安特登录成功")
+                            fetchUsernameAfterLogin(DataSource.GIANT)
+                        } else {
+                            appendLog("❌ 捷安特登录失败：账号或密码错误，请重新输入")
+                        }
+                        loginFragment.updateStatus()
+                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     /** v7.2.0: Wahoo配置对话框（保留，用于用户自配置凭证） */
     private fun openWahooConfigDialog() {
         val savedId = prefs.getWahooClientId() ?: ""
@@ -477,7 +534,7 @@ class MainActivity : AppCompatActivity() {
             val platforms = listOf(
                 DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
                 DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
-                DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO
+                DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO, DataSource.GIANT
             )
             for (ds in platforms) {
                 if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
@@ -490,6 +547,7 @@ class MainActivity : AppCompatActivity() {
                         DataSource.MAGENE -> mageneApi.getUsername(cred)
                         DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
                         DataSource.BRYTON -> brytonApi.getUsername(cred)
+                        DataSource.GIANT -> giantApi.getUsername(cred)
                         DataSource.OUTBASE -> outbaseApi.getUsername(cred)
                         DataSource.GARMIN_COM -> garminApi.getUsername(ds, cred)
                         DataSource.GARMIN_CN -> garminApi.getUsername(ds, cred)
@@ -603,6 +661,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.MAGENE -> mageneApi.getUsername(cred)
                 DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
                 DataSource.BRYTON -> brytonApi.getUsername(cred)
+                DataSource.GIANT -> giantApi.getUsername(cred)
                 DataSource.OUTBASE -> outbaseApi.getUsername(cred)
                 // v6.7.2: 佳明displayName是UUID(用户ID)，不获取不显示，直接已登录
                 DataSource.GARMIN_COM -> null
@@ -1072,7 +1131,10 @@ class MainActivity : AppCompatActivity() {
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
         tr.show(target).commit()
-        // 注：登录/注销状态刷新已由各Fragment的onResume自行处理（v7.6.7）
+        // v7.7.4: hide/show 不触发 onResume，切到设置页时手动刷新来源/目标网格（登录/注销后即时生效，无需重启）
+        if (target == settingsFragment) {
+            try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
+        }
     }
 
     private fun initFixWebView() {

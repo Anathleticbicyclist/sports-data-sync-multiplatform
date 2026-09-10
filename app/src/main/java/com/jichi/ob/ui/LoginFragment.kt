@@ -16,7 +16,6 @@ import com.jichi.ob.api.OutbaseApi
 import com.jichi.ob.api.WahooApi
 import com.jichi.ob.api.XingzheApi
 import com.jichi.ob.api.BlackbirdApi
-import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.model.DataSource
 import com.jichi.ob.util.PrefsManager
 import android.widget.TextView
@@ -45,7 +44,7 @@ class LoginFragment : Fragment() {
         statusViews[DataSource.XINGZHE] = view.findViewById(R.id.tvXingzheStatus)
         statusViews[DataSource.MAGENE] = view.findViewById(R.id.tvMageneStatus)
         statusViews[DataSource.BLACKBIRD] = view.findViewById(R.id.tvBlackbirdStatus)
-        statusViews[DataSource.BRYTON] = view.findViewById(R.id.tvBrytonStatus)
+        statusViews[DataSource.GIANT] = view.findViewById(R.id.tvGiantStatus)
         statusViews[DataSource.OUTBASE] = view.findViewById(R.id.tvOutbaseStatus)
         statusViews[DataSource.GARMIN_COM] = view.findViewById(R.id.tvGarminComStatus)
         statusViews[DataSource.GARMIN_CN] = view.findViewById(R.id.tvGarminCnStatus)
@@ -57,7 +56,7 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogin)
         btnViews[DataSource.MAGENE] = view.findViewById(R.id.btnMageneLogin)
         btnViews[DataSource.BLACKBIRD] = view.findViewById(R.id.btnBlackbirdLogin)
-        btnViews[DataSource.BRYTON] = view.findViewById(R.id.btnBrytonLogin)
+        btnViews[DataSource.GIANT] = view.findViewById(R.id.btnGiantLogin)
         btnViews[DataSource.OUTBASE] = view.findViewById(R.id.btnOutbaseLogin)
         btnViews[DataSource.GARMIN_COM] = view.findViewById(R.id.btnGarminComLogin)
         btnViews[DataSource.GARMIN_CN] = view.findViewById(R.id.btnGarminCnLogin)
@@ -70,7 +69,7 @@ class LoginFragment : Fragment() {
         logoutViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogout)
         logoutViews[DataSource.MAGENE] = view.findViewById(R.id.btnMageneLogout)
         logoutViews[DataSource.BLACKBIRD] = view.findViewById(R.id.btnBlackbirdLogout)
-        logoutViews[DataSource.BRYTON] = view.findViewById(R.id.btnBrytonLogout)
+        logoutViews[DataSource.GIANT] = view.findViewById(R.id.btnGiantLogout)
         logoutViews[DataSource.OUTBASE] = view.findViewById(R.id.btnOutbaseLogout)
         logoutViews[DataSource.GARMIN_COM] = view.findViewById(R.id.btnGarminComLogout)
         logoutViews[DataSource.GARMIN_CN] = view.findViewById(R.id.btnGarminCnLogout)
@@ -88,7 +87,10 @@ class LoginFragment : Fragment() {
                         prefs.clearCredential(ds)
                         // v7.7.3: 同时清除该平台WebView登录态(localStorage+cookie)，
                         // 避免"注销后重新登录仍用旧账号自动登录、看不到登录窗口"的问题
-                        LoginWebActivity.clearPlatformWebLogin(ds.toLoginType())
+                        // v7.7.4: WebView登录类平台(除佳明/Wahoo)追加清空全部cookie，
+                        // 覆盖HttpOnly登录态(如高驰CPL-coros-token)，确保注销后可切换账号
+                        val wipeAll = ds != DataSource.GARMIN_COM && ds != DataSource.GARMIN_CN && ds != DataSource.WAHOO
+                        LoginWebActivity.clearPlatformWebLogin(ds.toLoginType(), wipeAllCookies = wipeAll)
                         // 若该平台被选为来源/目标，同步记忆残留不影响，登录页刷新即可
                         updateStatus()
                         Toast.makeText(requireContext(), "已注销${ds.displayName}", Toast.LENGTH_SHORT).show()
@@ -103,7 +105,7 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.XINGZHE]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_XINGZHE, XingzheApi.LOGIN_URL) }
         btnViews[DataSource.MAGENE]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_MAGENE, MageneApi.LOGIN_URL) }
         btnViews[DataSource.BLACKBIRD]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_BLACKBIRD, BlackbirdApi.LOGIN_URL) }
-        btnViews[DataSource.BRYTON]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_BRYTON, BrytonApi.LOGIN_URL) }
+        btnViews[DataSource.GIANT]?.setOnClickListener { (activity as? MainActivity)?.openGiantLogin() }
         btnViews[DataSource.OUTBASE]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_OUTBASE, OutbaseApi.LOGIN_URL) }
         btnViews[DataSource.GARMIN_COM]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_GARMIN_COM, GarminApi.LOGIN_URL_COM) }
         btnViews[DataSource.GARMIN_CN]?.setOnClickListener { (activity as? MainActivity)?.openGarminCnLogin() }
@@ -147,6 +149,7 @@ class LoginFragment : Fragment() {
         DataSource.MAGENE -> LoginWebActivity.TYPE_MAGENE
         DataSource.BLACKBIRD -> LoginWebActivity.TYPE_BLACKBIRD
         DataSource.BRYTON -> LoginWebActivity.TYPE_BRYTON
+        DataSource.GIANT -> "giant"   // 捷安特无WebView登录态，注销清理直接跳过
         DataSource.OUTBASE -> LoginWebActivity.TYPE_OUTBASE
         DataSource.GARMIN_COM -> LoginWebActivity.TYPE_GARMIN_COM
         DataSource.GARMIN_CN -> LoginWebActivity.TYPE_GARMIN_CN

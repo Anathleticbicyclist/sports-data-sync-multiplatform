@@ -21,6 +21,7 @@ object FileNameGenerator {
         DataSource.MAGENE to "Magene",
         DataSource.BLACKBIRD to "Blackbird",
         DataSource.BRYTON to "Bryton",
+        DataSource.GIANT to "Giant",
         DataSource.OUTBASE to "Outbase"
     )
 

@@ -19,7 +19,9 @@ enum class DataSource(val displayName: String, val shortName: String) {
     XINGZHE("行者", "xz"),
     MAGENE("迈金", "mg"),
     BLACKBIRD("黑鸟单车", "bb"),
+    // v7.8.0: 新增捷安特(纯API上传)；百锐腾保留（下载保持开发中）
     BRYTON("百锐腾", "br"),
+    GIANT("捷安特", "gt"),
     OUTBASE("Outbase", "ob"),
     // v6.5.0 新增：佳明(国际/中国)、高驰(中国/国际)、Wahoo
     GARMIN_COM("佳明国际", "gm"),
@@ -29,7 +31,7 @@ enum class DataSource(val displayName: String, val shortName: String) {
     WAHOO("Wahoo", "wo");
 
     companion object {
-        /** 可作为"来源(下载)"的平台 */
+        /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
         fun sourcePlatforms(): List<DataSource> =
             listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO)
         fun fromShortName(s: String): DataSource? = entries.find { it.shortName == s }
@@ -50,6 +52,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     MAGENE(true, "顽鹿OTM API直传"),
     BLACKBIRD(true, "官方上传通道，仅接受FIT"),
     BRYTON(false, "开发中"),
+    GIANT(true, "官方上传API"),
     GARMIN_COM(true, "需FIT设备伪装"),
     GARMIN_CN(true, "需FIT设备伪装"),
     COROS_CN(true, "OSS+fit/import"),
@@ -64,6 +67,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
             DataSource.MAGENE -> MAGENE
             DataSource.BLACKBIRD -> BLACKBIRD
             DataSource.BRYTON -> BRYTON
+            DataSource.GIANT -> GIANT
             DataSource.GARMIN_COM -> GARMIN_COM
             DataSource.GARMIN_CN -> GARMIN_CN
             DataSource.COROS_CN -> COROS_CN
