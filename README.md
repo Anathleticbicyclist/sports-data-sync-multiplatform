@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.7.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.7.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.7.5 |
+| 当前版本 | v7.7.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -44,10 +44,12 @@
 | 页面 | 功能 |
 |------|------|
 | 开屏动画 | 1秒浅蓝开屏，软件名"鸡翅幸哲迈进OB · 让运动数据自由流动" |
-| 登录 | 十一平台登录状态与登录入口（已登录平台右上角可注销） |
-| 数据同步设置 | 数据来源/目标选择、同步数量/跳过手动输入、迈金坐标转换 |
-| 同步 | 后台自动同步、开始/停止/测试/复制/清记忆、运行日志 |
-| 关于 | 版本信息、更新日志、鸣谢、赞赏支持 |
+| 登录 | 十一平台登录状态与登录入口（已登录平台可注销；未登录灰字不扎眼；品牌横幅一屏展示） |
+| 数据同步设置 | 数据来源/目标选择（v7.7.7：文字居中完整显示+右上角品牌小圆点，选中点亮品牌色）、同步数量/跳过、迈金坐标转换、强制重传 |
+| 同步 | 后台自动同步、开始/停止/测试/复制/清记忆、运行日志、长条渐变进度条（呼吸氛围光、颜色随进度变化） |
+| 关于 | 版本信息、**检查更新**（开源最新版对比）、更新日志、鸣谢（含捷安特）、赞赏支持 |
+
+> **v7.7.7 起全面 UI 重塑**：扁平化、清新、前卫的设计风格（参考现代移动端设计语言），主色统一为天蓝 `#2B8CFF`，四个页面风格继承统一；平台品牌色小圆点是设计亮点（设置页选中时圆点点亮为对应品牌色）。
 
 ---
 
@@ -303,7 +305,9 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 - **同步记忆**：已同步记录自动跳过，上限10000条
 - **后台自动同步**：WorkManager系统调度，间隔15分钟~1小时，跨开机/杀进程后仍可执行，更省电
 - **测试下载**：单条下载验证功能
-- **登录状态显示**：已登录状态一目了然
+- **登录状态显示**：已登录状态一目了然（v7.7.7 起未登录显示中性灰，不扎眼）
+- **检查更新**：v7.7.6 起自动/手动检测 GitHub 开源项目最新版本，弹窗对比"开源最新版 vs 当前版"并提示结论，发现新版可一键跳转下载
+- **平台品牌徽章**：v7.7.7 设置页每个平台按钮带品牌色小圆点，选中时点亮为对应品牌色（iGPSPORT橙红、行者蓝、迈金蓝、黑鸟绿、捷安特蓝、Outbase橙等）
 
 ---
 
@@ -339,13 +343,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ### 🏢 平台鸣谢
 
-感谢iGPSPORT、行者、迈金、黑鸟单车、百锐腾、Outbase、佳明、高驰、Wahoo为运动用户提供的数据记录与存储服务。
+感谢iGPSPORT、行者、迈金、黑鸟单车、百锐腾、捷安特、Outbase、佳明、高驰、Wahoo为运动用户提供的数据记录与存储服务。
 
 - iGPSPORT迹驰 — [Innovation for Great Performance @ SPORTS](https://www.igpsport.com)
 - 行者 — [虽千万里 吾往矣](https://www.imxingzhe.com)
 - 迈金Magene — [让运动更科学](https://www.magene.cn)
 - 黑鸟单车 — [黑鸟单车 骑乐无穷](https://www.blackbirdsport.com)
 - 百锐腾Bryton — [Engineered for Great Performance](https://www.brytonsport.com)
+- 捷安特Giant — [骑乘的乐趣](https://www.giant.com.cn)
 - Outbase — [用运动连接世界](https://outbase.cn)
 - 佳明Garmin — [Engineered on the inside for life on the outside](https://www.garmin.com.cn)
 - 高驰COROS — [保持专注 乐于创新 满怀热情](https://www.coros.com)
@@ -383,6 +388,19 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.7.7 (2026-09-10)
+**已解决**：
+- **全面 UI 重塑**：扁平化、清新、前卫设计（参考现代移动端设计语言），主色统一天蓝 `#2B8CFF`，四个页面风格继承统一
+- **登录页**：品牌横幅与软件名融合、一屏展示（不同机型自动铺满、无需上下滑）、未登录状态改中性灰不再扎眼
+- **设置页**：平台按钮重构为「文字居中完整显示 + 右上角品牌小圆点」——选中时圆点亮起对应品牌色 + 亮绿描边 + 文字天蓝加粗，未选中浅灰；佳明中国/国际等长平台名完整显示不再截断
+- **同步页**：进度改为长条渐变进度条（灰边框轨道始终可见 + 渐变填充 + 不确定模式呼吸氛围光），颜色随进度由蓝→紫→绿→红变化
+- **关于页**：检查更新按钮融入白卡最右侧、slogan 简洁融入、Logo 与周围协调、鸣谢区增加捷安特
+- **检查更新对比提示优化**：弹窗明确显示「开源项目最新版本 vs 你的当前版本 + 结论」，不再笼统提示
+
+### v7.7.6 (2026-09-10)
+**新增**：
+- **检查更新功能**：自动/手动检测 GitHub 开源项目最新版本，发现新版弹窗提示并可一键跳转下载
 
 ### v7.7.5 (2026-09-10)
 **已解决**：

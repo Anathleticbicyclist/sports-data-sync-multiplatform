@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.jichi.ob.R
+import com.jichi.ob.util.UpdateChecker
 import androidx.core.content.ContextCompat
 
 /**
@@ -64,5 +65,10 @@ class AboutFragment : Fragment() {
         val tvUpdate = view.findViewById<TextView>(R.id.tvUpdateLink)
         tvUpdate.text = updateSpannable
         tvUpdate.movementMethod = LinkMovementMethod.getInstance()
+
+        // v7.7.6: 检查更新按钮 → 手动检查更新
+        view.findViewById<TextView>(R.id.btnCheckUpdate)?.setOnClickListener {
+            UpdateChecker.check(requireContext(), force = true)
+        }
     }
 }

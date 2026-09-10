@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v7.7.7 关于页：Logo 品牌渐变圆底（呼应登录页横幅） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:startColor="#8CC5FF"
+        android:endColor="#2B8CFF"
+        android:angle="315" />
+</shape>

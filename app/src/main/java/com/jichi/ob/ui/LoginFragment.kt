@@ -133,8 +133,8 @@ class LoginFragment : Fragment() {
             val hideUsername = ds == DataSource.GARMIN_CN || ds == DataSource.GARMIN_COM
             tv.text = if (logged) {
                 if (username != null && !hideUsername) "✅ $username" else "✅ 已登录"
-            } else "❌ 未登录"
-            tv.setTextColor(ctx.getColor(if (logged) R.color.green else R.color.red))
+            } else "未登录"
+            tv.setTextColor(ctx.getColor(if (logged) R.color.green else R.color.text_secondary))
             val btn = btnViews[ds] ?: continue
             btn.text = if (logged) "重新登录" else "登录${ds.displayName}"
             // v7.6.7: 注销按钮仅登录后显示

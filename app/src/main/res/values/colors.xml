@@ -1,29 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 浅蓝基调（微信风格） -->
-    <color name="bg_light">#F0F7FF</color>          <!-- 页面背景：极淡蓝 -->
-    <color name="primary">#1989FA</color>           <!-- 主色：天蓝 -->
-    <color name="primary_dark">#0D6ED8</color>
+    <!-- ===== v7.7.7 UI重塑 · 清透扁平 · 单一主色天蓝 ===== -->
+    <color name="bg_light">#F5F8FC</color>          <!-- 页面背景：极浅蓝白（清晨天空） -->
+    <color name="primary">#2B8CFF</color>           <!-- 主色：现代天蓝 -->
+    <color name="primary_dark">#1A6FDB</color>
+    <color name="gradient_start">#8CC5FF</color>    <!-- 强调渐变起始：浅蓝 -->
+    <color name="gradient_end">#2B8CFF</color>      <!-- 强调渐变结束：天蓝 -->
     <color name="splash_start">#C9E5FF</color>      <!-- 开屏渐变起始：淡蓝 -->
     <color name="splash_end">#4DAAFF</color>        <!-- 开屏渐变结束：天蓝 -->
     <color name="card_white">#FFFFFF</color>        <!-- 卡片白 -->
     <color name="divider">#E8EEF4</color>           <!-- 细分割线 -->
-    <color name="text_primary">#1A1A1A</color>
-    <color name="text_secondary">#999999</color>
+    <color name="text_primary">#1F2937</color>      <!-- 主文字：深灰 -->
+    <color name="text_secondary">#9CA3AF</color>    <!-- 次文字：浅灰 -->
     <color name="grey_light">#F5F7FA</color>
 
-    <!-- 平台官方品牌色（网络调研确认） -->
-    <color name="igp_green">#FF5A00</color>         <!-- iGPSPORT 迹驰：橙红（i上红点） -->
+    <!-- 日志分层配色（v7.7.7 同步日志优化） -->
+    <color name="log_success">#2E9E5B</color>       <!-- 成功：绿 -->
+    <color name="log_error">#E5484D</color>         <!-- 失败：红 -->
+    <color name="log_skip">#9CA3AF</color>          <!-- 跳过：灰 -->
+    <color name="log_info">#2B8CFF</color>          <!-- 信息/传输：天蓝 -->
+    <color name="log_normal">#4B5563</color>        <!-- 普通：中灰 -->
+    <color name="log_time">#B6C2D0</color>          <!-- 时间戳：浅灰 -->
+
+    <!-- 平台官方品牌色（登录页小圆点徽章用） -->
+    <color name="igp_green">#FF5A00</color>         <!-- iGPSPORT 迹驰：橙红 -->
     <color name="xingzhe_blue">#1989FA</color>      <!-- 行者：蓝 -->
     <color name="magene_blue">#2B6CB0</color>       <!-- 顽鹿/迈金：蓝 -->
     <color name="outbase_orange">#FF6B00</color>    <!-- Outbase：橙 -->
     <color name="garmin_blue">#003B70</color>       <!-- 佳明：深蓝 -->
     <color name="coros_red">#E54B3B</color>         <!-- 高驰：红 -->
     <color name="wahoo_red">#E60012</color>         <!-- Wahoo：红 -->
-    <color name="blackbird_dark">#2c3e50</color>    <!-- 黑鸟：深灰（图标绿底） -->
+    <color name="blackbird_dark">#2c3e50</color>    <!-- 黑鸟：深灰 -->
     <color name="blackbird_green">#4CAF50</color>   <!-- 黑鸟：绿 -->
-    <color name="bryton_red">#00A651</color>        <!-- 百锐腾 Bryton：绿（官方，下载保留） -->
-    <color name="giant_blue">#2B4B9B</color>        <!-- 捷安特 Giant：深蓝（官方）v7.8.0 新增 -->
+    <color name="bryton_red">#00A651</color>        <!-- 百锐腾 Bryton：绿 -->
+    <color name="giant_blue">#2B4B9B</color>        <!-- 捷安特 Giant：深蓝 -->
 
     <!-- 基础色 -->
     <color name="white">#FFFFFF</color>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v7.7.6 UI重塑: 登录页顶部品牌渐变头图 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#4DAAFF"
+        android:endColor="#1989FA"
+        android:angle="0" />
+    <corners android:radius="16dp" />
+</shape>

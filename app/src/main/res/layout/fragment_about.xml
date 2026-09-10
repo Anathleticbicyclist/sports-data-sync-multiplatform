@@ -12,50 +12,80 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- Logo -->
-        <ImageView
-            android:layout_width="96dp"
-            android:layout_height="96dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:src="@mipmap/ic_launcher"
-            android:contentDescription="logo" />
+        <!-- v7.7.7: 品牌区（Logo左 + 名称/slogan/版本 + 检查更新最右侧，白卡一行） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp"
+            android:background="@drawable/bg_note_card">
 
-        <!-- 应用名 + 版本 -->
+            <ImageView
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="logo" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="鸡翅幸哲迈进OB"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="让运动数据自由流动"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="开发体验版 v7.7.7"
+                    android:textColor="@color/primary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- 检查更新：白卡最右侧，与周围融合 -->
+            <TextView
+                android:id="@+id/btnCheckUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_check_update"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingStart="12dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="6dp"
+                android:text="检查更新"
+                android:textColor="@color/primary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- 一句话介绍（统一白卡） -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="鸡翅幸哲迈进OB"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.7.5"
-            android:textColor="@color/green"
-            android:textSize="13sp" />
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_marginTop="4dp"
-            android:text="🎯 让运动数据自由流动"
-            android:textColor="@color/green"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <!-- 一句话介绍 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:padding="10dp"
-            android:background="#FFFFFF"
+            android:padding="12dp"
+            android:background="@drawable/bg_note_card"
             android:gravity="center"
             android:text="本项目完全开源免费，如觉得项目对你有帮助，可赞赏支持作者后续功能迭代与问题修复。"
             android:textColor="@color/text_primary"
@@ -67,28 +97,48 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="6dp"
-            app:cardCornerRadius="10dp"
-            app:cardElevation="2dp">
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+                app:strokeColor="#E3EEFA"
+                app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.5)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.7)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="UI优化，升级体验" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.6" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 新增检查更新功能：关于页可手动检查更新，启动时自动检测新版并提示（需联网）" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.5" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复设置记忆功能：同步设置页保留上次设置（来源/目标/同步数量/跳过条数/坐标转换/强制重传）" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.4" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 新增「捷安特骑行」同步目标：账号密码直接登录，纯API直传，支持同步上传\n2. 登录页百锐腾替换为捷安特（百锐腾下载入口保留，开发中）\n3. 修复捷安特登录后目标不能立即选择：登录成功自动刷新设置页，无需重启App\n4. 修复注销后无法切换账号：彻底清除WebView登录态（高驰等平台），注销后重登可输新账号" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.3" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复iGPSPORT登录页在部分机型WebView加载失败（改用移动UA+兼容性优化）\n2. 修复注销后重新登录沿用旧账号、看不到登录窗口（注销时清除该平台WebView登录态）\n3. 优化佳明登录失败提示（区分风控/限流），登录稳定性优化" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 链接（只保留俱乐部+开发版） -->
-        <TextView android:id="@+id/tvClubLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸡翅幸哲迈进OB同步工具:开发者俱乐部" android:textColor="@color/text_primary" android:textSize="11sp" android:padding="2dp" />
-        <TextView android:id="@+id/tvUpdateLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="➠更新地址鸡翅幸哲迈进OB（开发体验版） 开发版:Github项目" android:textColor="@color/text_primary" android:textSize="11sp" android:padding="2dp" />
+        <!-- 链接（统一白卡） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="6dp"
+            android:orientation="vertical"
+            android:padding="6dp"
+            android:background="@drawable/bg_note_card">
+            <TextView android:id="@+id/tvClubLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸡翅幸哲迈进OB同步工具:开发者俱乐部" android:textColor="@color/text_primary" android:textSize="11sp" android:padding="2dp" />
+            <TextView android:id="@+id/tvUpdateLink" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="➠更新地址鸡翅幸哲迈进OB（开发体验版） 开发版:Github项目" android:textColor="@color/text_primary" android:textSize="11sp" android:padding="2dp" />
+        </LinearLayout>
 
-        <!-- 鸣谢（与原版一致） -->
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:layout_marginTop="4dp" android:text="🙏 鸣谢" android:textColor="@color/text_primary" android:textSize="11sp" android:textStyle="bold" android:padding="2dp" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、高驰、佳明、Wahoo、Outbase为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸣谢青岛AUV俱乐部" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="8dp" />
+        <!-- 鸣谢（统一白卡，继承整体卡片语言） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="6dp"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:background="@drawable/bg_note_card">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="🙏 鸣谢" android:textColor="@color/primary" android:textSize="12sp" android:textStyle="bold" android:padding="2dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、捷安特、高驰、佳明、Wahoo、Outbase为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸣谢青岛AUV俱乐部" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="8dp" />
+        </LinearLayout>
 
         <!-- 赞赏（微信+支付宝并列） -->
         <TextView

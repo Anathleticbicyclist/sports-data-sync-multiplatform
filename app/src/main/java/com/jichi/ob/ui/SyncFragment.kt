@@ -4,7 +4,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
-import android.text.SpannableString
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.AbsoluteSizeSpan
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +16,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.jichi.ob.MainActivity
@@ -25,6 +27,7 @@ import java.util.Locale
 
 /**
  * v7.6.2: 四页面布局 - 页面3 同步页
+ * v7.7.7: UI重塑 —— 圆形同步按钮+环绕进度环、日志分层着色、次级按钮统一描边
  * 自动同步 + 开始/停止/测试/清记忆 + 进度 + 运行日志
  */
 class SyncFragment : Fragment() {
@@ -32,7 +35,7 @@ class SyncFragment : Fragment() {
     private lateinit var prefs: PrefsManager
     private var tvLog: TextView? = null
     private var logScrollView: ScrollView? = null
-    private var progressBar: LinearProgressIndicator? = null
+    private var progressBar: LinearProgressView? = null
     private var btnSync: MaterialButton? = null
     private var btnStop: MaterialButton? = null
     private var tvLogReady = false
@@ -99,7 +102,17 @@ class SyncFragment : Fragment() {
         pendingLogs.clear()
     }
 
-    /** MainActivity调用：追加日志 */
+    /** v7.7.7: 日志按类型着色 */
+    private fun colorForMessage(msg: String): Int = when {
+        msg.contains("❌") || msg.contains("失败") || msg.contains("被拒") || msg.contains("失效") -> R.color.log_error
+        msg.contains("✅") || msg.contains("上传成功") || msg.contains("登录成功") || msg.contains("登录有效") || msg.contains("完成") -> R.color.log_success
+        msg.contains("⏭️") || msg.contains("跳过") -> R.color.log_skip
+        msg.contains("📥") || msg.contains("📤") || msg.contains("📋") || msg.contains("💾") || msg.contains("🔄") || msg.contains("📊") || msg.contains("🚀") -> R.color.log_info
+        msg.contains("━━━") -> R.color.log_time
+        else -> R.color.log_normal
+    }
+
+    /** MainActivity调用：追加日志（时间戳浅灰小字 + 消息分层着色） */
     fun appendLog(message: String) {
         val ts = try { SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) } catch (_: Exception) { "??:??:??" }
         val tv = tvLog
@@ -107,8 +120,26 @@ class SyncFragment : Fragment() {
             pendingLogs.add("[$ts] $message")
             return
         }
-        val cur = tv.text?.toString() ?: ""
-        tv.text = if (cur.isBlank() || cur == "等待操作...") "[$ts] $message" else "$cur\n[$ts] $message"
+        val cur = tv.text
+        val sb: SpannableStringBuilder = when {
+            cur is SpannableStringBuilder -> cur
+            cur != null && cur.isNotEmpty() && cur.toString() != "等待操作..." -> SpannableStringBuilder(cur)
+            else -> SpannableStringBuilder()
+        }
+        if (sb.length > 0) sb.append('\n')
+
+        // 时间戳段：浅灰小字
+        val tsStart = sb.length
+        sb.append("[$ts] ")
+        sb.setSpan(AbsoluteSizeSpan(11, true), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        sb.setSpan(ForegroundColorSpan(requireContext().getColor(R.color.log_time)), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        // 消息段：按类型着色
+        val msgStart = sb.length
+        sb.append(message)
+        sb.setSpan(ForegroundColorSpan(requireContext().getColor(colorForMessage(message))), msgStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        tv.text = sb
         logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
     }
 
@@ -122,12 +153,12 @@ class SyncFragment : Fragment() {
         btnT.isEnabled = syncing
         btnS.text = if (syncing) "⏳ 同步中..." else "🚴 开始同步"
         pb.visibility = if (syncing) View.VISIBLE else View.GONE
-        if (syncing) pb.isIndeterminate = true
+        if (syncing) pb.setProgressIndeterminate(true)
     }
 
-    fun setProgressIndeterminate(v: Boolean) { progressBar?.isIndeterminate = v }
-    fun setProgressMax(max: Int) { progressBar?.max = max }
-    fun setProgress(cur: Int) { progressBar?.progress = cur }
+    fun setProgressIndeterminate(v: Boolean) { progressBar?.setProgressIndeterminate(v) }
+    fun setProgressMax(max: Int) { progressBar?.setProgressMax(max) }
+    fun setProgress(cur: Int) { progressBar?.setProgress(cur) }
 
     private fun copyLog() {
         val log = tvLog?.text?.toString() ?: ""
