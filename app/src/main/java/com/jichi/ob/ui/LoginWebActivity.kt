@@ -19,6 +19,8 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.jichi.ob.R
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.XingzheApi
+import com.jichi.ob.model.DataSource
+import com.jichi.ob.util.PrefsManager
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +59,56 @@ class LoginWebActivity : AppCompatActivity() {
  
         private const val MOBILE_UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
         private const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+        /**
+         * v7.7.3: 注销时清除指定平台的 WebView 登录态（localStorage + cookie），不影响其他平台登录态。
+         * 修复"注销后重新登录仍用旧账号自动登录"的问题。
+         * 仅按平台域名清除，Wahoo等平台的令牌存于App内（PrefsManager），天然隔离不受影响。
+         */
+        fun clearPlatformWebLogin(type: String) {
+            val origins: List<String>
+            val domains: List<String>
+            when (type) {
+                TYPE_IGPSPORT -> {
+                    origins = listOf("https://login.passport.igpsport.cn", "https://app.igpsport.cn", "https://prod.zh.igpsport.com")
+                    domains = listOf("login.passport.igpsport.cn", "app.igpsport.cn", "igpsport.cn", "prod.zh.igpsport.com")
+                }
+                TYPE_XINGZHE -> { origins = emptyList(); domains = listOf("www.imxingzhe.com", "imxingzhe.com") }
+                TYPE_MAGENE -> { origins = listOf("https://otm.onelap.cn", "https://onelap.cn"); domains = listOf("otm.onelap.cn", "onelap.cn") }
+                TYPE_BLACKBIRD -> { origins = emptyList(); domains = listOf("www.blackbirdsport.com", "blackbirdsport.com") }
+                TYPE_BRYTON -> { origins = listOf("https://active.brytonsport.com", "https://www.brytonsport.com"); domains = listOf("active.brytonsport.com", "brytonsport.com") }
+                TYPE_OUTBASE -> { origins = listOf("https://outbase.cn", "https://www.outbase.cn"); domains = listOf("outbase.cn", "www.outbase.cn", "melon-gateway.immomo.com", "immomo.com") }
+                TYPE_GARMIN_COM -> { origins = listOf("https://connect.garmin.com", "https://sso.garmin.com"); domains = listOf("connect.garmin.com", "sso.garmin.com", "garmin.com") }
+                TYPE_GARMIN_CN -> { origins = listOf("https://connect.garmin.cn", "https://sso.garmin.cn"); domains = listOf("connect.garmin.cn", "sso.garmin.cn", "garmin.cn") }
+                TYPE_COROS_CN -> { origins = listOf("https://trainingcn.coros.com"); domains = listOf("trainingcn.coros.com", "coros.com") }
+                TYPE_COROS_INT -> { origins = listOf("https://training.coros.com"); domains = listOf("training.coros.com", "coros.com") }
+                TYPE_WAHOO -> { origins = listOf("https://sso.wahoo.com", "https://api.wahooligan.com"); domains = listOf("sso.wahoo.com", "api.wahooligan.com", "wahoo.com") }
+                else -> return
+            }
+            // 清除localStorage（按origin）
+            try {
+                val ws = android.webkit.WebStorage.getInstance()
+                origins.forEach { o -> try { ws.deleteOrigin(o) } catch (_: Exception) {} }
+            } catch (_: Exception) {}
+            // 清除cookie（按域名）
+            val cm = CookieManager.getInstance()
+            domains.forEach { domain ->
+                try {
+                    listOf("https://$domain", "http://$domain").forEach { host ->
+                        val cookies = cm.getCookie(host) ?: ""
+                        cookies.split(";").forEach { cookie ->
+                            val name = cookie.substringBefore("=").trim()
+                            if (name.isNotEmpty()) {
+                                cm.setCookie(host, "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/")
+                                cm.setCookie(host, "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=.$domain; path=/")
+                            }
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+            cm.flush()
+            Log.i(TAG, "clearPlatformWebLogin: 已清除 $type 的WebView登录态(localStorage+cookie)")
+        }
     }
  
     private lateinit var webView: WebView
@@ -64,6 +116,9 @@ class LoginWebActivity : AppCompatActivity() {
     private var loginType = TYPE_XINGZHE
     private var detected = false
     private var igpReloadCount = 0  // v7.6.0: iGPSPORT token校验失败重载计数(限2次)
+    private var igpHttpErrorCount = 0  // v7.7.3: iGPSPORT HTTP错误自动重载计数(限1次)
+    private var pendingClean = false       // v7.7.3: 该平台未登录(刚注销)时，首次加载后清理残留登录态再重载
+    private var pendingCleanDone = false   // v7.7.3: 清理是否已执行
     private val urlHistory = mutableListOf<String>()  // v7.1.7: URL历史记录，用于调试Wahoo授权码捕获
     private val verifying = AtomicBoolean(false)
     private var checkCount = 0
@@ -96,6 +151,22 @@ class LoginWebActivity : AppCompatActivity() {
             } catch (_: Exception) {}
         }
         cm.flush()
+    }
+
+    /** v7.7.3: loginType → DataSource（用于判断该平台是否已登录） */
+    private fun loginTypeToDataSource(): DataSource = when (loginType) {
+        TYPE_IGPSPORT -> DataSource.IGPSPORT
+        TYPE_XINGZHE -> DataSource.XINGZHE
+        TYPE_MAGENE -> DataSource.MAGENE
+        TYPE_BLACKBIRD -> DataSource.BLACKBIRD
+        TYPE_BRYTON -> DataSource.BRYTON
+        TYPE_OUTBASE -> DataSource.OUTBASE
+        TYPE_GARMIN_COM -> DataSource.GARMIN_COM
+        TYPE_GARMIN_CN -> DataSource.GARMIN_CN
+        TYPE_COROS_CN -> DataSource.COROS_CN
+        TYPE_COROS_INT -> DataSource.COROS_INT
+        TYPE_WAHOO -> DataSource.WAHOO
+        else -> DataSource.IGPSPORT
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -181,7 +252,10 @@ class LoginWebActivity : AppCompatActivity() {
                                 } else {
                                     btnLogin.isEnabled = true
                                     btnLogin.text = "登录"
-                                    tvStatus.text = "❌ 登录失败，请检查邮箱密码\n（如开启了两步验证请先关闭）"
+                                    // v7.7.3: 区分常见失败原因，给出佳明风控提示（佳明对频繁登录有限流，冷却期约数小时到一天）
+                                    tvStatus.text = "❌ 登录失败，请检查邮箱密码\n" +
+                                            "（开启了两步验证需先关闭）\n" +
+                                            "佳明对频繁登录有风控：请保证账号密码一次输对，勿同时登录开发体验版与正式版；多次失败会触发限流，请过几小时或次日再试"
                                 }
                             }
                         } catch (e: Exception) {
@@ -262,12 +336,16 @@ class LoginWebActivity : AppCompatActivity() {
                 databaseEnabled = true
                 allowContentAccess = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                userAgentString = if (loginType == TYPE_WAHOO) MOBILE_UA else DESKTOP_UA  // v7.1.5: Wahoo用移动UA(桌面UA下授权页异常), 佳明用桌面UA
+                // v7.7.3: iGPSPORT也用移动UA（桌面UA在旧WebView内核下登录页渲染异常，手机浏览器可正常打开）
+                userAgentString = if (loginType == TYPE_WAHOO || loginType == TYPE_IGPSPORT) MOBILE_UA else DESKTOP_UA
                 if (loginType == TYPE_OUTBASE) {
                     useWideViewPort = true
                     loadWithOverviewMode = true
                 }
             }
+            // v7.7.3: 允许第三方cookie（登录页跨域写入/读取登录态）
+            CookieManager.getInstance().setAcceptCookie(true)
+            CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
  
             // v7.4.9: 只清除佳明相关域名cookie，保留其他平台登录态
             clearDomainCookies("connect.garmin.cn", "connect.garmin.com", "sso.garmin.com", "sso.garmin.cn")
@@ -301,6 +379,23 @@ class LoginWebActivity : AppCompatActivity() {
                     progressBar.visibility = android.view.View.GONE
                     checkCount++
                     Log.d(TAG, "[$loginType] PageFinished #$checkCount: $url")
+                    // v7.7.3: 未登录平台首次加载完成后，先清残留登录态再重载，确保弹出登录窗口
+                    if (pendingClean && !pendingCleanDone) {
+                        pendingCleanDone = true
+                        Log.i(TAG, "[$loginType] 未登录状态，清理WebView残留登录态后重载")
+                        webView.evaluateJavascript("localStorage.clear();") {
+                            clearPlatformWebLogin(loginType)
+                            try { webView.clearCache(true) } catch (_: Exception) {}
+                            webView.postDelayed({
+                                runOnUiThread {
+                                    try { webView.reload() } catch (_: Exception) {}
+                                    // 重载后重新启动检测轮询
+                                    if (!detected) webView.post(checkRunnable)
+                                }
+                            }, 300)
+                        }
+                        return
+                    }
                     if (checkCount == 1) webView.post(checkRunnable)
                     // v6.5.6: 佳明页面注入JS监听器（拦截ticket）
                     if ((loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) && !detected) {
@@ -324,9 +419,17 @@ class LoginWebActivity : AppCompatActivity() {
                         }
                     }
                 }
+                // v7.7.3: iGPSPORT登录页HTTP错误(403/404等)自动重载一次，规避旧内核下偶发加载失败
+                override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: android.webkit.WebResourceResponse?) {
+                    val code = errorResponse?.statusCode ?: 0
+                    if (loginType == TYPE_IGPSPORT && !detected && igpHttpErrorCount < 1 && code in listOf(403, 404, 500, 502, 503)) {
+                        igpHttpErrorCount++
+                        Log.w(TAG, "[igp] HTTP $code，自动重载登录页")
+                        view?.postDelayed({ runOnUiThread { try { view.reload() } catch (_: Exception) {} } }, 500)
+                    }
+                }
                 // v7.1.9: 忽略SSL证书错误，同时尝试从URL中提取授权码（https://localhost没有有效证书）
-                override fun onReceivedSslError(view: WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
-                    val sslUrl = error?.url
+                override fun onReceivedSslError(view: WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {                    val sslUrl = error?.url
                     val webViewUrl = view?.url
                     Log.w(TAG, "[$loginType] onReceivedSslError: sslUrl=$sslUrl, webViewUrl=$webViewUrl")
                     if (sslUrl != null) urlHistory.add("sslError: $sslUrl")
@@ -406,7 +509,13 @@ class LoginWebActivity : AppCompatActivity() {
                     progressBar.progress = newProgress
                 }
             }
- 
+
+            // v7.7.3: 若该平台未登录（如刚注销），首次加载完成后清理WebView残留登录态再重载，
+            // 确保弹出登录窗口、可用新账号登录，而不是沿用旧登录态自动登录
+            try {
+                pendingClean = !PrefsManager(this).isLoggedIn(loginTypeToDataSource())
+            } catch (_: Exception) { pendingClean = false }
+
             if (url.isNotBlank()) webView.loadUrl(url) else finish()
         } catch (e: Exception) {
             Log.e(TAG, "onCreate failed", e)
