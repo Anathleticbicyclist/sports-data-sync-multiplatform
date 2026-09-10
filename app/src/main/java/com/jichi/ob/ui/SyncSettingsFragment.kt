@@ -12,7 +12,6 @@ import android.widget.GridLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.jichi.ob.R
@@ -81,37 +80,28 @@ class SyncSettingsFragment : Fragment() {
         "igp" -> requireContext().getColor(R.color.igp_green)
         "xz" -> requireContext().getColor(R.color.xingzhe_blue)
         "mg" -> requireContext().getColor(R.color.magene_blue)
-        "bb" -> requireContext().getColor(R.color.blackbird_dark)
+        "bb" -> requireContext().getColor(R.color.blackbird_green)
         "br" -> requireContext().getColor(R.color.bryton_red)
         "gt" -> requireContext().getColor(R.color.giant_blue)
         "gm", "gcn" -> requireContext().getColor(R.color.garmin_blue)
         "cscn", "cs" -> requireContext().getColor(R.color.coros_red)
-        "wahoo" -> requireContext().getColor(R.color.wahoo_red)
+        "wo", "wahoo" -> requireContext().getColor(R.color.wahoo_red)
         "ob" -> requireContext().getColor(R.color.outbase_orange)
         else -> requireContext().getColor(R.color.primary)
     }
 
-    private fun setButtonSelected(btn: MaterialButton, selected: Boolean, tag: String) {
-        if (!btn.isEnabled) {
-            btn.setBackgroundColor(0xFFE8E8E8.toInt())
-            btn.setTextColor(0xFFB0B0B0.toInt())
-            btn.alpha = 0.6f
-            return
-        }
-        btn.alpha = 1.0f
-        if (selected) {
-            btn.setBackgroundColor(platformColor(tag))
-            btn.setTextColor(requireContext().getColor(R.color.white))
-        } else {
-            btn.setBackgroundColor(requireContext().getColor(R.color.grey_light))
-            btn.setTextColor(requireContext().getColor(R.color.text_primary))
-        }
+    private fun setButtonSelected(btn: PlatformButton, selected: Boolean, tag: String) {
+        // v7.7.7: 统一状态——选中=亮绿描边+浅蓝底+文字主色加粗+圆点亮品牌色；未选中=浅灰+深字+圆点灰；禁用=置灰
+        btn.setPlatformState(selected, btn.isEnabled)
     }
 
     private fun setupSourceButtons() {
         for (i in 0 until gridSource.childCount) {
-            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
+            val btn = gridSource.getChildAt(i) as? PlatformButton ?: continue
             val tag = btn.tag as? String ?: continue
+            val sds = DataSource.fromShortName(tag)
+            btn.buttonText = sds?.displayName ?: tag
+            btn.bind(platformColor(tag))
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
                 val ds = DataSource.fromShortName(tag)
@@ -130,7 +120,7 @@ class SyncSettingsFragment : Fragment() {
                 // v7.7.5: 选择来源即保存，重启后保留
                 prefs.setLastSource(tag)
                 for (j in 0 until gridSource.childCount) {
-                    val b = gridSource.getChildAt(j) as? MaterialButton ?: continue
+                    val b = gridSource.getChildAt(j) as? PlatformButton ?: continue
                     setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
                 }
             }
@@ -139,8 +129,12 @@ class SyncSettingsFragment : Fragment() {
 
     private fun setupTargetButtons() {
         for (i in 0 until gridTarget.childCount) {
-            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+            val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
             val tag = btn.tag as? String ?: continue
+            val tds = DataSource.fromShortName(tag)
+            btn.buttonText = tds?.displayName ?: tag
+            btn.bind(platformColor(tag))
+            btn.setTextSizeDp(if (tag == "ob") 13f else 11f)
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
                 val ds = DataSource.fromShortName(tag)
@@ -164,7 +158,7 @@ class SyncSettingsFragment : Fragment() {
 
     private fun refreshTargetButtons() {
         for (j in 0 until gridTarget.childCount) {
-            val b = gridTarget.getChildAt(j) as? MaterialButton ?: continue
+            val b = gridTarget.getChildAt(j) as? PlatformButton ?: continue
             setButtonSelected(b, (b.tag as? String)?.let { selectedTargetTags.contains(it) } == true, b.tag as? String ?: "")
         }
         updateTargetCountLabel()
@@ -206,7 +200,7 @@ class SyncSettingsFragment : Fragment() {
         val lastSrc = prefs.getLastSource()
         if (lastSrc.isNotBlank()) selectedSourceTag = lastSrc
         for (i in 0 until gridSource.childCount) {
-            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
+            val btn = gridSource.getChildAt(i) as? PlatformButton ?: continue
             val tag = btn.tag as? String ?: continue
             setButtonSelected(btn, tag == selectedSourceTag, tag)
         }
@@ -216,7 +210,7 @@ class SyncSettingsFragment : Fragment() {
             t != selectedSourceTag && (DataSource.fromShortName(t)?.let { prefs.isLoggedIn(it) } ?: false)
         })
         for (i in 0 until gridTarget.childCount) {
-            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+            val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
             val tag = btn.tag as? String ?: continue
             setButtonSelected(btn, selectedTargetTags.contains(tag), tag)
         }
@@ -245,7 +239,7 @@ class SyncSettingsFragment : Fragment() {
 
     private fun updateTargetChips() {
         for (i in 0 until gridTarget.childCount) {
-            val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+            val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
             val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
             val support = UploadSupport.fromDataSource(ds)
             // v7.6.7: 开发中平台优先标记（如百锐腾），无论登录与否都显示"开发中"且不可选
@@ -255,7 +249,7 @@ class SyncSettingsFragment : Fragment() {
                 val spannable = SpannableString("$name\n开发中")
                 spannable.setSpan(AbsoluteSizeSpan(11, true), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 spannable.setSpan(AbsoluteSizeSpan(8, true), name.length + 1, spannable.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                btn.text = spannable
+                btn.buttonText = spannable
                 btn.maxLines = 2
                 btn.setBackgroundColor(0xFFE8E8E8.toInt())
                 btn.setTextColor(0xFFB0B0B0.toInt())
@@ -275,7 +269,7 @@ class SyncSettingsFragment : Fragment() {
     /** v7.6.7: 来源网格未登录平台置灰不可点 */
     private fun updateSourceChips() {
         for (i in 0 until gridSource.childCount) {
-            val btn = gridSource.getChildAt(i) as? MaterialButton ?: continue
+            val btn = gridSource.getChildAt(i) as? PlatformButton ?: continue
             val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
             if (!prefs.isLoggedIn(ds)) {
                 btn.isEnabled = false
@@ -307,7 +301,7 @@ class SyncSettingsFragment : Fragment() {
             }
             // 恢复目标网格按钮（重新应用选中态）
             for (i in 0 until gridTarget.childCount) {
-                val btn = gridTarget.getChildAt(i) as? MaterialButton ?: continue
+                val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
                 val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
                 btn.isEnabled = prefs.isLoggedIn(ds) && UploadSupport.fromDataSource(ds).available
                 btn.alpha = if (btn.isEnabled) 1.0f else 0.7f

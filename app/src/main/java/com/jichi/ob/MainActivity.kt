@@ -57,6 +57,7 @@ import com.jichi.ob.model.UploadSupport
 import com.jichi.ob.ui.LoginWebActivity
 import com.jichi.ob.util.PrefsManager
 import com.jichi.ob.util.FileNameGenerator
+import com.jichi.ob.util.UpdateChecker
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -252,6 +253,8 @@ class MainActivity : AppCompatActivity() {
             appendLog("💾 已同步记录: ${prefs.getSyncedCount()} 条")
             // v7.5.9: 启动登录检测（异步，不阻塞界面）
             checkAllLogins()
+            // v7.7.6: 启动静默检查更新（仅发现新版才提示，24h内不重复打扰；不阻塞启动）
+            UpdateChecker.check(this, force = false)
             // v7.5.7: 显示上次崩溃信息（如果有）
             if (crashFile.exists()) {
                 try {
@@ -1131,6 +1134,9 @@ class MainActivity : AppCompatActivity() {
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
         tr.show(target).commit()
+        // v7.7.7: 登录页隐藏顶部Toolbar，品牌横幅顶置，页面以登录为主（一屏放下）
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        toolbar?.visibility = if (target == loginFragment) android.view.View.GONE else android.view.View.VISIBLE
         // v7.7.4: hide/show 不触发 onResume，切到设置页时手动刷新来源/目标网格（登录/注销后即时生效，无需重启）
         if (target == settingsFragment) {
             try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
