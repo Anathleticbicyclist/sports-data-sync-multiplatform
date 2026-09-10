@@ -17,6 +17,7 @@ import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.jichi.ob.R
+import com.jichi.ob.BuildConfig
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.XingzheApi
 import com.jichi.ob.model.DataSource
@@ -26,6 +27,8 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.atomic.AtomicBoolean
  
 /**
@@ -175,6 +178,12 @@ class LoginWebActivity : AppCompatActivity() {
             setContentView(R.layout.activity_login_web)
             loginType = intent?.getStringExtra(EXTRA_LOGIN_TYPE) ?: TYPE_XINGZHE
             val url = intent?.getStringExtra(EXTRA_URL) ?: ""
+
+            // v7.7.3-hw 鸿蒙特别版: iGPSPORT 走原生验证码登录，绕开旧WebView渲染白屏（华为旧机型打不开登录页）
+            if (loginType == TYPE_IGPSPORT && BuildConfig.IGP_NATIVE_LOGIN) {
+                setupIgpNativeLogin()
+                return
+            }
  
             val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
             toolbar.title = when (loginType) {
@@ -523,6 +532,139 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
  
+    /**
+     * v7.7.3-hw 鸿蒙特别版: iGPSPORT 原生验证码登录（绕开旧WebView白屏）
+     * 接口: SendVerificationCode(type:1, username) → login/phone(phone, code, appId)
+     * 已在生产验证: 发验证码/登录/拉活动列表全链路可用（2026-09）
+     */
+    private fun setupIgpNativeLogin() {
+        val igpLayout = findViewById<android.widget.LinearLayout>(R.id.igpSmsLoginLayout)
+        igpLayout.visibility = android.view.View.VISIBLE
+        findViewById<android.view.View>(R.id.btnConfirmLogin)?.visibility = android.view.View.GONE
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        toolbar.title = "登录 iGPSPORT"
+
+        val etPhone = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpPhone)
+        val etCode = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)
+        val btnSend = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)
+        val btnLogin = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpLogin)
+        val tvStatus = findViewById<android.widget.TextView>(R.id.tvIgpStatus)
+
+        // 发送验证码
+        btnSend.setOnClickListener {
+            val phone = etPhone.text?.toString()?.trim() ?: ""
+            if (phone.length != 11 || !phone.all { it.isDigit() }) {
+                tvStatus.text = "请输入正确的11位手机号"
+                return@setOnClickListener
+            }
+            btnSend.isEnabled = false
+            tvStatus.text = "正在发送验证码..."
+            lifecycleScope.launch(Dispatchers.IO) {
+                val ok = sendIgpSmsCode(phone)
+                runOnUiThread {
+                    if (ok) {
+                        tvStatus.text = "✅ 验证码已发送，请查看手机短信"
+                        startIgpCountdown(btnSend)
+                    } else {
+                        btnSend.isEnabled = true
+                        tvStatus.text = "❌ 发送失败，请稍后重试（注意发送频率限制，勿频繁点击）"
+                    }
+                }
+            }
+        }
+
+        // 验证码登录
+        btnLogin.setOnClickListener {
+            val phone = etPhone.text?.toString()?.trim() ?: ""
+            val code = etCode.text?.toString()?.trim() ?: ""
+            if (phone.length != 11 || !phone.all { it.isDigit() }) { tvStatus.text = "请输入正确的11位手机号"; return@setOnClickListener }
+            if (code.length != 6) { tvStatus.text = "请输入6位验证码"; return@setOnClickListener }
+            btnLogin.isEnabled = false
+            btnLogin.text = "登录中..."
+            tvStatus.text = "正在登录..."
+            lifecycleScope.launch(Dispatchers.IO) {
+                val token = loginIgpBySms(phone, code)
+                runOnUiThread {
+                    if (token != null) {
+                        Log.i(TAG, "✅ iGPSPORT 原生验证码登录成功 len=${token.length}")
+                        try { PrefsManager(this@LoginWebActivity).saveIgpsportToken(token) } catch (_: Exception) {}
+                        detected = true
+                        setResult(Activity.RESULT_OK, Intent()
+                            .putExtra(RESULT_TOKEN, token)
+                            .putExtra(RESULT_LOGIN_TYPE, TYPE_IGPSPORT))
+                        finish()
+                    } else {
+                        btnLogin.isEnabled = true
+                        btnLogin.text = "登录"
+                        tvStatus.text = "❌ 登录失败：验证码错误或已过期，请重新获取后重试"
+                    }
+                }
+            }
+        }
+    }
+
+    /** 发送IGP短信验证码 */
+    private fun sendIgpSmsCode(phone: String): Boolean {
+        return try {
+            val client = okhttp3.OkHttpClient.Builder().connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS).build()
+            val body = """{"type":1,"username":"$phone"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
+            val req = okhttp3.Request.Builder()
+                .url("https://prod.zh.igpsport.com/service/auth/account/SendVerificationCode")
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14) Chrome/131.0.0.0 Mobile")
+                .build()
+            val resp = client.newCall(req).execute()
+            val bodyStr = resp.body?.string() ?: ""
+            val json = org.json.JSONObject(bodyStr)
+            Log.i(TAG, "sendIgpSmsCode: ${json.optString("message", "ok")} code=${json.optInt("code", -1)}")
+            json.optInt("code", -1) == 0
+        } catch (e: Exception) { Log.e(TAG, "sendIgpSmsCode 异常", e); false }
+    }
+
+    /** IGP验证码登录，返回纯JWT（不带Bearer前缀，与WebView提取格式一致） */
+    private fun loginIgpBySms(phone: String, code: String): String? {
+        return try {
+            val client = okhttp3.OkHttpClient.Builder().connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS).build()
+            val body = """{"phone":"$phone","code":"$code","appId":"igpsport-web"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
+            val req = okhttp3.Request.Builder()
+                .url("https://prod.zh.igpsport.com/service/auth/account/login/phone")
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14) Chrome/131.0.0.0 Mobile")
+                .build()
+            val resp = client.newCall(req).execute()
+            val bodyStr = resp.body?.string() ?: ""
+            val json = org.json.JSONObject(bodyStr)
+            if (json.optInt("code", -1) == 0) {
+                val token = json.optJSONObject("data")?.optString("access_token", "") ?: ""
+                if (token.isNotEmpty()) token else null
+            } else {
+                Log.w(TAG, "loginIgpBySms 失败: ${json.optString("message", bodyStr.take(100))}")
+                null
+            }
+        } catch (e: Exception) { Log.e(TAG, "loginIgpBySms 异常", e); null }
+    }
+
+    /** 发送验证码按钮60s倒计时 */
+    private fun startIgpCountdown(btn: com.google.android.material.button.MaterialButton) {
+        btn.isEnabled = false
+        var remain = 60
+        val runnable = object : Runnable {
+            override fun run() {
+                remain--
+                if (remain <= 0) {
+                    btn.isEnabled = true
+                    btn.text = "发送验证码"
+                } else {
+                    btn.text = "${remain}s"
+                    btn.postDelayed(this, 1000)
+                }
+            }
+        }
+        btn.post(runnable)
+    }
+
     private fun detectLogin() {
         if (detected || isFinishing) return
         when (loginType) {
