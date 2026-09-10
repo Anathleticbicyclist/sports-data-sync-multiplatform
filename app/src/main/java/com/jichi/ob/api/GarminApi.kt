@@ -167,8 +167,9 @@ class GarminApi {
             val loginBody = loginResp.body?.string() ?: ""
             addDebugLog("loginMobile: HTTP ${loginResp.code}, body=${loginBody.take(200)}")
             if (loginResp.code == 429) {
-                addDebugLog("loginMobile: 429限流，等待10秒重试...")
-                delay(10000)
+                // v7.7.3: 429限流退避延长到30秒（佳明风控冷却期通常更长，避免短时间重复触发）
+                addDebugLog("loginMobile: 429限流，等待30秒重试...")
+                delay(30000)
                 val loginResp2 = client.newCall(loginReq).execute()
                 val loginBody2 = loginResp2.body?.string() ?: ""
                 addDebugLog("loginMobile重试: HTTP ${loginResp2.code}")

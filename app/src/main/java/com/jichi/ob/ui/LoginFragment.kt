@@ -86,6 +86,9 @@ class LoginFragment : Fragment() {
                     .setMessage("确定注销${ds.displayName}吗？注销后该平台将无法同步。")
                     .setPositiveButton("注销") { _, _ ->
                         prefs.clearCredential(ds)
+                        // v7.7.3: 同时清除该平台WebView登录态(localStorage+cookie)，
+                        // 避免"注销后重新登录仍用旧账号自动登录、看不到登录窗口"的问题
+                        LoginWebActivity.clearPlatformWebLogin(ds.toLoginType())
                         // 若该平台被选为来源/目标，同步记忆残留不影响，登录页刷新即可
                         updateStatus()
                         Toast.makeText(requireContext(), "已注销${ds.displayName}", Toast.LENGTH_SHORT).show()
@@ -135,5 +138,20 @@ class LoginFragment : Fragment() {
             // v7.6.7: 注销按钮仅登录后显示
             logoutViews[ds]?.visibility = if (logged) View.VISIBLE else View.GONE
         }
+    }
+
+    /** v7.7.3: DataSource → LoginWebActivity登录类型映射（注销清WebView登录态用） */
+    private fun DataSource.toLoginType(): String = when (this) {
+        DataSource.IGPSPORT -> LoginWebActivity.TYPE_IGPSPORT
+        DataSource.XINGZHE -> LoginWebActivity.TYPE_XINGZHE
+        DataSource.MAGENE -> LoginWebActivity.TYPE_MAGENE
+        DataSource.BLACKBIRD -> LoginWebActivity.TYPE_BLACKBIRD
+        DataSource.BRYTON -> LoginWebActivity.TYPE_BRYTON
+        DataSource.OUTBASE -> LoginWebActivity.TYPE_OUTBASE
+        DataSource.GARMIN_COM -> LoginWebActivity.TYPE_GARMIN_COM
+        DataSource.GARMIN_CN -> LoginWebActivity.TYPE_GARMIN_CN
+        DataSource.COROS_CN -> LoginWebActivity.TYPE_COROS_CN
+        DataSource.COROS_INT -> LoginWebActivity.TYPE_COROS_INT
+        DataSource.WAHOO -> LoginWebActivity.TYPE_WAHOO
     }
 }

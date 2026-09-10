@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="2dp"
-            android:text="开发体验版 v7.7.2"
+            android:text="开发体验版 v7.7.3"
             android:textColor="@color/green"
             android:textSize="13sp" />
         <TextView
@@ -70,17 +70,12 @@
             app:cardCornerRadius="10dp"
             app:cardElevation="2dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.2)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复iGPSPORT登录页在部分机型WebView加载失败（改用移动UA+兼容性优化）\n2. 修复注销后重新登录沿用旧账号、看不到登录窗口（注销时清除该平台WebView登录态）\n3. 优化佳明登录失败提示（区分风控/限流），登录稳定性优化" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.2" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复佳明国际上传403误报失败：403视为已接收（实测确认已入库），自动校验佳明列表确认，不再误报失败" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复佳明国际上传HTTP 403误报失败（实际已接收），上传后自动校验佳明列表，已入库判为成功\n2. 修复迈金登录态误判：启动检测真实校验token有效期，token将过期自动后台刷新，同步401自动刷新重试\n3. 修复自动同步假同步：同步过程写入日志（同步页可见+通知栏显示明细），失败也发通知" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.8" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="修复高驰、迈金软件重新打开后登录失效，刷新" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.7" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 一对多同步：一个来源平台可同时同步到多个目标平台，每条运动下载一次自动分发上传\n2. 迈金上传改为纯API直传（移除WebView兜底），后台自动同步也支持迈金\n3. 同步设置页交互优化（来源目标互斥、未登录不可选）\n4. 登录页新增注销按钮（已登录平台右上角）\n5. 百锐腾同步目标标注开发中\n6. 修复启动登录检测被异常中断问题" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="全新UI界面：浅蓝色调，操作更直观；新增1秒开屏动画；优化体验，解决一些bug" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.6.5" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 黑鸟下载改为构建标准FIT文件（替代GPX）：内置距离字段、坐标高精度、平台兼容性好\n2. 解决黑鸟数据距离不准、坐标漂移、被目标服务器拒收等问题\n3. FIT构建失败自动回退GPX，双保险" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
