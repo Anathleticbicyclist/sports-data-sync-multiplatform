@@ -55,8 +55,9 @@ class SyncSettingsFragment : Fragment() {
         val switchGcj02 = view.findViewById<SwitchMaterial>(R.id.switchGcj02)
         val switchForce = view.findViewById<SwitchMaterial>(R.id.switchForceRetransmit)
 
-        sliderCount.addOnChangeListener { _, v, _ -> tvCount.text = v.toInt().toString() }
-        sliderSkip.addOnChangeListener { _, v, _ -> tvSkip.text = v.toInt().toString() }
+        // v7.7.5: 同步数量/跳过条数变化即保存，重启后保留上次设置
+        sliderCount.addOnChangeListener { _, v, _ -> tvCount.text = v.toInt().toString(); prefs.setSyncCount(v.toInt()) }
+        sliderSkip.addOnChangeListener { _, v, _ -> tvSkip.text = v.toInt().toString(); prefs.setSkipCount(v.toInt()) }
         // v7.6.2: 同步数量/跳过数量支持手动输入
         tvCount.setOnClickListener { showInputDialog("同步数量", sliderCount, tvCount, 1, 1000) }
         tvSkip.setOnClickListener { showInputDialog("跳过前N条", sliderSkip, tvSkip, 0, 10000) }
@@ -126,6 +127,8 @@ class SyncSettingsFragment : Fragment() {
                     refreshTargetButtons()
                 }
                 selectedSourceTag = tag
+                // v7.7.5: 选择来源即保存，重启后保留
+                prefs.setLastSource(tag)
                 for (j in 0 until gridSource.childCount) {
                     val b = gridSource.getChildAt(j) as? MaterialButton ?: continue
                     setButtonSelected(b, (b.tag as? String) == tag, b.tag as? String ?: "")
@@ -166,6 +169,8 @@ class SyncSettingsFragment : Fragment() {
         }
         updateTargetCountLabel()
         updateForceRetransmitState()
+        // v7.7.5: 目标变化即保存，重启后保留上次目标
+        prefs.setLastTargets(selectedTargetTags.toList())
     }
 
     /**
@@ -218,6 +223,16 @@ class SyncSettingsFragment : Fragment() {
         updateTargetChips()
         updateTargetCountLabel()
         view.findViewById<SwitchMaterial>(R.id.switchGcj02).isChecked = prefs.isGcj02Convert()
+        // v7.7.5: 恢复同步数量/跳过条数/强制重传开关（保留上次设置）
+        val sliderCount = view.findViewById<Slider>(R.id.sliderCount)
+        val tvCount = view.findViewById<TextView>(R.id.tvCount)
+        val sliderSkip = view.findViewById<Slider>(R.id.sliderSkip)
+        val tvSkip = view.findViewById<TextView>(R.id.tvSkip)
+        sliderCount.value = prefs.getSyncCount().coerceIn(1, 1000).toFloat()
+        tvCount.text = sliderCount.value.toInt().toString()
+        sliderSkip.value = prefs.getSkipCount().coerceIn(0, 10000).toFloat()
+        tvSkip.text = sliderSkip.value.toInt().toString()
+        view.findViewById<SwitchMaterial>(R.id.switchForceRetransmit)?.isChecked = prefs.isForceRetransmit()
         val saveDir = view.findViewById<TextView>(R.id.tvSaveDir)
         try {
             saveDir.text = com.jichi.ob.MainActivity.SAVE_DIR.absolutePath
@@ -323,6 +338,9 @@ class SyncSettingsFragment : Fragment() {
                     val clamped = v.coerceIn(min, max)
                     slider.value = clamped.toFloat()
                     tv.text = clamped.toString()
+                    // v7.7.5: 手动输入后也保存记忆
+                    if (slider.id == R.id.sliderCount) prefs.setSyncCount(clamped)
+                    else if (slider.id == R.id.sliderSkip) prefs.setSkipCount(clamped)
                 }
             }
             .setNegativeButton("取消", null)

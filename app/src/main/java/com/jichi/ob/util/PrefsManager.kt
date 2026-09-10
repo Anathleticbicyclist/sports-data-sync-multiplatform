@@ -30,6 +30,8 @@ class PrefsManager(context: Context) {
         private const val KEY_GCJ02_CONVERT = "gcj02_convert"
         private const val KEY_SAVE_DIR = "save_dir"
         private const val KEY_FORCE_RETRANSMIT = "force_retransmit"
+        private const val KEY_SYNC_COUNT = "sync_count"
+        private const val KEY_SKIP_COUNT = "skip_count"
         private const val KEY_PERSIST_LOG = "persist_log"
         private const val MAX_LOG_LINES = 400
     }
@@ -312,6 +314,11 @@ class PrefsManager(context: Context) {
     // v7.6.8: 忽略记忆，强制重传（1对1时用户自选；1对多时强制开启）
     fun isForceRetransmit(): Boolean = prefs.getBoolean(KEY_FORCE_RETRANSMIT, false)
     fun setForceRetransmit(b: Boolean) = prefs.edit().putBoolean(KEY_FORCE_RETRANSMIT, b).apply()
+    // v7.7.5: 同步数量/跳过条数记忆（重启后保留上次设置）
+    fun getSyncCount(): Int = prefs.getInt(KEY_SYNC_COUNT, 20)
+    fun setSyncCount(n: Int) = prefs.edit().putInt(KEY_SYNC_COUNT, n).apply()
+    fun getSkipCount(): Int = prefs.getInt(KEY_SKIP_COUNT, 0)
+    fun setSkipCount(n: Int) = prefs.edit().putInt(KEY_SKIP_COUNT, n).apply()
 
     // ===== v7.6.9: 持久化日志（自动同步/手动同步写入，App重开仍可见）=====
     fun appendPersistLog(msg: String) {
