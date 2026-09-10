@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.7.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.7.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 百锐腾 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.7.2 |
+| 当前版本 | v7.7.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -382,6 +382,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.7.3 (2026-09-10)
+**已解决**：
+- **修复 iGPSPORT 登录页在旧机型 WebView 加载失败**：改用移动端 UA，系统浏览器能正常打开的手机在 App 内也能打开登录页
+- **修复注销后重新登录沿用旧账号**：打开登录页自动清理 WebView 残留登录态，确保弹出新账号登录窗口
+- **佳明登录风控提示优化**：README 增加说明——保证账号密码一次性输对、勿同时登录开发体验版与正式版，风控提示后过几小时再试
 
 ### v7.7.2 (2026-09-09)
 **已解决**：
