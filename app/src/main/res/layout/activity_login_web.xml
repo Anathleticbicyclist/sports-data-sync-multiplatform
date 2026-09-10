@@ -171,6 +171,87 @@
             android:clickable="true"
             android:focusable="true" />
     </LinearLayout>
+    <!-- iGPSPORT 原生验证码登录（鸿蒙特别版 v7.7.3-hw，绕开旧WebView白屏） -->
+    <LinearLayout
+        android:id="@+id/igpSmsLoginLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/tvIgpTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="登录 iGPSPORT"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用手机号验证码登录，无需浏览器（适配旧机型）"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:layout_marginBottom="32dp" />
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="手机号"
+            app:boxBackgroundMode="outline">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etIgpPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:maxLength="11" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="验证码"
+                app:boxBackgroundMode="outline">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etIgpCode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="6" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnIgpSendCode"
+                android:layout_width="110dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="发送验证码"
+                android:textSize="13sp"
+                app:cornerRadius="8dp" />
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnIgpLogin"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="登录"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            app:cornerRadius="12dp" />
+        <TextView
+            android:id="@+id/tvIgpStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:layout_marginTop="16dp"
+            android:gravity="center" />
+    </LinearLayout>
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"

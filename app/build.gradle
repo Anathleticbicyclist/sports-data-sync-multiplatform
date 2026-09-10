@@ -23,6 +23,27 @@ android {
         // Wahoo开发者凭证从local.properties读取（不硬编码到源码）
         buildConfigField "String", "WAHOO_CLIENT_ID", "\"${keystoreProperties['wahoo_client_id'] ?: ""}\""
         buildConfigField "String", "WAHOO_CLIENT_SECRET", "\"${keystoreProperties['wahoo_client_secret'] ?: ""}\""
+        // v7.7.3-hw: 鸿蒙特别版开关（默认false=正式版走WebView登录；hw flavor=true=IGP走原生验证码登录，绕开旧WebView白屏）
+        buildConfigField "boolean", "IGP_NATIVE_LOGIN", "false"
+    }
+
+    // v7.7.3-hw: 鸿蒙特别版——独立applicationId+版本名，与正式版完全隔离，只给特定华为用户测试，不发行
+    flavorDimensions "edition"
+    productFlavors {
+        dev {
+            dimension "edition"
+            applicationId "com.jichi.ob.dev"
+            versionCode 773
+            versionName "7.7.3"
+            buildConfigField "boolean", "IGP_NATIVE_LOGIN", "false"
+        }
+        hw {
+            dimension "edition"
+            applicationId "com.jichi.ob.hw"
+            versionCode 773
+            versionName "7.7.3-hw"
+            buildConfigField "boolean", "IGP_NATIVE_LOGIN", "true"
+        }
     }
 
     buildFeatures {
