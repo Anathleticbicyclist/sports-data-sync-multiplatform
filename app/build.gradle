@@ -18,8 +18,8 @@ android {
         applicationId "com.jichi.ob.dev"
         minSdk 26
         targetSdk 36
-        versionCode 780
-        versionName "7.8.0"
+        versionCode 781
+        versionName "7.8.1"
         // Wahoo开发者凭证从local.properties读取（不硬编码到源码）
         buildConfigField "String", "WAHOO_CLIENT_ID", "\"${keystoreProperties['wahoo_client_id'] ?: ""}\""
         buildConfigField "String", "WAHOO_CLIENT_SECRET", "\"${keystoreProperties['wahoo_client_secret'] ?: ""}\""
@@ -33,8 +33,8 @@ android {
         dev {
             dimension "edition"
             applicationId "com.jichi.ob.dev"
-            versionCode 780
-            versionName "7.8.0"
+            versionCode 781
+            versionName "7.8.1"
             buildConfigField "boolean", "IGP_NATIVE_LOGIN", "false"
         }
         hw {
