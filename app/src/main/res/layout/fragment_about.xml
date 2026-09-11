@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v7.8.0"
+                    android:text="开发体验版 v7.8.1"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,12 +102,12 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.8.0)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.8.1)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，增加存储位置跳转" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.8.0" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 同步目标Outbase强调：选择框加高加粗、字符加大；2. 关于页新增中英双语免责声明弹窗" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.9" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 修复统计卡片计数：成功/跳过/失败改为累计统计，不清除记忆一直累加（重启保留）、清除记忆时归零" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.8" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 同步页UI优化：顶部成功/跳过/失败统计卡片、运行日志新增暂停滚动/清空按钮" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

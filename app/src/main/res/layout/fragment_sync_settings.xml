@@ -72,7 +72,11 @@
                 </LinearLayout>
                 <TextView android:id="@+id/tvForceRetransmitHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="2" />
                 
-                <TextView android:id="@+id/tvSaveDir" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="1" android:ellipsize="middle" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:id="@+id/tvSaveDir" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="1" android:ellipsize="middle" />
+                    <!-- v7.8.1: 蓝色圆角框的文件夹按钮，点击打开存储目录查看已保存的FIT/GPX文件 -->
+                    <ImageView android:id="@+id/btnOpenSaveDir" android:layout_width="38dp" android:layout_height="38dp" android:padding="10dp" android:src="@drawable/ic_folder" android:background="@drawable/bg_folder_btn" android:contentDescription="打开存储目录" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
                 <TextView android:id="@+id/tvSyncedCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/green" />
                 </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

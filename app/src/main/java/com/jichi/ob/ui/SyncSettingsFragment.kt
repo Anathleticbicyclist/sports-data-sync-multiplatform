@@ -1,7 +1,10 @@
 package com.jichi.ob.ui
 
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.AbsoluteSizeSpan
@@ -9,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -73,6 +77,36 @@ class SyncSettingsFragment : Fragment() {
         updateTargetChips()
         restoreSettings(view)
         updateForceRetransmitState()
+
+        // v7.8.1: 点击文件夹按钮打开存储目录，查看已保存的FIT/GPX文件
+        view.findViewById<ImageView>(R.id.btnOpenSaveDir)?.setOnClickListener { openSaveDir() }
+    }
+
+    /** v7.8.1: 打开存储目录（系统文件管理器，兼容分区存储；失败时引导用户到文件管理器） */
+    private fun openSaveDir() {
+        val dir = com.jichi.ob.MainActivity.SAVE_DIR
+        try {
+            if (!dir.exists()) dir.mkdirs()
+            // 首选：DocumentsContract 打开外部存储下的目录（Android 10+ 分区存储通用方案）
+            val rel = dir.absolutePath.removePrefix("/storage/emulated/0/").trimStart('/')
+            val uri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:$rel")
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = uri
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                // 回退：file:// + resource/folder
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(Uri.fromFile(dir), "resource/folder")
+                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                }
+                startActivity(intent)
+            } catch (e2: Exception) {
+                Toast.makeText(requireContext(), "无法直接打开目录，请到文件管理器查看：\n${dir.absolutePath}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // ===== 源/目标选择 =====
