@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v7.7.8"
+                    android:text="开发体验版 v7.7.9"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,12 +102,12 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.8)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，解决一些问题" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.7.9)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，解决计数bug" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.8" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 同步页UI优化：顶部成功/跳过/失败统计卡片、运行日志新增暂停滚动/清空按钮" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.7" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 全面UI重塑：扁平清新设计，设置页品牌圆点、同步页长条进度条、关于页检查更新" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.7.6" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="1. 新增检查更新功能：关于页可手动检查更新，启动时自动检测新版并提示（需联网）" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

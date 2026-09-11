@@ -60,6 +60,8 @@ class SyncFragment : Fragment() {
         tvStatOk = view.findViewById(R.id.tvStatOk)
         tvStatSkip = view.findViewById(R.id.tvStatSkip)
         tvStatFail = view.findViewById(R.id.tvStatFail)
+        // v7.7.8: 初始化显示累计统计（不清除记忆一直累加）
+        setStats(prefs.getStatOk(), prefs.getStatSkip(), prefs.getStatFail())
 
         // v7.7.8: 日志操作——暂停滚动 / 清空
         val btnPauseLog = view.findViewById<TextView>(R.id.btnPauseLog)
