@@ -50,184 +50,217 @@
 
         <GridLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:layout_marginBottom="4dp"
             android:columnCount="2">
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_igp" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="iGPSPORT" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnIgpLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvIgpStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnIgpLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录iGPSPORT" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_xingzhe" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="行者" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnXingzheLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvXingzheStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnXingzheLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录行者" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_magene" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="迈金" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnMageneLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvMageneStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnMageneLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录迈金" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_blackbird" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="黑鸟" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnBlackbirdLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvBlackbirdStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnBlackbirdLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录黑鸟" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_giant" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="捷安特" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnGiantLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvGiantStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnGiantLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录捷安特" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_wahoo" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Wahoo" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnWahooLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvWahooStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnWahooLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Wahoo" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_garmin" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="佳明国际" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnGarminComLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvGarminComStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnGarminComLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录佳明国际" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_garmin" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="佳明中国" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnGarminCnLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvGarminCnStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnGarminCnLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录佳明中国" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_coros" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="高驰中国" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnCorosCnLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvCorosCnStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnCorosCnLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录高驰中国" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_coros" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="高驰国际" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnCorosIntLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvCorosIntStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnCorosIntLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录高驰国际" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-                <!-- Outbase（独占一行） -->
+                <!-- Outbase（独占一行，v7.8.3 微调加高填满底部空隙） -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:layout_margin="2dp" android:layout_columnSpan="2" android:layout_gravity="fill_horizontal"
+                    android:layout_margin="2dp" android:layout_columnSpan="2" android:layout_rowWeight="1" android:layout_gravity="fill_horizontal"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="6dp" android:minHeight="88dp">
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
                             <View android:layout_width="10dp" android:layout_height="10dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_outbase" />
                             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Outbase" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
 <TextView android:id="@+id/btnOutbaseLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="10sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
                         </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <TextView android:id="@+id/tvOutbaseStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnOutbaseLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Outbase" android:textSize="11sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

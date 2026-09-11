@@ -63,6 +63,7 @@ class AutoSyncWorker(
     private val blackbirdApi = BlackbirdApi()
     private val brytonApi = BrytonApi()
     private val garminApi = GarminApi()
+    private val corosApi = CorosApi()
     private val wahooApi = WahooApi()
     private val uploadEngine = UploadEngine(applicationContext)
 
@@ -193,6 +194,11 @@ class AutoSyncWorker(
                     DataSource.MAGENE -> getMageneActivitiesWithRefresh(sourceCred, 0, 8)
                     DataSource.BLACKBIRD -> blackbirdApi.getActivities(sourceCred, 0, 8)
                     DataSource.BRYTON -> brytonApi.getActivities(sourceCred, 0, 8)
+                    DataSource.GARMIN_COM -> garminApi.getActivities(source, sourceCred, 0, 8)
+                    DataSource.GARMIN_CN -> garminApi.getActivities(source, sourceCred, 0, 8)
+                    DataSource.COROS_CN -> corosApi.getActivities(sourceCred, 0, 8)
+                    DataSource.COROS_INT -> corosApi.getActivities(sourceCred, 0, 8)
+                    DataSource.WAHOO -> getWahooActivitiesWithRefresh(sourceCred, 0, 8)
                     else -> emptyList()
                 }
             } catch (e: Exception) {
@@ -319,8 +325,45 @@ class AutoSyncWorker(
             DataSource.BRYTON -> {
                 try { brytonApi.downloadFit(cred, record.id) } catch (_: Exception) { brytonApi.downloadGpx(cred, record.id) }
             }
+            DataSource.GARMIN_COM -> garminApi.downloadFit(source, cred, record.id)
+            DataSource.GARMIN_CN -> garminApi.downloadFit(source, cred, record.id)
+            DataSource.COROS_CN -> corosApi.downloadFit(cred, record.id, record.extra)
+            DataSource.COROS_INT -> corosApi.downloadFit(cred, record.id, record.extra)
+            DataSource.WAHOO -> {
+                // 与手动同步一致：Wahoo源优先用内置生产凭证刷新token，其次用户配置
+                var token = cred
+                val refresh = prefs.getWahooRefresh()
+                val clientId = if (WahooApi.isBuiltinConfigured()) WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                val clientSecret = if (WahooApi.isBuiltinConfigured()) WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                if (refresh != null && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
+                    val fresh = wahooApi.refreshToken(refresh, clientId, clientSecret)
+                    if (fresh != null) {
+                        prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
+                        token = fresh.first
+                        plog("🔄 Wahoo源 token已自动刷新")
+                    }
+                }
+                wahooApi.downloadFit(token, record.id)
+            }
             else -> null
         }
+    }
+
+    /** v7.8.3: Wahoo作为自动同步源——刷新token后拉取活动列表（与手动同步一致） */
+    private suspend fun getWahooActivitiesWithRefresh(cred: String, skip: Int, limit: Int): List<ActivityRecord> {
+        var token = cred
+        val refresh = prefs.getWahooRefresh()
+        val clientId = if (WahooApi.isBuiltinConfigured()) WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+        val clientSecret = if (WahooApi.isBuiltinConfigured()) WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+        if (refresh != null && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
+            val fresh = wahooApi.refreshToken(refresh, clientId, clientSecret)
+            if (fresh != null) {
+                prefs.saveWahooToken(fresh.first); prefs.saveWahooRefresh(fresh.second)
+                token = fresh.first
+                plog("🔄 Wahoo源 token已自动刷新")
+            }
+        }
+        return wahooApi.getActivities(token, skip, limit)
     }
 
     private fun isFit(bytes: ByteArray): Boolean =
