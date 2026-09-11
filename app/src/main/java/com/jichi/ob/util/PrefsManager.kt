@@ -33,6 +33,9 @@ class PrefsManager(context: Context) {
         private const val KEY_SYNC_COUNT = "sync_count"
         private const val KEY_SKIP_COUNT = "skip_count"
         private const val KEY_PERSIST_LOG = "persist_log"
+        private const val KEY_STAT_OK = "stat_ok"
+        private const val KEY_STAT_SKIP = "stat_skip"
+        private const val KEY_STAT_FAIL = "stat_fail"
         private const val MAX_LOG_LINES = 400
     }
 
@@ -273,6 +276,23 @@ class PrefsManager(context: Context) {
         syncedCache?.clear()
         syncedCache = mutableSetOf()
         prefs.edit().remove(KEY_SYNCED_IDS).apply()
+    }
+
+    // ===== v7.7.8: 累计统计（成功/跳过/失败，不清除记忆一直累加）=====
+    private fun statKey(type: String): String = when (type) {
+        "ok" -> KEY_STAT_OK
+        "skip" -> KEY_STAT_SKIP
+        else -> KEY_STAT_FAIL
+    }
+    fun addStat(type: String, delta: Int = 1) {
+        val key = statKey(type)
+        prefs.edit().putInt(key, prefs.getInt(key, 0) + delta).apply()
+    }
+    fun getStatOk(): Int = prefs.getInt(KEY_STAT_OK, 0)
+    fun getStatSkip(): Int = prefs.getInt(KEY_STAT_SKIP, 0)
+    fun getStatFail(): Int = prefs.getInt(KEY_STAT_FAIL, 0)
+    fun resetStats() {
+        prefs.edit().putInt(KEY_STAT_OK, 0).putInt(KEY_STAT_SKIP, 0).putInt(KEY_STAT_FAIL, 0).apply()
     }
 
     // ===== 设置记忆 =====
