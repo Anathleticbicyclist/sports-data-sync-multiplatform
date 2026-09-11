@@ -38,8 +38,12 @@ class SyncFragment : Fragment() {
     private var progressBar: LinearProgressView? = null
     private var btnSync: MaterialButton? = null
     private var btnStop: MaterialButton? = null
+    private var tvStatOk: TextView? = null
+    private var tvStatSkip: TextView? = null
+    private var tvStatFail: TextView? = null
     private var tvLogReady = false
     private val pendingLogs = mutableListOf<String>()
+    private var isAutoScroll = true
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_sync, container, false)
@@ -53,6 +57,21 @@ class SyncFragment : Fragment() {
         progressBar = view.findViewById(R.id.progressBar)
         btnSync = view.findViewById(R.id.btnSync)
         btnStop = view.findViewById(R.id.btnStop)
+        tvStatOk = view.findViewById(R.id.tvStatOk)
+        tvStatSkip = view.findViewById(R.id.tvStatSkip)
+        tvStatFail = view.findViewById(R.id.tvStatFail)
+
+        // v7.7.8: 日志操作——暂停滚动 / 清空
+        val btnPauseLog = view.findViewById<TextView>(R.id.btnPauseLog)
+        btnPauseLog.setOnClickListener {
+            isAutoScroll = !isAutoScroll
+            btnPauseLog.text = if (isAutoScroll) "暂停滚动" else "恢复滚动"
+            Toast.makeText(requireContext(), if (isAutoScroll) "已开启自动滚动" else "已暂停自动滚动", Toast.LENGTH_SHORT).show()
+        }
+        view.findViewById<TextView>(R.id.btnClearLog).setOnClickListener {
+            tvLog?.text = ""
+            Toast.makeText(requireContext(), "日志已清空", Toast.LENGTH_SHORT).show()
+        }
 
         // 操作按钮
         btnSync?.setOnClickListener { (activity as? MainActivity)?.startSync() }
@@ -140,7 +159,14 @@ class SyncFragment : Fragment() {
         sb.setSpan(ForegroundColorSpan(requireContext().getColor(colorForMessage(message))), msgStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
         tv.text = sb
-        logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+        if (isAutoScroll) logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+    }
+
+    /** v7.7.8: MainActivity调用——更新顶部统计卡片（成功/跳过/失败） */
+    fun setStats(ok: Int, skip: Int, fail: Int) {
+        tvStatOk?.text = ok.toString()
+        tvStatSkip?.text = skip.toString()
+        tvStatFail?.text = fail.toString()
     }
 
     /** MainActivity调用：设置同步中状态 */
