@@ -731,8 +731,6 @@ class MainActivity : AppCompatActivity() {
         val targetNames = targets.joinToString("、") { it.displayName }
         appendLog("━━━━━━━━━━━━━━━━━━━━━━")
         appendLog("🚀 开始同步: ${source.displayName} → $targetNames (跳过$skip, 同步$count)")
-        // v7.7.8: 开始同步重置统计卡片
-        runOnUiThread { syncFragment.setStats(0, 0, 0) }
         setSyncing(true)
         // v6.7.5: 输出GarminApi调试日志
         flushGarminDebugLogs()
@@ -768,6 +766,12 @@ class MainActivity : AppCompatActivity() {
                 }
                 withContext(Dispatchers.Main) { syncFragment.setProgressIndeterminate(false); syncFragment.setProgressMax(activities.size); syncFragment.setProgress(0) }
                 var success = 0; var skipped = 0; var failed = 0
+                // v7.7.8: 累计统计——每成功/跳过/失败一条立即累加并刷新卡片（不清除记忆一直累加）
+                fun updateStats(type: String) {
+                    prefs.addStat(type)
+                    val ok = prefs.getStatOk(); val skip = prefs.getStatSkip(); val fail = prefs.getStatFail()
+                    runOnUiThread { syncFragment.setStats(ok, skip, fail) }
+                }
                 for ((i, act) in activities.withIndex()) {
                     if (!isActive) break
                     // v7.6.7: 一条活动只要任一目标未同步就下载；下载一次，上传到所有未同步目标
@@ -778,16 +782,16 @@ class MainActivity : AppCompatActivity() {
                         forceRetransmit || !prefs.isSynced(syncKey)
                     }
                     if (pendingTargets.isEmpty()) {
-                        skipped++; appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")
+                        skipped++; updateStats("skip"); appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
                     val fileData = try { downloadActivity(source, targets.first(), act) } catch (e: Exception) {
-                        appendLog("❌ 下载失败: ${e.message}"); failed++
+                        appendLog("❌ 下载失败: ${e.message}"); failed++; updateStats("fail")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     if (fileData == null || fileData.size < 100) {
-                        appendLog("❌ 文件数据无效"); failed++
+                        appendLog("❌ 文件数据无效"); failed++; updateStats("fail")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     val ext = if (isFit(fileData)) "fit" else "gpx"
@@ -841,8 +845,8 @@ class MainActivity : AppCompatActivity() {
                             uploadEngine.upload(target, targetCred, fileData, act, upExtra)
                         }
                         val tCost = System.currentTimeMillis() - t0
-                        if (result.success) { success++; prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
-                        else if (result.skipped) { skipped++; prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
+                        if (result.success) { success++; updateStats("ok"); prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
+                        else if (result.skipped) { skipped++; updateStats("skip"); prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
                         else {
                             // v7.5.3: Wahoo 401自动刷新token并重试一次
                             var retrySuccess = false
@@ -859,13 +863,13 @@ class MainActivity : AppCompatActivity() {
                                         val retryResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
                                         if (retryResult.success) {
                                             retrySuccess = true
-                                            success++; prefs.addSyncedId(syncKey)
+                                            success++; updateStats("ok"); prefs.addSyncedId(syncKey)
                                             appendLog("✅ 重试上传成功(${System.currentTimeMillis() - t0}ms): ${retryResult.message}")
                                         }
                                     }
                                 }
                             }
-                            if (!retrySuccess) { failed++; appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
+                            if (!retrySuccess) { failed++; updateStats("fail"); appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
                         }
                     }
                     withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1); settingsFragment.setSyncedCount(prefs.getSyncedCount()) }
@@ -874,7 +878,7 @@ class MainActivity : AppCompatActivity() {
                 appendLog("━━━━━━━━━━━━━━━━━━━━━━")
                 appendLog("📊 同步完成: 成功$success / 跳过$skipped / 失败$failed")
                 // v7.7.8: 同步结束更新统计卡片
-                withContext(Dispatchers.Main) { syncFragment.setStats(success, skipped, failed) }
+                withContext(Dispatchers.Main) { syncFragment.setStats(prefs.getStatOk(), prefs.getStatSkip(), prefs.getStatFail()) }
             } catch (e: Exception) { Log.e(TAG, "sync error", e); appendLog("❌ 同步异常: ${e.message}") }
             finally { setSyncing(false) }
         }
@@ -914,6 +918,9 @@ class MainActivity : AppCompatActivity() {
             val before = prefs.getSyncedCount()
             prefs.clearSyncedIds()
             settingsFragment.setSyncedCount(0)
+            // v7.7.8: 清除记忆时累计统计同步清零
+            prefs.resetStats()
+            runOnUiThread { syncFragment.setStats(0, 0, 0) }
             appendLog("🗑 已清除上传记忆($before 条) → 下次同步将重新全量上传")
             Toast.makeText(this, "上传记忆已清除($before 条)", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {

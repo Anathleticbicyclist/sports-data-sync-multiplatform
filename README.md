@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.7.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.7.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.7.8 |
+| 当前版本 | v7.7.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -388,6 +388,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.7.9 (2026-09-11)
+**已解决**：
+- **统计卡片计数修复 + 累计统计**：同步页顶部成功/跳过/失败统计卡片改为**累计**——不清除上传记忆就一直累加（重启保留）；每成功/跳过/失败一条实时 +1；清除上传记忆时统计归零重新累计
+- 版本号 7.7.9，更新日志同步
 
 ### v7.7.8 (2026-09-11)
 **已解决**：
