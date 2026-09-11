@@ -82,31 +82,49 @@ class SyncSettingsFragment : Fragment() {
         view.findViewById<ImageView>(R.id.btnOpenSaveDir)?.setOnClickListener { openSaveDir() }
     }
 
-    /** v7.8.1: 打开存储目录（系统文件管理器，兼容分区存储；失败时引导用户到文件管理器） */
+    /**
+     * v7.8.2: 打开存储目录（多级兼容，适配vivo等国产ROM）
+     * ① content:// 目录URI + 目录MIME（分区存储标准方案）
+     * ② file:// 目录 + 目录MIME（部分ROM/旧系统文件管理器）
+     * ③ 系统文档选择器 DocumentsUI（所有设备兜底，尽量定位到目标目录）
+     */
     private fun openSaveDir() {
         val dir = com.jichi.ob.MainActivity.SAVE_DIR
+        try { if (!dir.exists()) dir.mkdirs() } catch (_: Exception) {}
+        val mimeDir = DocumentsContract.Document.MIME_TYPE_DIR // vnd.android.document/directory
+        val rel = dir.absolutePath.removePrefix("/storage/emulated/0/").trimStart('/')
+
+        // ① 首选：content:// 目录URI + 目录MIME
         try {
-            if (!dir.exists()) dir.mkdirs()
-            // 首选：DocumentsContract 打开外部存储下的目录（Android 10+ 分区存储通用方案）
-            val rel = dir.absolutePath.removePrefix("/storage/emulated/0/").trimStart('/')
             val uri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:$rel")
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = uri
+                type = mimeDir
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             }
-            startActivity(intent)
-        } catch (e: Exception) {
-            try {
-                // 回退：file:// + resource/folder
-                val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(Uri.fromFile(dir), "resource/folder")
-                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                }
-                startActivity(intent)
-            } catch (e2: Exception) {
-                Toast.makeText(requireContext(), "无法直接打开目录，请到文件管理器查看：\n${dir.absolutePath}", Toast.LENGTH_LONG).show()
+            startActivity(intent); return
+        } catch (_: Exception) {}
+
+        // ② 回退：file:// 目录 + 目录MIME
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(Uri.fromFile(dir), mimeDir)
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
-        }
+            startActivity(intent); return
+        } catch (_: Exception) {}
+
+        // ③ 兜底：系统文档选择器 DocumentsUI（所有设备可用），尽量定位到目标目录
+        try {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                intent.putExtra("android.intent.extra.INITIAL_URI", DocumentsContract.buildDocumentUri(
+                    "com.android.externalstorage.documents", "primary:$rel"))
+            }
+            startActivity(intent); return
+        } catch (_: Exception) {}
+
+        Toast.makeText(requireContext(), "无法直接打开目录，请到文件管理器查看：\n${dir.absolutePath}", Toast.LENGTH_LONG).show()
     }
 
     // ===== 源/目标选择 =====
