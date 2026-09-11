@@ -731,6 +731,8 @@ class MainActivity : AppCompatActivity() {
         val targetNames = targets.joinToString("、") { it.displayName }
         appendLog("━━━━━━━━━━━━━━━━━━━━━━")
         appendLog("🚀 开始同步: ${source.displayName} → $targetNames (跳过$skip, 同步$count)")
+        // v7.7.8: 开始同步重置统计卡片
+        runOnUiThread { syncFragment.setStats(0, 0, 0) }
         setSyncing(true)
         // v6.7.5: 输出GarminApi调试日志
         flushGarminDebugLogs()
@@ -871,6 +873,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 appendLog("━━━━━━━━━━━━━━━━━━━━━━")
                 appendLog("📊 同步完成: 成功$success / 跳过$skipped / 失败$failed")
+                // v7.7.8: 同步结束更新统计卡片
+                withContext(Dispatchers.Main) { syncFragment.setStats(success, skipped, failed) }
             } catch (e: Exception) { Log.e(TAG, "sync error", e); appendLog("❌ 同步异常: ${e.message}") }
             finally { setSyncing(false) }
         }
