@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.7.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.8.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.7.9 |
+| 当前版本 | v7.8.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -388,6 +388,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.8.0 (2026-09-11)
+**已解决**：
+- **同步目标 Outbase 强调**：Outbase 选择框加高 1/3、字符加大 1/2 并加粗、品牌圆点圆心对齐圆角弧线
+- **关于页免责声明**：新增「开源软件免责声明」蓝色超链接，点击弹出圆角淡蓝边框、可滚动、中英双语的免责声明弹窗（律师角度起草，规避平台关联/风险/隐私等风险）
+- 版本号 7.8.0，更新日志同步
 
 ### v7.7.9 (2026-09-11)
 **已解决**：

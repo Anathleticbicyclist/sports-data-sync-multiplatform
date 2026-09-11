@@ -35,6 +35,17 @@ class PlatformButton @JvmOverloads constructor(
     private var brandColor = 0xFF2B8CFF.toInt()
     private val corner = (12f * dp).toInt()
 
+    /** v7.8.0: 强调模式——文字始终加粗（用于Outbase独占行突出显示），不随选中态重置；
+     *  圆点大小保持不变(7dp)，但位置微调使圆心精确对齐圆角弧线圆心(corner=12dp → margin=12-3.5=8.5dp) */
+    var emphasize: Boolean = false
+        set(value) {
+            field = value
+            val margin = (if (value) 8.5f else 9f) * dp
+            val lp = dot.layoutParams as LayoutParams
+            lp.topMargin = margin.toInt(); lp.leftMargin = margin.toInt()
+            dot.layoutParams = lp
+        }
+
     init {
         isClickable = true
         isFocusable = true
@@ -120,7 +131,8 @@ class PlatformButton @JvmOverloads constructor(
                 fillColor = 0xFFF5F7FA.toInt()
                 strokeColor = Color.TRANSPARENT; strokeWidthPx = 0
                 tv.setTextColor(0xFF1F2937.toInt())
-                tv.setTypeface(tv.typeface, Typeface.NORMAL)
+                // v7.8.0: 强调平台（如Outbase独占行）未选中时也保持加粗
+                tv.setTypeface(tv.typeface, if (emphasize) Typeface.BOLD else Typeface.NORMAL)
                 dotGd.setColor(0xFFB8C0C8.toInt())
             }
         }
