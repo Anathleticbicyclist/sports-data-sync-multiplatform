@@ -134,7 +134,9 @@ class SyncSettingsFragment : Fragment() {
             val tds = DataSource.fromShortName(tag)
             btn.buttonText = tds?.displayName ?: tag
             btn.bind(platformColor(tag))
-            btn.setTextSizeDp(if (tag == "ob") 13f else 11f)
+            // v7.8.0: Outbase 独占行强调——字号加大1/2(11→16.5sp)并始终加粗
+            btn.emphasize = tag == "ob"
+            btn.setTextSizeDp(if (tag == "ob") 16.5f else 11f)
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
                 val ds = DataSource.fromShortName(tag)
