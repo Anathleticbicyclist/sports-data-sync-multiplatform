@@ -731,9 +731,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 本应用（鸡翅幸哲迈进OB，下称"本软件"）是由个人开发者维护的**非商业开源项目**，与 iGPSPORT（迹驰）、迈金（Magene）、黑鸟单车、行者、捷安特（Giant）、高驰（COROS）、佳明（Garmin）、Wahoo、Outbase、OneLap、Strava、Intervals.icu 等任何平台、品牌、公司及其官方应用、官方网站**均无任何隶属、合作、授权或背书关系**。文中出现的平台名称、商标、Logo 均为其各自权利人所有，此处仅用于标识数据互通的对接对象，不构成任何关联、推荐或官方认可。本软件并非上述任一平台的官方工具，请勿将其视为官方出品。
 
+This application (referred to as "the Software") is a non-commercial open-source project maintained by an individual developer, and has no affiliation, cooperation, authorization or endorsement relationship with iGPSPORT, Magene, Blackbird, Xingzhe, Giant, COROS, Garmin, Wahoo, Outbase, OneLap, Strava, Intervals.icu or any other platform, brand, company, or their official applications or websites. All platform names, trademarks and logos appearing herein are the property of their respective owners, and are used solely to identify the connected objects for data interchange, without constituting any affiliation, recommendation or official recognition. This Software is not an official tool of any of the above platforms.
+
 ### 二、使用风险与责任豁免 / Use at Your Own Risk
 
 本软件以"现状"（AS-IS）形式提供，不附带任何明示或默示的担保，包括但不限于适销性、特定用途适用性、无侵权及无缺陷的担保。用户理解并同意：因使用本软件（包括但不限于数据同步、跨平台转换、登录、上传、下载、自动同步等）而产生的任何直接或间接损失、数据丢失或损坏、账号异常、平台限制或封禁、第三方索赔等一切后果，**均由用户自行承担**，作者及本项目贡献者不承担任何责任。
+
+The Software is provided on an "AS-IS" basis without any express or implied warranties, including but not limited to merchantability, fitness for a particular purpose, non-infringement and freedom from defects. The user understands and agrees that all consequences arising from the use of the Software (including but not limited to data synchronization, cross-platform conversion, login, upload, download and auto-sync), whether direct or indirect, such as loss, data loss or corruption, account abnormality, platform restriction or suspension, or third-party claims, shall be **borne solely by the user**, and neither the author nor any contributor of this project shall bear any liability.
 
 ### 三、数据与隐私声明 / Data & Privacy
 
@@ -742,24 +746,39 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 3. 所有账号凭证（Token、Session、Cookie 等）**仅保存在您设备的本地存储中**，作者无法访问，亦不承担因设备丢失、Root/越狱、恶意软件或您主动泄露所导致的凭证安全责任。
 4. 自动同步为本地定时任务，仅在您开启后于本机执行，同样不会上传至任何第三方服务器。
 
+1. The Software **does not collect, store, transmit or share** your personal data, activity data or account credentials with any third party or any server controlled by the author.
+2. Activity data is **only uploaded to the destination platforms you explicitly select in the Software when you actively trigger a synchronization**; no upload occurs unless a sync is triggered.
+3. All account credentials (tokens, sessions, cookies, etc.) are **stored only in the local storage of your device**. The author has no access to them and bears no responsibility for credential security issues arising from device loss, rooting/jailbreaking, malware, or your own disclosure.
+4. Auto-sync is a local scheduled task executed on your device only after you enable it, and likewise does not upload to any third-party server.
+
 ### 四、第三方平台服务条款 / Third-Party Terms
 
 各运动平台对第三方客户端登录、数据上传及自动化操作可能设有各自的条款限制。用户在使用本软件前，应自行阅读并遵守各目标平台的《服务条款》《用户协议》与隐私政策。**因使用本软件而被某平台认定违反其条款，并由此受到账号限制、数据删除或其他措施的风险，由用户自行承担**，作者不予负责。建议用户合规、适度使用，避免触发平台风控。
+
+Each sports platform may impose its own terms and restrictions on third-party client login, data upload and automated operations. Before using the Software, the user should read and comply with the Terms of Service, User Agreements and privacy policies of each destination platform. **Any risk of account restriction, data deletion or other measures resulting from a platform deeming the use of the Software to violate its terms shall be borne by the user**, and the author bears no responsibility. Users are advised to use the Software in a compliant and moderate manner to avoid triggering platform risk controls.
 
 ### 五、数据准确性与转换差异 / Data Accuracy
 
 跨平台同步涉及 FIT/GPX 等文件格式的解析与转换，不同平台对文件规范的解析严格程度存在差异，可能出现里程、均速、轨迹点数等数据与源平台显示不一致的情况。本软件**不保证**转换后的数据与各平台官方数据完全一致，亦不对由此产生的任何统计偏差负责。建议用户在重要统计场景下，以各平台官方 App 或官方网页数据为准进行核对。
 
+Cross-platform synchronization involves the parsing and conversion of file formats such as FIT/GPX. Different platforms differ in the strictness with which they parse file specifications, which may result in inconsistencies with the source platform regarding distance, average speed, track point count and other data. The Software **does not guarantee** that converted data will be fully consistent with the official data of each platform, and bears no responsibility for any resulting statistical deviation. Users are advised to verify against the official App or official website of each platform for important statistical purposes.
+
 ### 六、赞赏与捐赠 / Donation
 
 本软件完全免费，不含任何强制收费。页面中的赞赏（打赏）为**用户自愿、无偿**的赠与行为，不构成购买商品或服务的对价，亦不构成用户与作者之间的任何服务合同关系；赞赏不代表对本软件的担保，亦不附带任何售后义务。
+
+The Software is completely free of charge and contains no mandatory fees. Any tip or donation on the pages is a **voluntary and gratuitous gift** by the user, which does not constitute consideration for the purchase of goods or services, nor does it create any service contract relationship between the user and the author; a donation does not represent a warranty of the Software and carries no after-sales obligation.
 
 ### 七、项目变更与终止 / Change & Termination
 
 本项目为个人开源项目，作者保留随时修改、更新、停止维护或终止本项目及其功能的全部权利，恕不逐一另行通知。任何版本的功能与兼容性均可能随各平台接口变化而改变。
 
+This project is a personal open-source project. The author reserves all rights to modify, update, discontinue maintenance of, or terminate this project and its features at any time, without individual prior notice. The functionality and compatibility of any version may change with the evolution of each platform's interfaces.
+
 ### 八、适用法律与管辖 / Governing Law
 
 本声明及本软件的使用行为受中华人民共和国法律管辖。因使用本软件产生的争议，双方应友好协商解决；协商不成的，提交作者所在地有管辖权的人民法院处理。
+
+This Disclaimer and the use of the Software shall be governed by the laws of the People's Republic of China. Any dispute arising out of the use of the Software shall first be resolved through friendly consultation; failing which, the dispute shall be submitted to the competent People's Court at the author's place of domicile.
 
 > 本免责声明为作者依法合规意识下起草的一般性说明，不构成法律意见。如涉及重大权益，建议咨询专业法律人士。
