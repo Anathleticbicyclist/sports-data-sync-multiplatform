@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.7.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.7.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.7.7 |
+| 当前版本 | v7.7.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -46,7 +46,7 @@
 | 开屏动画 | 1秒浅蓝开屏，软件名"鸡翅幸哲迈进OB · 让运动数据自由流动" |
 | 登录 | 十一平台登录状态与登录入口（已登录平台可注销；未登录灰字不扎眼；品牌横幅一屏展示） |
 | 数据同步设置 | 数据来源/目标选择（v7.7.7：文字居中完整显示+右上角品牌小圆点，选中点亮品牌色）、同步数量/跳过、迈金坐标转换、强制重传 |
-| 同步 | 后台自动同步、开始/停止/测试/复制/清记忆、运行日志、长条渐变进度条（呼吸氛围光、颜色随进度变化） |
+| 同步 | 后台自动同步、开始/停止/测试/复制/清记忆、**统计卡片（成功/跳过/失败）**、运行日志（**暂停滚动/清空**）、长条渐变进度条（呼吸氛围光、颜色随进度变化） |
 | 关于 | 版本信息、**检查更新**（开源最新版对比）、更新日志、鸣谢（含捷安特）、赞赏支持 |
 
 > **v7.7.7 起全面 UI 重塑**：扁平化、清新、前卫的设计风格（参考现代移动端设计语言），主色统一为天蓝 `#2B8CFF`，四个页面风格继承统一；平台品牌色小圆点是设计亮点（设置页选中时圆点点亮为对应品牌色）。
@@ -388,6 +388,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.7.8 (2026-09-11)
+**已解决**：
+- **同步页 UI 优化**：顶部新增成功/跳过/失败统计卡片（每次同步自动清零、结束更新为真实结果）；运行日志标题行新增「暂停滚动」「清空」按钮——可暂停自动滚动查看上方日志、一键清空日志显示
+- 版本号 7.7.8，更新日志同步
 
 ### v7.7.7 (2026-09-10)
 **已解决**：
