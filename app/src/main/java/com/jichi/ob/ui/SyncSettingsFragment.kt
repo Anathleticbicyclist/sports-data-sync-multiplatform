@@ -404,8 +404,9 @@ class SyncSettingsFragment : Fragment() {
     fun getSelectedTarget(): DataSource = getSelectedTargets().firstOrNull() ?: DataSource.OUTBASE
     /** v7.6.7: 一对多 - 返回所有勾选的目标 */
     fun getSelectedTargets(): List<DataSource> {
-        val list = selectedTargetTags.mapNotNull { DataSource.fromShortName(it) }
-        return if (list.isEmpty()) listOf(DataSource.OUTBASE) else list
+        // v7.8.6: 修复"未选目标却兜底返回Outbase"的bug——未勾选时返回空列表，
+        // 由 startSync 统一提示"请选择至少一个同步目标"
+        return selectedTargetTags.mapNotNull { DataSource.fromShortName(it) }
     }
     fun getCount(): Int = requireView().findViewById<Slider>(R.id.sliderCount).value.toInt()
     fun getSkip(): Int = requireView().findViewById<Slider>(R.id.sliderSkip).value.toInt()
