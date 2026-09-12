@@ -107,6 +107,14 @@ class PrefsManager(context: Context) {
     fun saveGiantAccount(account: String) = prefs.edit().putString("giant_account", account).apply()
     fun getGiantAccount(): String? = prefs.getString("giant_account", null)
 
+    // ===== Intervals.icu: API Key（v7.8.5 新增，仅上传）=====
+    fun saveIntervalsIcuKey(key: String) {
+        Log.d(TAG, "saveIntervalsIcuKey: ${key.length}")
+        prefs.edit().putString("intervals_icu_key", key).apply()
+    }
+    fun getIntervalsIcuKey(): String? = prefs.getString("intervals_icu_key", null)
+    fun isIntervalsIcuLoggedIn(): Boolean = !getIntervalsIcuKey().isNullOrEmpty()
+
     // ===== Outbase: sessionId + 网关cookie =====
     fun saveOutbaseSessionId(sid: String) {
         Log.d(TAG, "saveOutbaseSessionId: ${sid.length}")
@@ -206,6 +214,7 @@ class PrefsManager(context: Context) {
         DataSource.WAHOO -> getWahooToken()
         DataSource.MYWHOOSH -> getMywhooshToken()
         DataSource.ZWIFT -> getZwiftToken()
+        DataSource.INTERVALS_ICU -> getIntervalsIcuKey()
     }
     /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
     fun saveCredential(ds: DataSource, cred: String) {
@@ -224,6 +233,7 @@ class PrefsManager(context: Context) {
             DataSource.WAHOO -> saveWahooToken(cred)
             DataSource.MYWHOOSH -> saveMywhooshToken(cred)
             DataSource.ZWIFT -> saveZwiftToken(cred)
+            DataSource.INTERVALS_ICU -> saveIntervalsIcuKey(cred)
         }
     }
     /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
@@ -244,6 +254,7 @@ class PrefsManager(context: Context) {
             DataSource.WAHOO -> { e.remove("wahoo_token"); e.remove("wahoo_refresh"); e.remove("wahoo_email") }
             DataSource.MYWHOOSH -> { e.remove("mywhoosh_token"); e.remove("mywhoosh_whoosh_id"); e.remove("mywhoosh_refresh") }
             DataSource.ZWIFT -> { e.remove("zwift_token"); e.remove("zwift_refresh"); e.remove("zwift_player_id") }
+            DataSource.INTERVALS_ICU -> e.remove("intervals_icu_key")
         }
         e.remove("username_${ds.shortName}")
         e.apply()
@@ -263,6 +274,7 @@ class PrefsManager(context: Context) {
         DataSource.WAHOO -> isWahooLoggedIn()
         DataSource.MYWHOOSH -> isMywhooshLoggedIn()
         DataSource.ZWIFT -> isZwiftLoggedIn()
+        DataSource.INTERVALS_ICU -> isIntervalsIcuLoggedIn()
     }
 
     // ===== 用户名存储 =====

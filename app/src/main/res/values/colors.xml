@@ -36,6 +36,7 @@
     <color name="giant_blue">#2B4B9B</color>        <!-- 捷安特 Giant：深蓝 -->
     <color name="mywhoosh_orange">#E8590C</color>   <!-- MyWhoosh：橙 -->
     <color name="zwift_purple">#6A2FA0</color>      <!-- Zwift：紫 -->
+    <color name="intervals_icu_orange">#E85D3D</color> <!-- Intervals.icu：珊瑚橙 -->
 
     <!-- 基础色 -->
     <color name="white">#FFFFFF</color>
