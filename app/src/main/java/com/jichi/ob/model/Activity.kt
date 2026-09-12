@@ -28,12 +28,15 @@ enum class DataSource(val displayName: String, val shortName: String) {
     GARMIN_CN("佳明中国", "gcn"),
     COROS_CN("高驰中国", "cscn"),
     COROS_INT("高驰国际", "cs"),
-    WAHOO("Wahoo", "wo");
+    WAHOO("Wahoo", "wo"),
+    // v7.8.4 新增：MyWhoosh / Zwift（仅下载数据源）
+    MYWHOOSH("MyWhoosh", "mw"),
+    ZWIFT("Zwift", "zf");
 
     companion object {
         /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
         fun sourcePlatforms(): List<DataSource> =
-            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO)
+            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT)
         fun fromShortName(s: String): DataSource? = entries.find { it.shortName == s }
     }
 }
@@ -57,7 +60,9 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     GARMIN_CN(true, "需FIT设备伪装"),
     COROS_CN(true, "OSS+fit/import"),
     COROS_INT(true, "OSS+fit/import"),
-    WAHOO(true, "官方上传API");
+    WAHOO(true, "官方上传API"),
+    MYWHOOSH(false, "仅下载"),
+    ZWIFT(false, "仅下载");
 
     companion object {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {
@@ -73,6 +78,8 @@ enum class UploadSupport(val available: Boolean, val note: String) {
             DataSource.COROS_CN -> COROS_CN
             DataSource.COROS_INT -> COROS_INT
             DataSource.WAHOO -> WAHOO
+            DataSource.MYWHOOSH -> MYWHOOSH
+            DataSource.ZWIFT -> ZWIFT
         }
     }
 }

@@ -168,6 +168,28 @@ class PrefsManager(context: Context) {
         return !getWahooToken().isNullOrEmpty() && !getWahooClientId().isNullOrEmpty()
     }
 
+    // ===== MyWhoosh: 纯API token（v7.8.4 新增，仅下载源）=====
+    fun saveMywhooshToken(t: String) { prefs.edit().putString("mywhoosh_token", t).apply() }
+    fun getMywhooshToken(): String? = prefs.getString("mywhoosh_token", null)
+    fun saveMywhooshWhooshId(id: String) { prefs.edit().putString("mywhoosh_whoosh_id", id).apply() }
+    fun getMywhooshWhooshId(): String? = prefs.getString("mywhoosh_whoosh_id", null)
+    fun saveMywhooshRefreshToken(r: String) { prefs.edit().putString("mywhoosh_refresh", r).apply() }
+    fun getMywhooshRefreshToken(): String? = prefs.getString("mywhoosh_refresh", null)
+    fun saveMywhooshAccount(a: String) { prefs.edit().putString("mywhoosh_account", a).apply() }
+    fun getMywhooshAccount(): String? = prefs.getString("mywhoosh_account", null)
+    fun isMywhooshLoggedIn(): Boolean = !getMywhooshToken().isNullOrEmpty()
+
+    // ===== Zwift: OAuth token（v7.8.4 新增，仅下载源）=====
+    fun saveZwiftToken(t: String) { prefs.edit().putString("zwift_token", t).apply() }
+    fun getZwiftToken(): String? = prefs.getString("zwift_token", null)
+    fun saveZwiftRefreshToken(r: String) { prefs.edit().putString("zwift_refresh", r).apply() }
+    fun getZwiftRefreshToken(): String? = prefs.getString("zwift_refresh", null)
+    fun saveZwiftPlayerId(id: String) { prefs.edit().putString("zwift_player_id", id).apply() }
+    fun getZwiftPlayerId(): String? = prefs.getString("zwift_player_id", null)
+    fun saveZwiftAccount(a: String) { prefs.edit().putString("zwift_account", a).apply() }
+    fun getZwiftAccount(): String? = prefs.getString("zwift_account", null)
+    fun isZwiftLoggedIn(): Boolean = !getZwiftToken().isNullOrEmpty()
+
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
@@ -182,6 +204,8 @@ class PrefsManager(context: Context) {
         DataSource.COROS_CN -> getCorosCnToken()
         DataSource.COROS_INT -> getCorosIntToken()
         DataSource.WAHOO -> getWahooToken()
+        DataSource.MYWHOOSH -> getMywhooshToken()
+        DataSource.ZWIFT -> getZwiftToken()
     }
     /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
     fun saveCredential(ds: DataSource, cred: String) {
@@ -198,6 +222,8 @@ class PrefsManager(context: Context) {
             DataSource.COROS_CN -> saveCorosCnToken(cred)
             DataSource.COROS_INT -> saveCorosIntToken(cred)
             DataSource.WAHOO -> saveWahooToken(cred)
+            DataSource.MYWHOOSH -> saveMywhooshToken(cred)
+            DataSource.ZWIFT -> saveZwiftToken(cred)
         }
     }
     /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
@@ -216,6 +242,8 @@ class PrefsManager(context: Context) {
             DataSource.COROS_CN -> { e.remove("coros_cn_token"); e.remove("coros_cn_cookie"); e.remove("coros_cn_region") }
             DataSource.COROS_INT -> { e.remove("coros_int_token"); e.remove("coros_int_cookie"); e.remove("coros_int_region") }
             DataSource.WAHOO -> { e.remove("wahoo_token"); e.remove("wahoo_refresh"); e.remove("wahoo_email") }
+            DataSource.MYWHOOSH -> { e.remove("mywhoosh_token"); e.remove("mywhoosh_whoosh_id"); e.remove("mywhoosh_refresh") }
+            DataSource.ZWIFT -> { e.remove("zwift_token"); e.remove("zwift_refresh"); e.remove("zwift_player_id") }
         }
         e.remove("username_${ds.shortName}")
         e.apply()
@@ -233,6 +261,8 @@ class PrefsManager(context: Context) {
         DataSource.COROS_CN -> isCorosCnLoggedIn()
         DataSource.COROS_INT -> isCorosIntLoggedIn()
         DataSource.WAHOO -> isWahooLoggedIn()
+        DataSource.MYWHOOSH -> isMywhooshLoggedIn()
+        DataSource.ZWIFT -> isZwiftLoggedIn()
     }
 
     // ===== 用户名存储 =====
