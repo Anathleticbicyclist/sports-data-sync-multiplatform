@@ -70,6 +70,7 @@ class AutoSyncWorker(
     private val uploadEngine = UploadEngine(applicationContext)
 
     override suspend fun doWork(): Result {
+        GarminApi.setAppContext(applicationContext)  // v7.9.0: 佳明429风控冷却持久化（后台自动同步也生效）
         if (syncing) {
             Log.d(TAG, "手动同步进行中，跳过本次自动同步")
             // v7.6.9: 跳过也要留痕，避免"假同步"用户无感知

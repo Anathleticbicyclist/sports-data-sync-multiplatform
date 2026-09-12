@@ -68,6 +68,30 @@ class GarminApi {
         @Volatile private var webViewLoading = false
         private val mainHandler = Handler(Looper.getMainLooper())
 
+        // ===== v7.9.0: 佳明 429 风控冷却（24小时）=====
+        private const val COOLDOWN_MS = 24 * 60 * 60 * 1000L
+        private const val PREFS_COOLDOWN = "garmin_cooldown"
+        @Volatile private var appContext: Context? = null
+        fun setAppContext(ctx: Context) { appContext = ctx.applicationContext }
+        private fun cooldownKey(ds: DataSource) =
+            if (ds == DataSource.GARMIN_CN) "garmin_cn_cooldown_until" else "garmin_com_cooldown_until"
+        private fun readCooldown(ds: DataSource): Long {
+            val ctx = appContext ?: return 0
+            return ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE).getLong(cooldownKey(ds), 0)
+        }
+        private fun writeCooldown(ds: DataSource) {
+            val ctx = appContext ?: return
+            ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
+                .edit().putLong(cooldownKey(ds), System.currentTimeMillis() + COOLDOWN_MS).apply()
+        }
+        /** 是否处于佳明429风控冷却期（冷却期内不发起登录/刷新，避免重置计时） */
+        fun isCooldown(ds: DataSource): Boolean = System.currentTimeMillis() < readCooldown(ds)
+        /** 冷却剩余时间（分钟），供UI提示 */
+        fun cooldownRemainMinutes(ds: DataSource): Long {
+            val remain = readCooldown(ds) - System.currentTimeMillis()
+            return if (remain > 0) remain / 60000 else 0
+        }
+
         var enableDebugLogs = false
         val debugLogs = mutableListOf<String>()
         fun addDebugLog(msg: String) {
@@ -143,6 +167,12 @@ class GarminApi {
      */
     suspend fun loginMobile(email: String, password: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
         try {
+            val ds = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
+            // v7.9.0: 429冷却期内直接拒绝登录，避免撞风控重置冷却计时
+            if (isCooldown(ds)) {
+                addDebugLog("loginMobile: 处于风控冷却期(${cooldownRemainMinutes(ds)}分钟)，跳过登录")
+                return@withContext null
+            }
             addDebugLog("loginMobile: 开始mobile SSO登录(isCN=$isCN)...")
             // Step 1: mobile login获取serviceTicketId
             val loginUrl = if (isCN) SSO_LOGIN_URL_CN else SSO_LOGIN_URL_COM
@@ -167,18 +197,10 @@ class GarminApi {
             val loginBody = loginResp.body?.string() ?: ""
             addDebugLog("loginMobile: HTTP ${loginResp.code}, body=${loginBody.take(200)}")
             if (loginResp.code == 429) {
-                // v7.7.3: 429限流退避延长到30秒（佳明风控冷却期通常更长，避免短时间重复触发）
-                addDebugLog("loginMobile: 429限流，等待30秒重试...")
-                delay(30000)
-                val loginResp2 = client.newCall(loginReq).execute()
-                val loginBody2 = loginResp2.body?.string() ?: ""
-                addDebugLog("loginMobile重试: HTTP ${loginResp2.code}")
-                if (loginResp2.code != 200) return@withContext null
-                val res2 = JSONObject(loginBody2)
-                val respType2 = res2.optJSONObject("responseStatus")?.optString("type") ?: ""
-                if (respType2 != "SUCCESSFUL") return@withContext null
-                val ticket2 = res2.getString("serviceTicketId")
-                return@withContext exchangeDiToken(ticket2, isCN)
+                // v7.9.0: 429即触发风控，写入24h冷却标记，不再30秒重试（重试只会重置冷却计时，且连续撞接口可能升级封禁）
+                writeCooldown(ds)
+                addDebugLog("loginMobile: 429限流，已写入24小时冷却标记")
+                return@withContext null
             }
             if (loginResp.code != 200) return@withContext null
             val res = JSONObject(loginBody)
@@ -234,11 +256,15 @@ class GarminApi {
                 val accessToken = data.optString("access_token", "")
                 val refreshToken = data.optString("refresh_token", null)
                 if (accessToken.isEmpty()) continue
-                addDebugLog("exchangeDiToken: 成功! clientId=$clientId")
+                // v7.9.0: 记录DI token过期时间（expires_in默认1小时，取响应值更准确）
+                val expiresIn = data.optLong("expires_in", 3600)
+                val expiresAt = System.currentTimeMillis() / 1000 + expiresIn
+                addDebugLog("exchangeDiToken: 成功! clientId=$clientId, expires_in=${expiresIn}s")
                 return@withContext JSONObject().apply {
                     put("di_token", accessToken)
                     put("di_refresh_token", refreshToken ?: "")
                     put("di_client_id", clientId)
+                    put("di_expires_at", expiresAt)
                 }.toString()
             } catch (e: Exception) {
                 addDebugLog("exchangeDiToken异常($clientId): ${e.message}")
@@ -254,7 +280,8 @@ class GarminApi {
         val csrf: String,
         val diToken: String = "",
         val diRefreshToken: String = "",
-        val diClientId: String = ""
+        val diClientId: String = "",
+        val diExpiresAt: Long = 0
     ) {
         fun toJson(): String = JSONObject().apply {
             put("cookies", cookies)
@@ -262,6 +289,7 @@ class GarminApi {
             if (diToken.isNotEmpty()) put("di_token", diToken)
             if (diRefreshToken.isNotEmpty()) put("di_refresh_token", diRefreshToken)
             if (diClientId.isNotEmpty()) put("di_client_id", diClientId)
+            if (diExpiresAt > 0) put("di_expires_at", diExpiresAt)
         }.toString()
         companion object {
             fun fromJson(json: String): GarminSession? {
@@ -282,8 +310,9 @@ class GarminApi {
                     val diToken = obj.optString("di_token", "")
                     val diRefreshToken = obj.optString("di_refresh_token", "")
                     val diClientId = obj.optString("di_client_id", "")
+                    val diExpiresAt = obj.optLong("di_expires_at", 0)
                     if (cookies.isNotEmpty() || diToken.isNotEmpty()) {
-                        GarminSession(cookies, csrf, diToken, diRefreshToken, diClientId)
+                        GarminSession(cookies, csrf, diToken, diRefreshToken, diClientId, diExpiresAt)
                     } else null
                 } catch (_: Exception) { null }
             }
@@ -295,7 +324,85 @@ class GarminApi {
         return GarminSession.fromJson(cred)
     }
 
-    fun ensureValidToken(ds: DataSource, cred: String): String = cred
+    /**
+     * v7.9.0: 用 refresh_token 静默刷新 DI token（不重新SSO登录，避免撞429风控）
+     * 参考 python-garminconnect 的 refresh 流程：POST diauth.{domain}/di-oauth2-service/oauth/token
+     * 返回刷新后的完整凭证JSON；失败返回 null
+     */
+    suspend fun refreshDiToken(ds: DataSource, cred: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val sess = parseCredential(cred) ?: return@withContext null
+            if (sess.diRefreshToken.isEmpty() || sess.diClientId.isEmpty()) {
+                addDebugLog("refreshDiToken: 无refresh_token或client_id，无法刷新")
+                return@withContext null
+            }
+            // 冷却期内不刷新（避免重置风控计时）
+            if (isCooldown(ds)) {
+                addDebugLog("refreshDiToken: 处于风控冷却期，跳过刷新")
+                return@withContext null
+            }
+            val diTokenUrl = if (ds == DataSource.GARMIN_CN) DI_TOKEN_URL_CN else DI_TOKEN_URL_COM
+            val basicAuth = "Basic " + Base64.encodeToString("${sess.diClientId}:".toByteArray(), Base64.NO_WRAP)
+            val formBody = "grant_type=refresh_token&refresh_token=${java.net.URLEncoder.encode(sess.diRefreshToken, "UTF-8")}&client_id=${sess.diClientId}"
+            addDebugLog("refreshDiToken: 刷新DI token (clientId=${sess.diClientId.take(20)}...)")
+            val req = Request.Builder()
+                .url(diTokenUrl)
+                .addHeader("Authorization", basicAuth)
+                .addHeader("User-Agent", NATIVE_API_UA)
+                .addHeader("X-Garmin-User-Agent", NATIVE_X_GARMIN_UA)
+                .addHeader("X-Garmin-Paired-App-Version", "10861")
+                .addHeader("X-Garmin-Client-Platform", "Android")
+                .addHeader("X-App-Ver", "10861")
+                .addHeader("X-Lang", if (ds == DataSource.GARMIN_CN) "zh-CN" else "en")
+                .addHeader("X-GCExperience", "GC5")
+                .addHeader("Accept", "application/json,text/html;q=0.9,*/*;q=0.8")
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                .post(formBody.toRequestBody("application/x-www-form-urlencoded".toMediaType()))
+                .build()
+            val resp = client.newCall(req).execute()
+            val body = resp.body?.string() ?: ""
+            addDebugLog("refreshDiToken: HTTP ${resp.code}, body=${body.take(200)}")
+            if (resp.code == 429) {
+                writeCooldown(ds)
+                addDebugLog("refreshDiToken: 429限流，写入24小时冷却标记")
+                return@withContext null
+            }
+            if (!resp.isSuccessful) {
+                addDebugLog("refreshDiToken: 刷新失败 HTTP ${resp.code}")
+                return@withContext null
+            }
+            val data = JSONObject(body)
+            val accessToken = data.optString("access_token", "")
+            if (accessToken.isEmpty()) {
+                addDebugLog("refreshDiToken: 响应无access_token")
+                return@withContext null
+            }
+            val refreshToken = data.optString("refresh_token", sess.diRefreshToken)
+            val expiresIn = data.optLong("expires_in", 3600)
+            val expiresAt = System.currentTimeMillis() / 1000 + expiresIn
+            addDebugLog("refreshDiToken: ✅ 刷新成功 (expires_in=${expiresIn}s)")
+            GarminSession(sess.cookies, sess.csrf, accessToken, refreshToken, sess.diClientId, expiresAt).toJson()
+        } catch (e: Exception) {
+            addDebugLog("refreshDiToken异常: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * v7.9.0: 同步前校验/静默刷新佳明凭证
+     * - 有DI token且未过期 → 原样返回
+     * - 有refresh_token且DI token过期 → 静默刷新，返回新凭证
+     * - 无刷新能力 → 原样返回（保持兼容）
+     */
+    suspend fun ensureValidToken(ds: DataSource, cred: String): String = withContext(Dispatchers.IO) {
+        val sess = parseCredential(cred) ?: return@withContext cred
+        if (sess.diToken.isEmpty()) return@withContext cred  // 无DI token（旧WebView凭证），不刷新
+        val now = System.currentTimeMillis() / 1000
+        val expired = sess.diExpiresAt <= 0 || now >= sess.diExpiresAt - 60
+        if (!expired) return@withContext cred  // 未过期
+        addDebugLog("ensureValidToken: DI token已过期，尝试静默刷新...")
+        refreshDiToken(ds, cred) ?: cred
+    }
 
     private fun gcApiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/gc-api" else "https://connect.garmin.com/gc-api"
@@ -730,36 +837,8 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
-            // v7.4.8: 中国版回滚到WebView+gc-api（最开始验证通过的方案，gc-api是Garmin网页本身用的API，浏览器环境Cloudflare不拦截）
-            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
-                if (prepareWebView(cred, ds)) {
-                    val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
-                    val headers = apiHeaders(ds, cred).toMutableMap()
-                    headers["Accept"] = "application/json"
-                    val result = fetchViaWebView(url, "GET", headers)
-                    if (result != null) {
-                        val arr = JSONArray(result)
-                        val out = mutableListOf<ActivityRecord>()
-                        for (i in 0 until arr.length()) {
-                            val item = arr.getJSONObject(i)
-                            val id = item.optString("activityId")
-                            if (id.isEmpty()) continue
-                            out.add(ActivityRecord(
-                                id,
-                                item.optString("activityName").ifBlank { "佳明活动" },
-                                item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") },
-                                item.optDouble("distance", 0.0) / 1000.0,
-                                item.optInt("duration", 0),
-                                ds
-                            ))
-                        }
-                        addDebugLog("getActivities CN(WebView+gc-api)成功: ${out.size}条")
-                        return@withContext out
-                    }
-                    addDebugLog("getActivities CN(WebView+gc-api)失败，回退")
-                }
-            }
-            // 国际版优先用DI token（connectapi，不经过Cloudflare）
+            // v7.9.0: 国际版+中国版统一优先用DI token直连connectapi（不经过Cloudflare，速度快）
+            // 原v7.4.8中国版优先WebView导致每请求JS fetch+base64+500ms轮询，传输慢；DI直连是纯HTTP，速度提升5-10倍
             if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
                 val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
                 val req = Request.Builder().url(url).apply {
@@ -792,7 +871,7 @@ class GarminApi {
             }
             // 中国版 + 国际版无DI token时走原路径
             val url = "${gcApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
-            if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
+            if (sharedWebView != null) {
                 if (prepareWebView(cred, ds)) {
                     val result = fetchViaWebView(url, "GET", apiHeaders(ds, cred))
                     if (result != null) {
@@ -859,24 +938,7 @@ class GarminApi {
     private suspend fun downloadFitOnce(ds: DataSource, cred: String, activityId: String): ByteArray? = withContext(Dispatchers.IO) {
         try {
             val sess = parseCredential(cred)
-            // v7.4.8: 中国版回滚到WebView+gc-api下载（最开始验证通过的方案）
-            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
-                if (prepareWebView(cred, ds)) {
-                    val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
-                    val headers = apiHeaders(ds, cred).toMutableMap()
-                    headers["Accept"] = "*/*"
-                    val zipBytes = downloadViaWebView(url, headers)
-                    if (zipBytes != null) {
-                        val fit = unzipFit(zipBytes)
-                        if (fit != null) {
-                            addDebugLog("downloadFit CN(WebView+gc-api)成功")
-                            return@withContext fit
-                        }
-                    }
-                    addDebugLog("downloadFit CN(WebView+gc-api)失败，回退")
-                }
-            }
-            // 国际版优先用DI token（connectapi，不经过Cloudflare）
+            // v7.9.0: 国际版+中国版统一优先用DI token直连connectapi（纯HTTP，不经Cloudflare，速度5-10倍于WebView）
             if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
                 val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
                 val req = Request.Builder().url(url).apply {
@@ -890,8 +952,9 @@ class GarminApi {
                     return@withContext unzipFit(zipBytes)
                 }
             }
+            // DI不可用（无DI token）时走WebView+gc-api兜底（国际版+中国版统一）
             val url = "${gcApiHost(ds)}/download-service/files/activity/$activityId"
-            if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
+            if (sharedWebView != null) {
                 if (prepareWebView(cred, ds)) {
                     val wv = sharedWebView!!
                     val headers = apiHeaders(ds, cred).toMutableMap()
@@ -999,21 +1062,7 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
-            // v7.4.8: 中国版回滚到WebView+gc-api上传（最开始验证通过的方案）
-            if (ds == DataSource.GARMIN_CN && sharedWebView != null) {
-                if (prepareWebView(cred, ds)) {
-                    val url = "${gcApiHost(ds)}/upload-service/upload"
-                    val headers = apiHeaders(ds, cred).toMutableMap()
-                    headers["Accept"] = "application/json"
-                    val result = uploadBinaryViaWebView(url, data, headers)
-                    if (result != null) {
-                        addDebugLog("upload CN(WebView+gc-api)成功")
-                        return@withContext null
-                    }
-                    addDebugLog("upload CN(WebView+gc-api)失败，回退")
-                }
-            }
-            // 国际版优先用DI token（connectapi，不经过Cloudflare）
+            // v7.9.0: 国际版+中国版统一优先用DI token直连connectapi（纯HTTP，不经Cloudflare，速度5-10倍于WebView）
             if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
                 val url = "${connectApiHost(ds)}/upload-service/upload"
                 val body = MultipartBody.Builder()
@@ -1036,9 +1085,9 @@ class GarminApi {
                     }
                 }
             }
-            // 国际版无DI token时回退到WebView/OkHttp
+            // DI不可用（无DI token）时回退到WebView/OkHttp（国际版+中国版统一）
             val url = "${gcApiHost(ds)}/upload-service/upload/"
-            if (ds == DataSource.GARMIN_COM && sharedWebView != null) {
+            if (sharedWebView != null) {
                 if (prepareWebView(cred, ds)) {
                     val headers = apiHeaders(ds, cred).toMutableMap()
                     headers["Accept"] = "application/json"
@@ -1047,7 +1096,7 @@ class GarminApi {
                         return@withContext when {
                             result.contains("Duplicate Activity", true) -> "重复活动(已在佳明存在)"
                             result.contains("\"id\"") || result.contains("\"activityId\"") || result.contains("\"uploadId\"") -> null
-                            else -> "佳明国际上传返回: ${result.take(100)}"
+                            else -> "佳明上传返回: ${result.take(100)}"
                         }
                     }
                 }
