@@ -7,10 +7,10 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.8.4-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.8.5-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift** 十三平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源）。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift** 十四平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源；Intervals.icu 仅作上传目标）。
 
 > ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.8.4 |
+| 当前版本 | v7.8.5 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -95,6 +95,7 @@
 | 黑鸟单车 | 账号登录 |
 | 捷安特 | 账号登录（纯API直传） |
 | Outbase | 手机号验证码登录 |
+| Intervals.icu | 个人 API Key（官方开放 API 直传） |
 | 佳明国际 | 账号登录 |
 | 佳明中国 | 账号登录 |
 | 高驰中国 | 账号登录 |
@@ -106,7 +107,7 @@
 ### 同步操作
 
 1. **数据来源**：选择从哪个平台下载活动记录（左侧四列网格，单选）
-2. **同步目标**：选择上传到哪些平台（右侧四列网格，Outbase独占一行，**支持多选**，一条运动自动分发到所有勾选目标）
+2. **同步目标**：选择上传到哪些平台（右侧四列网格，Outbase 与 Intervals.icu 并排一行，**支持多选**，一条运动自动分发到所有勾选目标）
 3. **同步数量**：滑动条设置每次同步的活动数量（1~50条）
 4. **跳过数量**：滑动条设置跳过最近的N条活动（用于增量同步）
 5. **开始同步**：点击后自动执行"下载→保存→上传"流程
@@ -388,6 +389,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.8.5 (2026-09-12)
+**已解决**：
+- **新增 Intervals.icu 同步目标**：官方开放 API 直传（个人 API Key，纯 API 无 WebView），支持 FIT 上传与幂等去重；登录页 Outbase 与 Intervals.icu 并排一行
+- 版本号 7.8.5，更新日志同步
 
 ### v7.8.4 (2026-09-12)
 **已解决**：

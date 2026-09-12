@@ -31,7 +31,9 @@ enum class DataSource(val displayName: String, val shortName: String) {
     WAHOO("Wahoo", "wo"),
     // v7.8.4 新增：MyWhoosh / Zwift（仅下载数据源）
     MYWHOOSH("MyWhoosh", "mw"),
-    ZWIFT("Zwift", "zf");
+    ZWIFT("Zwift", "zf"),
+    // v7.8.5 新增：Intervals.icu（仅上传目标）
+    INTERVALS_ICU("Intervals.icu", "icu");
 
     companion object {
         /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
@@ -62,7 +64,8 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     COROS_INT(true, "OSS+fit/import"),
     WAHOO(true, "官方上传API"),
     MYWHOOSH(false, "仅下载"),
-    ZWIFT(false, "仅下载");
+    ZWIFT(false, "仅下载"),
+    INTERVALS_ICU(true, "官方开放API");
 
     companion object {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {
@@ -80,6 +83,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
             DataSource.WAHOO -> WAHOO
             DataSource.MYWHOOSH -> MYWHOOSH
             DataSource.ZWIFT -> ZWIFT
+            DataSource.INTERVALS_ICU -> INTERVALS_ICU
         }
     }
 }

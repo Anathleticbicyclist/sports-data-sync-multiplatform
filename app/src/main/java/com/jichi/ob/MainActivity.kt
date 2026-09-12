@@ -44,6 +44,7 @@ import com.jichi.ob.api.CorosApi
 import com.jichi.ob.api.GarminApi
 import com.jichi.ob.api.GarminOAuthHelper
 import com.jichi.ob.api.GiantApi
+import com.jichi.ob.api.IntervalsIcuApi
 import com.jichi.ob.api.MyWhooshApi
 import com.jichi.ob.api.ZwiftApi
 import com.jichi.ob.api.WahooApi
@@ -103,6 +104,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var garminApi: GarminApi
     private lateinit var mywhooshApi: MyWhooshApi
     private lateinit var zwiftApi: ZwiftApi
+    private lateinit var intervalsIcuApi: IntervalsIcuApi
     private lateinit var corosApi: CorosApi
     private lateinit var wahooApi: WahooApi
     private lateinit var uploadEngine: UploadEngine
@@ -244,6 +246,7 @@ class MainActivity : AppCompatActivity() {
             garminApi = GarminApi()
             mywhooshApi = MyWhooshApi()
             zwiftApi = ZwiftApi()
+            intervalsIcuApi = IntervalsIcuApi()
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
             corosApi = CorosApi()
             wahooApi = WahooApi()
@@ -599,6 +602,51 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** v7.8.5: Intervals.icu 直接登录——粘贴个人 API Key（纯API，仅上传目标） */
+    internal fun openIntervalsIcuLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val keyInput = android.widget.EditText(this).apply {
+            hint = "Intervals.icu API Key"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            setText(prefs.getIntervalsIcuKey() ?: "")
+        }
+        layout.addView(keyInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("登录 Intervals.icu")
+            .setMessage("在 intervals.icu 设置页底部复制你的 API Key 粘贴到这里（仅用于上传同步，Key 仅保存在本机）")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val apiKey = keyInput.text.toString().trim()
+                if (apiKey.isEmpty()) {
+                    appendLog("⚠️ 请输入 Intervals.icu API Key")
+                    return@setPositiveButton
+                }
+                prefs.saveIntervalsIcuKey(apiKey)
+                appendLog("🔐 Intervals.icu 校验 API Key 中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val ok = intervalsIcuApi.validateKey(apiKey)
+                    runOnUiThread {
+                        if (ok) {
+                            prefs.saveUsername(DataSource.INTERVALS_ICU, "Intervals.icu用户")
+                            appendLog("✅ Intervals.icu API Key 有效，登录成功")
+                            fetchUsernameAfterLogin(DataSource.INTERVALS_ICU)
+                        } else {
+                            prefs.clearCredential(DataSource.INTERVALS_ICU)
+                            appendLog("❌ Intervals.icu API Key 无效或网络异常，请重新输入")
+                        }
+                        loginFragment.updateStatus()
+                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     /** v7.2.0: Wahoo配置对话框（保留，用于用户自配置凭证） */
     private fun openWahooConfigDialog() {
         val savedId = prefs.getWahooClientId() ?: ""
@@ -658,7 +706,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
                 DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
                 DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO, DataSource.GIANT,
-                DataSource.MYWHOOSH, DataSource.ZWIFT
+                DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU
             )
             for (ds in platforms) {
                 if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
@@ -680,6 +728,12 @@ class MainActivity : AppCompatActivity() {
                         DataSource.WAHOO -> wahooApi.getUsername(cred)
                         DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
                         DataSource.ZWIFT -> zwiftApi.getUsername(cred)
+                        DataSource.INTERVALS_ICU -> {
+                            // v7.8.5: API Key 有效性即登录态
+                            if (intervalsIcuApi.validateKey(cred))
+                                prefs.getUsername(DataSource.INTERVALS_ICU) ?: "Intervals.icu用户"
+                            else null
+                        }
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "启动登录检测 ${ds.displayName} 异常: ${e.message}")
@@ -789,6 +843,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         DataSource.MYWHOOSH -> null  // MyWhoosh 无 refresh 端点，需重新登录
+        DataSource.INTERVALS_ICU -> null  // Intervals.icu 无 refresh，需重新输入 API Key
         else -> null
     }
 
@@ -811,6 +866,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.WAHOO -> wahooApi.getUsername(cred)
                 DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
                 DataSource.ZWIFT -> zwiftApi.getUsername(cred)
+                DataSource.INTERVALS_ICU -> "Intervals.icu用户"
             }
             if (name != null) {
                 prefs.saveUsername(ds, name)

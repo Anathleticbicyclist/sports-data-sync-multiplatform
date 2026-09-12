@@ -141,6 +141,7 @@ class SyncSettingsFragment : Fragment() {
         "ob" -> requireContext().getColor(R.color.outbase_orange)
         "mw" -> requireContext().getColor(R.color.mywhoosh_orange)
         "zf" -> requireContext().getColor(R.color.zwift_purple)
+        "icu" -> requireContext().getColor(R.color.intervals_icu_orange)
         else -> requireContext().getColor(R.color.primary)
     }
 

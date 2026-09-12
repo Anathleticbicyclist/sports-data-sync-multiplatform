@@ -54,6 +54,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
     private val giantApi = GiantApi()
     private val garminApi = GarminApi()
     private val corosApi = CorosApi()
+    private val intervalsIcuApi = IntervalsIcuApi()
 
     data class UploadResult(
         val success: Boolean,
@@ -116,6 +117,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
             DataSource.COROS_CN -> uploadToCoros(credential, uploadData, record)
             DataSource.COROS_INT -> uploadToCoros(credential, uploadData, record)
             DataSource.WAHOO -> uploadToWahoo(credential, uploadData, record)
+            DataSource.INTERVALS_ICU -> uploadToIntervalsIcu(credential, uploadData, record, extra)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
         }
     }
@@ -498,6 +500,25 @@ class UploadEngine(private val context: android.content.Context? = null) {
         } catch (e: Exception) {
             Log.e(TAG, "Giant upload error", e)
             UploadResult(false, message = "捷安特上传失败: ${e.message}")
+        }
+    }
+
+    // ===== Intervals.icu 上传（v7.8.5：官方API Key直传，幂等去重）=====
+    private suspend fun uploadToIntervalsIcu(
+        apiKey: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
+    ): UploadResult {
+        val start = System.currentTimeMillis()
+        return try {
+            val fileName = FileNameGenerator.generate(DataSource.INTERVALS_ICU, record, "fit")
+            // external_id 用源平台活动ID，重复上传幂等更新不新增
+            val externalId = "${record.source.shortName}${record.id}"
+            val err = intervalsIcuApi.uploadFit(apiKey, fitData, fileName, externalId)
+            Log.d(TAG, "Intervals.icu upload result: ${err ?: "ok"} (${System.currentTimeMillis() - start}ms)")
+            if (err == null) UploadResult(true, message = "Intervals.icu上传成功")
+            else UploadResult(false, message = err)
+        } catch (e: Exception) {
+            Log.e(TAG, "Intervals.icu upload error", e)
+            UploadResult(false, message = "Intervals.icu上传失败: ${e.message}")
         }
     }
 
