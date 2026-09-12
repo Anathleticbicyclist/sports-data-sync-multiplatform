@@ -409,6 +409,12 @@ class MainActivity : AppCompatActivity() {
                     appendLog("⚠️ 请输入邮箱和密码")
                     return@setPositiveButton
                 }
+                // v7.9.1: 佳明中国补风控检查——按账号维度（中国区走OAuth1→OAuth2，主通道GCM_ANDROID_DARK）
+                if (com.jichi.ob.api.GarminApi.isCooldown(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")) {
+                    val remain = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
+                    appendLog("❌ 该账号处于佳明中国风控冷却中，请约${remain}分钟后重试（冷却仅针对该账号，可切换其他账号登录）")
+                    return@setPositiveButton
+                }
                 appendLog("🔐 佳明中国直接登录中...")
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
@@ -421,18 +427,32 @@ class MainActivity : AppCompatActivity() {
                             put("jwt_web", "")
                             put("session", "")
                             put("csrf", "")
+                            // v7.9.1: 记录账号email，便于refresh按账号维度冷却
+                            put("email", email)
                         }.toString()
                         runOnUiThread {
                             prefs.saveGarminCnToken(cred)
                             prefs.saveGarminCnCookie("")
                             appendLog("✅ 佳明中国登录成功(mobile SSO+DI Token)")
+                            com.jichi.ob.util.GarminLoginHint.show(this@MainActivity, "佳明中国")
                             fetchUsernameAfterLogin(DataSource.GARMIN_CN)
                             loginFragment.updateStatus()
                         }
                     } catch (e: Exception) {
-                        runOnUiThread {
-                            appendLog("❌ 佳明中国登录失败: ${e.message}")
-                            loginFragment.updateStatus()
+                        // v7.9.1: 佳明中国429（风控）单独提示 + 写冷却
+                        val msg = e.message ?: ""
+                        if (msg.contains("429") || msg.contains("rate limit") || msg.contains("限流")) {
+                            com.jichi.ob.api.GarminApi.writeCooldownFor(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
+                            val remain = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
+                            runOnUiThread {
+                                appendLog("❌ 佳明中国触发风控限流(429)，已写入冷却。该账号请约${remain}分钟后重试（冷却仅针对该账号）")
+                                loginFragment.updateStatus()
+                            }
+                        } else {
+                            runOnUiThread {
+                                appendLog("❌ 佳明中国登录失败: $msg")
+                                loginFragment.updateStatus()
+                            }
                         }
                     }
                 }

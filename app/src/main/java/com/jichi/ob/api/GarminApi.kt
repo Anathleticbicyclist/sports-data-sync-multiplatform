@@ -69,27 +69,69 @@ class GarminApi {
         private val mainHandler = Handler(Looper.getMainLooper())
 
         // ===== v7.9.0: 佳明 429 风控冷却（24小时）=====
+        // v7.9.1: 冷却按【clientId × email】组合维度——
+        //   ① 换 clientId 登录不被拦（佳明限流实为 clientId×email 组合，换通道即可绕开"每天只能登一次"）
+        //   ② 同一 clientId 下切换账号也不被拦（不同 email 互不影响）
         private const val COOLDOWN_MS = 24 * 60 * 60 * 1000L
         private const val PREFS_COOLDOWN = "garmin_cooldown"
         @Volatile private var appContext: Context? = null
         fun setAppContext(ctx: Context) { appContext = ctx.applicationContext }
-        private fun cooldownKey(ds: DataSource) =
-            if (ds == DataSource.GARMIN_CN) "garmin_cn_cooldown_until" else "garmin_com_cooldown_until"
-        private fun readCooldown(ds: DataSource): Long {
+
+        // 佳明 SSO 登录通道（clientId × serviceUrl）——实测多通道可绕开单通道429限流
+        // 国际版：GCM_IOS_DARK(默认) / GCM_ANDROID_DARK / GCM_ANDROID_LIGHT / GarminConnect 均可登录
+        private data class SsoChannel(val clientId: String, val serviceUrl: String)
+        private val SSO_CHANNELS_COM = arrayOf(
+            SsoChannel("GCM_IOS_DARK", "https://mobile.integration.garmin.com/gcm/ios"),
+            SsoChannel("GCM_ANDROID_DARK", "https://mobile.integration.garmin.com/gcm/android"),
+            SsoChannel("GCM_ANDROID_LIGHT", "https://mobile.integration.garmin.com/gcm/android"),
+            SsoChannel("GarminConnect", "https://connect.garmin.com/modern/")
+        )
+        private val SSO_CHANNELS_CN = arrayOf(
+            SsoChannel("GCM_ANDROID_DARK", "https://mobile.integration.garmin.cn/gcm/android"),
+            SsoChannel("GCM_IOS_DARK", "https://mobile.integration.garmin.cn/gcm/ios")
+        )
+
+        // 冷却key：clientId为空→区域维度；email为空→clientId维度；都有→clientId×email维度
+        private fun cooldownKey(ds: DataSource, email: String?, clientId: String?) =
+            if (!email.isNullOrBlank() && !clientId.isNullOrBlank()) {
+                val tag = if (ds == DataSource.GARMIN_CN) "cn" else "com"
+                "garmin_${tag}_cooldown_${clientId.hashCode()}_${email.hashCode()}"
+            } else if (!clientId.isNullOrBlank()) {
+                val tag = if (ds == DataSource.GARMIN_CN) "cn" else "com"
+                "garmin_${tag}_cooldown_${clientId.hashCode()}"
+            } else {
+                if (ds == DataSource.GARMIN_CN) "garmin_cn_cooldown_until" else "garmin_com_cooldown_until"
+            }
+        private fun readCooldown(ds: DataSource, email: String?, clientId: String?): Long {
             val ctx = appContext ?: return 0
-            return ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE).getLong(cooldownKey(ds), 0)
+            return ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE).getLong(cooldownKey(ds, email, clientId), 0)
         }
-        private fun writeCooldown(ds: DataSource) {
+        private fun writeCooldown(ds: DataSource, email: String?, clientId: String?) {
             val ctx = appContext ?: return
             ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
-                .edit().putLong(cooldownKey(ds), System.currentTimeMillis() + COOLDOWN_MS).apply()
+                .edit().putLong(cooldownKey(ds, email, clientId), System.currentTimeMillis() + COOLDOWN_MS).apply()
         }
-        /** 是否处于佳明429风控冷却期（冷却期内不发起登录/刷新，避免重置计时） */
-        fun isCooldown(ds: DataSource): Boolean = System.currentTimeMillis() < readCooldown(ds)
+        /** 供外部写冷却（MainActivity中国区429路径用），按clientId×email记录 */
+        fun writeCooldownFor(ds: DataSource, email: String, clientId: String? = null) {
+            writeCooldown(ds, email, clientId)
+        }
+        /** 是否处于佳明429风控冷却期；email为空时回退区域维度，clientId为空时回退email维度 */
+        fun isCooldown(ds: DataSource, email: String? = null, clientId: String? = null): Boolean =
+            System.currentTimeMillis() < readCooldown(ds, email, clientId)
+        /** 该账号在该区域【所有通道】是否都处于冷却（供UI提示：全冷却才提示，任一可用即放行） */
+        fun isAllChannelsCooldown(ds: DataSource, email: String?): Boolean {
+            val channels = if (ds == DataSource.GARMIN_CN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
+            return channels.all { isCooldown(ds, email, it.clientId) }
+        }
         /** 冷却剩余时间（分钟），供UI提示 */
-        fun cooldownRemainMinutes(ds: DataSource): Long {
-            val remain = readCooldown(ds) - System.currentTimeMillis()
+        fun cooldownRemainMinutes(ds: DataSource, email: String? = null, clientId: String? = null): Long {
+            val remain = readCooldown(ds, email, clientId) - System.currentTimeMillis()
             return if (remain > 0) remain / 60000 else 0
+        }
+        /** 该账号在该区域任一通道的剩余冷却（用于提示最长冷却） */
+        fun cooldownRemainAnyMinutes(ds: DataSource, email: String?): Long {
+            val channels = if (ds == DataSource.GARMIN_CN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
+            return channels.maxOfOrNull { cooldownRemainMinutes(ds, email, it.clientId) } ?: 0
         }
 
         var enableDebugLogs = false
@@ -163,60 +205,73 @@ class GarminApi {
 
     /**
      * mobile SSO登录 + DI token交换（不经过Cloudflare），支持国际版和中国版
-     * @return JSON凭证字符串 {"di_token":"...","di_refresh_token":"...","di_client_id":"..."}
+     * v7.9.1: 多通道轮换——依次尝试该区域所有SSO clientId，某通道429只冷却该通道并继续下一个，
+     *         绕开"单一clientId被限流导致每天只能登一次"的问题；全部通道冷却才拒绝
+     * @return JSON凭证字符串 {"di_token":"...","di_refresh_token":"...","di_client_id":"...","email":"..."}
      */
     suspend fun loginMobile(email: String, password: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
         try {
             val ds = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
-            // v7.9.0: 429冷却期内直接拒绝登录，避免撞风控重置冷却计时
-            if (isCooldown(ds)) {
-                addDebugLog("loginMobile: 处于风控冷却期(${cooldownRemainMinutes(ds)}分钟)，跳过登录")
-                return@withContext null
-            }
-            addDebugLog("loginMobile: 开始mobile SSO登录(isCN=$isCN)...")
-            // Step 1: mobile login获取serviceTicketId
-            val loginUrl = if (isCN) SSO_LOGIN_URL_CN else SSO_LOGIN_URL_COM
-            val serviceUrl = if (isCN) IOS_SERVICE_URL_CN else IOS_SERVICE_URL_COM
+            val channels = if (isCN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
             val ssoOrigin = if (isCN) "https://sso.garmin.cn" else "https://sso.garmin.com"
             val locale = if (isCN) "zh-CN" else "en-US"
-            val loginJson = JSONObject().apply {
-                put("username", email)
-                put("password", password)
-                put("rememberMe", true)
-                put("captchaToken", "")
-            }
-            val loginReq = Request.Builder()
-                .url("$loginUrl?clientId=$IOS_SSO_CLIENT_ID&locale=$locale&service=${java.net.URLEncoder.encode(serviceUrl, "UTF-8")}")
-                .addHeader("User-Agent", IOS_LOGIN_UA)
-                .addHeader("Accept", "application/json, text/plain, */*")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Origin", ssoOrigin)
-                .post(loginJson.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-            val loginResp = client.newCall(loginReq).execute()
-            val loginBody = loginResp.body?.string() ?: ""
-            addDebugLog("loginMobile: HTTP ${loginResp.code}, body=${loginBody.take(200)}")
-            if (loginResp.code == 429) {
-                // v7.9.0: 429即触发风控，写入24h冷却标记，不再30秒重试（重试只会重置冷却计时，且连续撞接口可能升级封禁）
-                writeCooldown(ds)
-                addDebugLog("loginMobile: 429限流，已写入24小时冷却标记")
+            val loginUrl = if (isCN) SSO_LOGIN_URL_CN else SSO_LOGIN_URL_COM
+            // v7.9.1: 过滤出未被冷却的通道（该账号该通道均未冷却才尝试）
+            val available = channels.filter { !isCooldown(ds, email, it.clientId) }
+            if (available.isEmpty()) {
+                val remain = cooldownRemainAnyMinutes(ds, email)
+                addDebugLog("loginMobile: 账号[$email]所有SSO通道均处于风控冷却期(${remain}分钟)，跳过登录")
                 return@withContext null
             }
-            if (loginResp.code != 200) return@withContext null
-            val res = JSONObject(loginBody)
-            val respType = res.optJSONObject("responseStatus")?.optString("type") ?: ""
-            if (respType == "MFA_REQUIRED") {
-                addDebugLog("loginMobile: 需要MFA验证，暂不支持")
-                return@withContext null
+            addDebugLog("loginMobile: 可用通道 ${available.size}/${channels.size} (账号=$email)")
+
+            // Step 1: 依次尝试各通道 mobile login获取serviceTicketId
+            var lastCode = -1
+            for (ch in available) {
+                addDebugLog("loginMobile: 尝试通道 clientId=${ch.clientId}")
+                val loginJson = JSONObject().apply {
+                    put("username", email)
+                    put("password", password)
+                    put("rememberMe", true)
+                    put("captchaToken", "")
+                }
+                val loginReq = Request.Builder()
+                    .url("$loginUrl?clientId=${ch.clientId}&locale=$locale&service=${java.net.URLEncoder.encode(ch.serviceUrl, "UTF-8")}")
+                    .addHeader("User-Agent", IOS_LOGIN_UA)
+                    .addHeader("Accept", "application/json, text/plain, */*")
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Origin", ssoOrigin)
+                    .post(loginJson.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                val loginResp = client.newCall(loginReq).execute()
+                val loginBody = loginResp.body?.string() ?: ""
+                lastCode = loginResp.code
+                addDebugLog("loginMobile[${ch.clientId}]: HTTP ${loginResp.code}, body=${loginBody.take(150)}")
+                if (loginResp.code == 429) {
+                    // v7.9.1: 429只冷却该clientId×email通道，继续尝试下一通道（换通道可绕开单通道限流）
+                    writeCooldown(ds, email, ch.clientId)
+                    addDebugLog("loginMobile: 通道[${ch.clientId}] 429限流，已写冷却，尝试下一通道")
+                    continue
+                }
+                if (loginResp.code != 200) continue
+                val res = JSONObject(loginBody)
+                val respType = res.optJSONObject("responseStatus")?.optString("type") ?: ""
+                if (respType == "MFA_REQUIRED") {
+                    addDebugLog("loginMobile[${ch.clientId}]: 需要MFA验证，暂不支持")
+                    continue
+                }
+                if (respType != "SUCCESSFUL") {
+                    addDebugLog("loginMobile[${ch.clientId}]: 登录失败 type=$respType")
+                    continue
+                }
+                val ticket = res.getString("serviceTicketId")
+                addDebugLog("loginMobile[${ch.clientId}]: 获取serviceTicket成功")
+                // Step 2: 交换DI token（带该通道的serviceUrl与账号email）
+                val cred = exchangeDiToken(ticket, isCN, email, ch.serviceUrl)
+                if (cred != null) return@withContext cred
             }
-            if (respType != "SUCCESSFUL") {
-                addDebugLog("loginMobile: 登录失败 type=$respType")
-                return@withContext null
-            }
-            val ticket = res.getString("serviceTicketId")
-            addDebugLog("loginMobile: 获取serviceTicket成功")
-            // Step 2: 交换DI token
-            exchangeDiToken(ticket, isCN)
+            addDebugLog("loginMobile: 所有可用通道尝试完毕，登录失败 (lastCode=$lastCode)")
+            null
         } catch (e: Exception) {
             addDebugLog("loginMobile异常: ${e.message}")
             Log.e(TAG, "loginMobile error", e)
@@ -224,10 +279,11 @@ class GarminApi {
         }
     }
 
-    private suspend fun exchangeDiToken(ticket: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
+    private suspend fun exchangeDiToken(ticket: String, isCN: Boolean = false, email: String = "", channelServiceUrl: String = ""): String? = withContext(Dispatchers.IO) {
         val diTokenUrl = if (isCN) DI_TOKEN_URL_CN else DI_TOKEN_URL_COM
         val grantType = if (isCN) DI_GRANT_TYPE_CN else DI_GRANT_TYPE_COM
-        val serviceUrl = if (isCN) IOS_SERVICE_URL_CN else IOS_SERVICE_URL_COM
+        val serviceUrl = if (channelServiceUrl.isNotEmpty()) channelServiceUrl
+                         else if (isCN) IOS_SERVICE_URL_CN else IOS_SERVICE_URL_COM
         for (clientId in DI_CLIENT_IDS) {
             try {
                 addDebugLog("exchangeDiToken: 尝试clientId=$clientId (isCN=$isCN)")
@@ -265,6 +321,7 @@ class GarminApi {
                     put("di_refresh_token", refreshToken ?: "")
                     put("di_client_id", clientId)
                     put("di_expires_at", expiresAt)
+                    if (email.isNotEmpty()) put("email", email)
                 }.toString()
             } catch (e: Exception) {
                 addDebugLog("exchangeDiToken异常($clientId): ${e.message}")
@@ -281,7 +338,8 @@ class GarminApi {
         val diToken: String = "",
         val diRefreshToken: String = "",
         val diClientId: String = "",
-        val diExpiresAt: Long = 0
+        val diExpiresAt: Long = 0,
+        val email: String = ""
     ) {
         fun toJson(): String = JSONObject().apply {
             put("cookies", cookies)
@@ -290,6 +348,7 @@ class GarminApi {
             if (diRefreshToken.isNotEmpty()) put("di_refresh_token", diRefreshToken)
             if (diClientId.isNotEmpty()) put("di_client_id", diClientId)
             if (diExpiresAt > 0) put("di_expires_at", diExpiresAt)
+            if (email.isNotEmpty()) put("email", email)
         }.toString()
         companion object {
             fun fromJson(json: String): GarminSession? {
@@ -311,8 +370,9 @@ class GarminApi {
                     val diRefreshToken = obj.optString("di_refresh_token", "")
                     val diClientId = obj.optString("di_client_id", "")
                     val diExpiresAt = obj.optLong("di_expires_at", 0)
+                    val email = obj.optString("email", "")
                     if (cookies.isNotEmpty() || diToken.isNotEmpty()) {
-                        GarminSession(cookies, csrf, diToken, diRefreshToken, diClientId, diExpiresAt)
+                        GarminSession(cookies, csrf, diToken, diRefreshToken, diClientId, diExpiresAt, email)
                     } else null
                 } catch (_: Exception) { null }
             }
@@ -336,9 +396,12 @@ class GarminApi {
                 addDebugLog("refreshDiToken: 无refresh_token或client_id，无法刷新")
                 return@withContext null
             }
+            // v7.9.1: 从凭证解析账号email，按 clientId×email 维度冷却（换通道不受影响，切账号不受影响）
+            val accountEmail = sess.email
+            val refreshClientId = sess.diClientId
             // 冷却期内不刷新（避免重置风控计时）
-            if (isCooldown(ds)) {
-                addDebugLog("refreshDiToken: 处于风控冷却期，跳过刷新")
+            if (isCooldown(ds, accountEmail, refreshClientId)) {
+                addDebugLog("refreshDiToken: 账号[$accountEmail]通道[$refreshClientId]处于风控冷却期，跳过刷新")
                 return@withContext null
             }
             val diTokenUrl = if (ds == DataSource.GARMIN_CN) DI_TOKEN_URL_CN else DI_TOKEN_URL_COM
@@ -363,8 +426,8 @@ class GarminApi {
             val body = resp.body?.string() ?: ""
             addDebugLog("refreshDiToken: HTTP ${resp.code}, body=${body.take(200)}")
             if (resp.code == 429) {
-                writeCooldown(ds)
-                addDebugLog("refreshDiToken: 429限流，写入24小时冷却标记")
+                writeCooldown(ds, accountEmail, refreshClientId)
+                addDebugLog("refreshDiToken: 429限流，写入24小时冷却标记(账号=$accountEmail, clientId=$refreshClientId)")
                 return@withContext null
             }
             if (!resp.isSuccessful) {
@@ -381,7 +444,7 @@ class GarminApi {
             val expiresIn = data.optLong("expires_in", 3600)
             val expiresAt = System.currentTimeMillis() / 1000 + expiresIn
             addDebugLog("refreshDiToken: ✅ 刷新成功 (expires_in=${expiresIn}s)")
-            GarminSession(sess.cookies, sess.csrf, accessToken, refreshToken, sess.diClientId, expiresAt).toJson()
+            GarminSession(sess.cookies, sess.csrf, accessToken, refreshToken, sess.diClientId, expiresAt, sess.email).toJson()
         } catch (e: Exception) {
             addDebugLog("refreshDiToken异常: ${e.message}")
             null
