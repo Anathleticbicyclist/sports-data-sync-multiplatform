@@ -261,10 +261,11 @@ class LoginWebActivity : AppCompatActivity() {
                     btnLogin.text = "登录中..."
                     val garminApi = com.jichi.ob.api.GarminApi()
                     val dsCooldown = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
-                    if (com.jichi.ob.api.GarminApi.isCooldown(dsCooldown)) {
+                    // v7.9.1: 仅当该账号在该区域【所有SSO通道】都处于冷却时才拦截（任一通道可用即放行，自动换通道登录绕开单通道限流）
+                    if (com.jichi.ob.api.GarminApi.isAllChannelsCooldown(dsCooldown, email)) {
                         btnLogin.isEnabled = true
                         btnLogin.text = "登录"
-                        tvStatus.text = "❌ 佳明风控冷却中，请约${com.jichi.ob.api.GarminApi.cooldownRemainMinutes(dsCooldown)}分钟后再试\n（佳明对频繁登录限流，冷却期内请勿反复点击登录）"
+                        tvStatus.text = "❌ 该账号所有佳明登录通道均处于风控冷却中，请约${com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)}分钟后重试\n（冷却针对该账号，可切换其他账号登录）"
                         return@setOnClickListener
                     }
                     tvStatus.text = "正在通过mobile SSO登录..."
@@ -284,9 +285,10 @@ class LoginWebActivity : AppCompatActivity() {
                                     btnLogin.text = "登录"
                                     // v7.7.3: 区分常见失败原因，给出佳明风控提示（佳明对频繁登录有限流，冷却期约数小时到一天）
                                     // v7.9.0: 若已触发429冷却，优先提示冷却时长（避免用户误以为密码错误反复重试）
-                                    val cooldownMin = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(dsCooldown)
+                                    // v7.9.1: 按该账号任一通道冷却提示（多通道轮换后仍失败，说明全部通道受限或密码错误）
+                                    val cooldownMin = com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)
                                     tvStatus.text = if (cooldownMin > 0) {
-                                        "❌ 登录失败，触发佳明风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
+                                        "❌ 登录失败，该账号所有佳明登录通道均触发风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
                                     } else {
                                         "❌ 登录失败，请检查邮箱密码\n" +
                                             "（开启了两步验证需先关闭）\n" +
