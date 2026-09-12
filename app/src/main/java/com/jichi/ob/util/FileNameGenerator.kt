@@ -22,7 +22,9 @@ object FileNameGenerator {
         DataSource.BLACKBIRD to "Blackbird",
         DataSource.BRYTON to "Bryton",
         DataSource.GIANT to "Giant",
-        DataSource.OUTBASE to "Outbase"
+        DataSource.OUTBASE to "Outbase",
+        DataSource.MYWHOOSH to "MyWhoosh",
+        DataSource.ZWIFT to "Zwift"
     )
 
     /** 常见运动类型关键词（按优先级匹配） */

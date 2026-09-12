@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v7.8.3"
+                    android:text="开发体验版 v7.8.4"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,12 +102,12 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.8.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.8.4)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="新增支持 MyWhoosh、Zwift 数据源，欢迎试用反馈" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.8.3" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，自动同步支持更多数据源" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.8.2" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，修复存储位置跳转兼容性" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.8.1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="优化体验，增加存储位置跳转" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
