@@ -59,7 +59,7 @@
 
 | 问题 | 影响范围 | 说明 | 状态 |
 |------|---------|------|------|
-| **佳明中国速度较慢** | 佳明中国上传/下载 | 佳明中国connectapi服务器处理速度较慢，上传约需30-60秒（服务器端解析FIT、校验重复、入库），获取活动列表约需10-30秒。功能正常，仅速度较慢 | 已知问题，服务器端限制 |
+| **佳明中国速度较慢** | 佳明中国上传/下载 | ~~佳明中国connectapi服务器处理速度较慢，上传约需30-60秒，获取活动列表约需10-30秒~~ **v7.9.0 已优化**：佳明中国改为 DI Token 直连 connectapi 取数/上传（不再走 WebView 慢路径），速度显著提升，与国际区一致 | v7.9.0已优化 |
 | **百锐腾下载不支持** | 百锐腾作为数据源 | 百锐腾官方未开放FIT下载接口，无法从百锐腾下载活动记录 | 平台限制，无法解决 |
 | **迈金上传API直传** | 迈金作为同步目标 | **v7.6.3 已支持**：顽鹿OTM新上传接口API直传（`/api/otm/ride_record/upload/fit`，字段`jilu0`+token鉴权），上传后约15-20秒异步入库，可在顽鹿官网"自行车→OTM→我的活动"查看。**v7.6.7起为纯API直传（移除WebView兜底），后台自动同步也支持迈金** | v7.6.7已优化 |
 | **迈金重启后需重新登录** | 迈金作为数据源/同步目标 | 应用重启后迈金(顽鹿OTM)登录态可能失效。已自动处理：启动时自动登录检测，失效自动用 refresh_token 刷新；仅当刷新失败时才需手动重新登录 | 自动处理 |
@@ -145,7 +145,7 @@ A: 已同步的活动会被自动跳过（同步记忆）。如需重新上传�
 A: 保存在手机存储的 `Download/鸡翅幸哲迈进OB/` 目录，可用文件管理器查看。
 
 **Q: 佳明中国为什么这么慢？**
-A: 佳明中国connectapi服务器处理速度较慢（上传约30-60秒），这是服务器端限制，功能正常。
+A: **v7.9.0 已优化**：此前佳明中国依赖 connectapi 服务器处理（上传约30-60秒），且部分操作走 WebView 慢路径；v7.9.0 改为 **DI Token 直连 connectapi** 取数与上传，速度与国际区一致，无需再等待长时间处理。
 
 **Q: 佳明（中国/国际）经常登录不上，提示失败，过一天又好了？**
 A: 这是**佳明服务端风控**。佳明对同一账号/设备/IP 短时间频繁登录（尤其失败尝试）会临时限流（429）或触发人机验证，冷却期约数小时到一天，冷却后自动恢复。这是佳明服务器机制，本软件无法绕过。请遵循以下建议：
@@ -278,7 +278,7 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 | **捷安特** | ❌ | ✅ | 捷安特骑行，账号密码纯API直传（v7.7.4），暂不支持下载 |
 | **Outbase** | ❌ | ✅ | 仅目标平台，聚合上传 |
 | **佳明国际** | ✅ | ✅ | Garmin Connect国际区，mobile SSO+DI Token |
-| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，mobile SSO+DI Token（参考garth库），connectapi不经过Cloudflare（⚠️速度较慢） |
+| **佳明中国** | ✅ | ✅ | Garmin Connect中国区，mobile SSO+DI Token（参考garth库），v7.9.0起 DI Token 直连 connectapi 取数/上传，速度与国际区一致 |
 | **高驰中国** | ✅ | ✅ | COROS中国区，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS国际/欧洲区，AWS S3上传 |
 | **Wahoo** | ✅ | ✅ | Wahoo官方API，直接登录+base64编码上传+轮询状态 |
@@ -314,7 +314,7 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 
 ## 🏗️ 关键技术
 
-1. **佳明国际/中国 mobile SSO**：参考garth库，通过mobile SSO登录获取serviceTicket → OAuth1 preauthorized → OAuth2 exchange → DI Bearer token，访问connectapi.garmin.com/cn绕过Cloudflare
+1. **佳明国际/中国 mobile SSO**：参考garth库，通过mobile SSO登录获取serviceTicket → OAuth1 preauthorized → OAuth2 exchange → DI Bearer token，访问connectapi.garmin.com/cn绕过Cloudflare；**v7.9.0**：中国区与国际区均改为 **DI Token 直连 connectapi** 取数/上传（中国区不再走 WebView 慢路径，速度与国际区一致），DI token 过期时用 refresh_token 静默续期（避免重复 SSO 触发风控），429 限流写入 24h 冷却
 2. **Wahoo OAuth2直接登录**：OkHttp模拟浏览器完成SAML登录+OAuth2授权全流程，自动识别中文"授权"按钮，获取access_token（含workouts_write上传权限）
 3. **Wahoo上传下载**：官方API，base64编码上传+轮询处理状态，支持FIT文件
 4. **FIT坐标转换（迈金亮点）**：隐藏WebView执行JavaScript解析FIT二进制，迈金GCJ-02→WGS84自动纠偏，上传其他平台坐标无偏移、可匹配赛段

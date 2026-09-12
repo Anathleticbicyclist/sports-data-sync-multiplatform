@@ -176,11 +176,15 @@ class MainActivity : AppCompatActivity() {
                         prefs.saveGarminComToken(token)
                         prefs.saveGarminComCookie("")
                         appendLog("✅ 佳明国际登录成功(mobile SSO+DI Token)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
+                        // v7.9.0: 佳明风控引导——已生成长期刷新凭证，提醒勿频繁重新登录
+                        com.jichi.ob.util.GarminLoginHint.show(this, "佳明国际")
                     } else appendLog("⚠️ 佳明国际登录失败: 未获取到token")
                     LoginWebActivity.TYPE_GARMIN_CN -> if (token.length > 20) {
                         prefs.saveGarminCnToken(token)
                         prefs.saveGarminCnCookie("")
                         appendLog("✅ 佳明中国登录成功(JWT_WEB+session)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
+                        // v7.9.0: 佳明风控引导——已生成长期刷新凭证，提醒勿频繁重新登录
+                        com.jichi.ob.util.GarminLoginHint.show(this, "佳明中国")
                     } else appendLog("⚠️ 佳明中国登录失败: 未获取到token")
                     LoginWebActivity.TYPE_COROS_CN -> if (sid.length > 10) {
                         prefs.saveCorosCnToken(sid)
@@ -247,6 +251,7 @@ class MainActivity : AppCompatActivity() {
             mywhooshApi = MyWhooshApi()
             zwiftApi = ZwiftApi()
             intervalsIcuApi = IntervalsIcuApi()
+            GarminApi.setAppContext(this)  // v7.9.0: 佳明429风控冷却持久化
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
             corosApi = CorosApi()
             wahooApi = WahooApi()
@@ -783,10 +788,13 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新$suffix") }
                 } else {
                     invalid++
-                    if (ds == DataSource.WAHOO || ds == DataSource.COROS_CN || ds == DataSource.COROS_INT) {
+                    if (ds == DataSource.WAHOO || ds == DataSource.COROS_CN || ds == DataSource.COROS_INT
+                        || ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) {
                         // v7.6.8: Wahoo/高驰失效时【绝不】清除凭证！
                         // Wahoo: token/refresh_token有复用价值，清除会导致重登走完整OAuth新建token触发10枚上限
                         // 高驰: 凭证含regionId/cookie，保留后重登时WebView可复用cookie自动登录，无需重新选区域输账号
+                        // v7.9.0: 佳明DI凭证含refresh_token，失效时同样保留——同步前会ensureValidToken静默刷新，
+                        //         若refresh_token也失效（冷却期外），重登时WebView可复用cookie自动登录，无需重输账号密码
                         runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录（已保留令牌，重登时自动复用/刷新，不会新建令牌）") }
                     } else {
                         prefs.clearCredential(ds)
@@ -828,7 +836,16 @@ class MainActivity : AppCompatActivity() {
                 } else null
             }
         }
-        DataSource.GARMIN_COM, DataSource.GARMIN_CN -> null  // 佳明无自动刷新，需重新登录
+        DataSource.GARMIN_COM, DataSource.GARMIN_CN -> {
+            // v7.9.0: 佳明DI token静默刷新（用refresh_token，不重新SSO登录，避免撞429风控）
+            // ensureValidToken内部判断：未过期→原样返回；过期且有refresh_token→刷新返回新凭证
+            try {
+                garminApi.ensureValidToken(ds, cred)
+            } catch (e: Exception) {
+                Log.w(TAG, "佳明刷新异常: ${e.message}")
+                null
+            }
+        }
         DataSource.ZWIFT -> {
             // v7.8.4: Zwift refresh_token 轮换刷新
             val refresh = prefs.getZwiftRefreshToken()

@@ -259,10 +259,17 @@ class LoginWebActivity : AppCompatActivity() {
                     }
                     btnLogin.isEnabled = false
                     btnLogin.text = "登录中..."
+                    val garminApi = com.jichi.ob.api.GarminApi()
+                    val dsCooldown = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
+                    if (com.jichi.ob.api.GarminApi.isCooldown(dsCooldown)) {
+                        btnLogin.isEnabled = true
+                        btnLogin.text = "登录"
+                        tvStatus.text = "❌ 佳明风控冷却中，请约${com.jichi.ob.api.GarminApi.cooldownRemainMinutes(dsCooldown)}分钟后再试\n（佳明对频繁登录限流，冷却期内请勿反复点击登录）"
+                        return@setOnClickListener
+                    }
                     tvStatus.text = "正在通过mobile SSO登录..."
                     GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
-                            val garminApi = com.jichi.ob.api.GarminApi()
                             val cred = garminApi.loginMobile(email, password, isCN)
                             runOnUiThread {
                                 if (cred != null) {
@@ -276,9 +283,15 @@ class LoginWebActivity : AppCompatActivity() {
                                     btnLogin.isEnabled = true
                                     btnLogin.text = "登录"
                                     // v7.7.3: 区分常见失败原因，给出佳明风控提示（佳明对频繁登录有限流，冷却期约数小时到一天）
-                                    tvStatus.text = "❌ 登录失败，请检查邮箱密码\n" +
+                                    // v7.9.0: 若已触发429冷却，优先提示冷却时长（避免用户误以为密码错误反复重试）
+                                    val cooldownMin = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(dsCooldown)
+                                    tvStatus.text = if (cooldownMin > 0) {
+                                        "❌ 登录失败，触发佳明风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
+                                    } else {
+                                        "❌ 登录失败，请检查邮箱密码\n" +
                                             "（开启了两步验证需先关闭）\n" +
                                             "佳明对频繁登录有风控：请保证账号密码一次输对，勿同时登录开发体验版与正式版；多次失败会触发限流，请过几小时或次日再试"
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
