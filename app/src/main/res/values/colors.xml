@@ -34,6 +34,8 @@
     <color name="blackbird_green">#4CAF50</color>   <!-- 黑鸟：绿 -->
     <color name="bryton_red">#00A651</color>        <!-- 百锐腾 Bryton：绿 -->
     <color name="giant_blue">#2B4B9B</color>        <!-- 捷安特 Giant：深蓝 -->
+    <color name="mywhoosh_orange">#E8590C</color>   <!-- MyWhoosh：橙 -->
+    <color name="zwift_purple">#6A2FA0</color>      <!-- Zwift：紫 -->
 
     <!-- 基础色 -->
     <color name="white">#FFFFFF</color>

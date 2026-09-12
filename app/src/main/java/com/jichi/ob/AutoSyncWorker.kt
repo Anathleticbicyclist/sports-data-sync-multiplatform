@@ -65,6 +65,8 @@ class AutoSyncWorker(
     private val garminApi = GarminApi()
     private val corosApi = CorosApi()
     private val wahooApi = WahooApi()
+    private val mywhooshApi = MyWhooshApi()
+    private val zwiftApi = ZwiftApi()
     private val uploadEngine = UploadEngine(applicationContext)
 
     override suspend fun doWork(): Result {
@@ -199,6 +201,8 @@ class AutoSyncWorker(
                     DataSource.COROS_CN -> corosApi.getActivities(sourceCred, 0, 8)
                     DataSource.COROS_INT -> corosApi.getActivities(sourceCred, 0, 8)
                     DataSource.WAHOO -> getWahooActivitiesWithRefresh(sourceCred, 0, 8)
+                    DataSource.MYWHOOSH -> mywhooshApi.getActivities(sourceCred, prefs.getMywhooshWhooshId() ?: "", 0, 8)
+                    DataSource.ZWIFT -> getZwiftActivitiesWithRefresh(sourceCred, prefs.getZwiftPlayerId(), prefs.getZwiftRefreshToken(), 0, 8)
                     else -> emptyList()
                 }
             } catch (e: Exception) {
@@ -345,7 +349,30 @@ class AutoSyncWorker(
                 }
                 wahooApi.downloadFit(token, record.id)
             }
+            DataSource.MYWHOOSH -> {
+                val whooshId = prefs.getMywhooshWhooshId() ?: ""
+                mywhooshApi.downloadFit(cred, whooshId, record.extra ?: "")
+            }
+            DataSource.ZWIFT -> zwiftApi.downloadFit(record.extra ?: "")
             else -> null
+        }
+    }
+
+    /** v7.8.4: Zwift作为自动同步源——401时refresh_token刷新后重试 */
+    private suspend fun getZwiftActivitiesWithRefresh(token: String, playerId: String?, refresh: String?, skip: Int, limit: Int): List<ActivityRecord> {
+        try {
+            return zwiftApi.getActivities(token, playerId, skip, limit)
+        } catch (e: Exception) {
+            if (e.message?.contains("401") == true && !refresh.isNullOrEmpty()) {
+                val fresh = zwiftApi.refreshToken(refresh)
+                if (fresh != null) {
+                    prefs.saveZwiftToken(fresh.first)
+                    prefs.saveZwiftRefreshToken(fresh.second)
+                    plog("🔄 Zwift源 token已自动刷新")
+                    return zwiftApi.getActivities(fresh.first, prefs.getZwiftPlayerId(), skip, limit)
+                }
+            }
+            throw e
         }
     }
 

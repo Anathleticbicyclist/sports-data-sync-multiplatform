@@ -7,10 +7,10 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.8.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.8.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo** 十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中）。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift** 十三平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源）。
 
 > ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.8.3 |
+| 当前版本 | v7.8.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -388,6 +388,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.8.4 (2026-09-12)
+**已解决**：
+- **新增 MyWhoosh / Zwift 数据源**：两平台可作为下载数据源（账号密码 API 登录，不依赖 WebView），支持手动同步与后台自动同步，欢迎试用反馈
+- 版本号 7.8.4，更新日志同步
 
 ### v7.8.3 (2026-09-12)
 **已解决**：

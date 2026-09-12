@@ -36,6 +36,8 @@
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/srcCscn" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="cscn" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/srcCs" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="cs" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/srcWahoo" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="wo" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcMw" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="mw" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcZf" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="zf" />
                 </GridLayout>
                 
                 <TextView android:id="@+id/tvTargetHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="同步目标（可多选）:" android:textSize="13sp" android:textColor="@color/text_primary" />

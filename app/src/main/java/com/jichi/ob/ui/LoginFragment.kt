@@ -51,6 +51,8 @@ class LoginFragment : Fragment() {
         statusViews[DataSource.COROS_CN] = view.findViewById(R.id.tvCorosCnStatus)
         statusViews[DataSource.COROS_INT] = view.findViewById(R.id.tvCorosIntStatus)
         statusViews[DataSource.WAHOO] = view.findViewById(R.id.tvWahooStatus)
+        statusViews[DataSource.MYWHOOSH] = view.findViewById(R.id.tvMywhooshStatus)
+        statusViews[DataSource.ZWIFT] = view.findViewById(R.id.tvZwiftStatus)
 
         btnViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogin)
         btnViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogin)
@@ -63,6 +65,8 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.COROS_CN] = view.findViewById(R.id.btnCorosCnLogin)
         btnViews[DataSource.COROS_INT] = view.findViewById(R.id.btnCorosIntLogin)
         btnViews[DataSource.WAHOO] = view.findViewById(R.id.btnWahooLogin)
+        btnViews[DataSource.MYWHOOSH] = view.findViewById(R.id.btnMywhooshLogin)
+        btnViews[DataSource.ZWIFT] = view.findViewById(R.id.btnZwiftLogin)
 
         // v7.6.7: 注销按钮（每个卡片头部右上角，仅登录后显示）
         logoutViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogout)
@@ -76,6 +80,8 @@ class LoginFragment : Fragment() {
         logoutViews[DataSource.COROS_CN] = view.findViewById(R.id.btnCorosCnLogout)
         logoutViews[DataSource.COROS_INT] = view.findViewById(R.id.btnCorosIntLogout)
         logoutViews[DataSource.WAHOO] = view.findViewById(R.id.btnWahooLogout)
+        logoutViews[DataSource.MYWHOOSH] = view.findViewById(R.id.btnMywhooshLogout)
+        logoutViews[DataSource.ZWIFT] = view.findViewById(R.id.btnZwiftLogout)
 
         // 注销点击 → 确认后清除凭证并刷新
         for ((ds, tv) in logoutViews) {
@@ -112,6 +118,8 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.COROS_CN]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_COROS_CN, CorosApi.LOGIN_URL_CN) }
         btnViews[DataSource.COROS_INT]?.setOnClickListener { (activity as? MainActivity)?.openLogin(LoginWebActivity.TYPE_COROS_INT, CorosApi.LOGIN_URL_INT) }
         btnViews[DataSource.WAHOO]?.setOnClickListener { (activity as? MainActivity)?.openWahooLogin() }
+        btnViews[DataSource.MYWHOOSH]?.setOnClickListener { (activity as? MainActivity)?.openMywhooshLogin() }
+        btnViews[DataSource.ZWIFT]?.setOnClickListener { (activity as? MainActivity)?.openZwiftLogin() }
 
         // v7.6.7: fragment可见时刷新登录状态（登录返回/注销后自动同步）
         lifecycle.addObserver(object : androidx.lifecycle.LifecycleEventObserver {
@@ -156,5 +164,7 @@ class LoginFragment : Fragment() {
         DataSource.COROS_CN -> LoginWebActivity.TYPE_COROS_CN
         DataSource.COROS_INT -> LoginWebActivity.TYPE_COROS_INT
         DataSource.WAHOO -> LoginWebActivity.TYPE_WAHOO
+        DataSource.MYWHOOSH -> "mywhoosh"  // 纯API登录，无WebView登录态，注销清理直接跳过
+        DataSource.ZWIFT -> "zwift"        // 纯API登录，无WebView登录态，注销清理直接跳过
     }
 }
