@@ -84,13 +84,15 @@ class UploadEngine(private val context: android.content.Context? = null) {
         //  B) 国产平台直接吃GPX、按GPX时钟数字显示：iGPSPORT/行者/迈金 → 需北京时间(UTC+8)
         val isGpxFile = !com.jichi.ob.GpxToFitConverter.isFit(fitData)
 
-        // ===== v7.9.3: Keep 上传统一走 FIT（含 iGPSPORT）=====
-        // Keep 下载的 GPX 已内置 GCJ-02→WGS-84 坐标转换，且在 <name> 带类型标记（running/cycling/hiking）。
-        // 这里对 Keep 来源的 GPX 统一先用自研转换器转成带正确 sport 的 FIT，后续各平台（含 iGPSPORT）
-        // 上传拿到的就是类型正确、坐标正确的 FIT——彻底解决"跑步被算成骑行""坐标偏移500米"。
-        // 例外：迈金（走迈金坐标转换引擎 + 官方直传）、黑鸟（对自研 FIT 兼容性存疑，保留官方 gpx2fit 逻辑）。
+        // ===== v7.9.4: Keep 上传策略修正 =====
+        // 用户反馈 iGPSPORT 对自研 FIT 解析严格（缺 header → id=null 不落库）。
+        // ① GpxToFitConverter 已修复数据消息缺 header 缺陷（v7.9.4），自研 FIT 已标准合法；
+        // ② 但用户明确要求 Keep 直传 GPX 保证运动类型可解析：iGPSPORT 支持 GPX 直传（.gpx 扩展名），
+        //    且 Keep GPX 已带 <type> 运动类型标记 + GCJ→WGS-84 坐标转换，类型/坐标双正确。
+        // 结论：iGPSPORT 恢复直传 GPX；Outbase 只收 FIT（CDN 硬编码 .fit）继续走修复后自研 FIT（sport 正确）；
+        //    迈金（官方直传+坐标引擎）、黑鸟（自研FIT兼容存疑，保留官方gpx2fit）仍为例外。
         val isPreConverted = isGpxFile && record.source == DataSource.KEEP &&
-            target != DataSource.MAGENE && target != DataSource.BLACKBIRD
+            target != DataSource.MAGENE && target != DataSource.BLACKBIRD && target != DataSource.IGPSPORT
         // 预转换后统一使用的数据（Keep 场景下为 FIT，其余为原 GPX）
         val workingData: ByteArray = if (isPreConverted) {
             try {
@@ -185,6 +187,9 @@ class UploadEngine(private val context: android.content.Context? = null) {
             }
             val fileName = FileNameGenerator.generate(DataSource.OUTBASE, record, "fit")
             val (msg, skipped, _) = outbaseApi.upload(sessionId, null, uploadData, fileName)
+            // v7.9.4: Outbase 服务端处理为异步（"待处理"），大批量秒传易触发服务端限流导致"处理失败"。
+            // 每条成功后节流 400ms，摊平上传频率，降低风控概率（271条≈2分钟，可接受）。
+            kotlinx.coroutines.delay(400)
             UploadResult(!skipped && msg.contains("成功"), message = msg, skipped = skipped)
         } catch (e: Exception) {
             Log.e(TAG, "Outbase upload error", e)

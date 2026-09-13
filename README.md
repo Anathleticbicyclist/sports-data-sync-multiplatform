@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.9.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.9.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep** 十五平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.9.3 |
+| 当前版本 | v7.9.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -395,6 +395,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.9.4 (2026-09-13)
+**已解决**：
+- **修复自研 FIT 结构缺陷（缺 header）**：GpxToFitConverter 所有数据消息缺失 1 字节 header，导致 iGPSPORT 等严格解析器拒收（`invalid local message type 4`，上传后不落库 id=null）。v7.9.4 补全全部数据消息 header（file_id/event/device/session/lap/activity/record），自研 FIT 已标准合法，fitparse 严格解析通过
+- **Keep → iGPSPORT 改回直传 GPX**：iGPSPORT 支持 GPX 直传（.gpx 扩展名），且 GPX 已带标准 `<type>` 运动类型标记（running/cycling/hiking）+ GCJ→WGS-84 坐标转换，类型/坐标双正确，彻底解决"Keep 跑步被算成骑行""坐标偏移500米"且不落库的问题
+- **Outbase 上传节流**：Outbase 服务端处理为异步（"待处理"），大批量秒传易触发服务端限流导致"处理失败"。每条上传成功后增加 400ms 节流，摊平频率降低风控概率
+- **Keep GPX 增加标准 `<type>` 元素**：在 `<name>` 标记之外补充 GPX 1.1 标准运动类型字段，供直传 GPX 平台正确识别运动类型
 
 ### v7.9.3 (2026-09-13)
 **已解决**：
