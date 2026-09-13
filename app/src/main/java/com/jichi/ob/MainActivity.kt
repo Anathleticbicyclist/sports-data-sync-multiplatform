@@ -51,6 +51,8 @@ import com.jichi.ob.api.KeepApi
 import com.jichi.ob.api.WahooApi
 import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
+import com.jichi.ob.api.CodoonApi
+import com.jichi.ob.api.ZeppApi
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.OutbaseApi
 import com.jichi.ob.api.UploadEngine
@@ -106,6 +108,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mywhooshApi: MyWhooshApi
     private lateinit var zwiftApi: ZwiftApi
     private lateinit var keepApi: KeepApi
+    private lateinit var codoonApi: CodoonApi
+    private lateinit var zeppApi: ZeppApi
     private lateinit var intervalsIcuApi: IntervalsIcuApi
     private lateinit var corosApi: CorosApi
     private lateinit var wahooApi: WahooApi
@@ -253,6 +257,11 @@ class MainActivity : AppCompatActivity() {
             mywhooshApi = MyWhooshApi()
             zwiftApi = ZwiftApi()
             keepApi = KeepApi()
+            codoonApi = CodoonApi()
+            zeppApi = ZeppApi()
+            // v7.9.5: 同步咕咚/Zepp 坐标转换开关（默认关=WGS-84；如需开启在设置页预置）
+            CodoonApi.gcjConvertEnabled = prefs.isCodoonGcjConvertEnabled()
+            ZeppApi.gcjConvertEnabled = prefs.isZeppGcjConvertEnabled()
             intervalsIcuApi = IntervalsIcuApi()
             GarminApi.setAppContext(this)  // v7.9.0: 佳明429风控冷却持久化
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
@@ -681,6 +690,110 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** v7.9.5: 咕咚直接登录——手机号+密码（纯API，仅下载源） */
+    internal fun openCodoonLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val accountInput = android.widget.EditText(this).apply {
+            hint = "咕咚 手机号"
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+            setText(prefs.getCodoonAccount() ?: "")
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "咕咚 密码"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(accountInput)
+        layout.addView(passwordInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("登录 咕咚")
+            .setMessage("手机号密码直接登录，咕咚作为数据源（下载运动记录）；咕咚官方无开放上传API，暂不支持上传到咕咚")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val account = accountInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (account.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入咕咚手机号和密码")
+                    return@setPositiveButton
+                }
+                prefs.saveCodoonAccount(account)
+                appendLog("🔐 咕咚直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = codoonApi.login(account, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveCodoonToken(result.token)
+                            prefs.saveCodoonUserId(result.userId)
+                            appendLog("✅ 咕咚登录成功")
+                            fetchUsernameAfterLogin(DataSource.CODOON)
+                        } else {
+                            appendLog("❌ 咕咚登录失败：账号或密码错误，请重新输入")
+                        }
+                        loginFragment.updateStatus()
+                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** v7.9.5: Zepp（华米）直接登录——邮箱/手机号+密码（纯API，仅下载源） */
+    internal fun openZeppLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val accountInput = android.widget.EditText(this).apply {
+            hint = "Zepp 邮箱或手机号"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setText(prefs.getZeppAccount() ?: "")
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "Zepp 密码"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(accountInput)
+        layout.addView(passwordInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("登录 Zepp")
+            .setMessage("使用 Zepp/小米运动 App 账号邮箱或手机号密码直接登录，Zepp 作为数据源（下载运动记录）；华米无官方开放上传API，暂不支持上传到 Zepp")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val account = accountInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (account.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入 Zepp 邮箱/手机号和密码")
+                    return@setPositiveButton
+                }
+                prefs.saveZeppAccount(account)
+                appendLog("🔐 Zepp直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = zeppApi.login(account, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveZeppToken(result.appToken)
+                            prefs.saveZeppUserId(result.userId)
+                            appendLog("✅ Zepp登录成功")
+                            fetchUsernameAfterLogin(DataSource.ZEPP)
+                        } else {
+                            appendLog("❌ Zepp登录失败：账号或密码错误，请重新输入")
+                        }
+                        loginFragment.updateStatus()
+                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     /** v7.8.5: Intervals.icu 直接登录——粘贴个人 API Key（纯API，仅上传目标） */
     internal fun openIntervalsIcuLogin() {
         val layout = android.widget.LinearLayout(this).apply {
@@ -785,7 +898,8 @@ class MainActivity : AppCompatActivity() {
                 DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
                 DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
                 DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO, DataSource.GIANT,
-                DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU, DataSource.KEEP
+                DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU, DataSource.KEEP,
+                DataSource.CODOON, DataSource.ZEPP
             )
             for (ds in platforms) {
                 if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
@@ -808,6 +922,8 @@ class MainActivity : AppCompatActivity() {
                         DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
                         DataSource.ZWIFT -> zwiftApi.getUsername(cred)
                         DataSource.KEEP -> keepApi.getUsername(cred)
+                        DataSource.CODOON -> codoonApi.getUsername(cred)
+                        DataSource.ZEPP -> zeppApi.getUsername(cred)
                         DataSource.INTERVALS_ICU -> {
                             // v7.8.5: API Key 有效性即登录态
                             if (intervalsIcuApi.validateKey(cred))
@@ -937,6 +1053,8 @@ class MainActivity : AppCompatActivity() {
         DataSource.MYWHOOSH -> null  // MyWhoosh 无 refresh 端点，需重新登录
         DataSource.INTERVALS_ICU -> null  // Intervals.icu 无 refresh，需重新输入 API Key
         DataSource.KEEP -> null  // Keep 无 refresh 端点，需重新登录
+        DataSource.CODOON -> null  // 咕咚无 refresh 端点，需重新登录
+        DataSource.ZEPP -> null  // Zepp 无 refresh 端点，需重新登录
         else -> null
     }
 
@@ -961,6 +1079,8 @@ class MainActivity : AppCompatActivity() {
                 DataSource.ZWIFT -> zwiftApi.getUsername(cred)
                 DataSource.INTERVALS_ICU -> "Intervals.icu用户"
                 DataSource.KEEP -> keepApi.getUsername(cred)
+                DataSource.CODOON -> codoonApi.getUsername(cred)
+                DataSource.ZEPP -> zeppApi.getUsername(cred)
             }
             if (name != null) {
                 prefs.saveUsername(ds, name)
@@ -1374,6 +1494,8 @@ class MainActivity : AppCompatActivity() {
                 getZwiftActivitiesWithRefresh(cred, prefs.getZwiftPlayerId(), prefs.getZwiftRefreshToken(), skip, limit)
             }
             DataSource.KEEP -> keepApi.getActivities(cred, skip, limit)
+            DataSource.CODOON -> codoonApi.getActivities(cred, prefs.getCodoonUserId() ?: "", skip, limit)
+            DataSource.ZEPP -> zeppApi.getActivities(cred, prefs.getZeppUserId() ?: "", skip, limit)
             else -> emptyList()
         }
     }
@@ -1476,6 +1598,14 @@ class MainActivity : AppCompatActivity() {
             DataSource.KEEP -> {
                 // v7.9.2: Keep 下载轨迹→GPX（extra=run_id），上传引擎自动转 FIT
                 keepApi.downloadGpx(cred, record.extra ?: record.id)
+            }
+            DataSource.CODOON -> {
+                // v7.9.5: 咕咚下载轨迹→GPX（extra=route_id）
+                codoonApi.downloadGpx(cred, record.extra ?: record.id)
+            }
+            DataSource.ZEPP -> {
+                // v7.9.5: Zepp 下载轨迹→GPX（id=trackid，extra=source）
+                zeppApi.downloadGpx(cred, record.id, record.extra ?: "")
             }
             else -> null
         }
