@@ -75,6 +75,14 @@ object FitGcj02Fixer {
         }
     }
 
+    /** GCJ-02 → WGS-84 公开转换（供 Keep 等 GCJ-02 数据源在构建 GPX 时转换坐标）。
+     *  非中国大陆坐标直接返回原值。返回 Pair(lat, lon)。 */
+    fun gcj02ToWgs84(lat: Double, lon: Double): Pair<Double, Double> {
+        if (lat.isNaN() || lon.isNaN()) return lat to lon
+        if (!isInChina(lat, lon)) return lat to lon
+        return gcj02ToWgs84Exact(lat, lon)
+    }
+
     private class FieldDef(val number: Int, val size: Int, val baseType: Int, val offset: Int)
     private class Definition(val littleEndian: Boolean, val fields: List<FieldDef>, val size: Int)
 
