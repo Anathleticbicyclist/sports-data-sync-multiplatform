@@ -198,6 +198,13 @@ class PrefsManager(context: Context) {
     fun getZwiftAccount(): String? = prefs.getString("zwift_account", null)
     fun isZwiftLoggedIn(): Boolean = !getZwiftToken().isNullOrEmpty()
 
+    // ===== Keep: 纯API token（v7.9.2 新增，仅下载源）=====
+    fun saveKeepToken(t: String) { prefs.edit().putString("keep_token", t).apply() }
+    fun getKeepToken(): String? = prefs.getString("keep_token", null)
+    fun saveKeepAccount(a: String) { prefs.edit().putString("keep_account", a).apply() }
+    fun getKeepAccount(): String? = prefs.getString("keep_account", null)
+    fun isKeepLoggedIn(): Boolean = !getKeepToken().isNullOrEmpty()
+
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
@@ -215,6 +222,7 @@ class PrefsManager(context: Context) {
         DataSource.MYWHOOSH -> getMywhooshToken()
         DataSource.ZWIFT -> getZwiftToken()
         DataSource.INTERVALS_ICU -> getIntervalsIcuKey()
+        DataSource.KEEP -> getKeepToken()
     }
     /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
     fun saveCredential(ds: DataSource, cred: String) {
@@ -234,6 +242,7 @@ class PrefsManager(context: Context) {
             DataSource.MYWHOOSH -> saveMywhooshToken(cred)
             DataSource.ZWIFT -> saveZwiftToken(cred)
             DataSource.INTERVALS_ICU -> saveIntervalsIcuKey(cred)
+            DataSource.KEEP -> saveKeepToken(cred)
         }
     }
     /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
@@ -255,6 +264,7 @@ class PrefsManager(context: Context) {
             DataSource.MYWHOOSH -> { e.remove("mywhoosh_token"); e.remove("mywhoosh_whoosh_id"); e.remove("mywhoosh_refresh") }
             DataSource.ZWIFT -> { e.remove("zwift_token"); e.remove("zwift_refresh"); e.remove("zwift_player_id") }
             DataSource.INTERVALS_ICU -> e.remove("intervals_icu_key")
+            DataSource.KEEP -> e.remove("keep_token")
         }
         e.remove("username_${ds.shortName}")
         e.apply()
@@ -275,6 +285,7 @@ class PrefsManager(context: Context) {
         DataSource.MYWHOOSH -> isMywhooshLoggedIn()
         DataSource.ZWIFT -> isZwiftLoggedIn()
         DataSource.INTERVALS_ICU -> isIntervalsIcuLoggedIn()
+        DataSource.KEEP -> isKeepLoggedIn()
     }
 
     // ===== 用户名存储 =====

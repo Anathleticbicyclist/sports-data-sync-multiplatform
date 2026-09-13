@@ -83,17 +83,39 @@ class UploadEngine(private val context: android.content.Context? = null) {
         //  A) 走官方gpx2fit(Date.parse带Z按UTC)：Outbase/黑鸟 → 保持UTC
         //  B) 国产平台直接吃GPX、按GPX时钟数字显示：iGPSPORT/行者/迈金 → 需北京时间(UTC+8)
         val isGpxFile = !com.jichi.ob.GpxToFitConverter.isFit(fitData)
-        // 第一步 源归一化为UTC：行者源是"北京时间标Z"，减8；黑鸟等源本就是UTC
-        val utcData = if (isGpxFile && record.source == DataSource.XINGZHE) {
+
+        // ===== v7.9.2: Keep 运动类型统一预转换（解决跑步/徒步被算成骑行）=====
+        // Keep 下载的 GPX 在 <name> 里带类型标记（running/cycling/hiking），官方 gpx2fit.js 无法识别
+        // 会默认骑行。这里对 Keep 来源的 GPX 统一先用自研转换器转成带正确 sport 的 FIT，
+        // 后续各平台上传拿到的就是类型正确的 FIT；若目标平台不转 FIT（如 iGPSPORT 直传 GPX）则不预转。
+        // 注：黑鸟对自研 FIT 兼容性存疑，且黑鸟有官方 gpx2fit 优先逻辑，这里对黑鸟不预转（保持原逻辑）。
+        val isPreConverted = isGpxFile && record.source == DataSource.KEEP &&
+            target != DataSource.IGPSPORT && target != DataSource.MAGENE && target != DataSource.BLACKBIRD
+        // 预转换后统一使用的数据（Keep 场景下为 FIT，其余为原 GPX）
+        val workingData: ByteArray = if (isPreConverted) {
             try {
-                val f = com.jichi.ob.util.GpxTimeFixer.fixGpxTime(fitData, 8)
-                Log.d(TAG, "源归一化: 行者GPX减8→UTC，目标=${target.displayName}"); f
-            } catch (e: Exception) { Log.w(TAG, "行者源归一化失败: ${e.message}"); fitData }
+                val f = com.jichi.ob.GpxToFitConverter.convert(fitData)
+                Log.d(TAG, "Keep GPX预转FIT(自动识别sport): ${fitData.size} -> ${f.size} bytes (目标=${target.displayName})")
+                f
+            } catch (e: Exception) {
+                Log.w(TAG, "Keep GPX预转FIT失败: ${e.message}")
+                fitData
+            }
         } else fitData
+        // 预转换后已为 FIT，不再参与 GPX 时区适配
+        val isGpxForTimeFix = if (isPreConverted) false else isGpxFile
+
+        // 第一步 源归一化为UTC：行者源是"北京时间标Z"，减8；黑鸟等源本就是UTC
+        val utcData = if (isGpxForTimeFix && record.source == DataSource.XINGZHE) {
+            try {
+                val f = com.jichi.ob.util.GpxTimeFixer.fixGpxTime(workingData, 8)
+                Log.d(TAG, "源归一化: 行者GPX减8→UTC，目标=${target.displayName}"); f
+            } catch (e: Exception) { Log.w(TAG, "行者源归一化失败: ${e.message}"); workingData }
+        } else workingData
         // 第二步 按目标时区：B类国产直传GPX平台 UTC+8，A类gpx2fit平台保持UTC
         // v6.4.1: 行者从localTimeTargets移除——行者上传强制GPX→FIT, FIT是标准UTC时间戳, 不需+8
         val localTimeTargets = setOf(DataSource.IGPSPORT, DataSource.MAGENE)
-        val finalData = if (isGpxFile && localTimeTargets.contains(target)) {
+        val finalData = if (isGpxForTimeFix && localTimeTargets.contains(target)) {
             try {
                 val f = com.jichi.ob.util.GpxTimeFixer.fixGpxTime(utcData, -8) // -8=加8→北京时间
                 Log.d(TAG, "目标适配: ${record.source.displayName}→${target.displayName} GPX+8(北京显示)"); f
@@ -128,8 +150,19 @@ class UploadEngine(private val context: android.content.Context? = null) {
     ): UploadResult {
         return try {
             // v6.3.5/v6.3.13: Outbase上传——GPX用官方gpx2fit转FIT（与正式版一致，能正确处理时间和心率）
+            // v7.9.2: Keep运动类型修复——官方gpx2fit.js 无法识别 Keep 运动类型（默认骑行），
+            //         Keep 来源直接走自研转换器（自动从 GPX <name> 读 running/cycling/hiking 标记写对 sport）
             val uploadData = if (com.jichi.ob.GpxToFitConverter.isFit(fitData)) {
                 fitData
+            } else if (record.source == DataSource.KEEP) {
+                try {
+                    val f = com.jichi.ob.GpxToFitConverter.convert(fitData)
+                    Log.d(TAG, "Outbase Keep->FIT(自研, 自动识别sport): ${fitData.size} -> ${f.size} bytes")
+                    f
+                } catch (e: Exception) {
+                    Log.w(TAG, "Outbase Keep自研转换失败: ${e.message}")
+                    fitData
+                }
             } else {
                 val officialFit = try {
                     if (outbaseBridge != null) {
