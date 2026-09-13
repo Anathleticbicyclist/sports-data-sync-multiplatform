@@ -252,6 +252,20 @@ class KeepApi {
                 }
             }
 
+            // v7.9.3: Keep 轨迹为 GCJ-02（火星坐标），上传前统一转 WGS-84（否则目标平台偏移约500米）。
+            // 复用迈金坐标转换引擎算法（FitGcj02Fixer.gcj02ToWgs84），含轨迹点与 region 兜底坐标。
+            if (points.isNotEmpty()) {
+                val converted = points.map { p ->
+                    val (lat, lon) = com.jichi.ob.util.FitGcj02Fixer.gcj02ToWgs84(p[0], p[1])
+                    doubleArrayOf(lat, lon, p[2], p[3])
+                }
+                val sample = converted.firstOrNull()
+                if (sample != null) {
+                    Log.i(TAG, "Keep GCJ-02→WGS-84 坐标转换: ${converted.size}点, 首点(${sample[0]},${sample[1]})")
+                }
+                points = converted
+            }
+
             // 4. 构建 GPX（无点且无坐标时也生成合法空 GPX，交由目标平台决定是否接收）
             val gpx = buildGpx(points, startTime, sportType)
             // 记录兜底标记（供日志提示，不影响上传）
