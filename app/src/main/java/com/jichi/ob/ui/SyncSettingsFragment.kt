@@ -143,6 +143,8 @@ class SyncSettingsFragment : Fragment() {
         "zf" -> requireContext().getColor(R.color.zwift_purple)
         "icu" -> requireContext().getColor(R.color.intervals_icu_orange)
         "kp" -> requireContext().getColor(R.color.keep_yellow)
+        "cd" -> requireContext().getColor(R.color.codoon_green)
+        "zp" -> requireContext().getColor(R.color.zepp_blue)
         else -> requireContext().getColor(R.color.primary)
     }
 

@@ -35,12 +35,15 @@ enum class DataSource(val displayName: String, val shortName: String) {
     // v7.8.5 新增：Intervals.icu（仅上传目标）
     INTERVALS_ICU("Intervals.icu", "icu"),
     // v7.9.2 新增：Keep（下载数据源；上传为半自动引导，走 Keep App 手动导入）
-    KEEP("Keep", "kp");
+    KEEP("Keep", "kp"),
+    // v7.9.5 新增：咕咚 / Zepp（华米）——仅下载数据源（官方均无上传API）
+    CODOON("咕咚", "cd"),
+    ZEPP("Zepp", "zp");
 
     companion object {
         /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
         fun sourcePlatforms(): List<DataSource> =
-            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP)
+            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP, CODOON, ZEPP)
         fun fromShortName(s: String): DataSource? = entries.find { it.shortName == s }
     }
 }
@@ -68,7 +71,9 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     MYWHOOSH(false, "仅下载"),
     ZWIFT(false, "仅下载"),
     INTERVALS_ICU(true, "官方开放API"),
-    KEEP(false, "半自动导入");
+    KEEP(false, "半自动导入"),
+    CODOON(false, "仅下载"),
+    ZEPP(false, "仅下载");
 
     companion object {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {
@@ -88,6 +93,8 @@ enum class UploadSupport(val available: Boolean, val note: String) {
             DataSource.ZWIFT -> ZWIFT
             DataSource.INTERVALS_ICU -> INTERVALS_ICU
             DataSource.KEEP -> KEEP
+            DataSource.CODOON -> CODOON
+            DataSource.ZEPP -> ZEPP
         }
     }
 }

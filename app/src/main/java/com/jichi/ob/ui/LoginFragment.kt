@@ -55,6 +55,8 @@ class LoginFragment : Fragment() {
         statusViews[DataSource.ZWIFT] = view.findViewById(R.id.tvZwiftStatus)
         statusViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.tvIcuStatus)
         statusViews[DataSource.KEEP] = view.findViewById(R.id.tvKeepStatus)
+        statusViews[DataSource.CODOON] = view.findViewById(R.id.tvCodoonStatus)
+        statusViews[DataSource.ZEPP] = view.findViewById(R.id.tvZeppStatus)
 
         btnViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogin)
         btnViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogin)
@@ -71,6 +73,8 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.ZWIFT] = view.findViewById(R.id.btnZwiftLogin)
         btnViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.btnIcuLogin)
         btnViews[DataSource.KEEP] = view.findViewById(R.id.btnKeepLogin)
+        btnViews[DataSource.CODOON] = view.findViewById(R.id.btnCodoonLogin)
+        btnViews[DataSource.ZEPP] = view.findViewById(R.id.btnZeppLogin)
 
         // v7.6.7: 注销按钮（每个卡片头部右上角，仅登录后显示）
         logoutViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogout)
@@ -88,6 +92,8 @@ class LoginFragment : Fragment() {
         logoutViews[DataSource.ZWIFT] = view.findViewById(R.id.btnZwiftLogout)
         logoutViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.btnIcuLogout)
         logoutViews[DataSource.KEEP] = view.findViewById(R.id.btnKeepLogout)
+        logoutViews[DataSource.CODOON] = view.findViewById(R.id.btnCodoonLogout)
+        logoutViews[DataSource.ZEPP] = view.findViewById(R.id.btnZeppLogout)
 
         // 注销点击 → 确认后清除凭证并刷新
         for ((ds, tv) in logoutViews) {
@@ -128,6 +134,8 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.ZWIFT]?.setOnClickListener { (activity as? MainActivity)?.openZwiftLogin() }
         btnViews[DataSource.INTERVALS_ICU]?.setOnClickListener { (activity as? MainActivity)?.openIntervalsIcuLogin() }
         btnViews[DataSource.KEEP]?.setOnClickListener { (activity as? MainActivity)?.openKeepLogin() }
+        btnViews[DataSource.CODOON]?.setOnClickListener { (activity as? MainActivity)?.openCodoonLogin() }
+        btnViews[DataSource.ZEPP]?.setOnClickListener { (activity as? MainActivity)?.openZeppLogin() }
 
         // v7.6.7: fragment可见时刷新登录状态（登录返回/注销后自动同步）
         lifecycle.addObserver(object : androidx.lifecycle.LifecycleEventObserver {
@@ -176,5 +184,7 @@ class LoginFragment : Fragment() {
         DataSource.ZWIFT -> "zwift"        // 纯API登录，无WebView登录态，注销清理直接跳过
         DataSource.INTERVALS_ICU -> "icu"  // 纯API登录，无WebView登录态，注销清理直接跳过
         DataSource.KEEP -> "keep"          // 纯API登录，无WebView登录态，注销清理直接跳过
+        DataSource.CODOON -> "codoon"      // 纯API登录，无WebView登录态，注销清理直接跳过
+        DataSource.ZEPP -> "zepp"          // 纯API登录，无WebView登录态，注销清理直接跳过
     }
 }

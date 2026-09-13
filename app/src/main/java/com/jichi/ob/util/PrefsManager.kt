@@ -205,6 +205,30 @@ class PrefsManager(context: Context) {
     fun getKeepAccount(): String? = prefs.getString("keep_account", null)
     fun isKeepLoggedIn(): Boolean = !getKeepToken().isNullOrEmpty()
 
+    // ===== 咕咚 Codoon: 纯API token（v7.9.5 新增，仅下载源）=====
+    fun saveCodoonToken(t: String) { prefs.edit().putString("codoon_token", t).apply() }
+    fun getCodoonToken(): String? = prefs.getString("codoon_token", null)
+    fun saveCodoonAccount(a: String) { prefs.edit().putString("codoon_account", a).apply() }
+    fun getCodoonAccount(): String? = prefs.getString("codoon_account", null)
+    fun saveCodoonUserId(uid: String) { prefs.edit().putString("codoon_user_id", uid).apply() }
+    fun getCodoonUserId(): String? = prefs.getString("codoon_user_id", null)
+    fun isCodoonLoggedIn(): Boolean = !getCodoonToken().isNullOrEmpty()
+    /** v7.9.5: 咕咚轨迹坐标转换开关（默认关=WGS-84；若实测偏移可开启 GCJ-02→WGS-84） */
+    fun isCodoonGcjConvertEnabled(): Boolean = prefs.getBoolean("codoon_gcj_convert", false)
+    fun setCodoonGcjConvertEnabled(b: Boolean) = prefs.edit().putBoolean("codoon_gcj_convert", b).apply()
+
+    // ===== Zepp 华米: 纯API app_token（v7.9.5 新增，仅下载源）=====
+    fun saveZeppToken(t: String) { prefs.edit().putString("zepp_token", t).apply() }
+    fun getZeppToken(): String? = prefs.getString("zepp_token", null)
+    fun saveZeppAccount(a: String) { prefs.edit().putString("zepp_account", a).apply() }
+    fun getZeppAccount(): String? = prefs.getString("zepp_account", null)
+    fun saveZeppUserId(uid: String) { prefs.edit().putString("zepp_user_id", uid).apply() }
+    fun getZeppUserId(): String? = prefs.getString("zepp_user_id", null)
+    fun isZeppLoggedIn(): Boolean = !getZeppToken().isNullOrEmpty()
+    /** v7.9.5: Zepp 轨迹坐标转换开关（默认关=WGS-84；若实测偏移可开启 GCJ-02→WGS-84） */
+    fun isZeppGcjConvertEnabled(): Boolean = prefs.getBoolean("zepp_gcj_convert", false)
+    fun setZeppGcjConvertEnabled(b: Boolean) = prefs.edit().putBoolean("zepp_gcj_convert", b).apply()
+
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
@@ -223,6 +247,8 @@ class PrefsManager(context: Context) {
         DataSource.ZWIFT -> getZwiftToken()
         DataSource.INTERVALS_ICU -> getIntervalsIcuKey()
         DataSource.KEEP -> getKeepToken()
+        DataSource.CODOON -> getCodoonToken()
+        DataSource.ZEPP -> getZeppToken()
     }
     /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
     fun saveCredential(ds: DataSource, cred: String) {
@@ -243,6 +269,8 @@ class PrefsManager(context: Context) {
             DataSource.ZWIFT -> saveZwiftToken(cred)
             DataSource.INTERVALS_ICU -> saveIntervalsIcuKey(cred)
             DataSource.KEEP -> saveKeepToken(cred)
+            DataSource.CODOON -> saveCodoonToken(cred)
+            DataSource.ZEPP -> saveZeppToken(cred)
         }
     }
     /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
@@ -265,6 +293,8 @@ class PrefsManager(context: Context) {
             DataSource.ZWIFT -> { e.remove("zwift_token"); e.remove("zwift_refresh"); e.remove("zwift_player_id") }
             DataSource.INTERVALS_ICU -> e.remove("intervals_icu_key")
             DataSource.KEEP -> e.remove("keep_token")
+            DataSource.CODOON -> { e.remove("codoon_token"); e.remove("codoon_account"); e.remove("codoon_user_id") }
+            DataSource.ZEPP -> { e.remove("zepp_token"); e.remove("zepp_account"); e.remove("zepp_user_id") }
         }
         e.remove("username_${ds.shortName}")
         e.apply()
@@ -286,6 +316,8 @@ class PrefsManager(context: Context) {
         DataSource.ZWIFT -> isZwiftLoggedIn()
         DataSource.INTERVALS_ICU -> isIntervalsIcuLoggedIn()
         DataSource.KEEP -> isKeepLoggedIn()
+        DataSource.CODOON -> isCodoonLoggedIn()
+        DataSource.ZEPP -> isZeppLoggedIn()
     }
 
     // ===== 用户名存储 =====

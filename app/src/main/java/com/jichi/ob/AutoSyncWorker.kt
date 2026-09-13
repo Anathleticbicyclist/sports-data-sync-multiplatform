@@ -68,6 +68,8 @@ class AutoSyncWorker(
     private val mywhooshApi = MyWhooshApi()
     private val zwiftApi = ZwiftApi()
     private val keepApi = KeepApi()
+    private val codoonApi = CodoonApi()
+    private val zeppApi = ZeppApi()
     private val uploadEngine = UploadEngine(applicationContext)
 
     override suspend fun doWork(): Result {
@@ -206,6 +208,8 @@ class AutoSyncWorker(
                     DataSource.MYWHOOSH -> mywhooshApi.getActivities(sourceCred, prefs.getMywhooshWhooshId() ?: "", 0, 8)
                     DataSource.ZWIFT -> getZwiftActivitiesWithRefresh(sourceCred, prefs.getZwiftPlayerId(), prefs.getZwiftRefreshToken(), 0, 8)
                     DataSource.KEEP -> keepApi.getActivities(sourceCred, 0, 8)
+                    DataSource.CODOON -> codoonApi.getActivities(sourceCred, prefs.getCodoonUserId() ?: "", 0, 8)
+                    DataSource.ZEPP -> zeppApi.getActivities(sourceCred, prefs.getZeppUserId() ?: "", 0, 8)
                     else -> emptyList()
                 }
             } catch (e: Exception) {
@@ -358,6 +362,8 @@ class AutoSyncWorker(
             }
             DataSource.ZWIFT -> zwiftApi.downloadFit(record.extra ?: "")
             DataSource.KEEP -> keepApi.downloadGpx(cred, record.extra ?: record.id)
+            DataSource.CODOON -> codoonApi.downloadGpx(cred, record.extra ?: record.id)
+            DataSource.ZEPP -> zeppApi.downloadGpx(cred, record.id, record.extra ?: "")
             else -> null
         }
     }

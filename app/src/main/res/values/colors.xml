@@ -38,6 +38,8 @@
     <color name="zwift_purple">#6A2FA0</color>      <!-- Zwift：紫 -->
     <color name="intervals_icu_orange">#E85D3D</color> <!-- Intervals.icu：珊瑚橙 -->
     <color name="keep_yellow">#FFB800</color>       <!-- Keep：品牌黄 -->
+    <color name="codoon_green">#00B4A0</color>      <!-- v7.9.5 咕咚 Codoon：青绿 -->
+    <color name="zepp_blue">#3457D5</color>         <!-- v7.9.5 Zepp（华米）：蓝 -->
 
     <!-- 基础色 -->
     <color name="white">#FFFFFF</color>
