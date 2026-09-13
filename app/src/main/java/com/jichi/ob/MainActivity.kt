@@ -47,6 +47,7 @@ import com.jichi.ob.api.GiantApi
 import com.jichi.ob.api.IntervalsIcuApi
 import com.jichi.ob.api.MyWhooshApi
 import com.jichi.ob.api.ZwiftApi
+import com.jichi.ob.api.KeepApi
 import com.jichi.ob.api.WahooApi
 import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
@@ -104,6 +105,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var garminApi: GarminApi
     private lateinit var mywhooshApi: MyWhooshApi
     private lateinit var zwiftApi: ZwiftApi
+    private lateinit var keepApi: KeepApi
     private lateinit var intervalsIcuApi: IntervalsIcuApi
     private lateinit var corosApi: CorosApi
     private lateinit var wahooApi: WahooApi
@@ -250,6 +252,7 @@ class MainActivity : AppCompatActivity() {
             garminApi = GarminApi()
             mywhooshApi = MyWhooshApi()
             zwiftApi = ZwiftApi()
+            keepApi = KeepApi()
             intervalsIcuApi = IntervalsIcuApi()
             GarminApi.setAppContext(this)  // v7.9.0: 佳明429风控冷却持久化
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
@@ -627,6 +630,57 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** v7.9.2: Keep 直接登录——手机号密码原生表单直调 KeepApi（纯API，仅下载源；上传走 Keep App 半自动导入） */
+    internal fun openKeepLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val accountInput = android.widget.EditText(this).apply {
+            hint = "Keep 手机号"
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+            setText(prefs.getKeepAccount() ?: "")
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "Keep 密码"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(accountInput)
+        layout.addView(passwordInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("登录 Keep")
+            .setMessage("手机号密码直接登录，Keep 作为数据源（下载运动记录）；上传 Keep 需在 Keep App 内手动导入（运动→数据同步→运动数据文件去导入）")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val account = accountInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (account.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入 Keep 手机号和密码")
+                    return@setPositiveButton
+                }
+                prefs.saveKeepAccount(account)
+                appendLog("🔐 Keep直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = keepApi.login(account, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveKeepToken(result.token)
+                            appendLog("✅ Keep登录成功")
+                            fetchUsernameAfterLogin(DataSource.KEEP)
+                        } else {
+                            appendLog("❌ Keep登录失败：账号或密码错误，请重新输入")
+                        }
+                        loginFragment.updateStatus()
+                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     /** v7.8.5: Intervals.icu 直接登录——粘贴个人 API Key（纯API，仅上传目标） */
     internal fun openIntervalsIcuLogin() {
         val layout = android.widget.LinearLayout(this).apply {
@@ -731,7 +785,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
                 DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
                 DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO, DataSource.GIANT,
-                DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU
+                DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU, DataSource.KEEP
             )
             for (ds in platforms) {
                 if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
@@ -753,6 +807,7 @@ class MainActivity : AppCompatActivity() {
                         DataSource.WAHOO -> wahooApi.getUsername(cred)
                         DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
                         DataSource.ZWIFT -> zwiftApi.getUsername(cred)
+                        DataSource.KEEP -> keepApi.getUsername(cred)
                         DataSource.INTERVALS_ICU -> {
                             // v7.8.5: API Key 有效性即登录态
                             if (intervalsIcuApi.validateKey(cred))
@@ -881,6 +936,7 @@ class MainActivity : AppCompatActivity() {
         }
         DataSource.MYWHOOSH -> null  // MyWhoosh 无 refresh 端点，需重新登录
         DataSource.INTERVALS_ICU -> null  // Intervals.icu 无 refresh，需重新输入 API Key
+        DataSource.KEEP -> null  // Keep 无 refresh 端点，需重新登录
         else -> null
     }
 
@@ -904,6 +960,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
                 DataSource.ZWIFT -> zwiftApi.getUsername(cred)
                 DataSource.INTERVALS_ICU -> "Intervals.icu用户"
+                DataSource.KEEP -> keepApi.getUsername(cred)
             }
             if (name != null) {
                 prefs.saveUsername(ds, name)
@@ -946,15 +1003,16 @@ class MainActivity : AppCompatActivity() {
         if (targets.isEmpty()) { Toast.makeText(this, "请选择至少一个同步目标", Toast.LENGTH_SHORT).show(); return }
         val count = settingsFragment.getCount()
         val skip = settingsFragment.getSkip()
-        // 过滤不可用目标（开发中）
-        val unavailable = targets.filter { !UploadSupport.fromDataSource(it).available }
+        // 过滤不可用目标（开发中；Keep 为半自动导入目标，保留不移除）
+        val unavailable = targets.filter { !UploadSupport.fromDataSource(it).available && it != DataSource.KEEP }
         if (unavailable.isNotEmpty()) {
             Toast.makeText(this, "${unavailable.joinToString { it.displayName }}上传功能不可用，已移除", Toast.LENGTH_SHORT).show()
-            targets = targets.filter { UploadSupport.fromDataSource(it).available }
+            targets = targets.filter { UploadSupport.fromDataSource(it).available || it == DataSource.KEEP }
         }
         if (targets.isEmpty()) return
         if (!prefs.isLoggedIn(source)) { Toast.makeText(this, "请先登录${source.displayName}", Toast.LENGTH_SHORT).show(); return }
-        val notLoggedIn = targets.filter { !prefs.isLoggedIn(it) }
+        // Keep 半自动导入无需 Keep 登录态，放行
+        val notLoggedIn = targets.filter { it != DataSource.KEEP && !prefs.isLoggedIn(it) }
         if (notLoggedIn.isNotEmpty()) {
             Toast.makeText(this, "请先登录${notLoggedIn.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
         }
@@ -1073,6 +1131,12 @@ class MainActivity : AppCompatActivity() {
                         // v7.6.7: 迈金纯API直传（顽鹿OTM接口，已移除WebView兜底）
                         val result = if (target == DataSource.BRYTON) {
                             uploadToBrytonViaWebView(localFile.absolutePath)
+                        } else if (target == DataSource.KEEP) {
+                            // v7.9.2: Keep 半自动导入——软件生成 fit 已存本地，引导用户在 Keep App 手动导入
+                            showKeepImportGuide(localName, localFile.absolutePath)
+                            com.jichi.ob.api.UploadEngine.UploadResult(
+                                true, message = "已生成 ${localName}，请在 Keep App 内手动导入"
+                            )
                         } else {
                             uploadEngine.upload(target, targetCred, fileData, act, upExtra)
                         }
@@ -1117,6 +1181,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     internal fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
+
+    /** v7.9.2: Keep 半自动上传引导——文件已生成，提示用户在 Keep App 内手动导入 */
+    private fun showKeepImportGuide(fileName: String, filePath: String) {
+        runOnUiThread {
+            try {
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("导入 Keep（半自动）")
+                    .setMessage(
+                        "运动文件已生成：\n$fileName\n\nKeep 未开放第三方文件上传接口，请在 Keep App 内手动导入（30 秒完成）：\n\n" +
+                        "1️⃣ 打开 Keep App\n" +
+                        "2️⃣ 底部「运动」→ 浮层「数据同步」\n" +
+                        "3️⃣ 点「运动数据文件去导入 / 去上传」\n" +
+                        "4️⃣ 选择刚生成的文件导入\n\n" +
+                        "文件已保存到：$filePath"
+                    )
+                    .setPositiveButton("知道了", null)
+                    .setNegativeButton("打开文件位置", { _, _ ->
+                        try {
+                            val dir = SAVE_DIR
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                            intent.setDataAndType(
+                                android.net.Uri.fromFile(dir),
+                                "resource/folder"
+                            )
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        } catch (_: Exception) {
+                            try {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                intent.setDataAndType(android.net.Uri.parse("file://$SAVE_DIR"), "*/*")
+                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                            } catch (_: Exception) {
+                                Toast.makeText(this, "无法直接打开目录，请到文件管理器查看：\n${SAVE_DIR.absolutePath}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    })
+                    .show()
+            } catch (_: Exception) {}
+        }
+    }
 
     /**
      * v6.2.4: 百锐腾上传 —— WebView 真实文件选择通道
@@ -1268,6 +1373,7 @@ class MainActivity : AppCompatActivity() {
                 // v7.8.4: Zwift 401 时用 refresh_token 刷新后重试
                 getZwiftActivitiesWithRefresh(cred, prefs.getZwiftPlayerId(), prefs.getZwiftRefreshToken(), skip, limit)
             }
+            DataSource.KEEP -> keepApi.getActivities(cred, skip, limit)
             else -> emptyList()
         }
     }
@@ -1366,6 +1472,10 @@ class MainActivity : AppCompatActivity() {
             DataSource.ZWIFT -> {
                 // v7.8.4: Zwift S3 直链下载（extra=bucket|key），S3 无需 token
                 zwiftApi.downloadFit(record.extra ?: "")
+            }
+            DataSource.KEEP -> {
+                // v7.9.2: Keep 下载轨迹→GPX（extra=run_id），上传引擎自动转 FIT
+                keepApi.downloadGpx(cred, record.extra ?: record.id)
             }
             else -> null
         }

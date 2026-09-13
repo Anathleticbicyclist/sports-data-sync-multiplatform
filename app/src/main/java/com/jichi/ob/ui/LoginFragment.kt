@@ -54,6 +54,7 @@ class LoginFragment : Fragment() {
         statusViews[DataSource.MYWHOOSH] = view.findViewById(R.id.tvMywhooshStatus)
         statusViews[DataSource.ZWIFT] = view.findViewById(R.id.tvZwiftStatus)
         statusViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.tvIcuStatus)
+        statusViews[DataSource.KEEP] = view.findViewById(R.id.tvKeepStatus)
 
         btnViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogin)
         btnViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogin)
@@ -69,6 +70,7 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.MYWHOOSH] = view.findViewById(R.id.btnMywhooshLogin)
         btnViews[DataSource.ZWIFT] = view.findViewById(R.id.btnZwiftLogin)
         btnViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.btnIcuLogin)
+        btnViews[DataSource.KEEP] = view.findViewById(R.id.btnKeepLogin)
 
         // v7.6.7: 注销按钮（每个卡片头部右上角，仅登录后显示）
         logoutViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogout)
@@ -85,6 +87,7 @@ class LoginFragment : Fragment() {
         logoutViews[DataSource.MYWHOOSH] = view.findViewById(R.id.btnMywhooshLogout)
         logoutViews[DataSource.ZWIFT] = view.findViewById(R.id.btnZwiftLogout)
         logoutViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.btnIcuLogout)
+        logoutViews[DataSource.KEEP] = view.findViewById(R.id.btnKeepLogout)
 
         // 注销点击 → 确认后清除凭证并刷新
         for ((ds, tv) in logoutViews) {
@@ -124,6 +127,7 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.MYWHOOSH]?.setOnClickListener { (activity as? MainActivity)?.openMywhooshLogin() }
         btnViews[DataSource.ZWIFT]?.setOnClickListener { (activity as? MainActivity)?.openZwiftLogin() }
         btnViews[DataSource.INTERVALS_ICU]?.setOnClickListener { (activity as? MainActivity)?.openIntervalsIcuLogin() }
+        btnViews[DataSource.KEEP]?.setOnClickListener { (activity as? MainActivity)?.openKeepLogin() }
 
         // v7.6.7: fragment可见时刷新登录状态（登录返回/注销后自动同步）
         lifecycle.addObserver(object : androidx.lifecycle.LifecycleEventObserver {
@@ -171,5 +175,6 @@ class LoginFragment : Fragment() {
         DataSource.MYWHOOSH -> "mywhoosh"  // 纯API登录，无WebView登录态，注销清理直接跳过
         DataSource.ZWIFT -> "zwift"        // 纯API登录，无WebView登录态，注销清理直接跳过
         DataSource.INTERVALS_ICU -> "icu"  // 纯API登录，无WebView登录态，注销清理直接跳过
+        DataSource.KEEP -> "keep"          // 纯API登录，无WebView登录态，注销清理直接跳过
     }
 }
