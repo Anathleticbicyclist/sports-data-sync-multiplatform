@@ -142,6 +142,7 @@ class SyncSettingsFragment : Fragment() {
         "mw" -> requireContext().getColor(R.color.mywhoosh_orange)
         "zf" -> requireContext().getColor(R.color.zwift_purple)
         "icu" -> requireContext().getColor(R.color.intervals_icu_orange)
+        "kp" -> requireContext().getColor(R.color.keep_yellow)
         else -> requireContext().getColor(R.color.primary)
     }
 
@@ -195,8 +196,8 @@ class SyncSettingsFragment : Fragment() {
             btn.setOnClickListener {
                 if (!btn.isEnabled) return@setOnClickListener
                 val ds = DataSource.fromShortName(tag)
-                // 未登录平台不可选
-                if (ds == null || !prefs.isLoggedIn(ds)) {
+                // 未登录平台不可选（Keep 除外：半自动导入无需 Keep 登录态）
+                if (ds == null || (!prefs.isLoggedIn(ds) && ds != DataSource.KEEP)) {
                     Toast.makeText(requireContext(), "请先登录${ds?.displayName ?: "该平台"}", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
@@ -261,10 +262,10 @@ class SyncSettingsFragment : Fragment() {
             val tag = btn.tag as? String ?: continue
             setButtonSelected(btn, tag == selectedSourceTag, tag)
         }
-        // v7.6.7: 一对多 - 恢复多个目标（过滤未登录和与来源相同的平台）
+        // v7.6.7: 一对多 - 恢复多个目标（过滤未登录和与来源相同的平台；Keep 半自动导入始终可恢复）
         selectedTargetTags.clear()
         selectedTargetTags.addAll(prefs.getLastTargets().filter { t ->
-            t != selectedSourceTag && (DataSource.fromShortName(t)?.let { prefs.isLoggedIn(it) } ?: false)
+            t != selectedSourceTag && (DataSource.fromShortName(t)?.let { ds -> ds == DataSource.KEEP || prefs.isLoggedIn(ds) } ?: false)
         })
         for (i in 0 until gridTarget.childCount) {
             val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
@@ -299,6 +300,19 @@ class SyncSettingsFragment : Fragment() {
             val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
             val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
             val support = UploadSupport.fromDataSource(ds)
+            // v7.9.2: Keep 为半自动导入目标——始终可选（导入在 Keep App 内手动完成，无需本软件 Keep 登录态）
+            if (ds == DataSource.KEEP) {
+                btn.isEnabled = true
+                btn.alpha = 1.0f
+                val name = ds.displayName
+                val spannable = SpannableString("$name\n半自动导入")
+                spannable.setSpan(AbsoluteSizeSpan(11, true), 0, name.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(AbsoluteSizeSpan(8, true), name.length + 1, spannable.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                btn.buttonText = spannable
+                btn.maxLines = 2
+                btn.bind(platformColor(btn.tag as? String ?: ""))
+                continue
+            }
             // v7.6.7: 开发中平台优先标记（如百锐腾），无论登录与否都显示"开发中"且不可选
             if (!support.available) {
                 btn.isEnabled = false

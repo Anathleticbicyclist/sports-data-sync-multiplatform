@@ -7,10 +7,10 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.8.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.9.2-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift** 十四平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源；Intervals.icu 仅作上传目标）。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep** 十五平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
 
 > ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.8.6 |
+| 当前版本 | v7.9.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -98,6 +98,7 @@
 | Intervals.icu | 个人 API Key（官方开放 API 直传） |
 | 佳明国际 | 账号登录 |
 | 佳明中国 | 账号登录 |
+| Keep | 手机号+密码登录（纯API） |
 | 高驰中国 | 账号登录 |
 | 高驰国际 | 账号登录 |
 | Wahoo | 账号登录 |
@@ -266,7 +267,7 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 
 ## ✨ 功能特性
 
-### 十一平台数据互传
+### 平台数据互传
 
 | 平台 | 下载(源) | 上传(目标) | 说明 |
 |------|:---:|:---:|------|
@@ -282,10 +283,14 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 | **高驰中国** | ✅ | ✅ | COROS中国区，OSS+fit/import上传 |
 | **高驰国际** | ✅ | ✅ | COROS国际/欧洲区，AWS S3上传 |
 | **Wahoo** | ✅ | ✅ | Wahoo官方API，直接登录+base64编码上传+轮询状态 |
+| **Keep** | ✅ | ⚠️ 半自动 | 手机号+密码纯API登录，跑步/骑行/徒步记录下载为GPX（v7.9.2，自动识别运动类型）；上传为半自动引导（生成FIT后在Keep App手动导入） |
+| **MyWhoosh** | ✅ | ❌ | 虚拟骑行平台，仅作下载数据源（账号密码API登录） |
+| **Zwift** | ✅ | ❌ | 虚拟骑行平台，仅作下载数据源（S3直链下载） |
 
 **支持的同步组合**：
 - 任意平台 → Outbase 上传
 - iGPSPORT / 行者 / 迈金 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo 之间任意互传
+- Keep → 任意上传目标（跑步/骑行/徒步，自动识别运动类型）
 - 国内区↔国际区互传：佳明国际↔佳明中国、高驰中国↔高驰国际
 
 ### 迈金坐标转换（亮点功能）
@@ -356,6 +361,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - 佳明Garmin — [Engineered on the inside for life on the outside](https://www.garmin.com.cn)
 - 高驰COROS — [保持专注 乐于创新 满怀热情](https://www.coros.com)
 - Wahoo — [Create a full ecosystem of sensors and devices](https://www.wahoofitness.com)
+- Keep — [自律给我自由](https://www.gotokeep.com)
 
 > 各平台运动数据的相关权益归该数据产生用户及相应平台依法各自享有。本工具仅用于用户本人数据在其已授权账号之间的迁移与备份，不得用于商业用途、批量数据爬取或任何侵犯他人合法权益的行为。用户应对其使用本工具处理数据的合法性负责，因数据迁移产生的纠纷由用户自行承担。
 
@@ -389,6 +395,28 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.9.2 (2026-09-13)
+**新增**：
+- **新增 Keep 数据源**：手机号+密码纯API登录（无WebView），支持跑步/骑行/徒步三类运动记录下载（Keep stats/detail 仅这三类有效），下载轨迹生成GPX/FIT
+- **Keep 运动类型自动识别**：跑步→跑步、骑行→骑行、徒步/登山→徒步（FIT sport 正确写入），彻底解决"Keep跑步被Outbase算成骑行"问题；徒步记录不保存轨迹文件，用活动中心坐标单点兜底上传
+- **Keep 上传半自动引导**：Keep 官方无开放上传API，生成FIT后提示用户在Keep App手动导入（运动→数据同步→运动数据文件去导入）
+- **无轨迹记录仍上传**：无GPS轨迹的运动记录不报错，生成合法GPX交目标平台决定是否接收（收不收由平台决定）
+**已解决**：
+- 修复 Keep 无轨迹记录此前被报错拦截的问题
+- 修复 Keep 详情接口类型识别（hiking 用 hikinglog 接口）
+
+### v7.9.1 (2026-09-12)
+**已解决**：
+- **佳明风控提醒修复**：佳明登录风控冷却按 clientId×email 维度精确识别（不再整窗口封控），国际区多通道自动轮换，换通道可绕开限流；中国区风控新增提醒
+- 佳明国际/中国 WebView 网页登录统一优化，登录成功弹窗提醒
+
+### v7.9.0 (2026-09-12)
+**已解决**：
+- **佳明全面优化**：佳明中国/国际 DI refresh_token 静默续期（无需反复登录）
+- **佳明中国 DI Token 直连提速**：改为 DI Token 直连 connectapi 取数/上传，速度与国际区一致，彻底解决"中国区登录后传输慢"
+- **佳明 429 限流冷却**：登录/刷新失败触发冷却保护，避免账号被风控
+- **佳明登录成功弹窗提醒**
 
 ### v7.8.6 (2026-09-12)
 **已解决**：

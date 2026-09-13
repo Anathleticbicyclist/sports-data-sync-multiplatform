@@ -287,10 +287,11 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- v7.8.5: Outbase 不再独占一行，与 Intervals.icu 并排左右分布 -->
+                <!-- v7.9.2: Outbase 独占一行（用户要求），Intervals.icu 与 Keep 并排 -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_columnSpan="2"
                     android:layout_rowWeight="1"
                     app:cardCornerRadius="16dp" app:cardElevation="0dp"
                 app:strokeColor="#E3EEFA"
@@ -324,6 +325,26 @@
                         <TextView android:id="@+id/tvIcuStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="9sp" />
                         <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
                         <com.google.android.material.button.MaterialButton android:id="@+id/btnIcuLogin" android:layout_width="match_parent" android:layout_height="28dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Intervals" android:textSize="10sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+                <!-- v7.9.2: Keep 卡片——与 Intervals.icu 并排（下载源；上传走半自动导入） -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_margin="2dp" android:layout_columnWeight="1"
+                    android:layout_rowWeight="1"
+                    app:cardCornerRadius="16dp" app:cardElevation="0dp"
+                app:strokeColor="#E3EEFA"
+                app:strokeWidth="1dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="5dp" android:minHeight="72dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                            <View android:layout_width="8dp" android:layout_height="8dp" android:layout_gravity="center_vertical" android:background="@drawable/bg_dot_keep" />
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Keep" android:textSize="12sp" android:textStyle="bold" android:textColor="@color/text_primary" android:maxLines="1" android:ellipsize="end" />
+<TextView android:id="@+id/btnKeepLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="9sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
+                        </LinearLayout>
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+                        <TextView android:id="@+id/tvKeepStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="9sp" />
+                        <Space android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnKeepLogin" android:layout_width="match_parent" android:layout_height="28dp" android:layout_marginTop="4dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录Keep" android:textSize="10sp" app:backgroundTint="@color/primary" app:cornerRadius="14dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
         </GridLayout>
