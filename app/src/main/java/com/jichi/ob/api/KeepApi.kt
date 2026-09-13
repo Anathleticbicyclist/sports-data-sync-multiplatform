@@ -344,12 +344,13 @@ class KeepApi {
     private fun base64Decode(s: String): ByteArray = android.util.Base64.decode(s, android.util.Base64.DEFAULT)
 
     /** 构建标准 GPX（带时间戳与海拔）。points 每项 = [lat, lon, ts, alt]，ts 为绝对毫秒或相对秒。
-     *  sportType: running/cycling/hiking，写入 GPX name 供上传端 GpxToFitConverter 识别运动类型 */
+     *  sportType: running/cycling/hiking。同时写入 GPX 标准 <type> 元素（供 iGPSPORT 等直传 GPX 平台识别）
+     *  和 <name> 标记（供 GpxToFitConverter 识别运动类型） */
     private fun buildGpx(points: List<DoubleArray>, startTimeMs: Long, sportType: String = "running"): ByteArray {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         sb.append("<gpx creator=\"jichiOB\" version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\">\n")
-        sb.append("  <trk><name>from keep - ").append(sportType).append("</name><trkseg>\n")
+        sb.append("  <trk><name>from keep - ").append(sportType).append("</name><type>").append(sportType).append("</type><trkseg>\n")
         for (p in points) {
             val lat = p[0]; val lon = p[1]; val ts = p[2].toLong(); val alt = p[3]
             // 相对秒（<100000000000）→ 用 startTime 推算；绝对毫秒（>=100000000000）直接用

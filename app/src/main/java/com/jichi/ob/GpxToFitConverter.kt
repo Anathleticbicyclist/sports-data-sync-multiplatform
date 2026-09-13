@@ -189,19 +189,19 @@ object GpxToFitConverter {
         // --- file_id (local 0) ---
         out.write(DefBuilder(0, 0).f(0, 1, 0x00).f(1, 2, 0x84).f(2, 2, 0x84).f(4, 4, 0x86).build())
         out.write(ByteArrayOutputStream().also { o ->
-            u8(o, 4); u16(o, 255); u16(o, 1); u32(o, fit0 - FIT_EPOCH_OFFSET)
+            u8(o, 0x00); u8(o, 4); u16(o, 255); u16(o, 1); u32(o, fit0 - FIT_EPOCH_OFFSET)
         }.toByteArray())
 
         // --- event timer start (local 1) ---
         out.write(DefBuilder(1, 21).f(0, 4, 0x86).f(1, 1, 0x00).f(2, 1, 0x00).f(3, 1, 0x02).build())
         out.write(ByteArrayOutputStream().also { o ->
-            u32(o, fit0 - FIT_EPOCH_OFFSET); u8(o, 0); u8(o, 0); u8(o, 0)
+            u8(o, 0x01); u32(o, fit0 - FIT_EPOCH_OFFSET); u8(o, 0); u8(o, 0); u8(o, 0)
         }.toByteArray())
 
         // --- device_info (local 2) ---
         out.write(DefBuilder(2, 23).f(0, 1, 0x00).f(1, 2, 0x84).f(253, 4, 0x86).build())
         out.write(ByteArrayOutputStream().also { o ->
-            u8(o, 255); u16(o, 1); u32(o, fit0 - FIT_EPOCH_OFFSET)
+            u8(o, 0x02); u8(o, 255); u16(o, 1); u32(o, fit0 - FIT_EPOCH_OFFSET)
         }.toByteArray())
 
         // --- 统计 ---
@@ -225,6 +225,7 @@ object GpxToFitConverter {
             .f(9, 4, 0x86).f(14, 2, 0x84).f(21, 2, 0x84).f(22, 2, 0x84)
             .f(27, 1, 0x00).f(28, 1, 0x00).f(30, 2, 0x84).build())
         out.write(ByteArrayOutputStream().also { o ->
+            u8(o, 0x03)
             u32(o, fitLast - FIT_EPOCH_OFFSET)
             u32(o, fit0 - FIT_EPOCH_OFFSET)
             u32(o, degToSemicircle(pts[0].lat).toLong()); u32(o, degToSemicircle(pts[0].lon).toLong())
@@ -242,6 +243,7 @@ object GpxToFitConverter {
             .f(7, 4, 0x86).f(8, 4, 0x86).f(9, 4, 0x86).f(13, 2, 0x84)
             .f(27, 1, 0x00).f(28, 1, 0x00).build())
         out.write(ByteArrayOutputStream().also { o ->
+            u8(o, 0x04)
             u32(o, fitLast - FIT_EPOCH_OFFSET)
             u32(o, fit0 - FIT_EPOCH_OFFSET)
             u32(o, degToSemicircle(pts[0].lat).toLong()); u32(o, degToSemicircle(pts[0].lon).toLong())
@@ -256,6 +258,7 @@ object GpxToFitConverter {
             .f(0, 4, 0x86).f(1, 4, 0x86).f(2, 1, 0x00).f(3, 1, 0x00)
             .f(4, 1, 0x00).f(5, 1, 0x00).f(6, 4, 0x86).build())
         out.write(ByteArrayOutputStream().also { o ->
+            u8(o, 0x05)
             u32(o, fitLast - FIT_EPOCH_OFFSET)
             u32(o, durationS * 1000)
             u8(o, 1); u8(o, 1); u8(o, 0); u8(o, 0)
@@ -281,6 +284,7 @@ object GpxToFitConverter {
                 if (dt > 0) spd = haversineM(pts[i - 1].lat, pts[i - 1].lon, p.lat, p.lon) / dt
             }
             out.write(ByteArrayOutputStream().also { o ->
+                u8(o, 0x06)
                 u32(o, ts - FIT_EPOCH_OFFSET)
                 u32(o, degToSemicircle(p.lat).toLong()); u32(o, degToSemicircle(p.lon).toLong())
                 u16(o, (p.ele * 5).toInt())
