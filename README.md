@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.9.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.9.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep** 十五平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.9.2 |
+| 当前版本 | v7.9.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -395,6 +395,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.9.3 (2026-09-13)
+**已解决**：
+- **Keep 坐标转换**：Keep 轨迹为 GCJ-02（火星坐标），下载时统一转为 WGS-84，解决"Keep 导入坐标偏移约500米"问题（复用迈金坐标转换引擎算法）
+- **Keep 上传统一走 FIT**：Keep → 所有平台（含 iGPSPORT）统一预转为带正确 sport 的标准 FIT，彻底解决"Keep 跑步/徒步被 iGPSPORT 算成骑行"问题
 
 ### v7.9.2 (2026-09-13)
 **新增**：

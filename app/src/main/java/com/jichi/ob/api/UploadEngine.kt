@@ -84,13 +84,13 @@ class UploadEngine(private val context: android.content.Context? = null) {
         //  B) 国产平台直接吃GPX、按GPX时钟数字显示：iGPSPORT/行者/迈金 → 需北京时间(UTC+8)
         val isGpxFile = !com.jichi.ob.GpxToFitConverter.isFit(fitData)
 
-        // ===== v7.9.2: Keep 运动类型统一预转换（解决跑步/徒步被算成骑行）=====
-        // Keep 下载的 GPX 在 <name> 里带类型标记（running/cycling/hiking），官方 gpx2fit.js 无法识别
-        // 会默认骑行。这里对 Keep 来源的 GPX 统一先用自研转换器转成带正确 sport 的 FIT，
-        // 后续各平台上传拿到的就是类型正确的 FIT；若目标平台不转 FIT（如 iGPSPORT 直传 GPX）则不预转。
-        // 注：黑鸟对自研 FIT 兼容性存疑，且黑鸟有官方 gpx2fit 优先逻辑，这里对黑鸟不预转（保持原逻辑）。
+        // ===== v7.9.3: Keep 上传统一走 FIT（含 iGPSPORT）=====
+        // Keep 下载的 GPX 已内置 GCJ-02→WGS-84 坐标转换，且在 <name> 带类型标记（running/cycling/hiking）。
+        // 这里对 Keep 来源的 GPX 统一先用自研转换器转成带正确 sport 的 FIT，后续各平台（含 iGPSPORT）
+        // 上传拿到的就是类型正确、坐标正确的 FIT——彻底解决"跑步被算成骑行""坐标偏移500米"。
+        // 例外：迈金（走迈金坐标转换引擎 + 官方直传）、黑鸟（对自研 FIT 兼容性存疑，保留官方 gpx2fit 逻辑）。
         val isPreConverted = isGpxFile && record.source == DataSource.KEEP &&
-            target != DataSource.IGPSPORT && target != DataSource.MAGENE && target != DataSource.BLACKBIRD
+            target != DataSource.MAGENE && target != DataSource.BLACKBIRD
         // 预转换后统一使用的数据（Keep 场景下为 FIT，其余为原 GPX）
         val workingData: ByteArray = if (isPreConverted) {
             try {
