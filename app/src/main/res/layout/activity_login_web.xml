@@ -251,9 +251,40 @@
             android:textColor="#666666"
             android:layout_marginTop="16dp"
             android:gravity="center" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnIgpWebFallback"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="使用网页登录"
+            android:textSize="14sp"
+            android:layout_marginTop="24dp"
+            app:cornerRadius="12dp"
+            app:strokeColor="#FF6B00"
+            android:textColor="#FF6B00" />
     </LinearLayout>
-    <WebView
-        android:id="@+id/webView"
+    <!-- v8.0.0: WebView 网页登录（原生验证码登录的兜底；底部可一键切回验证码登录） -->
+    <LinearLayout
+        android:id="@+id/webLoginContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnIgpBackToSms"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="切换回验证码登录"
+            android:textSize="14sp"
+            app:cornerRadius="12dp"
+            app:strokeColor="#666666"
+            android:textColor="#666666"
+            android:visibility="gone" />
+    </LinearLayout>
 </LinearLayout>

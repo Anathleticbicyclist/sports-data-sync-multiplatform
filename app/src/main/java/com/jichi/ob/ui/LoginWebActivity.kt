@@ -583,6 +583,15 @@ class LoginWebActivity : AppCompatActivity() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         toolbar.title = "登录 iGPSPORT"
 
+        // v8.0.0: 底部"使用网页登录"按钮 → 切换 WebView 登录（兜底，收不到验证码/验证码失败时使用）
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpWebFallback)?.setOnClickListener {
+            switchToIgpWebLogin()
+        }
+        // v8.0.0: WebView 登录底部"切换回验证码登录"按钮
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpBackToSms)?.setOnClickListener {
+            switchBackToIgpSms()
+        }
+
         val etPhone = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpPhone)
         val etCode = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)
         val btnSend = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)
@@ -638,6 +647,112 @@ class LoginWebActivity : AppCompatActivity() {
                         tvStatus.text = "❌ 登录失败：验证码错误或已过期，请重新获取后重试"
                     }
                 }
+            }
+        }
+    }
+
+    /** v8.0.0: iGPSPORT 从原生验证码登录切换到 WebView 登录（兜底，用户收不到验证码时使用） */
+    private fun switchToIgpWebLogin() {
+        if (isFinishing || detected) return
+        try {
+            findViewById<android.widget.LinearLayout>(R.id.igpSmsLoginLayout)?.visibility = android.view.View.GONE
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpBackToSms)?.visibility = android.view.View.VISIBLE
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.visibility = android.view.View.VISIBLE
+            // 原生分支提前return，此处补注册"确认登录"按钮（网页登录完成后的手动确认）
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.setOnClickListener {
+                confirmManualLogin()
+            }
+            findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.VISIBLE
+            setupIgpWebView()
+            // 清理该平台残留登录态，确保弹出登录页而不是沿用旧账号自动登录
+            try {
+                pendingClean = !PrefsManager(this).isLoggedIn(loginTypeToDataSource())
+                if (pendingClean) clearPlatformWebLogin(TYPE_IGPSPORT, wipeAllCookies = true)
+            } catch (_: Exception) { pendingClean = false }
+            checkCount = 0
+            detected = false
+            webView.loadUrl(com.jichi.ob.api.IgpsportApi.LOGIN_URL)
+            webView.post(checkRunnable)
+        } catch (e: Exception) {
+            Log.e(TAG, "switchToIgpWebLogin 失败", e)
+            android.widget.Toast.makeText(this, "网页登录打开失败：${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /** v8.0.0: 从 WebView 网页登录切回原生验证码登录（双向切换） */
+    private fun switchBackToIgpSms() {
+        if (isFinishing) return
+        try {
+            detected = false
+            webView.removeCallbacks(checkRunnable)
+            findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.GONE
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpBackToSms)?.visibility = android.view.View.GONE
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.visibility = android.view.View.GONE
+            // 重置验证码输入与倒计时状态，方便重新输入
+            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpPhone)?.text?.clear()
+            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)?.text?.clear()
+            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)?.isEnabled = true
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpLogin)?.isEnabled = true
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpLogin)?.text = "登录"
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)?.isEnabled = true
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)?.text = "发送验证码"
+            findViewById<android.widget.TextView>(R.id.tvIgpStatus)?.text = ""
+            findViewById<android.widget.LinearLayout>(R.id.igpSmsLoginLayout)?.visibility = android.view.View.VISIBLE
+        } catch (e: Exception) {
+            Log.e(TAG, "switchBackToIgpSms 失败", e)
+        }
+    }
+
+    /** v8.0.0: iGPSPORT WebView 兜底登录的 WebView 初始化（与主流程同款设置：移动UA/允许Cookie/错误自动重载/崩溃恢复） */
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun setupIgpWebView() {
+        progressBar = findViewById(R.id.progressBar)
+        webView = findViewById(R.id.webView)
+        webView.visibility = android.view.View.VISIBLE
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            @Suppress("DEPRECATION")
+            databaseEnabled = true
+            allowContentAccess = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            userAgentString = MOBILE_UA
+        }
+        // 允许第三方cookie（登录页跨域写入/读取登录态）
+        CookieManager.getInstance().setAcceptCookie(true)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                progressBar.visibility = android.view.View.VISIBLE
+                Log.d(TAG, "[igp] PageStarted: $url")
+            }
+            override fun onPageFinished(view: WebView?, url: String?) {
+                progressBar.visibility = android.view.View.GONE
+                checkCount++
+                Log.d(TAG, "[igp] PageFinished #$checkCount: $url")
+                if (checkCount == 1) webView.post(checkRunnable)
+            }
+            // v7.7.3: IGP登录页HTTP错误(403/404等)自动重载一次，规避旧内核下偶发加载失败
+            override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: android.webkit.WebResourceResponse?) {
+                val code = errorResponse?.statusCode ?: 0
+                if (!detected && igpHttpErrorCount < 1 && code in listOf(403, 404, 500, 502, 503)) {
+                    igpHttpErrorCount++
+                    Log.w(TAG, "[igp] HTTP $code，自动重载登录页")
+                    view?.postDelayed({ runOnUiThread { try { view.reload() } catch (_: Exception) {} } }, 500)
+                }
+            }
+            override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                Log.e(TAG, "[igp] WebView渲染进程崩溃: reason=${detail?.didCrash()}")
+                runOnUiThread {
+                    android.widget.Toast.makeText(this@LoginWebActivity, "页面渲染异常，正在重试...", android.widget.Toast.LENGTH_SHORT).show()
+                    view?.let { wv -> try { wv.stopLoading(); wv.clearHistory(); wv.reload() } catch (_: Exception) {} }
+                }
+                return true
+            }
+        }
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                progressBar.progress = newProgress
             }
         }
     }

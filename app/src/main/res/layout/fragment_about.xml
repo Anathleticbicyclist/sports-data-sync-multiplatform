@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v7.9.6"
+                    android:text="开发体验版 v8.0.3"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,12 +102,14 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.9.6)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="新增支持 Komoot 和 松拓(Suunto) 两个平台，均可作为运动数据下载源和上传目标（双向同步）；结合社区开源实现，充分考虑坐标转换与风控。新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.9.5" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="更新支持平台咕咚(Codoon)和 Zepp(华米)，均为运动数据下载源" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.9.4" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="修复自研FIT缺header结构缺陷；Keep→iGPSPORT改回直传GPX(带type标记)；Outbase上传节流防风控" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.0.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="修复透明贴纸数据不显示；轨迹支持双指旋转；海拔带新增等高线+最高最低点标记；文字描边叠加照片更清晰；移除照片叠加。欢迎试用提交反馈bug，开发体验版用于验证正式版功能" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.0.2" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="透明贴纸UI重塑：所有元素可开关（透明/3D带/数据层/水印/往期数据），导出=所见即所得，修复黑框问题" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.0.1" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="24款预设+组合引擎上万种样式；合并页体验优化；Zepp登录修复" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.0.0" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="3D海拔重构为Outbase橙色立体带；修复上传后数据丢失；咕咚/Zepp登录修复；限时体验到9月30日" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

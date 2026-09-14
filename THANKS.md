@@ -11,7 +11,17 @@
 | **迈金（Onelap）** | [onelap.cn](https://www.onelap.cn) | 智能骑行设备与训练平台，提供室内骑行与数据管理 |
 | **黑鸟单车** | [blackbirdsport.com](https://www.blackbirdsport.com) | 骑行运动社区与记录平台 |
 | **百锐腾（Bryton）** | [brytonsport.com](https://www.brytonsport.com) | 专业骑行码表品牌，提供GPS骑行数据记录 |
+| **佳明（Garmin）** | [garmin.com](https://www.garmin.com) | 全球知名GPS运动手表/码表品牌，提供国际与中国双区服务 |
+| **高驰（COROS）** | [coros.com](https://www.coros.com) | 专业运动手表品牌，提供中国与国际双区数据服务 |
+| **Wahoo** | [wahoo.com](https://www.wahoo.com) | 专业骑行训练设备品牌，提供开放开发者平台 |
+| **捷安特（Giant）** | [giant.com.cn](https://www.giant.com.cn) | 全球知名自行车品牌，提供骑行数据服务 |
+| **Intervals.icu** | [intervals.icu](https://intervals.icu) | 专业训练数据分析平台，支持第三方数据导入 |
 | **Outbase** | [outbase.cn](https://outbase.cn) | 户外运动数据聚合平台，支持多品牌设备数据接入 |
+| **Keep** | [gotokeep.com](https://www.gotokeep.com) | 国内知名运动健身APP，提供多种室内外运动记录 |
+| **咕咚（Codoon）** | [codoon.com](https://www.codoon.com) | 国内老牌运动社交APP，提供跑步/骑行/健身记录 |
+| **Zepp（华米）** | [zepp.com](https://www.zepp.com) | 智能穿戴设备与运动健康平台（Amazfit/华米） |
+| **Komoot** | [komoot.com](https://www.komoot.com) | 欧洲知名户外路线规划与导航平台 |
+| **Suunto（松拓）** | [suunto.com](https://www.suunto.com) | 芬兰专业户外运动手表品牌 |
 
 🔗 [点击加入俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)
 
@@ -50,7 +60,23 @@
 - **用途**：本项目的前身与基础
 - **说明**：最初的多平台数据同步到Outbase的开源项目，为本项目提供了基础架构思路与各平台API对接参考。
 
-### 3. 其他依赖库
+### 3. [yihong0618/running_page](https://github.com/yihong0618/running_page)
+- **用途**：咕咚（Codoon）数据接口实现参考
+- **说明**：成熟的开源跑步数据聚合项目，其咕咚登录与活动下载实现为本项目咕咚平台集成提供了关键参考（登录参数、活动列表与 GPX 下载接口）。
+
+### 4. [micw/hacking-mifit-api](https://github.com/micw/hacking-mifit-api)
+- **用途**：Zepp（华米）数据接口实现参考
+- **说明**：对小米运动/Zepp 内部 API 的逆向分析开源项目，本项目 Zepp 平台登录与数据下载基于其公开的接口方案实现。
+
+### 5. [henrydatei/suunto-mcp](https://github.com/henrydatei/suunto-mcp)
+- **用途**：Suunto（松拓）平台接入参考
+- **说明**：参考其 OAuth2 授权与数据下载流程，完成 Suunto 平台 FIT 下载与上传接入。
+
+### 6. [bjonnh/Kompy](https://github.com/bjonnh/Kompy)
+- **用途**：Komoot 平台接入参考
+- **说明**：开源的 Komoot 客户端，参考其登录与运动数据接口，完成 Komoot 平台下载与上传接入。
+
+### 7. 其他依赖库
 - **[OkHttp](https://github.com/square/okhttp)** - Square出品的HTTP客户端，用于所有网络请求
 - **[Kotlin Coroutines](https://github.com/Kotlin/kotlinx.coroutines)** - Kotlin异步编程库
 - **[Material Components for Android](https://github.com/material-components/material-components-android)** - Google Material Design组件库

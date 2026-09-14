@@ -112,6 +112,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var keepApi: KeepApi
     private lateinit var codoonApi: CodoonApi
     private lateinit var zeppApi: ZeppApi
+    private var lastZeppLoginAttempt = 0L   // v8.0.1: Zepp 登录节流（华米 429 风控）
     private lateinit var komootApi: KomootApi
     private lateinit var suuntoApi: SuuntoApi
     private lateinit var intervalsIcuApi: IntervalsIcuApi
@@ -124,6 +125,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settingsFragment: com.jichi.ob.ui.SyncSettingsFragment
     private lateinit var syncFragment: com.jichi.ob.ui.SyncFragment
     private lateinit var aboutFragment: com.jichi.ob.ui.AboutFragment
+    // v7.9.7: 轨迹合并页（全屏覆盖）
+    private lateinit var mergeFragment: com.jichi.ob.ui.MergeFragment
 
     private var syncJob: Job? = null
     private var autoSyncJob: Job? = null
@@ -799,17 +802,25 @@ class MainActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 prefs.saveZeppAccount(account)
+                // v8.0.1: 登录节流——华米对连续登录风控严格(429)，10 秒内禁止重复提交
+                val now = System.currentTimeMillis()
+                if (now - lastZeppLoginAttempt < 10_000) {
+                    appendLog("⚠️ Zepp 登录过于频繁，请稍等 10 秒再试（避免触发华米风控）")
+                    return@setPositiveButton
+                }
+                lastZeppLoginAttempt = now
                 appendLog("🔐 Zepp直接登录中...")
                 lifecycleScope.launch(Dispatchers.IO) {
                     val result = zeppApi.login(account, password)
                     runOnUiThread {
-                        if (result != null) {
+                        if (result != null && result.appToken.isNotBlank()) {
                             prefs.saveZeppToken(result.appToken)
                             prefs.saveZeppUserId(result.userId)
                             appendLog("✅ Zepp登录成功")
                             fetchUsernameAfterLogin(DataSource.ZEPP)
                         } else {
-                            appendLog("❌ Zepp登录失败：账号或密码错误，请重新输入")
+                            // v8.0.1: 区分风控(429)与密码错误，不再一律提示"账号或密码错误"
+                            appendLog("❌ Zepp登录失败：${result?.error ?: "账号或密码错误，请重新输入"}")
                         }
                         loginFragment.updateStatus()
                         try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
@@ -1830,11 +1841,13 @@ class MainActivity : AppCompatActivity() {
         settingsFragment = com.jichi.ob.ui.SyncSettingsFragment()
         syncFragment = com.jichi.ob.ui.SyncFragment()
         aboutFragment = com.jichi.ob.ui.AboutFragment()
+        mergeFragment = com.jichi.ob.ui.MergeFragment()
         supportFragmentManager.beginTransaction()
             .add(R.id.fragmentContainer, loginFragment, "login")
             .add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
             .add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
             .add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
+            .add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
             .commit()
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         bottomNav.setOnItemSelectedListener { item ->
@@ -1860,6 +1873,74 @@ class MainActivity : AppCompatActivity() {
         // v7.7.4: hide/show 不触发 onResume，切到设置页时手动刷新来源/目标网格（登录/注销后即时生效，无需重启）
         if (target == settingsFragment) {
             try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
+        }
+    }
+
+    // ============ v7.9.7 轨迹合并：全屏覆盖页 ============
+    fun openMerge() {
+        // v8.0.0 限时体验：9月30号之前可用，系统时间过期后自动失效
+        if (!MergeTrial.isAvailable()) {
+            android.widget.Toast.makeText(this, "轨迹合并&透明贴纸 限时体验已结束", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().show(mergeFragment).commit()
+        bottomNav?.visibility = android.view.View.GONE
+        toolbar?.visibility = android.view.View.GONE
+    }
+
+    fun closeMerge() {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().hide(mergeFragment).commit()
+        bottomNav?.visibility = android.view.View.VISIBLE
+        toolbar?.visibility = android.view.View.VISIBLE
+        // 返回同步页（合并入口所在页）
+        try { showFragment(syncFragment) } catch (_: Exception) {}
+    }
+
+    /**
+     * 合并页拉取活动列表。
+     * - 未指定日期范围：只拉最近一页（30 条），秒开不卡；
+     * - 指定日期范围：从最新翻页拉取直到覆盖范围（记录日期早于 fromDate 停止，上限 1000 防卡），再按范围过滤。
+     */
+    suspend fun fetchMergeActivities(source: DataSource, fromDate: String? = null, toDate: String? = null): List<ActivityRecord> = withContext(Dispatchers.IO) {
+        val out = LinkedHashMap<String, ActivityRecord>()
+        var skip = 0
+        val page = 30
+        val max = 1000
+        try {
+            while (out.size < max) {
+                val batch = try {
+                    fetchActivities(source, skip, page)
+                } catch (e: Exception) {
+                    break
+                }
+                if (batch.isEmpty()) break
+                for (r in batch) out[r.id] = r
+                skip += batch.size
+                // v7.9.11 秒开修复：无日期筛选时只拉最近 1 批（约 30 条），不再白拉 1000 条导致打开卡顿
+                if (fromDate == null && toDate == null) break
+                if (batch.size < page) break
+            }
+        } catch (_: Exception) {}
+        val list = out.values.toList()
+        if (fromDate == null && toDate == null) return@withContext list.take(page)
+        list.filter { rec ->
+            val d = recDay(rec.startTime)
+            (fromDate == null || d >= fromDate) && (toDate == null || d <= toDate)
+        }
+    }
+
+    private fun recDay(startTime: String): String = startTime.take(10)
+
+    /** 合并页：下载单条轨迹原始数据（FIT/GPX） */
+    suspend fun downloadForMerge(source: DataSource, record: ActivityRecord): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            downloadActivity(source, DataSource.OUTBASE, record)
+        } catch (e: Exception) {
+            null
         }
     }
 
