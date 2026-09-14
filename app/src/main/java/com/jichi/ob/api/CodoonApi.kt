@@ -51,7 +51,9 @@ class CodoonApi {
         private const val BASIC_AUTH = "MDk5Y2NlMjhjMDVmNmMzOWFkNWUwNGU1MWVkNjA3MDQ6YzM5ZDNmYmVhMWU4NWJlY2VlNDFjMTk5N2FjZjBlMzY="
         private const val SIGN_KEY = "ecc140ad6e1e12f7d972af04add2c7ee"
         private const val DAVINCI = "0"
-        private const val DID = "24-00000000-03e1-7dd7-0033-c5870033c588"
+        // 注意：did 参与 HMAC 签名且服务端校验设备合法性，必须使用社区验证可用的合法 did
+        // （running_page codoon_sync.py 同款），否则登录返回 HTTP 400
+        private const val DID = "24-ffffffff-faac-3052-0033-c5870033c587"
         private const val UA = "CodoonSport(8.9.0 1170;Android 7;Sony XZ1)"
         private const val JSON_MEDIA = "application/json; charset=utf-8"
 

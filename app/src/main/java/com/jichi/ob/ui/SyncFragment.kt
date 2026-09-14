@@ -83,6 +83,11 @@ class SyncFragment : Fragment() {
         view.findViewById<MaterialButton>(R.id.btnClearSync)?.setOnClickListener { (activity as? MainActivity)?.clearSyncMemory() }
         view.findViewById<MaterialButton>(R.id.btnCopyLog)?.setOnClickListener { copyLog() }
 
+        // v7.9.7: 轨迹合并入口
+        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardMerge)?.setOnClickListener {
+            (activity as? MainActivity)?.openMerge()
+        }
+
         // 自动同步
         val switchAutoSync = view.findViewById<SwitchMaterial>(R.id.switchAutoSync)
         val sliderAutoInterval = view.findViewById<Slider>(R.id.sliderAutoInterval)

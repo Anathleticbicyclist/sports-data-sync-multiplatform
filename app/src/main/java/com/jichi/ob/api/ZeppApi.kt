@@ -90,7 +90,7 @@ class ZeppApi {
         .followSslRedirects(false)
         .build()
 
-    data class LoginResult(val appToken: String, val userId: String)
+    data class LoginResult(val appToken: String, val userId: String, val error: String? = null)
 
     private var lastAccount: String? = null
     private var lastPassword: String? = null
@@ -102,26 +102,30 @@ class ZeppApi {
         try {
             lastAccount = account
             lastPassword = password
-            val email = account.trim()
+            // 手机号登录必须带 +86 国家码（华米服务端校验，否则 401）
+            val raw = account.trim()
+            val isEmail = raw.contains("@")
+            val userName = if (isEmail) raw else "+86$raw"
 
-            // ① 获取 access code（POST registrations/tokens，302 Location 提取 access=）
-            val accessCode = fetchAccessCode(email, password) ?: run {
-                Log.w(TAG, "Zepp step1 access code 获取失败")
-                return@withContext null
+            // ① 获取 access code（POST registrations/tokens，json_response=true 直接返回 JSON）
+            val (accessCode, step1Err) = fetchAccessCode(userName, password)
+            if (accessCode == null) {
+                Log.w(TAG, "Zepp step1 access code 获取失败: $step1Err")
+                return@withContext LoginResult("", "", step1Err ?: "登录失败，请稍后再试")
             }
 
-            // ② 换取 login_token
+            // ② 换取 login_token（参数对齐社区最新实现：app_version 6.12.0 / android_phone / allow_registration=false / source）
             val loginForm = FormBody.Builder()
                 .add("app_name", APP_NAME)
-                .add("dn", DN)
-                .add("code", accessCode)
                 .add("country_code", "CN")
+                .add("code", accessCode)
                 .add("device_id", deviceId())
-                .add("device_model", "phone")
+                .add("device_model", "android_phone")
+                .add("app_version", "6.12.0")
                 .add("grant_type", "access_token")
-                .add("third_name", if (email.contains("@")) "email" else "huami_phone")
-                .add("app_version", "6.5.5")
-                .add("lang", "zh_CN")
+                .add("allow_registration", "false")
+                .add("source", APP_NAME)
+                .add("third_name", if (isEmail) "huami" else "huami_phone")
                 .build()
             val req2 = Request.Builder()
                 .url("https://account.huami.com/v2/client/login")
@@ -133,24 +137,28 @@ class ZeppApi {
             }
             if (code2 != 200) {
                 Log.w(TAG, "Zepp step2 login HTTP $code2: ${body2.take(150)}")
-                return@withContext null
+                val err2 = when {
+                    code2 == 429 || body2.contains("too many") -> "请求过于频繁，已被华米风控，请稍等几分钟再试"
+                    else -> "登录失败(HTTP $code2)，请稍后再试"
+                }
+                return@withContext LoginResult("", "", err2)
             }
             val j2 = try { JSONObject(body2) } catch (_: Exception) { null } ?: run {
                 Log.w(TAG, "Zepp step2 响应非JSON: ${body2.take(120)}")
-                return@withContext null
+                return@withContext LoginResult("", "", "登录响应异常，请稍后再试")
             }
             val tokenInfo = j2.optJSONObject("token_info") ?: run {
                 Log.w(TAG, "Zepp step2 无token_info: ${body2.take(150)}")
-                return@withContext null
+                return@withContext LoginResult("", "", "登录响应异常，请稍后再试")
             }
             val loginToken = tokenInfo.optString("login_token").takeIf { it.isNotBlank() } ?: run {
                 Log.w(TAG, "Zepp step2 无login_token: ${body2.take(150)}")
-                return@withContext null
+                return@withContext LoginResult("", "", "登录响应异常，请稍后再试")
             }
             val userId = tokenInfo.optString("user_id")
 
-            // ③ 换取 app_token
-            val q = "app_name=$APP_NAME&dn=$DN&login_token=${android.net.Uri.encode(loginToken)}&os_version=4.1.0"
+            // ③ 换取 app_token（简版：仅 login_token 参数，社区最新实现验证可用）
+            val q = "login_token=${android.net.Uri.encode(loginToken)}"
             val req3 = Request.Builder()
                 .url("https://account-cn.huami.com/v1/client/app_tokens?$q")
                 .header("User-Agent", UA)
@@ -161,16 +169,20 @@ class ZeppApi {
             }
             if (code3 != 200) {
                 Log.w(TAG, "Zepp step3 app_token HTTP $code3: ${body3.take(150)}")
-                return@withContext null
+                val err3 = when {
+                    code3 == 429 || body3.contains("too many") -> "请求过于频繁，已被华米风控，请稍等几分钟再试"
+                    else -> "登录失败(HTTP $code3)，请稍后再试"
+                }
+                return@withContext LoginResult("", "", err3)
             }
             val j3 = try { JSONObject(body3) } catch (_: Exception) { null } ?: run {
                 Log.w(TAG, "Zepp step3 响应非JSON: ${body3.take(120)}")
-                return@withContext null
+                return@withContext LoginResult("", "", "登录响应异常，请稍后再试")
             }
             val t3 = j3.optJSONObject("token_info") ?: j3
             val appToken = t3.optString("app_token").takeIf { it.isNotBlank() } ?: run {
                 Log.w(TAG, "Zepp step3 无app_token: ${body3.take(150)}")
-                return@withContext null
+                return@withContext LoginResult("", "", "登录响应缺少令牌，请稍后再试")
             }
             LoginResult(appToken, userId)
         } catch (e: Exception) {
@@ -179,35 +191,53 @@ class ZeppApi {
         }
     }
 
-    /** ① 注册端点拿 access code：POST → 302 Location 含 access=... */
-    private fun fetchAccessCode(email: String, password: String): String? {
+    /** ① 注册端点拿 access code：POST json_response=true → JSON body 含 access 字段
+     *  （旧实现依赖 302 Location 提取 access=，华米已改为 JSON 响应，登录 401 即此原因）
+     *  @param userName 邮箱原样；手机号需带 +86 前缀
+     *  @return (accessCode, errorMsg)：access 为空时 errorMsg 说明原因（429 风控 / 账号密码错误等） */
+    private fun fetchAccessCode(userName: String, password: String): Pair<String?, String?> {
         val form = FormBody.Builder()
             .add("client_id", "HuaMi")
+            .add("country_code", "CN")
+            .add("json_response", "true")
+            .add("name", userName)
             .add("password", password)
             .add("redirect_uri", "https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html")
-            .add("token", "access")
             .add("state", "REDIRECTION")
+            .add("token", "access")
             .build()
         val req = Request.Builder()
-            .url("https://api-user.huami.com/registrations/${android.net.Uri.encode(email)}/tokens")
+            .url("https://api-user.huami.com/registrations/${android.net.Uri.encode(userName)}/tokens")
             .header("User-Agent", UA)
             .post(form)
             .build()
         loginClient.newCall(req).execute().use { resp ->
+            val body = resp.body?.string() ?: ""
+            // ① 优先 JSON 响应（json_response=true 时服务端直接返回 {"access": "..."}）
+            try {
+                val j = JSONObject(body)
+                val access = j.optString("access").takeIf { it.isNotBlank() }
+                if (access != null) return Pair(access, null)
+            } catch (_: Exception) {}
+            // ② 兜底：302 Location 里提取 access=（兼容服务端仍走重定向）
             val location = resp.header("Location") ?: resp.header("location")
             if (location != null) {
-                val m = Regex("(?<=access=).*?(?=&)").find(location)
-                if (m != null) return m.value
-                // 兼容 access 在 query 末尾（无后续 &）
                 val m2 = Regex("[?&]access=([^&]*)").find(location)
-                if (m2 != null) return m2.groupValues[1]
+                if (m2 != null) return Pair(m2.groupValues[1], null)
             }
-            // 兜底：响应体里可能直接有 access_token（部分实现）
-            val body = resp.body?.string() ?: ""
+            // ③ 兜底：响应体里直接有 access_token（部分实现）
             val m3 = Regex("""access_token[=:]\s*"?([A-Za-z0-9._-]+)""").find(body)
-            if (m3 != null) return m3.groupValues[1]
-            Log.w(TAG, "Zepp step1 无 Location: code=${resp.code} body=${body.take(120)}")
-            return null
+            if (m3 != null) return Pair(m3.groupValues[1], null)
+            Log.w(TAG, "Zepp step1 无 access: code=${resp.code} body=${body.take(160)}")
+            // v8.0.1: 错误分类——429=风控（提示稍后再试），其余=账号或密码错误
+            val err = when {
+                resp.code == 429 -> "请求过于频繁(429)，已被华米风控，请稍等 5~10 分钟再试"
+                resp.code == 401 -> "账号或密码错误，请重新输入"
+                body.contains("\"code\":12") || body.contains("too many") -> "请求过于频繁，已被华米风控，请稍等几分钟再试"
+                resp.code == 403 -> "账号或密码错误，请重新输入"
+                else -> "登录失败(HTTP ${resp.code})，请稍后再试"
+            }
+            return Pair(null, err)
         }
     }
 

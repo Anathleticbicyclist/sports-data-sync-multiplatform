@@ -148,6 +148,55 @@
             <com.google.android.material.button.MaterialButton android:id="@+id/btnClearSync" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:maxLines="1" android:singleLine="true" android:ellipsize="none" android:paddingStart="2dp" android:paddingEnd="2dp" android:gravity="center" android:text="🗑 清记忆" android:textSize="12sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:textColor="@color/text_secondary" app:cornerRadius="12dp" />
         </LinearLayout>
 
+        <!-- v7.9.7 轨迹合并入口 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardMerge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#EAF4FF"
+            app:strokeColor="@color/primary"
+            app:strokeWidth="1dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🧩"
+                        android:textSize="18sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="轨迹合并&amp;透明贴纸"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="›"
+                        android:textSize="20sp"
+                        android:textColor="@color/primary" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- 日志 -->
         <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" app:cardCornerRadius="20dp" app:cardElevation="0dp"
             app:strokeColor="#E3EEFA"

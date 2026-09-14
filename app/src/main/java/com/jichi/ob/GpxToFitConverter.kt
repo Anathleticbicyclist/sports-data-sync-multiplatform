@@ -27,8 +27,9 @@ object GpxToFitConverter {
         0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400
     )
 
+    // v7.9.8: 兼容 lat/lon 与 lon/lat 两种属性顺序（部分平台 GPX 为 lon 在前）
     private val TRKPT_RE = Pattern.compile(
-        "<trkpt\\s+lat=\"([-\\d.]+)\"\\s+lon=\"([-\\d.]+)\"[^>]*>(.*?)</trkpt>",
+        "<trkpt\\s+(?:lat=\"([-\\d.]+)\"\\s+lon=\"([-\\d.]+)\"|lon=\"([-\\d.]+)\"\\s+lat=\"([-\\d.]+)\")[^>]*>(.*?)</trkpt>",
         Pattern.DOTALL
     )
     private val ELE_RE = Pattern.compile("<ele>([-\\d.]+)</ele>")
@@ -64,9 +65,9 @@ object GpxToFitConverter {
         val pts = mutableListOf<TrackPoint>()
         val m = TRKPT_RE.matcher(gpx)
         while (m.find() && pts.size < MAX_POINTS) {
-            val lat = m.group(1).toDoubleOrNull() ?: continue
-            val lon = m.group(2).toDoubleOrNull() ?: continue
-            val inner = m.group(3)
+            val lat = m.group(1)?.toDoubleOrNull() ?: m.group(4)?.toDoubleOrNull() ?: continue
+            val lon = m.group(2)?.toDoubleOrNull() ?: m.group(3)?.toDoubleOrNull() ?: continue
+            val inner = m.group(5)
             var ele = 0.0
             ELE_RE.matcher(inner).let { if (it.find()) ele = it.group(1).toDoubleOrNull() ?: 0.0 }
             var ts = 0L
@@ -117,7 +118,9 @@ object GpxToFitConverter {
         fun f(fn: Int, sz: Int, bt: Int) = apply { fields.add(Triple(fn, sz, bt)) }
         fun build(): ByteArray {
             val out = ByteArrayOutputStream()
-            u8(out, 0x40 or local)   // definition header bit6
+            // FIT 协议：Definition 消息头 = bit6（0x40|local），bit7=1 是 Compressed Timestamp 消息。
+            // 已验证：Garmin FIT SDK 21.x 用 HDR_TYPE_DEF_BIT=0x40 判定定义消息，此写法正确（勿改 0x80）。
+            u8(out, 0x40 or local)
             u8(out, 0)               // reserved
             u8(out, 0)               // architecture little-endian
             u16(out, global)
@@ -155,8 +158,26 @@ object GpxToFitConverter {
         val resolvedSport = if (sport > 0) sport else {
             detectSportFromGpx(gpxStr).takeIf { it > 0 } ?: 2
         }
-        val body = buildFitBody(pts, startUnix, resolvedSport)
+        return convertPoints(pts, resolvedSport)
+    }
 
+    /**
+     * v7.9.7: 轨迹合并入口——从已解析的 TrackPoint 列表直接生成标准合法 FIT。
+     * 与 [convert] 共用 buildFitBody + header 组装，保证合并产物与单条转换同样合法（含 header/CRC）。
+     * @param sport FIT sport 枚举（1=跑步，2=骑行，17=徒步）
+     */
+    fun convertPoints(pts: List<TrackPoint>, sport: Int = 2): ByteArray {
+        require(pts.isNotEmpty()) { "无有效轨迹点" }
+        val startUnix = pts.firstOrNull { it.ts > 0L }?.ts ?: (System.currentTimeMillis() / 1000)
+        val body = buildFitBody(pts, startUnix, sport)
+        return buildFitFile(body)
+    }
+
+    /** v7.9.7: 公开 GPX 解析入口（轨迹合并复用；私有 parseGpx 仅供内部单条转换） */
+    fun parseGpxBytes(gpx: ByteArray): List<TrackPoint> = parseGpx(String(gpx, Charsets.UTF_8))
+
+    /** 组装标准 FIT 文件：14字节header + body + bodyCRC */
+    private fun buildFitFile(body: ByteArray): ByteArray {
         val header = ByteArray(14)
         header[0] = 14
         header[1] = 0x10
@@ -211,46 +232,96 @@ object GpxToFitConverter {
         else
             Math.max(1L, (n - 1).toLong()) // 无有效时间，按点估算每秒一点
         var distM = 0.0; var ascent = 0.0; var descent = 0.0
+        var maxSpeedMs = 0.0
+        var hrSum = 0L; var hrN = 0L; var maxHr = 0
+        var cadSum = 0L; var cadN = 0L; var maxCad = 0
+        var powSum = 0L; var powN = 0L; var maxPow = 0
         for (i in 1 until n) {
             distM += haversineM(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon)
             val de = pts[i].ele - pts[i - 1].ele
             if (de > 0) ascent += de else descent += -de
+            val dt = pts[i].ts - pts[i - 1].ts
+            if (dt > 0) {
+                val spd = haversineM(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon) / dt
+                if (spd > maxSpeedMs) maxSpeedMs = spd
+            }
+        }
+        for (p in pts) {
+            if (p.hr > 0) { hrSum += p.hr; hrN++; if (p.hr > maxHr) maxHr = p.hr }
+            if (p.cad > 0) { cadSum += p.cad; cadN++; if (p.cad > maxCad) maxCad = p.cad }
+            if (p.power > 0) { powSum += p.power; powN++; if (p.power > maxPow) maxPow = p.power }
         }
         val avgSpeed = if (durationS > 0) distM / durationS else 0.0
+        val avgHr = if (hrN > 0) (hrSum / hrN).toInt() else 0
+        val avgCad = if (cadN > 0) (cadSum / cadN).toInt() else 0
+        val avgPow = if (powN > 0) (powSum / powN).toInt() else 0
+        // 卡路里：有功率 → 功率×时长×3.6；无功率跑步 → 60kcal/km（与贴纸统计同口径）
+        val calories = when {
+            avgPow > 0 -> (avgPow * (durationS / 3600.0) * 3.6).toInt()
+            sport == 1 -> (distM / 1000.0 * 60.0).toInt()
+            else -> 0
+        }
 
-        // --- session (local 3) ---
+        // --- session (local 3)：补齐 心率/踏频/功率/卡路里/增强速度 汇总，平台详情页才能解析出这些数据 ---
+        // Garmin SDK 21.176 SessionMesg 权威字段号（此前误用 LapMesg 字段号导致平台读不到）：
+        // 253 timestamp,2 start_time,3/4 start pos,5 sport,6 sub_sport,7 elapsed,8 timer,9 distance,
+        // 11 total_calories,14 avg_speed,15 max_speed,16 avg_hr,17 max_hr,18 avg_cad,19 max_cad,
+        // 20 avg_power,21 max_power,22 ascent,23 descent,26 num_laps,33 num_lengths,124/125 enhanced
         out.write(DefBuilder(3, 18)
             .f(253, 4, 0x86).f(2, 4, 0x86).f(3, 4, 0x85).f(4, 4, 0x85)
             .f(5, 1, 0x00).f(6, 1, 0x00).f(7, 4, 0x86).f(8, 4, 0x86)
-            .f(9, 4, 0x86).f(14, 2, 0x84).f(21, 2, 0x84).f(22, 2, 0x84)
-            .f(27, 1, 0x00).f(28, 1, 0x00).f(30, 2, 0x84).build())
+            .f(9, 4, 0x86).f(11, 2, 0x84).f(14, 2, 0x84).f(15, 2, 0x84)
+            .f(16, 1, 0x02).f(17, 1, 0x02).f(18, 1, 0x02).f(19, 1, 0x02)
+            .f(20, 2, 0x84).f(21, 2, 0x84).f(22, 2, 0x84).f(23, 2, 0x84)
+            .f(26, 1, 0x02).f(33, 1, 0x02).f(124, 2, 0x84).f(125, 2, 0x84).build())
         out.write(ByteArrayOutputStream().also { o ->
             u8(o, 0x03)
-            u32(o, fitLast - FIT_EPOCH_OFFSET)
-            u32(o, fit0 - FIT_EPOCH_OFFSET)
-            u32(o, degToSemicircle(pts[0].lat).toLong()); u32(o, degToSemicircle(pts[0].lon).toLong())
-            u8(o, sport); u8(o, 0)
-            u32(o, durationS * 1000); u32(o, durationS * 1000)
-            u32(o, (distM * 100).toLong())
-            u16(o, (avgSpeed * 1000).toInt())
-            u16(o, ascent.toInt()); u16(o, descent.toInt())
-            u8(o, 0); u8(o, 0); u16(o, 1)
+            u32(o, fitLast - FIT_EPOCH_OFFSET)     // 253 timestamp
+            u32(o, fit0 - FIT_EPOCH_OFFSET)        // 2 start_time
+            u32(o, degToSemicircle(pts[0].lat).toLong()); u32(o, degToSemicircle(pts[0].lon).toLong()) // 3/4
+            u8(o, sport); u8(o, 0)                 // 5 sport / 6 sub_sport
+            u32(o, durationS * 1000); u32(o, durationS * 1000) // 7/8
+            u32(o, (distM * 100).toLong())         // 9 total_distance (100cm)
+            u16(o, calories.coerceIn(0, 65535))    // 11 total_calories
+            u16(o, (avgSpeed * 1000).toInt())      // 14 avg_speed (m/s*1000)
+            u16(o, (maxSpeedMs * 1000).toInt())    // 15 max_speed
+            u8(o, avgHr); u8(o, maxHr)             // 16 avg_hr / 17 max_hr
+            u8(o, avgCad); u8(o, maxCad)           // 18 avg_cad / 19 max_cad
+            u16(o, avgPow); u16(o, maxPow)         // 20 avg_power / 21 max_power
+            u16(o, ascent.toInt()); u16(o, descent.toInt()) // 22/23
+            u8(o, 1); u8(o, 0)                     // 26 num_laps / 33 num_lengths
+            u16(o, (avgSpeed * 1000).toInt())      // 124 enhanced_avg_speed
+            u16(o, (maxSpeedMs * 1000).toInt())    // 125 enhanced_max_speed
         }.toByteArray())
 
-        // --- lap (local 4) ---
+        // --- lap (local 4)：同样补齐关键汇总（avg_speed/max_speed/hr/power） ---
+        // Garmin SDK 21.176 LapMesg 权威字段号：
+        // 253 timestamp,2 start_time,3/4 start pos,7 elapsed,8 timer,9 distance,11 calories,
+        // 13 avg_speed,14 max_speed,15 avg_hr,16 max_hr,17 avg_cad,18 max_cad,
+        // 19 avg_power,20 max_power,21 ascent,22 descent,32 num_lengths,110/111 enhanced
         out.write(DefBuilder(4, 19)
             .f(253, 4, 0x86).f(2, 4, 0x86).f(3, 4, 0x85).f(4, 4, 0x85)
-            .f(7, 4, 0x86).f(8, 4, 0x86).f(9, 4, 0x86).f(13, 2, 0x84)
-            .f(27, 1, 0x00).f(28, 1, 0x00).build())
+            .f(7, 4, 0x86).f(8, 4, 0x86).f(9, 4, 0x86).f(11, 2, 0x84)
+            .f(13, 2, 0x84).f(14, 2, 0x84).f(15, 1, 0x02).f(16, 1, 0x02)
+            .f(17, 1, 0x02).f(18, 1, 0x02).f(19, 2, 0x84).f(20, 2, 0x84)
+            .f(21, 2, 0x84).f(22, 2, 0x84).f(32, 1, 0x02).f(110, 2, 0x84).f(111, 2, 0x84).build())
         out.write(ByteArrayOutputStream().also { o ->
             u8(o, 0x04)
-            u32(o, fitLast - FIT_EPOCH_OFFSET)
-            u32(o, fit0 - FIT_EPOCH_OFFSET)
-            u32(o, degToSemicircle(pts[0].lat).toLong()); u32(o, degToSemicircle(pts[0].lon).toLong())
-            u32(o, durationS * 1000); u32(o, durationS * 1000)
-            u32(o, (distM * 100).toLong())
-            u16(o, (avgSpeed * 1000).toInt())
-            u8(o, 0); u8(o, 0)
+            u32(o, fitLast - FIT_EPOCH_OFFSET)     // 253
+            u32(o, fit0 - FIT_EPOCH_OFFSET)        // 2
+            u32(o, degToSemicircle(pts[0].lat).toLong()); u32(o, degToSemicircle(pts[0].lon).toLong()) // 3/4
+            u32(o, durationS * 1000); u32(o, durationS * 1000) // 7/8
+            u32(o, (distM * 100).toLong())         // 9
+            u16(o, calories.coerceIn(0, 65535))    // 11
+            u16(o, (avgSpeed * 1000).toInt())      // 13 avg_speed
+            u16(o, (maxSpeedMs * 1000).toInt())    // 14 max_speed
+            u8(o, avgHr); u8(o, maxHr)             // 15/16
+            u8(o, avgCad); u8(o, maxCad)           // 17/18
+            u16(o, avgPow); u16(o, maxPow)         // 19/20
+            u16(o, ascent.toInt()); u16(o, descent.toInt()) // 21/22
+            u8(o, 1)                               // 32 num_lengths
+            u16(o, (avgSpeed * 1000).toInt())      // 110 enhanced_avg_speed
+            u16(o, (maxSpeedMs * 1000).toInt())    // 111 enhanced_max_speed
         }.toByteArray())
 
         // --- activity (local 5) ---
@@ -287,7 +358,7 @@ object GpxToFitConverter {
                 u8(o, 0x06)
                 u32(o, ts - FIT_EPOCH_OFFSET)
                 u32(o, degToSemicircle(p.lat).toLong()); u32(o, degToSemicircle(p.lon).toLong())
-                u16(o, (p.ele * 5).toInt())
+                u16(o, ((p.ele + 500.0) * 5.0).toInt())  // FIT 海拔编码 = (m + 500) * 5
                 u8(o, p.hr)  // heart_rate uint8
                 u8(o, p.cad) // cadence uint8
                 u32(o, (cum * 100).toLong())
