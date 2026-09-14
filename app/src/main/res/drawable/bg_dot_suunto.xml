@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v7.9.6 Suunto 松拓 品牌色圆点徽章（松拓蓝） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/suunto_blue" />
+</shape>

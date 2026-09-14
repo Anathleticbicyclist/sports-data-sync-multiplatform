@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v7.9.5"
+                    android:text="开发体验版 v7.9.6"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,12 +102,12 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.9.5)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="更新支持平台咕咚(Codoon)和 Zepp(华米)，均为运动数据下载源；新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v7.9.6)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="新增支持 Komoot 和 松拓(Suunto) 两个平台，均可作为运动数据下载源和上传目标（双向同步）；结合社区开源实现，充分考虑坐标转换与风控。新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.9.5" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="更新支持平台咕咚(Codoon)和 Zepp(华米)，均为运动数据下载源" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.9.4" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="修复自研FIT缺header结构缺陷；Keep→iGPSPORT改回直传GPX(带type标记)；Outbase上传节流防风控" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v7.9.3" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Keep同步优化：坐标转换+上传统一FIT" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -134,7 +134,7 @@
             android:padding="8dp"
             android:background="@drawable/bg_note_card">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="🙏 鸣谢" android:textColor="@color/primary" android:textSize="12sp" android:textStyle="bold" android:padding="2dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、捷安特、高驰、佳明、Wahoo、Outbase、Keep、咕咚、Zepp为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、捷安特、高驰、佳明、Wahoo、Outbase、Keep、咕咚、Zepp、Komoot、Suunto为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸣谢青岛AUV俱乐部" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="8dp" />

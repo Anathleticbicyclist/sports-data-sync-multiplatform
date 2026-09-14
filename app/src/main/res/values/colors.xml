@@ -40,6 +40,8 @@
     <color name="keep_yellow">#FFB800</color>       <!-- Keep：品牌黄 -->
     <color name="codoon_green">#00B4A0</color>      <!-- v7.9.5 咕咚 Codoon：青绿 -->
     <color name="zepp_blue">#3457D5</color>         <!-- v7.9.5 Zepp（华米）：蓝 -->
+    <color name="komoot_red">#E23135</color>        <!-- v7.9.6 Komoot：品牌红 -->
+    <color name="suunto_blue">#1E88E5</color>       <!-- v7.9.6 Suunto 松拓：蓝 -->
 
     <!-- 基础色 -->
     <color name="white">#FFFFFF</color>

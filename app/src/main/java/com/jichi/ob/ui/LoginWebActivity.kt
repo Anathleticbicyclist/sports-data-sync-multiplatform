@@ -55,6 +55,7 @@ class LoginWebActivity : AppCompatActivity() {
         const val TYPE_COROS_CN = "coros_cn"
         const val TYPE_COROS_INT = "coros_int"
         const val TYPE_WAHOO = "wahoo"
+        const val TYPE_SUUNTO = "suunto"
         const val RESULT_TOKEN = "***"
         const val RESULT_SESSION_ID = "session_id"
         const val RESULT_LOGIN_TYPE = "login_type"
@@ -91,6 +92,7 @@ class LoginWebActivity : AppCompatActivity() {
                 TYPE_COROS_CN -> { origins = listOf("https://trainingcn.coros.com"); domains = listOf("trainingcn.coros.com", "coros.com") }
                 TYPE_COROS_INT -> { origins = listOf("https://training.coros.com"); domains = listOf("training.coros.com", "coros.com") }
                 TYPE_WAHOO -> { origins = listOf("https://sso.wahoo.com", "https://api.wahooligan.com"); domains = listOf("sso.wahoo.com", "api.wahooligan.com", "wahoo.com") }
+                TYPE_SUUNTO -> { origins = listOf("https://cloudapi-oauth.suunto.com", "https://cloudapi.suunto.com"); domains = listOf("cloudapi-oauth.suunto.com", "cloudapi.suunto.com", "suunto.com", "localhost") }
                 else -> return
             }
             // 清除localStorage（按origin）
@@ -183,6 +185,7 @@ class LoginWebActivity : AppCompatActivity() {
         TYPE_COROS_CN -> DataSource.COROS_CN
         TYPE_COROS_INT -> DataSource.COROS_INT
         TYPE_WAHOO -> DataSource.WAHOO
+        TYPE_SUUNTO -> DataSource.SUUNTO
         else -> DataSource.IGPSPORT
     }
 
@@ -212,6 +215,7 @@ class LoginWebActivity : AppCompatActivity() {
                 TYPE_COROS_CN -> "登录高驰中国"
                 TYPE_COROS_INT -> "登录高驰国际"
                 TYPE_WAHOO -> "登录 Wahoo"
+                TYPE_SUUNTO -> "登录 松拓"
                 else -> "登录"
             }
             toolbar.setNavigationOnClickListener { detected = true; finish() }
@@ -334,7 +338,7 @@ class LoginWebActivity : AppCompatActivity() {
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
                     if (url != null) urlHistory.add("shouldOverride: $url")
                     // v7.4.4: Wahoo回调URL在这里拦截，避免SSL错误导致捕获失败
-                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && !detected) {
+                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -375,7 +379,7 @@ class LoginWebActivity : AppCompatActivity() {
                 allowContentAccess = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 // v7.7.3: iGPSPORT也用移动UA（桌面UA在旧WebView内核下登录页渲染异常，手机浏览器可正常打开）
-                userAgentString = if (loginType == TYPE_WAHOO || loginType == TYPE_IGPSPORT) MOBILE_UA else DESKTOP_UA
+                userAgentString = if (loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO || loginType == TYPE_IGPSPORT) MOBILE_UA else DESKTOP_UA
                 if (loginType == TYPE_OUTBASE) {
                     useWideViewPort = true
                     loadWithOverviewMode = true
@@ -399,7 +403,7 @@ class LoginWebActivity : AppCompatActivity() {
                     Log.d(TAG, "[$loginType] PageStarted: $url")
                     if (url != null) urlHistory.add("pageStarted: $url")
                     // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
-                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
+                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -445,7 +449,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val failingUrl = request?.url?.toString()
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for $failingUrl")
                     if (failingUrl != null) urlHistory.add("onError: $failingUrl")
-                    if (loginType == TYPE_WAHOO && failingUrl != null && (failingUrl.contains("localhost:8080") || failingUrl.contains("wahoo/callback")) && failingUrl.contains("code=") && !detected) {
+                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && failingUrl != null && (failingUrl.contains("localhost:8080") || failingUrl.contains("wahoo/callback")) && failingUrl.contains("code=") && !detected) {
                         val code = extractWahooCode(failingUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -478,7 +482,7 @@ class LoginWebActivity : AppCompatActivity() {
                         webViewUrl != null && webViewUrl.contains("localhost:8080") && webViewUrl.contains("code=") -> webViewUrl
                         else -> null
                     }
-                    if (loginType == TYPE_WAHOO && candidateUrl != null && !detected) {
+                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && candidateUrl != null && !detected) {
                         val code = extractWahooCode(candidateUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -509,7 +513,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val url = request?.url?.toString()
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
                     if (url != null) urlHistory.add("shouldOverride: $url")
-                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
+                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -528,7 +532,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     Log.d(TAG, "[$loginType] doUpdateVisitedHistory: $url")
                     if (url != null) urlHistory.add("doUpdate: $url")
-                    if (loginType == TYPE_WAHOO && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
+                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -714,6 +718,7 @@ class LoginWebActivity : AppCompatActivity() {
             TYPE_COROS_CN -> detectCoros(cn = true)
             TYPE_COROS_INT -> detectCoros(cn = false)
             TYPE_WAHOO -> detectWahoo()
+            TYPE_SUUNTO -> detectWahoo()  // v7.9.6: 松拓同为 OAuth2 回调 localhost:8080?code=，复用 Wahoo 兜底
         }
     }
 
