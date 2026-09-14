@@ -53,6 +53,8 @@ import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
 import com.jichi.ob.api.CodoonApi
 import com.jichi.ob.api.ZeppApi
+import com.jichi.ob.api.KomootApi
+import com.jichi.ob.api.SuuntoApi
 import com.jichi.ob.api.MageneApi
 import com.jichi.ob.api.OutbaseApi
 import com.jichi.ob.api.UploadEngine
@@ -110,6 +112,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var keepApi: KeepApi
     private lateinit var codoonApi: CodoonApi
     private lateinit var zeppApi: ZeppApi
+    private lateinit var komootApi: KomootApi
+    private lateinit var suuntoApi: SuuntoApi
     private lateinit var intervalsIcuApi: IntervalsIcuApi
     private lateinit var corosApi: CorosApi
     private lateinit var wahooApi: WahooApi
@@ -219,6 +223,26 @@ class MainActivity : AppCompatActivity() {
                             }
                         } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码或未配置凭证")
                     }
+                    LoginWebActivity.TYPE_SUUNTO -> {
+                        // v7.9.6: Suunto 返回 OAuth2 授权码 → 换 token（需三凭证）
+                        val clientId = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_ID else prefs.getSuuntoClientId()
+                        val clientSecret = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_SECRET else prefs.getSuuntoClientSecret()
+                        val subKey = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_SUBSCRIPTION_KEY else prefs.getSuuntoSubscriptionKey()
+                        if (sid.length > 5 && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty() && !subKey.isNullOrEmpty()) {
+                            val code = sid
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                val fresh = suuntoApi.exchangeCode(code, clientId, clientSecret, subKey)
+                                runOnUiThread {
+                                    if (fresh != null) {
+                                        prefs.saveSuuntoToken(fresh.accessToken)
+                                        prefs.saveSuuntoRefresh(fresh.refreshToken)
+                                        appendLog("✅ 松拓登录成功"); fetchUsernameAfterLogin(DataSource.SUUNTO)
+                                    } else appendLog("⚠️ 松拓token换取失败")
+                                    loginFragment.updateStatus()
+                                }
+                            }
+                        } else appendLog("⚠️ 松拓登录失败: 未捕获到授权码或未配置凭证")
+                    }
                 }
                 loginFragment.updateStatus()
                 // v7.7.4: 登录成功后刷新设置页来源/目标网格，目标立即可选，无需重启App
@@ -259,6 +283,8 @@ class MainActivity : AppCompatActivity() {
             keepApi = KeepApi()
             codoonApi = CodoonApi()
             zeppApi = ZeppApi()
+            komootApi = KomootApi()
+            suuntoApi = SuuntoApi()
             // v7.9.5: 同步咕咚/Zepp 坐标转换开关（默认关=WGS-84；如需开启在设置页预置）
             CodoonApi.gcjConvertEnabled = prefs.isCodoonGcjConvertEnabled()
             ZeppApi.gcjConvertEnabled = prefs.isZeppGcjConvertEnabled()
@@ -794,6 +820,123 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** v7.9.6: Komoot 直接登录——邮箱+密码（纯API Basic认证，双向：下载+上传） */
+    internal fun openKomootLogin() {
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 24)
+        }
+        val emailInput = android.widget.EditText(this).apply {
+            hint = "Komoot 邮箱"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            setText(prefs.getKomootAccount() ?: "")
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = "Komoot 密码"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        layout.addView(emailInput)
+        layout.addView(passwordInput)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("登录 Komoot")
+            .setMessage("使用 Komoot 官网注册账号的邮箱密码直接登录，Komoot 作为数据源和上传目标（双向同步）")
+            .setView(layout)
+            .setPositiveButton("登录") { _, _ ->
+                val email = emailInput.text.toString().trim()
+                val password = passwordInput.text.toString()
+                if (email.isEmpty() || password.isEmpty()) {
+                    appendLog("⚠️ 请输入 Komoot 邮箱和密码")
+                    return@setPositiveButton
+                }
+                prefs.saveKomootAccount(email)
+                appendLog("🔐 Komoot直接登录中...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = komootApi.login(email, password)
+                    runOnUiThread {
+                        if (result != null) {
+                            prefs.saveKomootToken(result.token)
+                            prefs.saveUsername(DataSource.KOMOT, result.username)
+                            appendLog("✅ Komoot登录成功")
+                            fetchUsernameAfterLogin(DataSource.KOMOT)
+                        } else {
+                            appendLog("❌ Komoot登录失败：邮箱或密码错误，请重新输入")
+                        }
+                        loginFragment.updateStatus()
+                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /**
+     * v7.9.6: Suunto（松拓）登录——OAuth2 授权。
+     * 需要 apizone.suunto.com 注册开发者应用的 client_id/client_secret/subscription_key 三凭证。
+     * ① 若凭证已内置/已保存 → 直接打开 WebView 授权页；
+     * ② 否则先弹对话框填三凭证（仅首次）。
+     */
+    internal fun openSuuntoLogin() {
+        val hasCreds = com.jichi.ob.api.SuuntoApi.isBuiltinConfigured() ||
+            (!prefs.getSuuntoClientId().isNullOrEmpty() && !prefs.getSuuntoClientSecret().isNullOrEmpty() && !prefs.getSuuntoSubscriptionKey().isNullOrEmpty())
+        if (!hasCreds) {
+            // 首次：填三凭证
+            val layout = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(48, 24, 48, 24)
+            }
+            val clientIdInput = android.widget.EditText(this).apply {
+                hint = "Client ID"
+                inputType = android.text.InputType.TYPE_CLASS_TEXT
+                setText(prefs.getSuuntoClientId() ?: "")
+            }
+            val clientSecretInput = android.widget.EditText(this).apply {
+                hint = "Client Secret"
+                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                setText(prefs.getSuuntoClientSecret() ?: "")
+            }
+            val subKeyInput = android.widget.EditText(this).apply {
+                hint = "Subscription Key"
+                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                setText(prefs.getSuuntoSubscriptionKey() ?: "")
+            }
+            layout.addView(clientIdInput)
+            layout.addView(clientSecretInput)
+            layout.addView(subKeyInput)
+
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("松拓开发者凭证")
+                .setMessage("在 apizone.suunto.com 免费注册开发者应用（个人申请约3-4周审批），到应用详情页复制 Client ID / Client Secret / Subscription Key 三凭证（仅首次填写，仅存本机）")
+                .setView(layout)
+                .setPositiveButton("下一步") { _, _ ->
+                    val cid = clientIdInput.text.toString().trim()
+                    val cs = clientSecretInput.text.toString().trim()
+                    val sk = subKeyInput.text.toString().trim()
+                    if (cid.isEmpty() || cs.isEmpty() || sk.isEmpty()) {
+                        appendLog("⚠️ 请完整填写松拓三个凭证")
+                        return@setPositiveButton
+                    }
+                    prefs.saveSuuntoClientId(cid)
+                    prefs.saveSuuntoClientSecret(cs)
+                    prefs.saveSuuntoSubscriptionKey(sk)
+                    launchSuuntoWebAuth(cid)
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        } else {
+            val cid = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured())
+                com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_ID else prefs.getSuuntoClientId()!!
+            launchSuuntoWebAuth(cid)
+        }
+    }
+
+    private fun launchSuuntoWebAuth(clientId: String) {
+        appendLog("🔐 打开松拓授权页...")
+        openLogin(LoginWebActivity.TYPE_SUUNTO, suuntoApi.authorizeUrl(clientId))
+    }
+
     /** v7.8.5: Intervals.icu 直接登录——粘贴个人 API Key（纯API，仅上传目标） */
     internal fun openIntervalsIcuLogin() {
         val layout = android.widget.LinearLayout(this).apply {
@@ -899,7 +1042,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
                 DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO, DataSource.GIANT,
                 DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU, DataSource.KEEP,
-                DataSource.CODOON, DataSource.ZEPP
+                DataSource.CODOON, DataSource.ZEPP, DataSource.KOMOT, DataSource.SUUNTO
             )
             for (ds in platforms) {
                 if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
@@ -924,6 +1067,14 @@ class MainActivity : AppCompatActivity() {
                         DataSource.KEEP -> keepApi.getUsername(cred)
                         DataSource.CODOON -> codoonApi.getUsername(cred)
                         DataSource.ZEPP -> zeppApi.getUsername(cred)
+                        DataSource.KOMOT -> {
+                            val email = prefs.getKomootAccount()
+                            if (email.isNullOrEmpty()) null else komootApi.getUsername(email, cred)
+                        }
+                        DataSource.SUUNTO -> {
+                            val sk = suuntoSubscriptionKey()
+                            if (sk.isNullOrEmpty()) null else suuntoApi.getUsername(cred, sk)
+                        }
                         DataSource.INTERVALS_ICU -> {
                             // v7.8.5: API Key 有效性即登录态
                             if (intervalsIcuApi.validateKey(cred))
@@ -1055,8 +1206,37 @@ class MainActivity : AppCompatActivity() {
         DataSource.KEEP -> null  // Keep 无 refresh 端点，需重新登录
         DataSource.CODOON -> null  // 咕咚无 refresh 端点，需重新登录
         DataSource.ZEPP -> null  // Zepp 无 refresh 端点，需重新登录
+        DataSource.KOMOT -> {
+            // v7.9.6: Komoot token 为长期令牌，失效时用内存中的最近账号密码自动重登
+            try {
+                val fresh = komootApi.reLoginIfNeeded()
+                fresh?.token
+            } catch (e: Exception) { null }
+        }
+        DataSource.SUUNTO -> {
+            // v7.9.6: Suunto 用 refresh_token 刷新（轮换令牌，成功后需同时保存新access+refresh）
+            val refresh = prefs.getSuuntoRefresh()
+            val clientId = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_ID else prefs.getSuuntoClientId()
+            val clientSecret = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_SECRET else prefs.getSuuntoClientSecret()
+            val subKey = suuntoSubscriptionKey()
+            if (refresh.isNullOrEmpty() || clientId.isNullOrEmpty() || clientSecret.isNullOrEmpty() || subKey.isNullOrEmpty()) null
+            else {
+                val fresh = suuntoApi.refreshToken(refresh, clientId, clientSecret, subKey)
+                if (fresh != null) {
+                    prefs.saveSuuntoToken(fresh.accessToken)
+                    prefs.saveSuuntoRefresh(fresh.refreshToken)
+                    fresh.accessToken
+                } else null
+            }
+        }
         else -> null
     }
+
+    /** v7.9.6: Suunto Subscription Key（内置优先，其次用户配置） */
+    private fun suuntoSubscriptionKey(): String? =
+        if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured())
+            com.jichi.ob.api.SuuntoApi.BUILTIN_SUBSCRIPTION_KEY
+        else prefs.getSuuntoSubscriptionKey()
 
     private fun fetchUsernameAfterLogin(ds: DataSource) {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -1081,6 +1261,11 @@ class MainActivity : AppCompatActivity() {
                 DataSource.KEEP -> keepApi.getUsername(cred)
                 DataSource.CODOON -> codoonApi.getUsername(cred)
                 DataSource.ZEPP -> zeppApi.getUsername(cred)
+                DataSource.KOMOT -> {
+                    val email = prefs.getKomootAccount()
+                    if (email.isNullOrEmpty()) null else komootApi.getUsername(email, cred)
+                }
+                DataSource.SUUNTO -> suuntoApi.getUsername(cred, suuntoSubscriptionKey() ?: "")
             }
             if (name != null) {
                 prefs.saveUsername(ds, name)
@@ -1496,6 +1681,11 @@ class MainActivity : AppCompatActivity() {
             DataSource.KEEP -> keepApi.getActivities(cred, skip, limit)
             DataSource.CODOON -> codoonApi.getActivities(cred, prefs.getCodoonUserId() ?: "", skip, limit)
             DataSource.ZEPP -> zeppApi.getActivities(cred, prefs.getZeppUserId() ?: "", skip, limit)
+            DataSource.KOMOT -> {
+                val email = prefs.getKomootAccount()
+                if (email.isNullOrEmpty()) emptyList() else komootApi.getActivities(email, cred, skip, limit)
+            }
+            DataSource.SUUNTO -> suuntoApi.getActivities(cred, suuntoSubscriptionKey() ?: "", skip, limit)
             else -> emptyList()
         }
     }
@@ -1606,6 +1796,15 @@ class MainActivity : AppCompatActivity() {
             DataSource.ZEPP -> {
                 // v7.9.5: Zepp 下载轨迹→GPX（id=trackid，extra=source）
                 zeppApi.downloadGpx(cred, record.id, record.extra ?: "")
+            }
+            DataSource.KOMOT -> {
+                // v7.9.6: Komoot 下载轨迹→GPX（extra=tour id），国际平台 WGS-84 无需坐标转换
+                val email = prefs.getKomootAccount()
+                if (email.isNullOrEmpty()) null else komootApi.downloadGpx(email, cred, record.extra ?: record.id)
+            }
+            DataSource.SUUNTO -> {
+                // v7.9.6: Suunto 下载轨迹→FIT（国际平台 WGS-84，无需坐标转换）
+                suuntoApi.download(cred, suuntoSubscriptionKey() ?: "", record.extra ?: record.id, gpx = false)
             }
             else -> null
         }

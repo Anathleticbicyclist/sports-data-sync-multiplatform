@@ -142,7 +142,67 @@ class UploadEngine(private val context: android.content.Context? = null) {
             DataSource.COROS_INT -> uploadToCoros(credential, uploadData, record)
             DataSource.WAHOO -> uploadToWahoo(credential, uploadData, record)
             DataSource.INTERVALS_ICU -> uploadToIntervalsIcu(credential, uploadData, record, extra)
+            DataSource.KOMOT -> uploadToKomoot(credential, uploadData, record)
+            DataSource.SUUNTO -> uploadToSuunto(credential, uploadData, record)
             else -> UploadResult(false, message = "${target.displayName}上传功能开发中")
+        }
+    }
+
+    /**
+     * v7.9.6: Komoot 上传（官方内部API，POST 二进制，Basic(email, token)）。
+     * - GPX：直接上传，query 带 sport（Komoot GPX 需要 sport 参数确定类型）
+     * - FIT：直接上传（sport 已写入文件，无需 query）
+     * 响应 201=新建 / 202=重复。
+     */
+    private suspend fun uploadToKomoot(
+        credential: String, data: ByteArray, record: ActivityRecord
+    ): UploadResult = withContext(Dispatchers.IO) {
+        try {
+            val email = (context?.let {
+                com.jichi.ob.util.PrefsManager(it).getKomootAccount()
+            }) ?: ""
+            if (email.isBlank()) {
+                return@withContext UploadResult(false, message = "Komoot上传失败: 未获取到账号邮箱")
+            }
+            val api = KomootApi()
+            val isFit = com.jichi.ob.GpxToFitConverter.isFit(data)
+            val sport = api.mapToKomootSport(record)
+            val (ok, msg) = api.upload(email, credential, data, record, isFit, sport)
+            UploadResult(ok, message = msg)
+        } catch (e: Exception) {
+            Log.e(TAG, "uploadToKomoot error", e)
+            UploadResult(false, message = "Komoot上传失败: ${e.message}")
+        }
+    }
+
+    /**
+     * v7.9.6: Suunto 上传（三步：POST /v2/upload → PUT uploadUrl → 轮询状态）。
+     * Suunto 仅接受 FIT，若上游是 GPX 先经 GpxToFitConverter 转换。
+     */
+    private suspend fun uploadToSuunto(
+        credential: String, data: ByteArray, record: ActivityRecord
+    ): UploadResult = withContext(Dispatchers.IO) {
+        try {
+            val subKey = (context?.let {
+                com.jichi.ob.util.PrefsManager(it).getSuuntoSubscriptionKey()
+            }) ?: ""
+            if (subKey.isBlank()) {
+                return@withContext UploadResult(false, message = "松拓上传失败: 未配置Subscription Key")
+            }
+            val fitData = if (com.jichi.ob.GpxToFitConverter.isFit(data)) data else {
+                try {
+                    Log.d(TAG, "松拓: GPX转FIT(${data.size} bytes)")
+                    com.jichi.ob.GpxToFitConverter.convert(data)
+                } catch (e: Exception) {
+                    Log.w(TAG, "松拓GPX转FIT失败: ${e.message}")
+                    data
+                }
+            }
+            val (ok, msg) = SuuntoApi().upload(credential, subKey, fitData, record)
+            UploadResult(ok, message = msg)
+        } catch (e: Exception) {
+            Log.e(TAG, "uploadToSuunto error", e)
+            UploadResult(false, message = "松拓上传失败: ${e.message}")
         }
     }
 

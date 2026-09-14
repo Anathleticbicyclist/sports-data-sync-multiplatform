@@ -7,10 +7,10 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v7.9.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v7.9.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp** 十七平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
 
 > ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v7.9.5 |
+| 当前版本 | v7.9.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -101,6 +101,8 @@
 | Keep | 手机号+密码登录（纯API） |
 | 咕咚 | 手机号+密码登录（纯API） |
 | Zepp | 邮箱/手机号+密码登录（纯API） |
+| Komoot | 邮箱+密码登录（官方内部API，纯HTTP） |
+| 松拓Suunto | OAuth2授权登录（需开发者凭证） |
 | 高驰中国 | 账号登录 |
 | 高驰国际 | 账号登录 |
 | Wahoo | 账号登录 |
@@ -288,13 +290,15 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 | **Keep** | ✅ | ⚠️ 半自动 | 手机号+密码纯API登录，跑步/骑行/徒步记录下载为GPX（v7.9.2，自动识别运动类型）；上传为半自动引导（生成FIT后在Keep App手动导入） |
 | **咕咚** | ✅ | ❌ | 咕咚运动数据，手机号+密码纯API登录（v7.9.5），Hike/Run/Ride 下载为GPX；官方无开放上传API |
 | **Zepp** | ✅ | ❌ | 华米Zepp/小米运动数据，邮箱/手机号+密码纯API登录（v7.9.5），跑步/健走/骑行等下载为GPX；官方无开放上传API |
+| **Komoot** | ✅ | ✅ | Komoot运动数据，邮箱+密码官方内部API登录（v7.9.6，参考Kompy开源方案），跑步/骑行/徒步等下载为GPX、上传支持FIT/GPX（sport自动映射）；国际平台WGS-84坐标无需转换 |
+| **Suunto** | ✅ | ✅ | 松拓运动数据，OAuth2授权登录（v7.9.6，参考suunto-mcp开源方案，需apizone开发者凭证），下载FIT/上传仅FIT（GPX自动转FIT）；国际平台WGS-84坐标无需转换 |
 | **MyWhoosh** | ✅ | ❌ | 虚拟骑行平台，仅作下载数据源（账号密码API登录） |
 | **Zwift** | ✅ | ❌ | 虚拟骑行平台，仅作下载数据源（S3直链下载） |
 
 **支持的同步组合**：
 - 任意平台 → Outbase 上传
 - iGPSPORT / 行者 / 迈金 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo 之间任意互传
-- Keep / 咕咚 / Zepp → 任意上传目标（自动识别运动类型）
+- Keep / 咕咚 / Zepp / Komoot / Suunto → 任意上传目标（自动识别运动类型）
 - 国内区↔国际区互传：佳明国际↔佳明中国、高驰中国↔高驰国际
 
 ### 迈金坐标转换（亮点功能）
@@ -353,7 +357,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ### 🏢 平台鸣谢
 
-感谢iGPSPORT、行者、迈金、黑鸟单车、百锐腾、捷安特、Outbase、佳明、高驰、Wahoo、Keep、咕咚、Zepp为运动用户提供的数据记录与存储服务。
+感谢iGPSPORT、行者、迈金、黑鸟单车、百锐腾、捷安特、Outbase、佳明、高驰、Wahoo、Keep、咕咚、Zepp、Komoot、Suunto为运动用户提供的数据记录与存储服务。
 
 - iGPSPORT迹驰 — [Innovation for Great Performance @ SPORTS](https://www.igpsport.com)
 - 行者 — [虽千万里 吾往矣](https://www.imxingzhe.com)
@@ -368,6 +372,8 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 - Keep — [自律给我自由](https://www.gotokeep.com)
 - 咕咚Codoon — [快乐运动，用心生活](https://www.codoon.com)
 - Zepp（华米） — [AMAZFIT 华米科技](https://www.huami.com)
+- Komoot — [Adventure Awaits](https://www.komoot.com)
+- Suunto（松拓） — [探索极限](https://www.suunto.com)
 
 > 各平台运动数据的相关权益归该数据产生用户及相应平台依法各自享有。本工具仅用于用户本人数据在其已授权账号之间的迁移与备份，不得用于商业用途、批量数据爬取或任何侵犯他人合法权益的行为。用户应对其使用本工具处理数据的合法性负责，因数据迁移产生的纠纷由用户自行承担。
 
@@ -388,7 +394,9 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 3. **[dofek/wahoolib](https://github.com/dofek/wahoolib)** — Wahoo OAuth2授权码捕获方案参考
 4. **[running_page](https://github.com/yihong0618/running_page)** — 咕咚(Codoon)登录+签名+列表/详情逆向实现参考（scripts/codoon_sync.py），v7.9.5 咕咚数据源基于此实现
 5. **[Mi-Fit-and-Zepp-workout-exporter](https://github.com/rolandsz/Mi-Fit-and-Zepp-workout-exporter)** — 华米Zepp三步登录+历史/详情接口逆向实现参考，v7.9.5 Zepp数据源基于此实现
-6. **其他依赖库**：OkHttp、Kotlin Coroutines、Material Components for Android、AndroidX
+6. **[Kompy](https://github.com/Tsadoq/kompy)** — Komoot 邮箱+密码纯API双向实现参考（认证/列表/下载/上传），v7.9.6 Komoot 双向同步基于此实现
+7. **[suunto-mcp](https://github.com/googlarz/suunto-mcp)** — 松拓官方 Cloud API OAuth2 认证+列表/下载/三步上传实现参考，v7.9.6 Suunto 双向同步基于此实现
+8. **其他依赖库**：OkHttp、Kotlin Coroutines、Material Components for Android、AndroidX
 
 ### 🏠 开发者俱乐部
 
@@ -403,6 +411,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v7.9.6 (2026-09-14)
+**新增**：
+- **更新支持平台 Komoot 和 松拓(Suunto)**：新增两大国际运动数据平台，均作为**双向同步**（下载数据源 + 上传目标）
+  - **Komoot**：邮箱+密码官方内部API登录（参考 Kompy 开源方案，无需开发者合同），跑步/骑行/徒步等记录下载为 GPX，上传支持 FIT/GPX 直传（sport 自动映射）；国际平台 WGS-84 坐标无需转换
+  - **松拓 Suunto**：OAuth2 授权登录（参考 suunto-mcp 开源方案，需在 apizone.suunto.com 免费注册开发者应用取三凭证），下载 FIT/上传仅 FIT（GPX 自动转 FIT）；国际平台 WGS-84 坐标无需转换
+  - 两平台登录页卡片新增在登录页最后，设置页来源/目标网格同步新增；自动同步同步支持
+- **坐标系统**：Komoot/Suunto 均为国际平台 WGS-84，无需坐标转换，与国内平台（迈金/Keep 等 GCJ-02）自动区分处理
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
 
 ### v7.9.5 (2026-09-13)
 **新增**：

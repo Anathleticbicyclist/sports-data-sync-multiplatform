@@ -229,6 +229,26 @@ class PrefsManager(context: Context) {
     fun isZeppGcjConvertEnabled(): Boolean = prefs.getBoolean("zepp_gcj_convert", false)
     fun setZeppGcjConvertEnabled(b: Boolean) = prefs.edit().putBoolean("zepp_gcj_convert", b).apply()
 
+    // ===== Komoot: 纯API token（v7.9.6 新增，双向）=====
+    fun saveKomootToken(t: String) { prefs.edit().putString("komoot_token", t).apply() }
+    fun getKomootToken(): String? = prefs.getString("komoot_token", null)
+    fun saveKomootAccount(a: String) { prefs.edit().putString("komoot_account", a).apply() }
+    fun getKomootAccount(): String? = prefs.getString("komoot_account", null)
+    fun isKomootLoggedIn(): Boolean = !getKomootToken().isNullOrEmpty()
+
+    // ===== Suunto 松拓: OAuth2（v7.9.6 新增，双向；凭证三件套）=====
+    fun saveSuuntoToken(t: String) { prefs.edit().putString("suunto_token", t).apply() }
+    fun getSuuntoToken(): String? = prefs.getString("suunto_token", null)
+    fun saveSuuntoRefresh(r: String) { prefs.edit().putString("suunto_refresh", r).apply() }
+    fun getSuuntoRefresh(): String? = prefs.getString("suunto_refresh", null)
+    fun saveSuuntoSubscriptionKey(k: String) { prefs.edit().putString("suunto_subscription_key", k).apply() }
+    fun getSuuntoSubscriptionKey(): String? = prefs.getString("suunto_subscription_key", null)
+    fun saveSuuntoClientId(id: String) { prefs.edit().putString("suunto_client_id", id).apply() }
+    fun getSuuntoClientId(): String? = prefs.getString("suunto_client_id", null)
+    fun saveSuuntoClientSecret(s: String) { prefs.edit().putString("suunto_client_secret", s).apply() }
+    fun getSuuntoClientSecret(): String? = prefs.getString("suunto_client_secret", null)
+    fun isSuuntoLoggedIn(): Boolean = !getSuuntoToken().isNullOrEmpty()
+
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
@@ -249,6 +269,8 @@ class PrefsManager(context: Context) {
         DataSource.KEEP -> getKeepToken()
         DataSource.CODOON -> getCodoonToken()
         DataSource.ZEPP -> getZeppToken()
+        DataSource.KOMOT -> getKomootToken()
+        DataSource.SUUNTO -> getSuuntoToken()
     }
     /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
     fun saveCredential(ds: DataSource, cred: String) {
@@ -271,6 +293,8 @@ class PrefsManager(context: Context) {
             DataSource.KEEP -> saveKeepToken(cred)
             DataSource.CODOON -> saveCodoonToken(cred)
             DataSource.ZEPP -> saveZeppToken(cred)
+            DataSource.KOMOT -> saveKomootToken(cred)
+            DataSource.SUUNTO -> saveSuuntoToken(cred)
         }
     }
     /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
@@ -295,6 +319,8 @@ class PrefsManager(context: Context) {
             DataSource.KEEP -> e.remove("keep_token")
             DataSource.CODOON -> { e.remove("codoon_token"); e.remove("codoon_account"); e.remove("codoon_user_id") }
             DataSource.ZEPP -> { e.remove("zepp_token"); e.remove("zepp_account"); e.remove("zepp_user_id") }
+            DataSource.KOMOT -> { e.remove("komoot_token"); e.remove("komoot_account") }
+            DataSource.SUUNTO -> { e.remove("suunto_token"); e.remove("suunto_refresh"); e.remove("suunto_subscription_key"); e.remove("suunto_client_id"); e.remove("suunto_client_secret") }
         }
         e.remove("username_${ds.shortName}")
         e.apply()
@@ -318,6 +344,8 @@ class PrefsManager(context: Context) {
         DataSource.KEEP -> isKeepLoggedIn()
         DataSource.CODOON -> isCodoonLoggedIn()
         DataSource.ZEPP -> isZeppLoggedIn()
+        DataSource.KOMOT -> isKomootLoggedIn()
+        DataSource.SUUNTO -> isSuuntoLoggedIn()
     }
 
     // ===== 用户名存储 =====

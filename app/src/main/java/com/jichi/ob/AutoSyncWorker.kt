@@ -70,6 +70,8 @@ class AutoSyncWorker(
     private val keepApi = KeepApi()
     private val codoonApi = CodoonApi()
     private val zeppApi = ZeppApi()
+    private val komootApi = KomootApi()
+    private val suuntoApi = SuuntoApi()
     private val uploadEngine = UploadEngine(applicationContext)
 
     override suspend fun doWork(): Result {
@@ -210,6 +212,11 @@ class AutoSyncWorker(
                     DataSource.KEEP -> keepApi.getActivities(sourceCred, 0, 8)
                     DataSource.CODOON -> codoonApi.getActivities(sourceCred, prefs.getCodoonUserId() ?: "", 0, 8)
                     DataSource.ZEPP -> zeppApi.getActivities(sourceCred, prefs.getZeppUserId() ?: "", 0, 8)
+                    DataSource.KOMOT -> {
+                        val email = prefs.getKomootAccount()
+                        if (email.isNullOrEmpty()) emptyList() else komootApi.getActivities(email, sourceCred, 0, 8)
+                    }
+                    DataSource.SUUNTO -> suuntoApi.getActivities(sourceCred, suuntoSubscriptionKey() ?: "", 0, 8)
                     else -> emptyList()
                 }
             } catch (e: Exception) {
@@ -364,9 +371,19 @@ class AutoSyncWorker(
             DataSource.KEEP -> keepApi.downloadGpx(cred, record.extra ?: record.id)
             DataSource.CODOON -> codoonApi.downloadGpx(cred, record.extra ?: record.id)
             DataSource.ZEPP -> zeppApi.downloadGpx(cred, record.id, record.extra ?: "")
+            DataSource.KOMOT -> {
+                val email = prefs.getKomootAccount()
+                if (email.isNullOrEmpty()) null else komootApi.downloadGpx(email, cred, record.extra ?: record.id)
+            }
+            DataSource.SUUNTO -> suuntoApi.download(cred, suuntoSubscriptionKey() ?: "", record.extra ?: record.id, gpx = false)
             else -> null
         }
     }
+
+    /** v7.9.6: Suunto Subscription Key（内置优先，其次用户配置） */
+    private fun suuntoSubscriptionKey(): String? =
+        if (SuuntoApi.isBuiltinConfigured()) SuuntoApi.BUILTIN_SUBSCRIPTION_KEY
+        else prefs.getSuuntoSubscriptionKey()
 
     /** v7.8.4: Zwift作为自动同步源——401时refresh_token刷新后重试 */
     private suspend fun getZwiftActivitiesWithRefresh(token: String, playerId: String?, refresh: String?, skip: Int, limit: Int): List<ActivityRecord> {
