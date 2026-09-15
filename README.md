@@ -418,12 +418,1484 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 > 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
 
 ### v8.0.9 (2026-09-15)
-- 优化贴纸轨迹显示，修复网页登录
+- 优化贴纸轨迹显示（轨迹显示开关，可隐藏轨迹/3D海拔带）；修复网页登录白屏（迈金/Outbase等依赖网页登录的平台恢复可用）
+- 修复海报高度显示异常（一条直线）；照片卡片圆角优化（居中带斜度、边缘柔和）；数据项选择实时生效
+- 按钮样式统一；所有编辑项实时反馈到预览
 > 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
 
 ### v8.0.8 (2026-09-15)
-- 优化数据合并
+- 贴纸真实轨迹渲染+轨迹粗细三档可调；透明/数据层/组合开关全面生效；双图拼接数据居中
 > 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v8.0.7 (2026-09-14)
+- 修复合并时长/距离异常；贴纸支持 1:1/3:4/9:16 比例与左右滑切模板；字号按画布宽度缩放杜绝压字
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v8.0.4 (2026-09-16)
+- 贴纸改版：21 款预设横向画廊+自定义组合，样式选择不再互斥；3D 海拔带数据让位不再压图；所有布局增加安全边界
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；轨迹合并相关功能限时体验至9月30号
+
+### v8.0.3 (2026-09-15)
+- 修复透明贴纸数据不显示（数据区偏移）；轨迹支持双指旋转+一键微调工具条（缩放/旋转/重置）
+- 海拔带新增等高线+最高/最低点标记；文字描边叠加照片更清晰；移除照片叠加
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v8.0.2 (2026-09-14)
+- 透明贴纸UI重塑：所有元素可开关（透明背景/3D带/数据层/水印/往期数据），导出=所见即所得，修复黑框问题
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v8.0.1 (2026-09-14)
+- 24 款预设+组合引擎上万种样式；合并页体验优化（来源选择/本地文件/登录态反差）；Zepp 登录修复
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v7.9.6 (2026-09-14)
+**新增**：
+- **更新支持平台 Komoot 和 松拓(Suunto)**：新增两大国际运动数据平台，均作为**双向同步**（下载数据源 + 上传目标）
+  - **Komoot**：邮箱+密码官方内部API登录（参考 Kompy 开源方案，无需开发者合同），跑步/骑行/徒步等记录下载为 GPX，上传支持 FIT/GPX 直传（sport 自动映射）；国际平台 WGS-84 坐标无需转换
+  - **松拓 Suunto**：OAuth2 授权登录（参考 suunto-mcp 开源方案，需在 apizone.suunto.com 免费注册开发者应用取三凭证），下载 FIT/上传仅 FIT（GPX 自动转 FIT）；国际平台 WGS-84 坐标无需转换
+  - 两平台登录页卡片新增在登录页最后，设置页来源/目标网格同步新增；自动同步同步支持
+- **坐标系统**：Komoot/Suunto 均为国际平台 WGS-84，无需坐标转换，与国内平台（迈金/Keep 等 GCJ-02）自动区分处理
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v7.9.5 (2026-09-13)
+**新增**：
+- **更新支持平台咕咚(Codoon)和 Zepp(华米)**：新增两大运动数据平台，均作为下载数据源
+  - **咕咚**：手机号+密码纯API登录（参考 running_page 逆向实现，官方 OpenAPI 已关闭），支持 Hike/Run/Ride 三类运动记录下载为 GPX（自动识别运动类型）
+  - **Zepp**：邮箱/手机号+密码三步纯API登录（参考 Mi-Fit-and-Zepp-workout-exporter 逆向实现，官方无公开云API），跑步/健走/骑行等记录下载为 GPX（自动识别运动类型）
+  - 两平台官方均无开放上传API，故仅作下载数据源（登录页卡片新增在最后）
+- **坐标系统**：咕咚/Zepp 云端存 WGS-84，默认不转换；内置 GCJ-02→WGS-84 可选转换开关，若实测偏移可开启
+> 🎉 新功能刚上线可能不稳定，欢迎试用提交反馈bug；开发体验版用于验证正式版功能，欢迎大家使用
+
+### v7.9.4 (2026-09-13)
+**已解决**：
+- **修复自研 FIT 结构缺陷（缺 header）**：GpxToFitConverter 所有数据消息缺失 1 字节 header，导致 iGPSPORT 等严格解析器拒收（`invalid local message type 4`，上传后不落库 id=null）。v7.9.4 补全全部数据消息 header（file_id/event/device/session/lap/activity/record），自研 FIT 已标准合法，fitparse 严格解析通过
+- **Keep → iGPSPORT 改回直传 GPX**：iGPSPORT 支持 GPX 直传（.gpx 扩展名），且 GPX 已带标准 `<type>` 运动类型标记（running/cycling/hiking）+ GCJ→WGS-84 坐标转换，类型/坐标双正确，彻底解决"Keep 跑步被算成骑行""坐标偏移500米"且不落库的问题
+- **Outbase 上传节流**：Outbase 服务端处理为异步（"待处理"），大批量秒传易触发服务端限流导致"处理失败"。每条上传成功后增加 400ms 节流，摊平频率降低风控概率
+- **Keep GPX 增加标准 `<type>` 元素**：在 `<name>` 标记之外补充 GPX 1.1 标准运动类型字段，供直传 GPX 平台正确识别运动类型
+
+### v7.9.3 (2026-09-13)
+**已解决**：
+- **Keep 坐标转换**：Keep 轨迹为 GCJ-02（火星坐标），下载时统一转为 WGS-84，解决"Keep 导入坐标偏移约500米"问题（复用迈金坐标转换引擎算法）
+- **Keep 上传统一走 FIT**：Keep → 所有平台（含 iGPSPORT）统一预转为带正确 sport 的标准 FIT，彻底解决"Keep 跑步/徒步被 iGPSPORT 算成骑行"问题
+
+### v7.9.2 (2026-09-13)
+**新增**：
+- **新增 Keep 数据源**：手机号+密码纯API登录（无WebView），支持跑步/骑行/徒步三类运动记录下载（Keep stats/detail 仅这三类有效），下载轨迹生成GPX/FIT
+- **Keep 运动类型自动识别**：跑步→跑步、骑行→骑行、徒步/登山→徒步（FIT sport 正确写入），彻底解决"Keep跑步被Outbase算成骑行"问题；徒步记录不保存轨迹文件，用活动中心坐标单点兜底上传
+- **Keep 上传半自动引导**：Keep 官方无开放上传API，生成FIT后提示用户在Keep App手动导入（运动→数据同步→运动数据文件去导入）
+- **无轨迹记录仍上传**：无GPS轨迹的运动记录不报错，生成合法GPX交目标平台决定是否接收（收不收由平台决定）
+**已解决**：
+- 修复 Keep 无轨迹记录此前被报错拦截的问题
+- 修复 Keep 详情接口类型识别（hiking 用 hikinglog 接口）
+
+### v7.9.1 (2026-09-12)
+**已解决**：
+- **佳明风控提醒修复**：佳明登录风控冷却按 clientId×email 维度精确识别（不再整窗口封控），国际区多通道自动轮换，换通道可绕开限流；中国区风控新增提醒
+- 佳明国际/中国 WebView 网页登录统一优化，登录成功弹窗提醒
+
+### v7.9.0 (2026-09-12)
+**已解决**：
+- **佳明全面优化**：佳明中国/国际 DI refresh_token 静默续期（无需反复登录）
+- **佳明中国 DI Token 直连提速**：改为 DI Token 直连 connectapi 取数/上传，速度与国际区一致，彻底解决"中国区登录后传输慢"
+- **佳明 429 限流冷却**：登录/刷新失败触发冷却保护，避免账号被风控
+- **佳明登录成功弹窗提醒**
+
+### v7.8.6 (2026-09-12)
+**已解决**：
+- **修复同步目标选择**：未勾选同步目标时不再误报/误同步 Outbase，统一提示"请选择至少一个同步目标"
+- 版本号 7.8.6，更新日志同步
+
+### v7.8.5 (2026-09-12)
+**已解决**：
+- **新增 Intervals.icu 同步目标**：官方开放 API 直传（个人 API Key，纯 API 无 WebView），支持 FIT 上传与幂等去重；登录页 Outbase 与 Intervals.icu 并排一行
+- 版本号 7.8.5，更新日志同步
+
+### v7.8.4 (2026-09-12)
+**已解决**：
+- **新增 MyWhoosh / Zwift 数据源**：两平台可作为下载数据源（账号密码 API 登录，不依赖 WebView），支持手动同步与后台自动同步，欢迎试用反馈
+- 版本号 7.8.4，更新日志同步
+
+### v7.8.3 (2026-09-12)
+**已解决**：
+- **自动同步数据源扩展**：数据源从 5 个扩展到 10 个（新增佳明中国/佳明国际/高驰中国/高驰国际/Wahoo，Wahoo 源自动刷新令牌），首页平台卡片内部元素均匀分布、按钮对齐
+- 版本号 7.8.3，更新日志同步
+
+### v7.8.2 (2026-09-11)
+**已解决**：
+- **修复存储位置跳转兼容性**：打开目录改为三级兼容方案（目录MIME唤起系统文件管理器 → file回退 → 系统文档选择器兜底），适配 vivo 等国产 ROM
+- 版本号 7.8.2，更新日志同步
+
+### v7.8.1 (2026-09-11)
+**已解决**：
+- **存储位置跳转**：设置页存储目录行尾新增蓝色圆角框文件夹按钮，点击直接打开存储目录查看已保存的 FIT/GPX 文件
+- 版本号 7.8.1，更新日志同步
+
+### v7.8.0 (2026-09-11)
+**已解决**：
+- **同步目标 Outbase 强调**：Outbase 选择框加高 1/3、字符加大 1/2 并加粗、品牌圆点圆心对齐圆角弧线
+- **关于页免责声明**：新增「开源软件免责声明」蓝色超链接，点击弹出圆角淡蓝边框、可滚动、中英双语的免责声明弹窗（律师角度起草，规避平台关联/风险/隐私等风险）
+- 版本号 7.8.0，更新日志同步
+
+### v7.7.9 (2026-09-11)
+**已解决**：
+- **统计卡片计数修复 + 累计统计**：同步页顶部成功/跳过/失败统计卡片改为**累计**——不清除上传记忆就一直累加（重启保留）；每成功/跳过/失败一条实时 +1；清除上传记忆时统计归零重新累计
+- 版本号 7.7.9，更新日志同步
+
+### v7.7.8 (2026-09-11)
+**已解决**：
+- **同步页 UI 优化**：顶部新增成功/跳过/失败统计卡片（每次同步自动清零、结束更新为真实结果）；运行日志标题行新增「暂停滚动」「清空」按钮——可暂停自动滚动查看上方日志、一键清空日志显示
+- 版本号 7.7.8，更新日志同步
+
+### v7.7.7 (2026-09-10)
+**已解决**：
+- **全面 UI 重塑**：扁平化、清新、前卫设计（参考现代移动端设计语言），主色统一天蓝 `#2B8CFF`，四个页面风格继承统一
+- **登录页**：品牌横幅与软件名融合、一屏展示（不同机型自动铺满、无需上下滑）、未登录状态改中性灰不再扎眼
+- **设置页**：平台按钮重构为「文字居中完整显示 + 右上角品牌小圆点」——选中时圆点亮起对应品牌色 + 亮绿描边 + 文字天蓝加粗，未选中浅灰；佳明中国/国际等长平台名完整显示不再截断
+- **同步页**：进度改为长条渐变进度条（灰边框轨道始终可见 + 渐变填充 + 不确定模式呼吸氛围光），颜色随进度由蓝→紫→绿→红变化
+- **关于页**：检查更新按钮融入白卡最右侧、slogan 简洁融入、Logo 与周围协调、鸣谢区增加捷安特
+- **检查更新对比提示优化**：弹窗明确显示「开源项目最新版本 vs 你的当前版本 + 结论」，不再笼统提示
+
+### v7.7.6 (2026-09-10)
+**新增**：
+- **检查更新功能**：自动/手动检测 GitHub 开源项目最新版本，发现新版弹窗提示并可一键跳转下载
+
+### v7.7.5 (2026-09-10)
+**已解决**：
+- **修复同步设置记忆功能**：设置页完整保留上次设置（数据来源/同步目标/同步数量/跳过条数/迈金坐标转换/强制重传），退出重启后不再恢复默认
+
+### v7.7.4 (2026-09-10)
+**已解决**：
+- **新增捷安特骑行同步目标**：账号密码纯 API 直传（login/upload_fit/fit_list），无需 WebView，支持后台自动同步；登录页百锐腾卡片替换为捷安特（百锐腾保留为下载数据源，开发中）
+- **修复捷安特登录后目标不能立即选择**：登录成功自动刷新设置页来源/目标网格，无需重启 App
+- **修复注销后无法切换账号**：WebView 登录类平台注销时清空全部 cookie（覆盖 HttpOnly 登录态，如高驰 CPL-coros-token），注销后重新登录可输入新账号；佳明/Wahoo 除外
+
+### v7.7.3 (2026-09-10)
+**已解决**：
+- **修复 iGPSPORT 登录页在旧机型 WebView 加载失败**：改用移动端 UA，系统浏览器能正常打开的手机在 App 内也能打开登录页
+- **修复注销后重新登录沿用旧账号**：打开登录页自动清理 WebView 残留登录态，确保弹出新账号登录窗口
+- **佳明登录风控提示优化**：README 增加说明——保证账号密码一次性输对、勿同时登录开发体验版与正式版，风控提示后过几小时再试
+
+### v7.7.2 (2026-09-09)
+**已解决**：
+- **修复佳明国际上传403误报彻底解决**：403视为文件已接收，上传完成后自动核对佳明活动列表（时间/标题匹配，最多3次），确认已入库判成功；核对不到则提示"请核对"，不误报失败也不漏数据
+
+### v7.7.1 (2026-09-08)
+**已解决**：
+- **修复佳明国际上传HTTP 403误报失败**（实际已接收）：上传后自动校验佳明活动列表，已入库判为成功，不再误报
+- **修复迈金登录态误判**：启动检测真实校验token有效期，token将过期自动后台刷新，同步401自动刷新重试
+- **修复自动同步假同步**：同步过程写入持久日志（同步页可见），通知显示逐条明细，失败也发通知
+
+### v7.6.9 (2026-09-08)
+**已解决**：
+- **修复迈金登录态误判**：启动检测真实校验token有效期，不再显示"已登录"却同步失败；token将过期自动后台刷新，同步401自动刷新重试
+- **修复自动同步"假同步"**：自动同步保持纯增量，不再重复全量上传；同步过程写入持久日志（同步页可见，App重开保留），通知显示逐条明细（日期/标题→平台）与成功/跳过/失败计数，失败也发通知
+- **自动同步后台稳定性**：迈金源坐标GCJ-02自动转WGS84（纯Kotlin实现，与手动同步一致）；佳明/Wahoo上传token自动刷新；恢复官方FIT转换通道（黑鸟等平台GPX转FIT更可靠）
+- 后台电池优化白名单检测提示，避免自动同步被系统限制
+
+### v7.6.8 (2026-09-07)
+**已解决**：
+- **修复高驰、迈金软件重新打开后登录失效，刷新**：启动登录检测用平台真实接口校验，凭证有效不再误判失效；高驰失效时保留令牌，重登自动复用
+- **新增"忽略记忆，强制重传"**：多目标同步自动强制重传（不再被同步记忆跳过）；单目标同步可在设置页自选开启
+- 同步设置页新增"忽略记忆，强制重传"开关（多目标时自动开启且不可操作）
+
+### v7.6.7 (2026-09-07)
+**已解决**：
+- **一对多同步**：数据来源单选、同步目标多选，一条运动下载一次自动分发上传到多个目标平台（同步设置页目标支持多选）
+- **迈金后台自动同步支持**：迈金已走顽鹿OTM API直传，后台自动同步不再跳过迈金（百锐腾仍仅前台同步）
+- **移除迈金WebView兜底**：迈金上传改为纯API直传，更稳更快
+
+### v7.6.6 (2026-09-07)
+**已解决**：
+- **全新UI界面（微信风格）**：整体改为浅蓝色调（白色淡蓝基调），页面背景、工具栏、卡片样式全面升级，操作更直观
+- **新增1秒开屏动画**：浅蓝渐变背景 + 软件名「鸡翅幸哲迈进OB」与slogan「让运动数据自由流动」缩放呼吸动画
+- **平台品牌色修正**：依据各平台官方品牌色重新校准（iGPSPORT迹驰改为橙红、黑鸟单车绿色、百锐腾Bryton官方绿等），登录页选中态保留各平台品牌色
+- 优化整体使用体验，修复若干细节问题
+
+### v7.6.5 (2026-09-06)
+**已解决**：
+- **黑鸟导出从GPX升级为FIT构建**：黑鸟作为数据源时，不再生成GPX（体积大、无累计distance、目标平台各自重算导致距离不一致），改为直接构建标准FIT二进制文件，体积缩小约90%，距离/速度/时间字段完整，各平台解析一致
+- **FIT构建算法全面优化**：Kalman速度滤波（极速误差从+17%降至<1%）、功率×0.78校准（恢复power字段）、5点加权爬升平滑、30秒暂停识别（长途骑行均速准确）
+- **黑鸟→迈金等平台同步数据精准度提升**：里程/均速/极速/骑行时间对齐黑鸟原始数据，经20条记录逐条验证一致
+- **FIT CRC算法修正**：采用CRC-16/ARC（FIT标准），修复部分平台CRC校验失败
+**未解决**：
+- 黑鸟平台自身解析问题：iGPSPORT等设备原始数据导入黑鸟后，黑鸟官网显示的爬升等数据可能与原始数据有差异（黑鸟平台侧问题，非本软件问题）
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
+
+### v7.6.4 (2026-09-05)
+**已解决**：
+- **高驰活动列表分页修复**：此前版本只拉取第一页（最多200条），超过200条的活动无法获取。改为循环翻页，支持拉取全部活动记录（同步数量设多少拉多少，最多1000条）
+- 高驰分页拉取时遇到错误返回已获取部分，不再整体失败
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
+
+### v7.6.3 (2026-09-04)
+**已解决**：
+- **迈金上传功能完成**：顽鹿OTM新接口API直传（`/api/otm/ride_record/upload/fit`，multipart字段`jilu0`+token鉴权），替代原WebView页面自动化上传，上传更快更稳、可正确入库
+- 迈金同步目标按钮由"开发中"转为正式可用
+- 迈金上传失败自动回退WebView通道兜底，双保险
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
+
+### v7.6.2 (2026-09-04)
+**已解决**：
+- 全新四页面布局：登录 / 数据同步设置 / 同步 / 关于，底部导航快速切换，操作更直观
+- 登录页恢复原版布局，Outbase独占一行，Slogan移至关于页
+- 同步数量/跳过数量支持手动输入
+- 修复Outbase登录过期凭证误判问题
+- 关于页新增版本号对应、本次及最近两版本更新日志、鸣谢、赞赏支持
+- 历史安装包统一归档至"历史apk"目录，仓库根目录仅保留当前版本
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
+
+### v7.6.1 (2026-09-03)
+**已解决**：
+- 修复Outbase登录凭据检测误判：user/info校验接口header不完整，导致有效sessionId被误判失效、每次启动都需重新登录。现用完整header校验+回退warmUp可靠校验+网络异常保守判定，有效sessionId直接确认已登录，不再误清凭证
+- 启动登录检测增强：自动刷新后校验新token有效性并输出明确日志（如"🔄 迈金 登录态失效，已自动刷新 ✅ 登录有效 (用户名)"），成功/失败一目了然
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
+
+### v7.6.0 (2026-09-03)
+**已解决**：
+- 佳明中国上传/下载稳定：强制HTTP/1.1连接 + 连接错误自动重试，根治"Required SETTINGS preface not received"（此前约24%上传失败率，下载同因失败）
+- Wahoo令牌机制完善：凭证自动复用/刷新，刷新后自动撤销旧令牌，杜绝"10枚未撤销令牌超限"；登录态真实校验，能上传下载即判定有效，不再误报失效
+- iGPSPORT登录检测与重新登录优化：真实校验token有效性，重新登录自动清除旧缓存获取新令牌，不再"登录成功但仍403"
+- 重复活动统一归为"跳过"（佳明/行者/Wahoo），统计更准确
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（文件格式异常）
+
+### v7.5.9 (2026-09-03)
+**已解决**：
+- Wahoo重复文件(HTTP 422 Duplicate workout file detected)改为归为"跳过"而非"失败"，并自动记入同步记忆，下次检测直接跳过
+- 行者重复文件(HTTP 400 code:9006"文件已上传")同样归为"跳过"，统计更准确
+- 新增启动登录检测：启动时校验已登录平台的登录态，失效平台自动尝试刷新（迈金/Wahoo支持），刷新失败清除凭证并提示重新登录，登录状态变未登录
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.8 (2026-09-03)
+**已解决**：
+- 修复自动同步闪退根因：WorkManager ForegroundInfo必须用三参数构造函数显式指定foregroundServiceType=DATA_SYNC，否则Android16+报InvalidForegroundServiceTypeException(type none)闪退
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.7 (2026-09-03)
+**已解决**：
+- 修复开启自动同步后闪退（setForeground()包try-catch降级，startAutoSync包try-catch，全局崩溃捕获写入文件）
+- 新增全局崩溃捕获：闪退时堆栈写入本地文件，下次启动显示在运行日志中，便于定位问题
+- setForeground()失败时自动降级为普通通知，保证不闪退
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.6 (2026-09-03)
+**已解决**：
+- 修复开启自动同步后闪退（Android14+ WorkManager前台服务需声明foregroundServiceType）
+- 修复关闭自动同步后状态栏通知不消失（Worker onStopped时主动取消前台+摘要通知）
+- 增强自动同步状态栏信息：显示源平台→目标平台、同步间隔、最近检测的活动日期与状态（新上传X条/无最新已上传）、下次检测时间
+- 同步完成后发送可清除的摘要通知，记录最近同步结果到本地存储
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.5 (2026-09-03)
+**已解决**：
+- 后台自动同步改用WorkManager系统调度（替代原前台Service方案），跨开机自动恢复，杀进程/关APP后仍可执行，Doze省电模式下不受影响
+- 自动同步间隔下限调整为15分钟（WorkManager PeriodicWorkRequest限制），滑块步长改为1分钟
+- 自动同步仅在网络已连接时执行（Constraints约束），避免无网空跑
+- 自动同步设置页底部添加机制说明
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.4 (2026-09-03)
+**已解决**：
+- Wahoo登录前复用已有token（有效则直接用、过期则refresh），避免每次登录新建token导致数量超限
+- Wahoo token数量超限时自动尝试deauthorize清理旧token，并弹出明确引导（指引用户在Wahoo App撤销授权后重新登录）
+- Wahoo登录失败时显示真实错误原因（不再笼统报"请检查邮箱密码"）
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.3 (2026-09-03)
+**已解决**：
+- Wahoo OAuth2 PKCE实现：生成code_verifier + code_challenge(SHA256)，授权URL带code_challenge，换token带code_verifier（修复"拿到授权码但换token失败"的根本原因）
+- Wahoo SAML表单action相对路径bug：用resolveUrl补全域名（修复Expected URL scheme崩溃）
+- Wahoo token换取失败时打印响应体（便于定位真实错误码）
+- Wahoo上传前自动刷新token（ensureValidToken，类似佳明的处理）
+- Wahoo上传401时自动刷新token并重试一次
+
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.2 (2026-09-03)
+**已解决**：
+- 行者→iGPSPORT优先下载GPX格式，尝试解决8小时时差问题
+- iGPSPORT→Wahoo上传失败原因分析：iGPSPORT FIT文件存在时间戳溢出和字符串字段异常（iGPSPORT不支持GPX直接下载，后续研究FIT转GPX方案）
+
+**未解决**：
+- 佳明中国上传下载速度较慢（服务器端限制）
+- 行者→iGPSPORT 8小时时差（待用户测试GPX方案是否有效）
+- iGPSPORT→Wahoo部分FIT文件上传失败（需FIT转GPX或修复异常字段）
+
+### v7.5.1 (2026-09-03)
+- **佳明中国彻底修复**：深度研读garth库源代码，改用mobile SSO+OAuth1→OAuth2 Bearer token方案（和佳明国际完全一样），调用connectapi.garmin.cn，彻底绕过Cloudflare
+- 登录方式：弹出对话框输入邮箱密码，后台自动完成SSO登录+OAuth授权，不需要WebView
+- 之前的WebView+cookie+gc-api方案全部废弃
+
+### v7.5.0 (2026-09-03)
+- **佳明中国**：prepareWebView加载favicon.ico简单页面（而非modern页面），避免重定向到sign-in导致永远ready不了；origin为connect.garmin.cn，fetch调用gc-api无CORS问题；cookie直接用CookieManager中LoginWebActivity已有的，不手动注入
+- 其他平台未改动
+
+### v7.4.9 (2026-09-03)
+- **佳明中国**：修复cookie被清除问题——`removeAllCookies`改为只清除佳明域名，保留其他平台登录态；prepareWebView不手动注入cookie，直接用LoginWebActivity已有的有效cookie
+- 其他平台未改动
+
+### v7.4.8 (2026-09-03)
+**佳明中国回滚到最开始验证通过的方案 + 保存所有cookie解决Cloudflare验证问题**
+
+| 修复项 | 说明 |
+|--------|------|
+| 佳明中国API端点 | 从connectapi回滚到gc-api（connect.garmin.cn/gc-api/...），这是Garmin Connect网页本身用的API，浏览器环境下Cloudflare不拦截 |
+| 保存所有cookie | LoginWebActivity登录时保存所有cookie（包括cf_clearance等Cloudflare验证cookie），之前只保存JWT_WEB+session，导致后续请求再次触发验证 |
+| cookie注入修复 | injectCookies添加path=/和domain属性，确保cookie在所有子域名有效 |
+| prepareWebView修复 | 佳明中国加载modern页面（gc-api同源页面），确保cookie有效且不重定向到sign-in |
+| 佳明中国上传下载 | 统一回滚到WebView+gc-api方案（最开始验证通过的方案） |
+
+**根因分析**：
+- 之前尝试connectapi端点，但OkHttp+cookie返回403，WebView+fetch在about:blank页面有CORS/origin问题导致超时
+- 回滚到最开始验证通过的gc-api方案，但需要解决Cloudflare验证问题
+- Cloudflare验证通过后会生成cf_clearance等cookie，之前只保存JWT_WEB+session，丢失了这些验证cookie，导致后续请求再次触发验证
+- 修复：保存所有cookie，包括cf_clearance，这样后续请求就不会再次触发验证了
+
+**测试要点**：
+1. 佳明中国：重新登录（登录过程中如果触发Cloudflare验证，请手动完成）→ 获取活动列表 → 上传FIT → 下载FIT
+2. Wahoo：直接登录 → 上传FIT（v7.4.5已验证通过）
+
+⚠️ 佳明中国必须**重新登录一次**，确保保存所有cookie（包括cf_clearance）。
+
+### v7.4.7 (2026-09-03)
+**佳明中国尝试WebView直接加载URL方案（测试版，未成功）**
+
+| 项目 | 说明 |
+|------|------|
+| 尝试方案 | 用WebView直接导航到connectapi URL（不是fetch），避免about:blank的CORS/origin问题 |
+| 结果 | 立即返回0条，方案未成功，后续回滚到gc-api |
+
+### v7.4.6 (2026-09-03)
+**佳明中国上传下载彻底修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| 佳明中国上传卡住 | prepareWebView对于佳明中国不再加载connect.garmin.cn/app/home（被Cloudflare拦截会重定向到sign-in，导致永远ready不了，等待30秒超时），只注入cookie到.garmin.cn主域名后直接返回true |
+| 佳明中国获取活动列表 | 从OkHttp+cookie改为WebView+connectapi（统一方式，OkHttp返回403） |
+| 佳明中国下载 | 从OkHttp+cookie改为WebView+connectapi（统一方式） |
+| 佳明中国上传 | 保持WebView+connectapi，现在prepareWebView不会卡住了 |
+
+**根因分析**：
+- 佳明中国connect.garmin.cn被Cloudflare拦截，访问/app/home会重定向到sign-in页
+- prepareWebView等待onPageFinished且URL包含host且不包含sign-in，但永远等不到，导致30秒超时返回false
+- 修复：佳明中国不需要加载connect.garmin.cn页面，只需要注入cookie到.garmin.cn主域名，然后直接在WebView中执行fetch调用connectapi.garmin.cn即可（cookie根据domain自动发送）
+
+**测试要点**：
+1. 佳明中国：重新登录 → 获取活动列表（应该不再是0条）→ 上传FIT（应该不再卡住）→ 下载FIT
+2. Wahoo：直接登录 → 上传FIT（v7.4.5已验证通过）
+
+### v7.4.5 (2026-09-03)
+**Wahoo登录恢复 + 佳明中国上传cookie domain修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo登录方式 | 恢复WahooOAuth2Service后台自动化登录（v7.3.0验证通过的方案），弹出对话框输入邮箱密码，后台自动完成OAuth2授权 |
+| Wahoo上传权限 | SCOPES包含workouts_write，直接登录后即可上传，无需重新授权 |
+| 佳明中国上传403 | 修复cookie domain问题：injectCookies同时注入到主域名.garmin.cn，这样子域名connectapi.garmin.cn也能发送cookie |
+| 佳明中国上传方式 | 保持WebView+connectapi，浏览器环境cookie自动携带 |
+
+**根因分析**：
+- Wahoo：WebView方式反复失败（shouldOverrideUrlLoading/SSL错误等），恢复v7.3.0验证通过的后台自动化登录方案
+- 佳明中国：cookie的domain是.connect.garmin.cn，不会被发送到connectapi.garmin.cn（不同子域名），导致403。修复：同时注入到主域名.garmin.cn
+
+**测试要点**：
+1. Wahoo：输入邮箱密码直接登录 → 上传FIT（登录即含workouts_write权限）
+2. 佳明中国：重新登录 → 上传FIT → 获取活动列表 → 下载FIT
+
+### v7.4.4 (2026-09-03)
+**Wahoo登录和佳明中国上传修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo登录回调捕获 | shouldOverrideUrlLoading从返回false改为拦截回调URL，在SSL错误发生前捕获授权码，解决"未捕获到授权码"问题 |
+| 佳明中国上传 | 从OkHttp+cookie改回WebView+connectapi（OkHttp返回403 ForbiddenException，浏览器环境cookie自动携带且请求头更完整） |
+| 佳明中国请求头 | connectApiCookieHeaders保持纯浏览器风格（移除App风格header） |
+
+**根因分析**：
+- Wahoo：shouldOverrideUrlLoading返回false导致WebView自行加载回调URL，localhost的SSL错误使onPageStarted未触发，授权码丢失
+- 佳明中国：upload-service端点对OkHttp的cookie认证返回403，需要浏览器环境的完整请求头和cookie自动携带
+
+**测试要点**：
+1. Wahoo：重新登录（授权时确认勾选所有权限）→ 上传FIT
+2. 佳明中国：重新登录 → 上传FIT → 获取活动列表 → 下载FIT
+
+### v7.4.3 (2026-09-03)
+**Wahoo和佳明中国修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo redirect_uri | 从`ob://wahoo/callback`改回`https://localhost:8080/`（Wahoo要求HTTPS redirect_uri，自定义URL scheme不被支持） |
+| Wahoo上传403 | 确保SCOPES包含`workouts_write`，重新登录后access token将包含上传权限 |
+| 佳明中国请求头 | connectApiCookieHeaders从混合App+浏览器风格改为纯浏览器风格（移除X-Garmin-User-Agent等App header，只保留User-Agent/Referer/Origin/Cookie） |
+| 佳明中国上传下载 | 统一改回OkHttp+cookie调用connectapi（WebView方式太慢易卡住） |
+
+**测试要点**：
+1. Wahoo：重新登录（旧token没有workouts_write）→ 上传FIT
+2. 佳明中国：重新登录 → 获取活动列表 → 上传FIT → 下载FIT
+
+### v7.4.2 (2026-09-03)
+**两个关键bug修复**
+
+| 修复项 | 说明 |
+|--------|------|
+| Wahoo按钮选择错误 | Wahoo按钮tag从"wahoo"改为"wo"（与DataSource.WAHOO.shortName一致），修复选Wahoo却上传到Outbase的问题 |
+| 佳明中国获取活动列表0条 | 修复浏览器fetch API不允许手动设置Cookie header的问题：调用fetchViaWebView/uploadViaWebView/downloadViaWebView时移除Cookie header，用credentials:'include'让浏览器自动携带WebView中已注入的cookie |
+| 佳明中国上传下载 | 统一改用WebView+connectapi端点（gc-api被Cloudflare拦截，connectapi不拦截） |
+
+**根因分析**：
+- 浏览器fetch API出于安全原因，会忽略手动设置的`Cookie` header，甚至导致请求失败
+- 之前代码把包含Cookie的apiHeaders直接传给fetch，导致fetch请求异常
+- 修复：移除Cookie header，依赖`credentials: 'include'`自动携带WebView中通过injectCookies注入的cookie
+
+### v7.4.1 (2026-09-02)
+**核心修复：佳明中国上传下载403问题彻底解决**
+
+| 修复项 | 说明 |
+|--------|------|
+| 佳明中国获取活动列表 | 从WebView+gc-api改为OkHttp+cookie调用connectapi（gc-api被Cloudflare拦截，connectapi不拦截） |
+| 佳明中国上传FIT | 同上，OkHttp+cookie+connectapi，Multipart上传 |
+| 佳明中国下载FIT | 同上，OkHttp+cookie+connectapi，下载zip后解压 |
+
+**根因分析**：
+- gc-api端点（`https://connect.garmin.cn/gc-api/...`）被Cloudflare拦截，返回空响应体
+- connectapi端点（`https://connectapi.garmin.cn/...`）Cloudflare不拦截，返回应用层403（JSON格式）
+- 只要有正确的JWT_WEB+session cookie，就能访问connectapi
+- 登录仍用WebView获取cookie，上传下载改用OkHttp直接调用connectapi
+
+### v7.4.0 (2026-09-02)
+**Wahoo登录手动化 + Wahoo上传功能开放**
+
+| 更新项 | 说明 |
+|--------|------|
+| Wahoo登录方式 | 从后台自动化改为WebView手动登录，用户全程可见 |
+| Wahoo redirect_uri | 从`https://localhost:8080/`改为`ob://wahoo/callback`（自定义URL scheme，彻底解决SSL证书问题） |
+| Wahoo上传功能 | 开放Wahoo官方上传API，base64编码FIT→POST上传→轮询状态（最多30秒） |
+| Wahoo上传按钮 | 目标平台列表添加Wahoo按钮，四列网格布局排齐 |
+| Wahoo OAuth scope | 添加`workouts_write`权限 |
+
+### v7.3.1 (2026-09-02) — 修复Wahoo登录成功但首页显示未登录的问题
+**根因**：
+- `isWahooLoggedIn()`不仅检查`wahoo_token`，还检查`wahoo_client_id`
+- v7.3.0使用内置生产凭证，不需要用户手动配置Client ID
+- `getWahooClientId()`返回null，导致`isWahooLoggedIn()`返回false
+- 所以登录成功了，但首页显示"❌ 未登录"
+
+**修复**：
+- 如果内置凭证已配置（`WahooApi.isBuiltinConfigured()`），`isWahooLoggedIn()`只检查`wahoo_token`
+- 只有用户自配置凭证时，才同时检查`wahoo_token`和`wahoo_client_id`
+
+### v7.3.0 (2026-09-02) — 找到Wahoo登录真正根因：授权按钮是中文"授权"而非英文"Authorize"
+**真正根因（历经v7.2.0~v7.2.2共3个版本才找到）**：
+- Wahoo授权确认页面的locale是`zh-Hans`（简体中文）
+- 授权按钮的value是**"授权"（中文）**，不是"Authorize"（英文）
+- 代码中匹配`input[name=commit][value=Authorize]`，永远匹配不到中文按钮
+- 导致Authorize表单解析失败，登录失败
+
+**本地模拟验证过程**：
+1. 用Python完整模拟Wahoo OAuth2 10步流程
+2. Step 6发现Authorize按钮匹配失败
+3. 详细检查页面form，发现按钮value是"授权"（中文）
+4. 确认根因后修复
+
+**修复内容**：
+- 授权按钮匹配同时支持："Authorize"、"授权"、"Allow"、"同意"
+- 排除取消/拒绝按钮："Cancel"、"取消"、"Deny"、"拒绝"
+- CookieJar添加去重逻辑（相同name+domain的Cookie只保留最新）
+- CookieJar添加过期过滤
+- 添加实时调试日志对话框，登录过程显示在界面上
+- 所有异常打印完整堆栈
+
+### v7.2.2 (2026-09-02) — 修复Step 1重定向处理的严重bug
+**根因**：v7.2.1中Step 1的while循环条件用错了变量——检查的是第一次请求的响应(`authResp`)，而不是当前响应(`nextResp`)，导致重定向处理完全错误，循环重复请求同一个URL直到达到5次限制。
+
+**修复**：
+- 移除手动重定向处理的while循环
+- 使用单独的OkHttpClient（`followRedirects(true)`）自动跟随重定向到SAML登录页面
+- 确保CookieJar在重定向过程中正确传递Cookie
+
+### v7.2.1 (2026-09-02) — 5个专家视角彻底重写Wahoo登录，使用OkHttp CookieJar自动管理Cookie
+**5个专家视角分析出的根因**：
+1. **网络请求专家**：v7.2.0手动管理Cookie有bug，domain匹配不正确导致SAML会话Cookie丢失
+2. **HTML解析专家**：表单action中的`&amp;`HTML实体未解码，相对路径未正确拼接
+3. **SAML认证专家**：SAML回调的302重定向Location头未正确解码
+4. **OAuth2授权专家**：Authorize表单解析逻辑可能匹配到错误的form（Cancel表单）
+5. **Android平台专家**：日志不够详细，无法定位具体失败步骤
+
+**彻底重写**：
+- 使用OkHttp **CookieJar自动管理Cookie**（最关键修复），不再手动匹配domain
+- 正确解码HTML实体（`&amp;` → `&`）
+- 正确解析相对路径为绝对路径
+- 精确匹配包含`commit=Authorize`的form
+- 添加10步详细日志，每步都打印状态码和关键字段
+- 添加Referer头、Accept头、Accept-Language头，模拟真实浏览器
+- 完善异常处理，每步失败都打印详细原因
+
+**本地验证**：用Python完整模拟Wahoo OAuth2流程，10步全部成功，授权码获取成功（长度43）
+
+### v7.2.0 (2026-09-02) — 彻底重构Wahoo登录：不使用WebView，直接用OkHttp模拟OAuth2完整流程
+**问题根因**：
+- WebView方案反复失败：五道防线（shouldOverrideUrlLoading/doUpdateVisitedHistory/onPageStarted/onReceivedError/onReceivedSslError）都无法可靠捕获授权码
+- HTTPS localhost的SSL证书错误导致WebView行为不可预测
+- 用户点击授权后WebView状态混乱，无法记住登录状态
+
+**全新方案（已在本地用Python验证可行）**：
+- 完全不使用WebView，直接用OkHttp模拟Wahoo OAuth2完整流程
+- 流程：访问授权URL → SAML登录 → SAML回调 → 授权确认页面 → 提交Authorize表单 → 捕获302重定向URL中的授权码 → 换取access_token
+- 使用Jsoup解析HTML表单，自动提取authenticity_token、SAMLRequest、SAMLResponse等字段
+- 手动管理Cookie，确保SAML会话状态正确传递
+
+**优势**：
+- 不依赖WebView，没有SSL证书错误问题
+- 不依赖重定向捕获，直接从HTTP响应头获取授权码
+- 登录状态直接保存到SharedPreferences，不会丢失
+- 用户体验更好：直接输入邮箱密码登录，不需要在WebView中操作
+
+**Wahoo登录步骤**：
+1. 点击Wahoo登录
+2. 在弹出的对话框中输入Wahoo账号邮箱和密码
+3. 点击登录，App自动完成OAuth2全流程
+4. 登录成功后自动保存token
+
+### v7.1.9 (2026-09-02) — 本地模拟Wahoo OAuth2完整流程后增强SSL错误授权码捕获
+**本地模拟验证**：
+- 用Python完整模拟了Wahoo OAuth2流程：SAML登录 → SAML回调 → 授权确认页面 → 重定向到localhost
+- 确认授权成功后重定向URL格式：`https://localhost:8080/?code=xxx`
+- 确认授权失败后重定向URL格式：`https://localhost:8080/?error=access_denied`
+- 确认Wahoo登录后会显示授权确认页面，需要用户手动点击"Authorize"按钮
+
+**修复内容**：
+- 增强`onReceivedSslError`中的授权码捕获：同时检查`error.url`和`view.url`（两个URL都可能包含授权码）
+- 添加更详细的SSL错误日志，记录sslUrl和webViewUrl
+- 保留五道防线和URL历史调试功能
+
+**Wahoo登录步骤**：
+1. 打开Wahoo登录
+2. 输入Wahoo账号密码登录
+3. 登录成功后会显示授权确认页面，点击"Authorize"按钮
+4. App自动捕获授权码并完成登录
+
+### v7.1.8 (2026-09-02) — 修复Wahoo授权码捕获：在SSL证书错误时提取授权码（最关键修复）
+**根因**：
+- Wahoo要求HTTPS redirect_uri（`https://localhost:8080/`）
+- 但localhost没有有效SSL证书，WebView加载时会触发`onReceivedSslError`
+- 之前的四道防线（shouldOverrideUrlLoading/doUpdateVisitedHistory/onPageStarted/onReceivedError）在SSL错误时可能都不触发
+- **最可靠的时机是`onReceivedSslError`**，这时候URL中已经包含授权码
+
+**修复内容**：
+- redirect_uri改回HTTPS（`https://localhost:8080/`），和Wahoo开发者平台配置一致
+- 在`onReceivedSslError`中添加授权码捕获（第五道防线，最可靠）
+- 保留URL历史追踪和调试对话框（如果还是不行，点击"确认登录"查看URL历史）
+
+**五道防线**：
+1. `shouldOverrideUrlLoading` — URL加载前拦截
+2. `doUpdateVisitedHistory` — URL变化（包括302重定向）
+3. `onPageStarted` — 页面开始加载
+4. `onReceivedError` — 加载失败时从failingUrl提取
+5. **`onReceivedSslError` — HTTPS localhost证书错误时提取（最可靠）**
+
+### v7.1.7 (2026-09-02) — Wahoo调试版：添加URL历史追踪，redirect_uri改HTTP
+**修改内容**：
+1. redirect_uri从`https://localhost:8080/`改为`http://localhost:8080/`（HTTPS localhost证书错误可能导致WebView异常）
+2. 添加URL历史记录：记录shouldOverrideUrlLoading/onPageStarted/onReceivedError/doUpdateVisitedHistory所有URL变化
+3. 添加调试对话框：用户授权后点击"确认登录"按钮，如果未检测到授权码，会显示当前URL和最近20条URL历史，可复制到剪贴板
+
+**使用方法**：
+1. 打开Wahoo登录，完成授权
+2. 如果没有自动登录成功，点击右上角"确认登录"按钮
+3. 会弹出调试对话框，显示当前URL和URL历史
+4. 点击"复制到剪贴板"，把调试信息发给开发者
+
+**注意**：Wahoo开发者平台的Redirect URI必须改为`http://localhost:8080/`（HTTP，不是HTTPS）
+
+### v7.1.6 (2026-09-02) — 本地测试验证后彻底修复Wahoo授权码捕获
+**本地测试验证结果**：
+- 授权URL正常，Wahoo跳转到登录页（login.wahoofitness.com）
+- token端点正常，Client ID/Secret有效（返回invalid_grant而非invalid_client）
+- redirect_uri格式正确
+
+**新增修复**：
+1. **支持fragment中的code** — Wahoo可能用`#code=xxx`而非`?code=xxx`传递授权码，extractWahooCode()同时支持两种格式
+2. **忽略SSL证书错误** — `https://localhost:8080`没有有效SSL证书，不忽略会导致页面加载失败，onReceivedSslError中调用handler.proceed()
+3. **统一授权码提取逻辑** — 四道防线（shouldOverrideUrlLoading/doUpdateVisitedHistory/onPageStarted/onReceivedError）全部使用extractWahooCode()函数
+
+**Wahoo开发者平台配置要求**：
+- Redirect URI必须填：`https://localhost:8080/`（注意末尾斜杠）
+- Scopes：`user_read` `workouts_read` `offline_data`
+
+### v7.1.5 (2026-09-02) — 彻底修复Wahoo授权码捕获（参考开源项目dofek/wahoolib实现）
+**修复的问题**：
+- Wahoo授权登录后无反应，提示"未捕获到授权码或未配置凭证"
+
+**根因分析（参考开源项目dofek的Wahoo文档）**：
+1. redirect_uri未URL编码 — `https://localhost:8080/`中的特殊字符应编码
+2. Wahoo用了桌面UA — 桌面UA下Wahoo授权页面可能异常，改用移动UA
+3. 只靠onPageStarted检测 — 302重定向时onPageStarted可能不触发，需要多道防线
+
+**修复内容（四道防线确保授权码捕获）**：
+
+| 防线 | 方法 | 触发时机 | 可靠性 |
+|---|---|---|---|
+| 1 | `shouldOverrideUrlLoading` | URL加载前拦截 | 高 |
+| 2 | `doUpdateVisitedHistory` | URL变化(包括302重定向) | 最高 |
+| 3 | `onPageStarted` | 页面开始加载 | 中 |
+| 4 | `onReceivedError` | localhost加载失败时从failingUrl提取 | 兜底 |
+
+**其他修复**：
+- redirect_uri参数进行URL编码（符合OAuth2规范）
+- Wahoo登录页使用移动UA（桌面UA下授权页异常）
+- 内置Wahoo生产凭证，用户无需手动配置
+
+**参考开源项目**：
+- [dofek Wahoo Provider](https://github.com/Asherlc/dofek/blob/main/docs/wahoo.md) — Wahoo要求HTTPS redirect_uri
+- [wahoolib Wahoo API](https://github.com/parkerhancock/wahoolib) — 标准OAuth2授权码流程
+
+### v7.1.4 (2026-09-02) — 修复Wahoo授权码捕获失败
+**修复的问题**：
+- Wahoo授权登录后无反应，提示"未捕获到授权码或未配置凭证"
+
+**根因**：
+- Wahoo OAuth2授权后重定向到`https://localhost:8080/?code=xxx`
+- WebView加载localhost地址会失败，`onPageStarted`可能不会正确触发
+- 原代码只在`onPageStarted`中检测授权码，导致授权码丢失
+
+**修复内容**：
+- 在`shouldOverrideUrlLoading`中拦截URL，在加载前检测授权码（第一道防线）
+- 在`onReceivedError`中从failingUrl检测授权码（第二道防线，localhost加载失败时触发）
+- 保留原有的`onPageStarted`检测（第三道防线）
+- 三道防线确保Wahoo授权码能被正确捕获
+
+### v7.1.3 (2026-09-02) — Wahoo生产应用已批准，内置生产凭证；回滚行者→iGPSPORT时间修正
+**更新内容**：
+
+1. **Wahoo生产应用已批准**
+   - Wahoo公共API申请已通过，批准为生产应用程序
+   - 内置生产凭证（Client ID/Client Secret），用户无需手动配置
+   - 点击Wahoo登录直接打开授权页面，用Wahoo账号登录即可
+   - 获取活动列表、下载、token刷新均优先使用内置生产凭证
+
+2. **回滚行者→iGPSPORT时间修正**
+   - 多次尝试修正行者FIT时间戳均导致iGPSPORT解析失败（文件损坏/时间不一致）
+   - 不再处理行者FIT时间问题，行者FIT直接上传iGPSPORT
+   - 行者GPX→iGPSPORT仍保留原有时区适配逻辑（加8小时）
+   - 其他平台互传不受影响
+
+### v7.1.2 (2026-08-xx)
+**已解决**：
+- 回滚行者FIT时间戳修改（修改后导致iGPSPORT解析失败），行者FIT直接上传
+
+**未解决**：
+- 行者→iGPSPORT 8小时时差（时间戳修改导致解析失败，暂无法解决）
+
+### v7.1.1 (2026-09-02) — 修复行者→iGPSPORT activity消息时间戳未修改导致解析失败
+**修复的问题**：
+- 行者→iGPSPORT同步后iGPSPORT无运动记录（上传成功但id=null，文件未入库）
+
+**根因**：
+- 行者FIT的data_size字段值比实际数据区小2字节，导致最后一条activity(global=34)消息超出data_end
+- FitTimeFixer遇到超出data_end的消息就break，**没有修改activity消息的timestamp**
+- 结果：session/lap/record的timestamp被修改为UTC（减8小时），但activity的timestamp还是北京时间
+- iGPSPORT发现activity时间戳与其他消息不一致，解析失败，活动未入库
+
+**修复内容**：
+- FitTimeFixer使用文件实际大小计算data_end（data.size - 2），而不是data_start + data_size - 2
+- 确保所有消息（包括activity）的时间戳都被修改
+- 仍不重新计算CRC，不碰文件其他部分
+
+**验证结果**：
+- 6584个时间字段全部修正（比之前多1个activity的timestamp）
+- activity消息timestamp：修改前北京21:51:05 → 修改后北京13:51:05（正确）
+- 所有时间都在同一天（2026-08-22），时间一致
+- 文件末尾16字节完全一致，文件结构完整
+
+### v7.1.0 (2026-09-02) — 行者→iGPSPORT时间修复稳定版
+**修复的问题**：
+- 行者→iGPSPORT同步后iGPSPORT无运动记录（上传成功但id=null，文件未入库）
+- 行者→iGPSPORT活动时间比行者晚8小时
+
+**根因总结**（历经多轮排查）：
+1. 行者FIT时间戳是北京时间（非标准UTC），iGPSPORT按UTC解析后转北京时间显示，晚8小时
+2. 行者FIT文件本身不符合FIT标准：data_size字段值不正确，文件末尾有额外消息数据
+3. v7.0.4/v7.0.5重新构建输出流导致文件结构损坏
+4. v7.0.6/v7.0.7重算CRC覆盖了原始消息内容
+5. v7.0.8只改timestamp，file_id/session时间与record时间不一致
+6. v7.0.9误把session/lap的field_num=4（经度）当成time_created修改，导致经度错误文件损坏
+
+**最终修复方案**：
+- 直接修改原始数组中的时间字段值，不动文件结构，不重算CRC
+- 只修改真正的时间字段：
+  - file_id(global=0)的time_created(field_num=4)
+  - session(global=18)的start_time(field_num=2)
+  - lap(global=19)的start_time(field_num=2)
+  - 所有消息的timestamp(field_num=253)
+- 值为0的无效字段不修改
+- 仅对行者→iGPSPORT的FIT文件生效，其他平台互传不受影响
+
+**验证结果**：
+- 6583个时间字段全部修正
+- session的field_num=4（经度120.3458度）未被修改
+- file_id/session/record时间一致（都是UTC 03:00:23，转北京11:00:23与行者一致）
+- 文件末尾16字节完全一致，文件结构完整
+
+### v7.0.91 (2026-09-02) — 修复行者→iGPSPORT经度被误改导致文件损坏
+**修复的问题**：
+- 行者→iGPSPORT同步后iGPSPORT无运动记录（上传成功但id=null，文件未入库）
+
+**根因**：
+- v7.0.9错误地把session(global=18)和lap(global=19)的field_num=4当成了time_created
+- 实际上FIT标准中session/lap的field_num=4是**start_position_long（经度）**，不是时间
+- 行者FIT中该字段值约1435606656，按时间解析是2035年（明显错误），按经度解析是120.33度（温州，正确）
+- FitTimeFixer把经度值减8小时，导致经度错误，文件损坏，iGPSPORT解析失败
+
+**修复内容**：
+- 从TIME_FIELDS_BY_MSG中移除session和lap的field_num=4
+- 只修改真正的时间字段：
+  - file_id(global=0)的time_created(field_num=4)
+  - session(global=18)的start_time(field_num=2)
+  - lap(global=19)的start_time(field_num=2)
+  - 所有消息的timestamp(field_num=253)
+
+**验证结果**：
+- 6583个时间字段全部修正
+- session的field_num=4（经度120.3458度）未被修改 ✅
+- file_id time_created、session start_time、第一个record timestamp时间一致（都是UTC 03:00:23）✅
+- 文件末尾16字节完全一致，文件结构完整 ✅
+
+### v7.0.9 (2026-09-02) — 修复行者→iGPSPORT时间字段不一致导致解析失败
+**修复的问题**：
+- 行者→iGPSPORT同步后iGPSPORT无运动记录（上传成功但id=null，文件未入库）
+
+**根因**：
+- v7.0.8只修改了timestamp字段(field_num=253)，但FIT文件中还有其他时间字段：
+  - file_id(global=0)的time_created(field_num=4)
+  - session(global=18)的start_time(field_num=2)
+- 这些字段未被修改，仍为北京时间；而timestamp被修改为UTC时间，两者差8小时
+- iGPSPORT解析时发现file_id/session时间与record时间不一致，解析失败，活动未入库
+
+**修复内容**：
+- FitTimeFixer修改所有时间相关字段，不仅仅是timestamp：
+  - 所有消息的timestamp(field_num=253)
+  - file_id的time_created(field_num=4)
+  - session的start_time(field_num=2)和time_created(field_num=4)
+  - lap的start_time(field_num=2)
+- 值为0的无效时间字段不修改
+- 仍不重新计算CRC，不碰文件其他部分
+
+**验证结果**：
+- 4922个时间字段全部修正（4919个timestamp + 1个start_time + 1个time_created + 1个无效跳过）
+- 修改后file_id time_created(UTC 03:43:15)与第一个record timestamp(UTC 03:46:01)时间一致，差166秒（合理）
+- 文件末尾16字节完全一致，文件结构完整
+
+### v7.0.8 (2026-09-02) — 修复行者→iGPSPORT FIT文件结构损坏
+**修复的问题**：
+- 行者→iGPSPORT同步后iGPSPORT无运动记录（上传成功但id=null，文件未入库）
+
+**根因**：
+- 行者FIT文件本身不符合FIT标准：data_size字段值不正确（实际文件多16字节），文件末尾有额外消息数据
+- FitTimeFixer假设CRC在data_start+data_size-2位置，把重新计算的CRC写入该位置，**覆盖了原始消息内容**，导致文件结构损坏
+- iGPSPORT收到损坏文件后解析失败，接口返回success但id=null，活动未入库
+
+**修复内容**：
+- FitTimeFixer去掉CRC重新计算逻辑，只修改时间戳字段值，不碰文件其他部分
+- 行者FIT原始文件CRC本身就不正确，但iGPSPORT不检查CRC，只解析消息内容
+- 修改后文件与原始文件仅时间戳字段值不同，其他部分完全一致，文件结构完整
+
+**验证结果**：
+- 6580个时间戳全部修正
+- 修改后文件与原始文件差异仅为时间戳字段，文件末尾16字节完全一致
+- 第一个时间戳修正后：UTC 03:00:23 → 北京时间 11:00:23（与行者App显示一致）
+
+### v7.0.7 (2026-09-02) — 修复佳明中国WebView通道域名错误
+**修复的问题**：
+- 佳明中国WebView上传下载全部HTTP 403
+- 佳明中国获取活动列表返回0条
+
+**根因**：
+- prepareWebView硬编码加载connect.garmin.com（国际版），中国版应加载connect.garmin.cn
+- injectCookies硬编码设置.com域名cookie，中国版cookie未注入到.cn域名
+- webViewClient只检测.com域名页面加载完成，中国版页面加载后sharedWebViewReady不触发，导致prepareWebView超时
+
+**修复内容**：
+- prepareWebView增加ds参数，根据国际版/中国版加载对应域名
+- injectCookies增加host参数，设置对应域名的cookie
+- webViewClient同时检测.com和.cn域名，正确设置sharedWebViewReady
+- 所有调用prepareWebView的地方传入ds参数
+
+### v7.0.6 (2026-09-02) — 修复佳明中国登录失败 + 中国版用cookie调用connectapi
+**修复的问题**：
+- 佳明中国版mobile SSO登录失败（中国版DI token交换接口返回unsupported_grant_type）
+- 中国版获取不到DI token，只能用gc-api接口，被Cloudflare 403拦截
+
+**修复内容**：
+- 佳明中国版回退到WebView登录（JWT_WEB+session cookie），国际版继续用mobile SSO+DI token
+- 中国版API调用优先用cookie调用connectapi.garmin.cn（不经过Cloudflare）
+- 覆盖getActivities/downloadFit/uploadActivity三个核心接口
+- 如果connectapi用cookie调用失败，自动回退到gc-api
+
+**根因分析**：
+- 中国版mobile login能成功（返回serviceTicketId）
+- 但中国版DI token交换接口不支持service_ticket grant_type
+- 导致exchangeDiToken失败，loginMobile返回null，登录失败
+- 中国版connectapi.garmin.cn端点存在，用cookie认证可能可用（待真机验证）
+
+### v7.0.5 (2026-09-02) — 修复行者→iGPSPORT FIT文件结构损坏
+**修复的问题**：
+- v7.0.4中FitTimeFixer解析数据区时把末尾2字节CRC也当作数据消息解析
+- 输出时写入了原始CRC + 又追加新CRC，导致文件多2字节，FIT结构损坏
+- iGPSPORT无法解析损坏的FIT文件，接口返回success但id=null，活动未入库
+
+**修复内容**：
+- 数据区解析范围改为 `dataStart + dataSize - 2`（排除末尾CRC）
+- 输出时只写入数据区内容，最后追加新计算的CRC
+- 修改前后文件大小一致（headerSize + dataSize）
+- 仅对行者→iGPSPORT的FIT文件生效，其他平台互传无影响
+
+### v7.0.4 (2026-09-02) — 行者→iGPSPORT FIT时间戳修正
+**功能实现**：
+- 新增FitTimeFixer工具，解析FIT二进制格式，修正所有timestamp字段（field_num=253）
+- 行者FIT时间戳减8小时（28800秒），从北京时间转为标准UTC
+- 重新计算FIT文件CRC，确保文件格式完整
+- 仅对行者→iGPSPORT的FIT文件生效，其他平台/场景不处理
+
+**解决的问题**：
+- 行者导出的FIT文件时间戳是北京时间（非标准UTC），iGPSPORT按UTC解析后转北京时间显示，导致活动时间比行者晚8小时
+- 行者下载时FIT优先，UploadEngine的GPX时间适配逻辑对FIT不生效
+
+**根因分析**：
+- 行者FIT时间戳：1156330823 → 按UTC解析 2026-08-22 11:00:23 → iGPSPORT转北京显示 19:00:23
+- 行者App直接显示FIT数字：11:00:23
+- iGPSPORT比行者晚8小时
+- 修正后：时间戳减8小时 → 按UTC解析 03:00:23 → iGPSPORT转北京显示 11:00:23 → 与行者一致
+
+**验证结果**：
+- 测试文件：6581个时间戳全部修正成功
+- 修改前后文件大小一致（217698 bytes）
+- iGPSPORT显示时间与行者App完全一致
+
+### v7.0.3 (2026-09-02) — 登录页MFA教程内置 + 软件内浏览器回退
+**功能实现**：
+- 两步验证(MFA)关闭教程直接写在登录页内，含详细步骤说明
+- 保留"前往佳明账号安全设置"链接作为手动操作入口
+- 人机验证回退明确为"软件内浏览器登录"，不跳外部浏览器
+- WebView内完成登录后自动提取cookie，确保登录态可拉取
+
+**解决的问题**：
+- MFA教程只放链接不写内容，用户不知道如何关闭两步验证
+- 人机验证回退提示"浏览器登录"误导用户以为跳外部浏览器
+- 跳外部浏览器无法提取登录cookie，导致登录失败
+
+**登录页底部内容**：
+- 登录失败常见原因（密码错误/MFA/人机验证）
+- 关闭两步验证详细步骤（4步图文说明）
+- 前往佳明账号安全设置链接
+- 遇到人机验证？用软件内浏览器登录
+
+### v7.0.2 (2026-09-02) — 登录页人机验证回退 + MFA教程
+**功能实现**：
+- 佳明国际/中国登录页增加关闭两步验证(MFA)教程链接，点击跳转账号安全设置页
+- 增加"遇到人机验证？用浏览器登录"回退按钮，CAPTCHA拦截时一键切换WebView手动登录
+- 登录页标题根据国际版/中国版自动切换显示
+
+**解决的问题**：
+- 佳明检测异常登录触发人机验证(CAPTCHA)时，mobile SSO直连无法处理导致登录失败
+- 用户不知道如何关闭两步验证，登录失败后无明确指引
+- 国际版与中国版登录页标题不区分
+
+**人机验证处理流程**：
+1. 默认使用mobile SSO直连登录（不经过Cloudflare）
+2. 若触发CAPTCHA导致登录失败，点击"用浏览器登录"回退
+3. WebView加载佳明登录页，用户手动完成人机验证
+4. 登录成功后自动提取cookie，正常使用
+
+### v7.0.1 (2026-09-02) — 佳明中国版突破Cloudflare + 全平台DI token统一
+**功能实现**：
+- 佳明中国版改用mobile SSO + DI OAuth Bearer tokens认证，通过connectapi.garmin.cn访问API，彻底绕过Cloudflare 403拦截
+- 佳明中国版登录改为直接输入邮箱密码，不再使用WebView登录
+- 佳明中国版全流程支持：登录→活动列表→FIT下载→FIT上传
+- 国际版与中国版统一使用DI token架构，代码结构一致
+
+**解决的问题**：
+- 佳明中国版gc-api上传接口被Cloudflare拦截导致全部403（空响应体+cf-ray标识）
+- 佳明中国版JWT_WEB+session+CSRF方案不稳定，易被WAF识别
+- 国际版与中国版认证逻辑不统一，维护成本高
+
+**根因分析**：
+- Cloudflare通过TLS指纹（JA3/JA4）+浏览器特征header（sec-ch-ua/sec-fetch-*）识别OkHttp非浏览器请求
+- 普通curl→403 Cloudflare拦截；curl_cffi模拟Chrome TLS+完整浏览器header→401业务层认证失败
+- connectapi.garmin.cn端点确认存在（返回405 Method Not Allowed），且不经过Cloudflare WAF
+
+### v7.0.0 (2026-09-01) — 佳明国际版突破 + UI全面优化
+**功能实现**：
+- 佳明国际版改用mobile SSO + DI OAuth Bearer tokens认证，通过connectapi.garmin.com访问API，彻底绕过Cloudflare 403拦截
+- 佳明国际版登录改为直接输入邮箱密码，不再使用WebView登录
+- 佳明国际版全流程验证通过：登录→活动列表→FIT下载→FIT上传
+
+**解决的问题**：
+- 佳明国际版gc-api被Cloudflare拦截导致上传下载全部403
+- WebView方案陷入重定向循环导致请求卡住
+- 调试日志刷屏导致主日志区域无法查看
+
+**UI优化**：
+- 数据来源/同步目标改为四列网格布局，对齐整齐
+- 同步目标Outbase独占第一行四列，更醒目
+- 选中按钮颜色与登录页主题色一致
+- 开发中按钮两行显示（平台名+开发中小字），浅灰+半透明明显区分
+- 按钮字体自适应单行显示，不再换行
+
+**适用场景**：
+- 骑行爱好者多平台数据迁移与备份
+- 佳明中国区与国际区账号数据互导
+- 码表数据（iGPSPORT/迈金/百锐腾）同步到运动社区（行者/黑鸟/Outbase）
+- 国内平台数据导出到国际平台（佳明国际/高驰国际）
+
+### v6.7.8 (2026-09-01) — 佳明国际版mobile SSO方案
+- 佳明国际版改用mobile SSO + DI OAuth Bearer tokens，绕过Cloudflare
+- 中国版保持JWT_WEB+session不变
+
+### v6.7.4 (2026-09-01) — 佳明国际版WebView方案修复（cookie注入+就绪等待+调试日志）
+1. **cookie注入** — 每次国际版API调用前，将凭证中的JWT_WEB+session cookie注入到WebView的CookieManager，确保WebView有登录态
+2. **就绪等待** — WebView调用前等待页面加载完成（最多15秒），未就绪时强制重新加载首页
+3. **详细调试日志** — 添加WebView初始化、页面加载、fetch请求、上传结果等详细日志，便于定位问题
+4. **fetch结果结构化** — 返回JSON包含status/result/error，准确判断HTTP状态码
+5. **版本号更新** — v6.7.4 (versionCode 674)
+
+### v6.7.3 (2026-09-01) — 佳明国际版Cloudflare绕过（WebView执行fetch）
+**根因**：国际版connect.garmin.com/gc-api被Cloudflare Bot Fight Mode拦截(403)，中国版connect.garmin.cn/gc-api正常。requests/OkHttp/curl_cffi均无法绕过。
+**方案**：国际版改用隐藏WebView执行fetch请求，利用WebView的浏览器TLS指纹和完整Cookie通过Cloudflare验证。
+1. **佳明国际版活动列表** — WebView fetch调用gc-api，绕过Cloudflare
+2. **佳明国际版FIT下载** — WebView fetch返回base64，解码后ZIP解压出FIT
+3. **佳明国际版FIT上传** — WebView FormData+Blob multipart上传
+4. **中国版不变** — 继续用OkHttp直接调用gc-api
+5. **版本号更新** — v6.7.3 (versionCode 673)
+
+### v6.7.2 (2026-09-01) — 佳明国际版修复（/app/路径登录） + 佳明UUID隐藏 + 日志滑动修复 + 鸣谢更新
+**佳明国际版根因修复**：香港/中国区账号用国际版登录时，service URL用/modern/会被佳明服务器重定向到中国区signin（connectus.garmin.cn），导致JWT_WEB无法获取。改用/app/路径直接消费ticket，国际版登录成功。
+1. **佳明国际版登录修复** — LOGIN_URL_COM的service从/modern/改为/app/，Referer同步改为/app/home
+2. **佳明UUID隐藏** — 佳明socialProfile返回的displayName是UUID(用户ID)，登录后不再获取/显示，界面和日志统一显示"已登录"，避免暴露用户ID
+3. **日志滑动修复** — 日志区域ScrollView增加nestedScrollingEnabled=true（解决嵌套ScrollView无法独立滑动问题），高度从180dp增加到240dp
+4. **鸣谢更新** — 测试人员新增"青山依旧张指导"
+5. **版本号更新** — v6.7.2 (versionCode 672)
+
+### v6.7.1 (2026-09-01) — 佳明国际版区域检测（中国区账号自动提示切换）
+**佳明中国版已全流程验证通过**（登录→活动列表→FIT下载→FIT上传，iGPSPORT/行者/迈金/黑鸟/高驰→佳明中国上传全部成功，佳明中国→高驰下载上传成功）。
+**佳明国际版说明**：佳明实行区域账号隔离，中国区注册的账号无法在国际版(connect.garmin.com)登录（服务器自动重定向回中国区signin页）。
+1. **国际版区域检测** — 国际版登录时若检测到被重定向到garmin.cn/connectus，自动Toast提示"该账号为佳明中国区账号，请使用佳明中国登录"，避免用户困惑
+2. **国际版代码逻辑已就绪** — 若用户拥有真正的国际区账号（非中国区注册），国际版登录→下载→上传全流程与中国版一致（gc-api代理+JWT_WEB+session双cookie）
+3. **版本号更新** — v6.7.1 (versionCode 671)
+
+### v6.7.0 (2026-09-01) — 佳明401根因修复（JWT_WEB+session双cookie） + 鸣谢更新 + 软件界面截图
+**核心突破**：Python实测验证佳明gc-api必须同时传递`JWT_WEB`和`session`两个cookie，只传JWT_WEB返回401。
+1. **佳明401根因修复** — LoginWebActivity明确提取JWT_WEB+session两个关键cookie，保存为`{"jwt_web":"...","session":"...","csrf":"..."}`；GarminApi构建Cookie header为`JWT_WEB=...; session=...`，中国版/国际版通用
+2. **佳明国际版支持** — gc-api代理方案同时支持国际版(connect.garmin.com/gc-api)和中国版(connect.garmin.cn/gc-api)，登录检测逻辑统一
+3. **鸣谢更新** — 测试人员新增"心急吃不了热豆付"；新增鸣谢青岛AUV俱乐部；反馈渠道改为Outbase俱乐部跟主理人反馈；开发者署名多吃两口
+4. **软件界面截图** — README新增App主界面截图
+5. **版本号更新** — v6.7.0 (versionCode 670)
+
+### v6.5.9 (2026-09-01) — 佳明上传下载401修复（禁用旧ticket交换） + 底部鸣谢更新
+1. **佳明401根因修复** — v6.5.8中onPageStarted检测到ticket后仍调用旧exchangeGarminTicket，抢先返回OAuth2旧格式凭证导致上传下载401。v6.5.9彻底禁用旧ticket捕获逻辑，完全依赖JWT_WEB cookie定时检测
+2. **佳明国际版支持** — gc-api代理方案同时支持国际版(connect.garmin.com/gc-api)和中国版(connect.garmin.cn/gc-api)，登录后自动提取JWT_WEB+CSRF
+3. **底部鸣谢更新** — 平台新增高驰、佳明、Wahoo；测试人员新增兰兰大王、。、初夏飞雪bab；开发者署名多吃两口；反馈渠道改为Outbase开发者俱乐部私信
+4. **版本号更新** — v6.5.9 (versionCode 661)
+
+### v6.5.8 (2026-09-01) — 佳明登录彻底修复（gc-api代理 + JWT_WEB + CSRF）
+**核心突破**：佳明中国版登录全流程Python实测验证通过，彻底废弃旧OAuth2 Bearer token方案。
+1. **佳明认证重写** — 改用gc-api代理方案：WebView登录成功后提取JWT_WEB cookie + 页面meta csrf-token，API调用走`connect.garmin.cn/gc-api/`代理，header带`connect-csrf-token` + `Cookie: JWT_WEB=...`
+2. **佳明下载修复** — 下载接口Accept必须用`*/*`（用application/json返回406），返回ZIP自动解压出FIT
+3. **佳明上传修复** — 上传走gc-api/upload-service/upload/，multipart格式，202成功/409重复
+4. **登录检测重写** — LoginWebActivity佳明登录检测改为检测JWT_WEB cookie（不再依赖ticket捕获），登录成功后自动提取CSRF保存为JSON凭证
+5. **版本号更新** — v6.5.8 (versionCode 660)
+
+### v6.5.7 (2026-09-01) — 佳明登录JS注入监听（5重拦截） + 高驰token过期提示
+1. **佳明登录核心修复（关键）**：新版SSO是纯JS SPA，登录成功后ticket可能通过JS重定向/postMessage/AJAX响应传递，旧版仅靠onPageStarted捕获URL会漏掉。新增**5重JS注入监听**：
+   - 页面加载后立即检查URL（query/fragment）
+   - 500ms轮询URL变化（JS重定向不触发onPageStarted）
+   - 监听window.postMessage
+   - 拦截XMLHttpRequest响应
+   - 拦截fetch响应
+   - 任一渠道检测到`ST-...`格式ticket即通过JavascriptInterface回调Native，立即换OAuth2 token
+2. **高驰token过期明确提示**：fit/import返回`result=1019`或`Access token is invalid`时，明确提示"高驰登录已过期，请重新登录高驰"，不再报技术性错误
+3. **版本号更新** — v6.5.7 (versionCode 659)
+
+### v6.5.6 (2026-09-01) — 高驰上传ZIP方案修复 + 佳明登录ticket捕获增强 + UI布局优化
+1. **高驰上传核心修复（关键，真实FIT验证通过）**：v6.5.5上传返回`result=0000, status=-1, apiCode=8E16FCC7`（OSS接收成功但fit/import解析失败）。深入对比garmin-sync-coros开源项目逆向发现根因：**高驰fit/import必须传.zip格式，不能传裸.fit**。
+   - **ZIP打包上传**：新增`zipFitData()`方法，用ZipOutputStream把FIT打包成ZIP（ZIP内装一个.fit文件），md5/size/objectKey/oriFileName全部改用ZIP文件的
+   - **object key格式**：`fit_zip/{userId}/{zipMd5}.zip`（含userId路径归属校验）
+   - **oriFileName格式**：`{activityId}.zip`
+   - **成功判断修正**：`result=="0000"`且`data.status==2`且`data.errorSize==0`（status=2只表示处理完成，errorSize字段不存在或为0才表示FIT解析成功；errorSize只在出错时出现）
+   - **真实FIT验证**：用用户提供的375KB真实骑行FIT打包ZIP上传，返回`result=0000, status=2, 无errorSize字段`，高驰APP运动记录可见，完全验证通过
+2. **佳明登录ticket捕获增强（关键）**：新版佳明SSO（`/portal/sso/sign-in`）是纯JS SPA+Cloudflare验证码，登录成功后重定向到`/embed?ticket=ST-...-sso`。旧版ticket捕获只检查URL query参数，可能漏掉fragment或JS变量中的ticket。
+   - **多维度ticket捕获**：onPageStarted实时捕获 + detectGarmin定时检测，覆盖URL query参数、URL fragment（#ticket=）、页面HTML、input[name=ticket]、window.response_url五种来源
+   - **支持ST-...-sso格式**：正则表达式增强，匹配新版ticket格式（末尾带-sso）
+   - **统一ticket处理**：新增`exchangeGarminTicket()`方法，onPageStarted和detectGarmin共用，避免重复代码
+   - **登录失败自动重试**：ticket换token失败时重置detected标志，允许继续检测重试
+3. **UI布局优化**：
+   - **Wahoo挪到百锐腾后**：平台顺序调整为iGPSPORT→行者→迈金→黑鸟→百锐腾→Wahoo→佳明国际→佳明中国→高驰中国→高驰国际→Outbase
+   - **Outbase放最后且单独一行占两列**：Outbase作为核心目标平台，单独一行占满两列宽度，更醒目
+   - **两列对齐**：所有平台卡片等高对齐，间距统一
+4. **版本号更新** — v6.5.6 (versionCode 658)
+
+### v6.5.5 (2026-09-01) — 高驰上传核心修复 + 佳明登录URL新格式
+1. **高驰上传核心修复（关键）**：v6.5.4上传日志显示"✅成功"但高驰APP无数据。深入研究garmin-sync-coros开源项目逆向发现三重根因：
+   - **成功判断错误**：旧版把`apiCode`非空+data有id当成功，但`apiCode`只是请求ID，真正成功标志是`result=="0000"`且`data.status==2`。旧版fit/import实际返回无result字段，被误判成功
+   - **object key缺少userId**：旧版用`fit_zip/upload/{md5}.fit`，正确格式为`fit_zip/{userId}/{md5}.fit`（高驰校验路径归属）。新增`getUserId()`方法（先试`/account`接口，再试活动列表提取，兜底token MD5前16位）
+   - **oriFileName修正**：旧版用传入fileName，正确格式为`{activityId}.fit`
+   - **直接传.fit不压缩**：高驰官方支持.fit/.tcx直接导入，无需压缩成.zip
+2. **佳明登录URL新格式**：改用用户提供的官方Connect登录格式——中国`/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=/app`，国际`/portal/sso/en-US/sign-in?clientId=GarminConnect&service=/modern/`
+3. **Wahoo平台内置凭证模式就绪**：Wahoo开发者应用已提交（Sandbox环境，Scopes: user_read/workouts_read/offline_data），等待Wahoo人工审批；审批通过后填入client_id/secret即可直接使用，无需用户自注册
+4. **版本号**：v6.5.4(656) → v6.5.5(657)
+
+### v6.5.4 (2026-09-01) — 佳明登录检测修复（ticket实时捕获）
+1. **佳明ticket实时捕获**：v6.5.3只在定时检测中捕获ticket，登录成功后Success页面→JS重定向到connect域?ticket=ST-...的瞬间可能被错过。改为在`onPageStarted`中实时捕获URL中的ticket参数（重定向瞬间触发），确保不会错过
+2. **中国区登录URL修正**：service路径从`/modern/`改为`/app`（佳明Connect中国实际路径）
+3. **检测间隔缩短**：从2秒缩短到1秒
+4. **版本号**：v6.5.3(655) → v6.5.4(656)
+
+### v6.5.3 (2026-09-01) — 佳明完整OAuth2认证重写 + 高驰上传修复
+1. **佳明认证完整重写**：佳明2026年改认证流，旧cookie-only方式完全失效（API返回403）。新流程：WebView SSO登录→捕获ticket(ST-...)→OAuth1 preauthorized→OAuth2 exchange→Bearer token调API。参考garth(已废弃)+python-garminconnect+gist meddlesome/garmin-browser-auth.py
+2. **佳明登录检测修复**：旧版7秒误判"登录成功"(SSO页未登录就有JSESSIONID)，改为检测Success页面的ticket(ST-...)，登录成功后后台自动换OAuth2 token
+3. **佳明token自动刷新**：access_token过期自动用refresh_token刷新，同步时源/目标平台均自动检查并刷新
+4. **高驰上传修复**：OSS上传成功但fit/import返回`apiCode:8E16FCC7`被误判失败——实际返回格式为`{"apiCode":"xxx","data":{"id":...,"fileUrl":...}}`，修复成功判断逻辑（apiCode存在且data有id/fileUrl即视为成功）
+5. **版本号**：v6.5.2(654) → v6.5.3(655)
+
+### v6.5.2 (2026-09-01) — 佳明登录修复 + 高驰OSS上传修复
+1. **佳明登录修复**：v6.5.1 误将佳明SSO登录页改为Mobile UA导致页面异常"登录没反应"，改回桌面UA；登录态cookie检测保留（避免2秒误判）
+2. **高驰OSS上传修复**：阿里云OSS签名Date头未设置GMT时区（默认北京时间差8小时），导致所有上传签名验证失败返回"高驰OSS上传失败"；已修复Date头时区为GMT
+3. **高驰STS解析加固**：兼容 code/result/status 多种返回格式，增加STS凭证和OSS上传失败日志，便于后续调试
+4. **版本号**：v6.5.1(653) → v6.5.2(654)
+
+### v6.5.1 (2026-09-01) — Wahoo免注册改造 + 佳明登录修复 + 同步目标chip补全
+1. **Wahoo免注册**：去掉用户手动输入 client_id/client_secret 弹窗，改为维护者在 developers.wahooligan.com 免费注册一次后内置凭证，用户直接用Wahoo账号登录授权即可，完全感知不到注册环节
+2. **佳明登录修复**：detectGarmin 增加登录态cookie检测（GARMIN-SSO/SID/IDENTITY/SESSIONID/JSESSIONID任一），避免SSO页未登录普通cookie触发2秒误判"登录成功"；WebView增加 onRenderProcessGone 崩溃防护（渲染进程崩溃时自动reload不闪退）；佳明登录页改用Mobile UA降低JS复杂度
+3. **同步目标chip补全**：chipGroupTarget 补全佳明国际/佳明中国/高驰中国/高驰国际4个新平台chip，与source平台顺序对齐
+4. **版本号**：v6.5.0(652) → v6.5.1(653)
+
+### v6.5.0 (2026-09-01) — 新增佳明/高驰/Wahoo三平台同步 + UI两列布局 + 国内国际互传
+**新增平台**：
+1. **佳明国际 / 佳明中国**：支持下载（FIT，zip自动解压）和上传（upload-service），上传前自动将非Garmin设备FIT伪装为 **Garmin Edge 830**（manufacturer=1, product=3122），重算CRC-16，解决佳明拒收第三方设备FIT的问题
+2. **高驰中国 / 高驰国际**：支持下载（FIT）和上传（STS临时凭证→阿里云OSS/AWS S3→fit/import注册），三区域（1国际/2中国/3欧洲）登录后自动路由，支持中国区↔国际区互传
+3. **Wahoo**：支持下载（OAuth2授权码→access_token→workouts列表→CDN直链FIT），**仅下载无上传**（Wahoo无公开上传API），需用户在 developer.wahoo.fit 注册开发者应用获取 client_id/client_secret
+
+**国内区/国际区互传**：
+- 佳明国际(GARMIN_COM) ↔ 佳明中国(GARMIN_CN) 拆分为独立平台，支持双向互传
+- 高驰中国(COROS_CN) ↔ 高驰国际(COROS_INT) 拆分为独立平台，支持双向互传
+- 所有新平台活动数据均为 WGS84 标准坐标 + UTC 标准时间，零坐标转换、零时间偏移
+
+**UI 改造**：
+- 平台登录卡片从单列竖排改为 **GridLayout 两列网格布局**，11个平台卡片统一色条/标题/状态/按钮高度，对齐排版，解决单列页面过长问题
+
+**版本号**：v6.5.0 (versionCode 652)
+
+### v6.4.3 (2026-08-31) — 修复行者/黑鸟上传时间快8小时：gpx2fit的+8小时参数化
+**根因深入分析**：
+1. `bridge.html`官方gpx2fit转换时硬编码把GPX时间+8小时（注释："Outbase按UTC展示→+8小时对齐北京时间"）
+2. Outbase解析FIT时直接按时间戳数字显示（不加时区），所以+8小时正确
+3. 行者/黑鸟解析FIT时按UTC标准解析再转北京时间显示，+8小时导致显示时间快8小时
+4. iGPSPORT/迈金不用bridge.html（OSS直传），不受此问题影响
+
+**一次性解决方案**：
+1. `bridge.html`的`__convertGpx(count, add8Hours)`新增`add8Hours`参数，默认true（兼容Outbase）
+2. `WebBridge.convertGpxToFit(gpxData, add8Hours=true)`透传参数
+3. Outbase上传：不传参（默认true，+8小时，Outbase按数字显示正确）
+4. 行者上传：`add8Hours=false`（UTC标准时间戳，行者转北京时间显示正确）
+5. 黑鸟上传：`add8Hours=false`（同上）
+
+**版本号**：v6.4.3 (versionCode 651)
+
+### v6.4.2 (2026-08-30) — 修复黑鸟上传行者：用官方gpx2fit转FIT(替代自研转换器)
+**根因深入分析**：
+1. v6.4.1用自研GpxToFitConverter转FIT，但uploadToXingzhe非suspend函数，且日志无转换输出→转换未生效
+2. 坐标：黑鸟下载时convertCoord=true已做GCJ-02→WGS84，上传行者/迈金/iGPSPORT/Outbase坐标已是WGS84，不需再转
+3. 时间：黑鸟GPX时间为UTC，转FIT后FIT是标准UTC时间戳(1989基准)，行者解析FIT用UTC→时间正确，不需+8
+
+**修复**：
+1. uploadToXingzhe改为suspend函数
+2. GPX→FIT转换改用Outbase同款官方gpx2fit.js(WebBridge.convertGpxToFit)，自研GpxToFitConverter兜底
+3. 行者从localTimeTargets移除(v6.4.1已做)：转FIT后标准UTC，不需+8
+4. 传感器数据：官方gpx2fit完整保留心率/踏频/功率/海拔/速度
+
+**版本号**：v6.4.2 (versionCode 650)
+
+### v6.4.1 (2026-08-30) — 修复黑鸟上传行者HTTP 500 + 时间偏移
+**根因**：行者上传接口`/api/v1/fit/upload/`只接受FIT文件(字段名`fit_file`)，但黑鸟下载的是GPX，代码直接用GPX内容+`.fit`扩展名上传，行者服务器无法解析GPX返回HTTP 500。
+
+**修复**：
+1. `uploadToXingzhe`：上传前检测文件格式，GPX先调用`GpxToFitConverter.convert()`转FIT再上传
+2. 时间适配：行者从`localTimeTargets`移除——转FIT后FIT是标准UTC时间戳(1989基准)，行者解析FIT用UTC，不需加8小时；否则时间会快8小时
+3. 传感器数据：GpxToFitConverter保留心率/踏频/功率/海拔/速度/距离，FIT record点完整写入
+
+**版本号**：v6.4.1 (versionCode 649)
+
+### v6.4.0 (2026-08-30) — 黑鸟全链路定稿 + 统一时间适配矩阵 + 六平台互传能力补齐
+> 大版本里程碑。黑鸟单车数据链路经多轮推倒重写后定稿，经14条真实活动原始字段 + 码表BSC500原生记录 + 第三方脚本三重交叉验证；建立全平台统一时间适配矩阵；文件保存改MediaStore解决可见性问题。
+
+**一、黑鸟单车数据链路（定稿）**
+
+1. track固定9字段精确解析
+   - 黑鸟 `/api/records/{id}/data` 返回 `content.track` 为分号分隔字符串，每点固定9字段，按位置取值，不再靠数值范围猜测
+   - `[0]`纬度(GCJ-02) `[1]`经度(GCJ-02) `[2]`海拔(m) `[3]`功率(0.01W,/100得瓦,含黑鸟估算功率) `[4]`心率(bpm) `[5]`踏频(rpm,0=无) `[6]`速度(0.1km/h) `[7]`相对startTime秒偏移 `[8]`保留(恒0)
+   - 传感器写入Garmin TrackPointExtension(hr/cad/power/speed)，0值不写入，避免平台显示0功率/0踏频
+2. 时间生成
+   - `startTime`(Unix秒,自动识别10位秒/13位毫秒) + `[7]`秒偏移逐点递增
+   - 彻底解决同批点时间戳相同导致的速度图爆炸/均速异常
+3. 坐标转换
+   - 黑鸟为GCJ-02火星坐标，固定执行迭代近似GCJ-02→WGS84转换(与blackbird2wgs.py一致)，青岛地区偏移约450米
+   - 与迈金共用同一坐标转换开关
+4. 轨迹完整性
+   - 点上限3000→50000，长距离骑行不截断、不抽稀，保留完整轨迹
+   - metadata补充活动标题/时间
+5. 下载格式
+   - FIT优先(探测fitUrl/downloadUrl/fileUrl等10+字段+cookie认证+Referer)，FIT失败回退GPX构建
+   - GPX构建输出标准UTC带Z，creator用BuildConfig版本号
+
+**二、统一时间适配矩阵（UploadEngine入口）**
+
+- 设计原则：下载端统一产出【标准UTC带Z】GPX作为中间态；上传端按目标平台时区输出
+- 源归一化：行者源GPX是"北京时间标Z"，减8转成真UTC；黑鸟/iGPSPORT等源本就是UTC
+- 目标分两类：
+  - A类（走官方gpx2fit，Date.parse带Z按UTC解析）：Outbase / 黑鸟 → 保持UTC
+  - B类（国产平台直接吃GPX、按GPX时钟数字显示不做UTC→本地）：iGPSPORT / 行者 / 迈金 → UTC+8转北京时间
+- 自洽验证：行者源→行者 = 减8(归一)+8(目标)=还原原始北京时间，零误差
+
+**三、文件保存可见性（MediaStore）**
+
+- 根因：targetSdk=36下用废弃API `getExternalStoragePublicDirectory` 直接写路径，文件不被MediaStore索引；APP运行在应用双开/工作资料空间(用户ID 999)时物理路径 `/storage/emulated/999/...` 主空间文件管理器找不到
+- 修复：Android 10+一律走 `MediaStore.Downloads`，写入 `公共下载/鸡翅幸哲迈进OB`，写入后立即被系统索引，可直接在系统「文件」App下载目录查看/分享；同名先删避免副本；API 26-28回退直接路径
+- 同时保留app私有目录(cacheDir)副本，供迈金/百锐腾WebView上传使用
+
+**四、六平台互传能力**
+
+| 平台 | 下载(源) | 上传(目标) | 上传通道实现 |
+|------|:---:|:---:|------|
+| iGPSPORT | ✅ | ✅ | 官方OSS直传(getSignedUrl→PUT→uploadByOss)，按文件头自动选.fit/.gpx扩展名 |
+| 行者 | ✅ | ✅ | 官方 `/api/v1/fit/upload/`(fit_file+md5)，返回workout_id且is_valid=1才判成功；下载FIT优先回退GPX |
+| 迈金 | ✅ | ✅ | 优先HTTP `u.onelap.cn/upload/fit`，失败回退顽鹿WebView真实文件选择(onShowFileChooser+FileProvider+localStorage注入token) |
+| 黑鸟单车 | ✅ | ✅ | 仅接受FIT，GPX源用Outbase官方gpx2fit转FIT后上传 `/api/records/upload`；登录检测需/api/user验证(防JSESSIONID误判) |
+| 百锐腾 | ⚠️受限 | ✅ | WebView注入Meteor token(localStorage)+真实文件选择；官方未开放FIT下载，不可作来源 |
+| Outbase | ❌ | ✅ | 仅目标平台，GPX用官方gpx2fit(自包含49模块版)转FIT上传 |
+
+**五、其他功能**
+
+- 数据来源记忆：自动记住上次同步来源，重启APP自动恢复
+- 同步记忆+跳过：已同步记录本地记账(SharedPreferences)，再次同步自动跳过，上限10000条；一键「清记忆」按钮
+- 后台常驻自动同步：开关控制，检测间隔30秒~1小时可调(默认5分钟)，任务栏常驻通知显示最近检测结果，内置各品牌后台常驻/电池优化/自启动设置指引
+- 测试下载：停止和复制按钮间「测试」按钮，下载1条保存本地验证下载功能
+- 登录态：WebView加载各平台官方登录页拦截回调获取Token/Cookie，登录后显示账户名；行者会话预检防过期刷屏
+- 迈金坐标转换：七牛云直链(WGS84)跳过，fit_content接口(GCJ-02)转换，基于开源magene-fit-strava-fix移植，用户开关控制
+- 文件名统一：`平台_运动时间_运动类型_来源ID.扩展名`，运动类型从标题自动提取
+- 协程异步：全部网络请求Kotlin Coroutines，主线程安全
+
+**六、版本号**
+- v6.4.0 (versionCode 648)
+
+---
+
+### v6.3.17 (2026-08-30) — 黑鸟全链路修复 + 统一时间适配矩阵 + 文件可见性
+> 本版本对黑鸟单车数据链路做推倒重写后的最终修正，经14条真实活动原始字段 + 码表BSC500原生记录 + 第三方脚本三重交叉验证，确保黑鸟数据上传到任意平台均与码表原生一致。
+
+**一、黑鸟track固定9字段解析（核心修正）**
+- 黑鸟 `/api/records/{id}/data` 返回 `content.track` 为分号分隔的字符串，每点固定9字段，按位置精确取值，不再靠数值范围猜测：
+  - `[0]` 纬度(GCJ-02)、`[1]` 经度(GCJ-02)、`[2]` 海拔(米)
+  - `[3]` 功率(0.01W，/100得瓦，含黑鸟估算功率)、`[4]` 心率(bpm)、`[5]` 踏频(rpm，0=无)
+  - `[6]` 速度(0.1km/h)、`[7]` 相对startTime的秒偏移、`[8]` 保留(恒0)
+- 时间生成：`startTime`(Unix秒) + `[7]`秒偏移，逐点递增，彻底解决v6.3.9同批点时间戳相同导致的速度图爆炸/均速异常
+- 坐标：黑鸟为GCJ-02火星坐标，固定执行迭代近似GCJ-02→WGS84转换（与blackbird2wgs.py一致），青岛地区偏移约450米
+- 轨迹点上限：3000→50000点，长距离骑行不截断、不抽稀，保留完整轨迹
+- 传感器写入Garmin TrackPointExtension：hr/cad/power/speed，0值不写入（避免平台显示0功率/0踏频）
+- 修复v6.3.16字段映射错误：此前误把`[5]`踏频当功率输出、丢弃`[3]`真实功率，导致平台显示功率0W/踏频空
+
+**二、统一时间适配矩阵（UploadEngine入口）**
+- 设计原则：下载端统一产出【标准UTC带Z】GPX作为中间态；上传端按目标平台时区输出
+- 源归一化：行者源GPX是"北京时间标Z"，减8转成真UTC；黑鸟/iGPSPORT等源本就是UTC
+- 目标分两类：
+  - A类（走官方gpx2fit，Date.parse带Z按UTC解析）：Outbase / 黑鸟 → 保持UTC
+  - B类（国产平台直接吃GPX、按GPX时钟数字显示不做UTC→本地）：iGPSPORT / 行者 / 迈金 → UTC+8转北京时间
+- 自洽验证：行者源→行者 = 减8(归一)+8(目标)=还原原始北京时间，零误差
+
+**三、文件保存可见性修复（MediaStore）**
+- 根因：targetSdk=36下用废弃API `getExternalStoragePublicDirectory` 直接写路径，文件不被MediaStore索引；且APP运行在应用双开/工作资料空间(用户ID 999)时物理路径 `/storage/emulated/999/...` 主空间文件管理器找不到
+- 修复：Android 10+一律走 `MediaStore.Downloads`，写入 `公共下载/鸡翅幸哲迈进OB`，写入后立即被系统索引，可直接在系统「文件」App下载目录查看/分享；同名先删避免副本；API 26-28回退直接路径
+- 同时保留app私有目录(cacheDir)副本，供迈金/百锐腾WebView上传使用
+
+**四、六平台互传能力现状**
+| 平台 | 下载(源) | 上传(目标) | 上传通道 |
+|------|:---:|:---:|------|
+| iGPSPORT | ✅ | ✅ | 官方OSS直传(getSignedUrl→PUT→uploadByOss)，按文件头自动选.fit/.gpx扩展名 |
+| 行者 | ✅ | ✅ | 官方 `/api/v1/fit/upload/`(fit_file+md5)，返回workout_id且is_valid=1才判成功 |
+| 迈金 | ✅ | ✅ | 优先HTTP `u.onelap.cn/upload/fit`，失败回退顽鹿WebView真实文件选择(onShowFileChooser+FileProvider) |
+| 黑鸟单车 | ✅ | ✅ | 仅接受FIT，GPX源用Outbase官方gpx2fit转FIT后上传 `/api/records/upload` |
+| 百锐腾 | ⚠️受限 | ✅ | WebView注入Meteor token+真实文件选择；官方未开放FIT下载，不可作来源 |
+| Outbase | ❌ | ✅ | 仅目标平台，GPX用官方gpx2fit转FIT上传 |
+
+**五、其他功能**
+- 数据来源记忆：自动记住上次同步来源，重启恢复
+- 同步记忆+跳过：已同步记录本地记账，再次同步自动跳过，上限10000条；一键清记忆
+- 后台常驻自动同步：开关控制，检测间隔30秒~1小时可调，任务栏常驻通知，内置各品牌后台常驻/电池优化指引
+- 测试下载：下载1条保存本地验证下载功能
+- 登录态：WebView加载官方登录页拦截回调，登录后显示账户名
+- 迈金坐标转换：七牛云直链(WGS84)跳过，fit_content(GCJ-02)转换，用户开关控制
+- 版本号：v6.3.17 (versionCode 647)
+
+---
+
+### v6.3.8 (2026-08-30)
+1. **黑鸟下载重构（关键）** — 黑鸟活动数据下载全面重构：FIT优先（增强fitUrl/downloadUrl/fileUrl等10+字段探测+cookie认证+Referer），FIT失败回退GPX构建；GPX构建从只存lat/lon/ele升级为完整解析（content.startTime Unix时间戳+track字符串最后字段毫秒偏移生成时间戳，中间字段智能识别心率30-250/功率0-2000w/踏频0-200rpm写入Garmin TrackPointExtension），解决黑鸟→Outbase无心率功率的问题
+2. **黑鸟坐标GCJ-02→WGS84转换（关键）** — 黑鸟坐标为GCJ-02(火星坐标)，实测上传Outbase有偏移。实现迭代近似GCJ-02→WGS84转换算法（与blackbird2wgs.py一致），GPX构建时自动转换；FIT下载时复用迈金坐标转换引擎（magene_fix.js）转换。黑鸟不分下载渠道，全量转换
+3. **坐标转换UI开关统一** — 原"迈金 GCJ-02→WGS84 坐标转换"开关改名为"迈金&黑鸟 GCJ-02→WGS84 坐标转换"，同一开关控制迈金（分渠道：fit_content转、七牛云直链WGS84不转）和黑鸟（不分渠道全转）的坐标转换
+4. **版本号更新** — v6.3.8 (versionCode 638)
+
+---
+
+### v6.3.7 (2026-08-30)
+1. **修复iGPSPORT上传数量不生效（关键）** — IgpsportApi.getActivities的for循环中`result.add()`后缺少`if (result.size >= limit) break`，导致无论选择1-20多少条，for循环都遍历完当前页20条全部添加，实际同步20条。修复：添加limit条后立即break，数量选择1-1000均正确生效
+2. **清理iGPSPORT重复调试代码** — v6.3.6重写时残留重复的调试日志块，已清理
+3. **版本号更新** — v6.3.7 (versionCode 637)
+
+---
+
+### v6.3.6 (2026-08-30)
+1. **行者下载改为FIT优先（关键）** — 行者下载优先获取FIT文件（`/api/v1/workout/{id}/fit/`），FIT原生支持功率/心率/踏频/温度等扩展数据，上传各平台均不丢失；FIT下载失败时回退GPX（`/api/v1/pgworkout/{id}/gpx/`）再转换
+2. **行者GPX时间统一修正（所有目标平台）** — 在UploadEngine.upload入口处统一对行者GPX做时间修正（减8小时，把本地时间标Z转为正确UTC），覆盖Outbase/iGPSPORT/行者/黑鸟所有上传目标，解决各平台显示时间不是北京时间的问题
+3. **iGPSPORT文件名时间排查** — 增强时间字段探测（增加start_time/RideDate/rideDate/StartDate/startDate等字段），调试日志改为Log.w高优先级输出iGPSPORT首活动所有字段名和时间值，便于定位时间unknown根因
+4. **版本号更新** — v6.3.6 (versionCode 636)
+
+### v6.3.5 (2026-08-30)
+1. **行者→Outbase时区修复（关键）** — 去掉自研GpxTimeFixer预修正，与正式版项目完全一致：行者GPX直接用Outbase官方gpx2fit转FIT上传。正式版验证官方gpx2fit能正确处理行者GPX时间格式，Outbase显示正常
+2. **黑鸟上传GPX→FIT转换修复** — 黑鸟只接受FIT，GPX源必须用Outbase官方gpx2fit转换（自研转换器生成的FIT黑鸟无法解析，返回FIT_FILE_ERROR）。增强转换日志，官方gpx2fit失败时明确告警
+3. **文件名统一用源平台名** — 跨平台同步时文件名前缀用源平台名（如行者数据上传到iGPSPORT/黑鸟/Outbase，文件名均为XingZhe_时间_运动类型_id，而非目标平台名）
+4. **iGPSPORT时间解析增强** — 增强FileNameGenerator时间格式兼容性（支持带时区偏移+08:00/+0800、英文日期格式等），iGPSPORT活动列表增加调试日志输出时间字段实际值
+5. **版本号更新** — v6.3.5 (versionCode 635)
+
+### v6.3.4 (2026-08-29)
+1. **黑鸟上传功能开发完成（启用）** — 黑鸟作为同步目标从"开发中"改为可用。上传地址为 /api/records/upload（已实测连通，FIT校验正常）；GPX源优先用Outbase官方gpx2fit转FIT，失败回退自研转换器。UI取消"开发中"标识
+2. **行者GPX时区修复（关键）** — 行者GPX中<time>是本地时间但错误标注Z(UTC)，上传Outbase后被双重时区转换导致差16小时（如19:14→次日11:14）。修复：行者GPX上传Outbase前自动将所有<time>减去8小时转为正确UTC
+3. **iGPSPORT文件名时间修复** — iGPSPORT的StartTime字段格式未被识别导致文件名时间为unknown。增强时间解析兼容性（支持.NET日期格式/毫秒时间戳/更多日期格式），并增加SportTime/BeginTime/RideTime等字段探测
+4. **黑鸟title为null修复** — 黑鸟活动列表title字段为JSON null时optString返回"null"字符串，导致文件名运动类型为null。修复：过滤"null"字符串和空值，默认用"骑行"
+5. **版本号更新** — v6.3.4 (versionCode 634)
+
+### v6.3.3 (2026-08-29)
+1. **行者→Outbase时区偏移修复（关键）** — 根因：行者GPX中<time>是本地时间但错误标注了Z(UTC)，Outbase解析时双重时区转换导致时间偏移16小时（如行者19:14→Outbase次日11:14）。修复：上传前对行者GPX执行时间修正（所有<time>减8小时变为正确UTC），新增 GpxTimeFixer 工具类
+2. **iGPSPORT文件名时间修复** — 根因：iGPSPORT的StartTime字段格式（时间戳/.NET日期等）未被识别，文件名时间显示unknown。修复：增强FileNameGenerator时间解析兼容性（支持.NET /Date()/格式、毫秒时间戳、带小数时间戳、更多日期格式），同时iGPSPORT字段探测增加SportTime/BeginTime/RideTime等
+3. **黑鸟title为null修复** — 根因：JSON中title字段为null时，optString返回字符串"null"而非默认值，导致文件名运动类型显示null。修复：过滤"null"字符串和空值，默认用"骑行"
+4. **版本号更新** — v6.3.3 (versionCode 633)
+
+### v6.3.2 (2026-08-29)
+1. **黑鸟登录误判修复（关键）** — 根因：detectBlackbird() 只要 cookie 含 JSESSIONID 就判登录成功，但 JSESSIONID 是访问网站即生成的会话 cookie（未登录也有），导致用户未输入账号密码就误判"已登录"，后续下载/上传因 cookie 无效全部失败。修复：检测到 JSESSIONID 后异步调用 /api/user 接口验证，返回有效用户信息（status=ok 且有 nickname）才算真正登录成功，验证不通过则继续轮询
+2. **文件名统一规则全覆盖** — v6.3.1 只改了上传到目标平台的文件名，本次补充：①普通下载保存到本地的文件名；②测试下载保存的文件名（加 test_ 前缀）。全部统一为 `平台_运动时间_运动类型_来源ID.扩展名`
+3. **版本号更新** — v6.3.2 (versionCode 632)
+
+### v6.3.1 (2026-08-29)
+1. **统一上传文件名命名规则** — 此前各平台上传文件名混乱（如 xz_221312982.fit、mg_6a8d8a0d.fit）。统一为：`目标平台_运动时间_运动类型_来源ID.扩展名`，示例：`iGPSPORT_20260825_120000_骑行_xz221312982.fit`。运动类型从活动标题自动提取（如室内骑行/户外骑行/跑步等），时间统一为 yyyyMMdd_HHmmss
+2. **版本号更新** — v6.3.1 (versionCode 631)
+
+### v6.3.0 (2026-08-28)
+1. **底部更新链接排版调整** — 标题去掉"更新链接"和冒号，改为蓝色（与俱乐部链接大小一致 11sp）、无下划线；说明注释另起一行灰色小字
+2. **版本号更新** — v6.3.0 (versionCode 630)
+
+### v6.2.9 (2026-08-28)
+1. **底部更新链接排版调整** — 标题与说明改为两行显示（标题另起一行），标题灰色小字、取消下划线；说明为灰色注释
+2. **版本号更新** — v6.2.9 (versionCode 629)
+
+### v6.2.8 (2026-08-28)
+1. **同步目标(逆向流动)调整** — 迈金/黑鸟单车/百锐腾标为"开发中"并禁用（UploadSupport.available=false，UI自动显示"XX(开发中)"）
+2. **UI重排** — 停止/测试/复制/清记忆四按钮等高单行、防换行对齐（修复"清记忆"按钮文字换行、图标错位）
+3. **底部更新链接优化** — 更新链接仅标题部分可点击跳转，冒号后的说明文字为普通注释（不含在超链接内）
+4. **版本号更新** — v6.2.8 (versionCode 628)
+
+### v6.2.7 (2026-08-28)
+1. **黑鸟上传FIT_FILE_ERROR修复（关键）** — 根因：Kotlin时间解析用Instant.parse只认ISO "T"格式，行者GPX的`<time>`若是空格格式("2026-08-25 12:00:00")解析失败→所有record时间戳相同→FIT时间不递增被黑鸟拒。已修复：①时间解析兼容空格/无Z/毫秒格式；②即使完全无time也按索引生成递增时间戳(每秒一点)，保证FIT时间序列合理
+2. **Outbase官方gpx2fit完整版** — 单独gpx2fit.js缺683等依赖模块(官网动态加载)，转换会失败。已用浏览器提取全部49个依赖模块合并成自包含版本(313KB)放入assets，bridge.html增强webpack运行时辅助方法(req.o/d/r/n/t)，官方转换现在真正可用
+3. **Outbase上传双保险** — 官方gpx2fit优先，失败自动fallback自研GpxToFitConverter（与黑鸟同款，无外部依赖）
+4. **版本号更新** — v6.2.7 (versionCode 627)
+
+### v6.2.6 (2026-08-28)
+1. **Outbase上传解析失败修复（关键）** — 实测"行者→Outbase"返回"上传成功[待处理]"但Outbase内记录解析失败。根因：Outbase只接受真正的FIT文件，而行者下载的是GPX，旧代码直接把GPX以`.fit`扩展名上传，Outbase按FIT解析GPX必失败→记录永远"待处理"。已对齐正式版项目(sync-igpsport-magene-onelap-xingzhe-data-to-outbase)方案：**用Outbase官方gpx2fit库先转GPX→FIT再上传**（WebBridge/bridge.html/gpx2fit.js，含UTC+8时间对齐）
+2. **补齐gpx2fit.js** — 从Outbase官网下载官方前端转换库 gpx2fit.88f62f1a.js(130KB) 放入 assets（此前bridge.html引用但文件缺失，转换桥无法初始化）
+3. **迈金/百锐腾WebView上传提速** — blockNetworkImage+禁自动加载图片（页面图片是加载慢主因之一）
+4. **版本号更新** — v6.2.6 (versionCode 626)
+
+### v6.2.5 (2026-08-28)
+1. **迈金上传卡顿修复（关键）** — 实测 v6.2.4 上传迈金卡 281s 后超时失败。根因：v6.2.4 重构 MageneWebUploader 时改为**无条件 `location.reload()`**（v6.2.3 是"token 已存在则不 reload，直接触发上传"），导致每次上传完整加载顽鹿页面×2（VPN下每页100s+），主线程被页面加载长期占用、60s 超时任务排不上队 → 表现为"上传到迈金"后长时间卡死。**已恢复 v6.2.3 版 MageneWebUploader**（利用 WebView localStorage 跨实例持久化：token 首次写入后不再 reload）
+2. **迈金上传双通道** — 迈金上传**优先走 HTTP**（`u.onelap.cn/upload/fit`，v6.2.2 实测可用、毫秒级不卡UI），HTTP 失败才 fallback 到顽鹿 WebView 真实文件选择兜底（v6.2.3 实测可用）
+3. **百锐腾上传超时逻辑加固** — 百锐腾 WebView 上传确认不依赖前端 success 信号，改为文件选择后直接轮询 userActivities collection 对比上传前最新记录id（此前等待永不出现的标志导致每条卡满超时）；超时 60s→45s
+4. **黑鸟卡顿优化** — GPX→FIT 转换（`GpxToFitConverter`）与黑鸟下载重建 GPX 均加**轨迹点数上限（3000点）**，避免超大 GPX（数万点）解析+距离计算导致卡顿
+5. **同步循环条间延迟优化** — 每条活动之间 delay 300ms→150ms，多活动同步累计提速
+6. **上传过程日志提示** — 迈金/百锐腾 WebView 上传前提示"页面加载约5-15秒，期间界面短暂无响应属正常"，避免误判卡死
+7. **版本号更新** — v6.2.5 (versionCode 625)
+
+### v6.2.4 (2026-08-28)
+1. **黑鸟上传修复（关键）** — 实测"行者→黑鸟"上传被拒 `FIT decode error: Unexpected end of input stream`：黑鸟 `POST /api/records/upload` 只接受 FIT，而行者下载的是 GPX，被黑鸟当 FIT 解析必然失败。已实现 **GPX→FIT 转换器**（`GpxToFitConverter`，定义消息 header=0x40、record 消息按黑鸟 base_type 编码、坐标 semicircles、时间 unix-631065600 等，格式已在黑鸟实测落库成功 recordId=113833851）。上传前按文件头自动识别：非 FIT 先转 FIT 再上传
+2. **黑鸟下载修复（关键）** — 根因是 `GET /api/records/{id}/data` 返回的 `content.track` 是**字符串**（`lat,lon,ele,...;lat,lon,...` 分号分隔），旧代码按 JSONArray 解析必失败。已改为识别字符串格式并重建 GPX 文件
+3. **百锐腾登录修复（关键）** — 逆向确认 Bryton Active 是 Meteor(DDP) 应用，登录态存 **localStorage(Meteor.loginToken/Meteor.userId)** 而非 cookie。登录检测改为读取 localStorage，并将 token+userId 落盘
+4. **百锐腾上传实现** — 百锐腾无公开 REST 上传接口（`POST /user/upload/{userId}` 需真实文件选择，已实测落库成功）。实现 `BrytonWebUploader`：WebView 加载 /activities 页 + 注入 Meteor token + 点"+"上传按钮 + `onShowFileChooser` 返回本地 FIT/GPX + 前端落库确认
+5. **百锐腾列表实现** — 无 REST 列表接口，实现 `BrytonWebApi`：WebView 读 Meteor `userActivities` collection 获取活动列表
+6. **百锐腾下载受限说明** — 官方未开放 FIT/GPX 下载接口（CDP 实测全部下载路径返回 SPA HTML、DDP 方法不存在），**百锐腾仅可作同步目标上传，不可作来源下载轨迹**
+7. **UI 迈金"开发中"标签解除** — 迈金上传功能已真实关联（UploadSupport.MAGENE 置可用），不再显示"(开发中)"
+8. **版本号更新** — v6.2.4 (versionCode 624)
+
+### v6.2.3 (2026-08-28)
+1. **迈金(顽鹿OTM)上传功能实现（核心新功能）** — 逆向确认顽鹿 `upload/fit` 接口对程序化构造的 multipart 一律返回 `422 没有上传文件`，仅接受"真实文件选择"；已实现 **WebView 真实文件选择上传通道**（`MageneWebUploader`：WebView 加载顽鹿页 + 注入登录 token + `onShowFileChooser` 返回本地 FIT 文件），迈金由"仅下载"升级为"可上传"，六平台数据流向补齐为「五平台互传 + Outbase 单向接收」
+2. **iGPSPORT 上传落库修复（关键）** — 修复"行者→iGPSPORT 提示上传成功但平台无记录"：根因是硬编码 `.fit` 扩展名，而行者下载的是 GPX 文件，iGPSPORT 按 FIT 解析 GPX 失败不建记录、但接口仍返回 success 导致误判。现按文件头自动识别 `.fit/.gpx`，`getSignedUrl?fileExtension` 与 `fileName` 同步使用真实扩展名；OSS PUT 改为先不带 `Content-Type`（标准直传，实测 200），403/400 时降级带 `application/octet-stream`
+3. **版本号更新** — v6.2.3 (versionCode 623)
+
+### v6.2.2 (2026-08-28)
+1. **UI首页标题修正** — 顶栏标题统一为"鸡翅幸哲迈进OB(开发体验版)"，去除旧版"v6.1.1"标识
+2. **黑鸟GPX文件标识动态化** — GPX creator 字段改用 BuildConfig 版本号（此前硬编码 v6.1.1）
+3. **版本号更新** — v6.2.2 (versionCode 622)
+
+### v6.2.1 (2026-08-28)
+1. **行者上传接口修复（关键）** — 实测发现原 `workout/upload`（file+随机uuid）接口只存文件不解析，返回 `is_valid:0`，导致"提示上传成功但平台看不到记录"。已切换到行者官方上传接口 `fit/upload`（字段 `fit_file`+`md5`），实测迈金FIT上传返回 `workout_id` 且 `is_valid:1`、数据完整解析（距离/时长/配速正常入库）
+2. **上传记忆清除功能** — 新增「🗑 清记忆」按钮，一键清除全部已同步记录记忆，下次同步重新全量上传（便于频繁测试）
+3. **启动日志版本号动态化** — 版本号改用 BuildConfig.VERSION_NAME 动态读取，启动日志与当前版本一一对应（此前硬编码导致日志版本与实际不符）
+4. **UI首页文案** — 标题统一为"鸡翅幸哲迈进OB(开发体验版)"，去除旧版V6.1.1标识
+5. **iGPSPORT OSS上传加固** — PUT 403/400 时自动降级不带 Content-Type 重试，并记录OSS错误详情便于定位
+6. **自动同步卡顿优化** — 减少单次拉取量（20→8条）、增加全局同步互斥（手动同步时后台自动同步自动等待），避免并发执行导致卡顿
+
+### v6.2.0 (2026-08-28)
+1. **行者上传认证失败识别修复** — 实测行者接口：认证失败时返回 HTTP 401 + `{"code":401,"msg":"Authentication credentials were not provided."}`，部分场景曾出现 HTTP 200 + code:401。现统一识别（HTTP 401/403 + body特征多维度检测），明确提示"行者登录已过期或失效，请重新登录行者"，不再显示技术性报错
+2. **行者会话预检** — 同步开始时先校验行者会话（user_info接口），失效立即中止并提示重新登录，避免20条记录全部报错刷屏
+3. **行者上传实测验证** — 沙箱真实账号登录（account+RSA加密密码）+ 有效sessionid上传FIT成功（code:0），确认行者上传接口与APP代码逻辑正常；失败根因为行者会话过期，需重新登录
+
+### v6.1.9 (2026-08-27)
+1. **恢复底部正式版更新链接** — 底部新增"鸡翅幸哲迈进OB正式版更新链接"，指向正式版仓库 sync-igpsport-magene-onelap-xingzhe-data-to-outbase；开发版不稳定时提示下载正式版（开发版+正式版两个链接并存）
+2. **黑鸟上传错误码翻译** — 实测黑鸟接口：DUPLICATE=记录已存在(重复)；010001=无有效GPS轨迹(0km空活动/室内骑行)或格式不认；FIT_FILE_ERROR=迈金等含开发者字段FIT。失败时给出可读提示
+3. **黑鸟上传实测验证** — 沙箱真实登录黑鸟验证：有GPS的iGPSPORT标准FIT可被黑鸟解析（重复识别正常）；迈金C606室内骑行台(无GPS)被黑鸟FIT_FILE_ERROR拒绝（平台限制）
+
+### v6.1.8 (2026-08-27)
+1. **底部更新链接修正** — 更新链接指向开发测试版仓库 `sports-data-sync-multiplatform`（此前误指向正式版仓库）
+
+### v6.1.7 (2026-08-27)
+1. **iGPSPORT上传修复** — 修复 getSignedUrl 响应解析：signedUrl/ossId 在 data 子对象中（原代码从顶层读取导致"未获取到上传地址"），OSS直传流程恢复
+2. **黑鸟活动列表修复** — 黑鸟列表接口返回 content 数组（原代码只读 data/records 导致"未获取到活动"），已修复并格式化毫秒时间戳为可读时间
+3. **黑鸟登录检测修复** — 黑鸟登录后 cookie 仅含 JSESSIONID（原检测逻辑只认不存在的cookie名导致登录成功不识别），已加入 JSESSIONID 检测
+4. **黑鸟上传错误提示优化** — 上传失败返回具体原因（登录失效/认证过期/FIT_FILE_ERROR 平台限制），界面直接显示
+5. **百锐腾登录检测优化** — 增加 Meteor 框架 cookie 特征（meteor_login_token 等）检测
+6. **底部更新链接** — 增加"鸡翅幸哲迈进OB(开发体验版)更新链接: 开发版不稳定且用且珍惜"
+
+### v6.1.6 (2026-08-27)
+1. 行者下载修复 — GPX下载URL增加尾斜杠（/gpx/），修复401下载失败
+2. 黑鸟用户名修复 — 用户信息接口改为 /api/user（content.nickname）
+3. 黑鸟上传实测 — iGPSPORT标准FIT可上传成功；迈金室内骑行台（无GPS）FIT被黑鸟拒绝（平台限制）
+4. iGPSPORT上传重写 — 失效的uploadFit改为官方OSS直传流程（getSignedUrl→PUT→uploadByOss）
+5. 迈金上传标注开发中 — 已研究确认顽鹿无公开第三方FIT导入API，目标按钮置灰
+6. 自动同步卡顿修复
+
+### v6.1.5
+- 修复按钮布局：开始同步独占整行，停止/测试/复制等宽对齐
+
+### v6.1.4
+- 修复用户名显示/电源保护/前台服务通知/黑鸟百锐腾上传
+
+### v6.1.3（开发体验版）
+- 修复迈金GCJ-02→WGS84坐标转换：区分七牛云直链（WGS84不转换）和fit_content接口（GCJ-02需转换）
+- 登录检测严格化，增加手动确认登录按钮
+- 增加测试下载按钮（停止和复制之间）
+- 恢复后台常驻指引 & 电池保护设置功能
+- 恢复后台自动同步任务栏通知
+- 登录后显示账户名称
+- 黑鸟单车、百锐腾上传功能标注为开发中
+
+### v6.1.2
+- 完善鸣谢内容（六平台 + 测试人员）
+- 增加软件更新地址超链接
+- 增加俱乐部超链接
+
+### v6.1.1
+- 新增支持黑鸟单车、百锐腾平台
+- 六平台聚合Logo（扁平化纯色风格）
+- 增加Slogan：让运动数据自由流动
+- 底部增加反馈提示文字
+
+### v6.1.0
+- 新增数据来源记忆功能
+- 同步文件自动保存至手机Download目录
+- 新增迈金GCJ-02→WGS84坐标转换开关
+- 新增同步记忆功能，跳过上限提升至10000条
+- 新增后台常驻自动同步功能
+
+---
+
+### v6.0.0 — 项目启动
+- 支持iGPSPORT/行者/迈金/黑鸟/百锐腾/Outbase六平台
+- 基础同步功能实现
+
+---
+
+### v7.0.x 早期版本
+- 佳明国际mobile SSO+DI token绕过Cloudflare
+- 十一平台基础互传功能
+
+### v6.7.x (2026-08~09) — 佳明国际mobile SSO+WebView共享
+**已解决**：
+- v6.7.8: 佳明国际改用mobile SSO+DI OAuth Bearer tokens，connectapi不经过Cloudflare
+- v6.7.9: 数据来源/同步目标四列网格布局，Outbase独占一行
+- v6.7.4~v6.7.7: 佳明国际WebView方案修复（cookie注入、就绪等待、重定向循环、静态WebView共享）
+
+### v6.5.x (2026-08) — 新增佳明/高驰/Wahoo，九平台互传
+**已解决**：
+- v6.5.0: 新增佳明(CN/COM)/高驰(CN/INT)/Wahoo同步，支持国内国际互传，UI改两列布局
+- v6.5.1: Wahoo免注册改造（内置凭证）+ 佳明登录修复
+- v6.5.2~v6.5.9: 佳明完整OAuth2认证重写（ticket→OAuth1→OAuth2 Bearer token）+ 高驰上传修复 + 佳明401根因修复（JWT_WEB+session双cookie）
+
+### v6.4.x (2026-08) — 黑鸟全链路+时间适配矩阵
+**已解决**：
+- v6.4.0: 大版本里程碑——黑鸟全链路定稿+统一时间适配矩阵+六平台互传能力补齐
+- v6.4.1~v6.4.3: 修复黑鸟上传行者HTTP 500（GPX未转FIT）+ 时间偏移8小时 + 用官方gpx2fit转FIT
+
+### v6.3.x (2026-08) — 黑鸟上传下载+GPX转FIT+时间修正
+**已解决**：
+- v6.3.1: 统一上传文件名命名规则
+- v6.3.4: 黑鸟上传启用（官方gpx2fit转FIT）+ 行者GPX时区修正
+- v6.3.5~v6.3.6: 行者下载FIT优先（保留功率）+ 行者GPX时间全平台统一修正
+- v6.3.8: 黑鸟下载重构（FIT优先+GPX完整解析心率功率时间）+ 黑鸟GCJ-02转WGS84
+- v6.3.9~v6.3.10: 黑鸟时间修复（startTime秒/毫秒自动判断）+ 黑鸟GPX时间1989年问题
+- v6.3.11~v6.3.13: 黑鸟GPX对所有平台统一转FIT + 回退所有GPX统一转FIT（自研FIT部分平台无法解析）
+- v6.3.14~v6.3.17: 修复黑鸟长距离轨迹5000点截断 + 黑鸟推倒重写固定9字段精确解析 + 黑鸟全链路修复
+
+### v6.2.x (2026-07~08) — 迈金上传+百锐腾+黑鸟上传
+**已解决**：
+- v6.2.3: 迈金顽鹿OTM WebView上传 + iGPSPORT上传落库修复
+- v6.2.4: 黑鸟上传(GPX->FIT)/下载修复 + 百锐腾登录(localStorage)/上传(WebView)/列表
+- v6.2.5: 修复迈金上传卡顿（恢复WebView逻辑+HTTP优先双通道）
+- v6.2.6~v6.2.7: 修复Outbase上传解析失败（GPX用官方gpx2fit转FIT）+ 黑鸟FIT_FILE_ERROR修复
+- v6.2.8: 同步目标逆向流动迈金/黑鸟/百锐腾标开发中 + UI按钮区对齐重排
+- v6.2.9: 底部更新链接样式优化
+
+### v6.1.x (2026-07) — 六平台基础互传
+**已解决**：
+- v6.1.3: 开发体验版首发——六平台运动数据互传
+- v6.1.4: 修复用户名显示/电源保护/前台服务通知/黑鸟百锐腾上传
+- v6.1.5: 修复按钮布局：开始同步独占整行，停止/测试/复制等宽对齐
+- v6.1.7: 修复iGPSPORT上传/黑鸟列表/黑鸟登录+图标更新
+- v6.1.8~v6.1.9: 更新链接指向开发测试版仓库 + 恢复正式版更新链接 + 黑鸟上传错误码翻译
+- v6.2.2: UI首页标题修正 + 黑鸟GPX标识动态化
+
+---
+
+---
+
 
 ## 📌 说明
 
