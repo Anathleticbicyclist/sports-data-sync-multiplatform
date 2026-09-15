@@ -249,6 +249,8 @@ class LoginWebActivity : AppCompatActivity() {
                 tvFallback.setOnClickListener {
                     android.widget.Toast.makeText(this, "切换到软件内浏览器登录，请手动完成验证", android.widget.Toast.LENGTH_SHORT).show()
                     findViewById<android.widget.LinearLayout>(R.id.mobileLoginLayout).visibility = android.view.View.GONE
+                    // v8.0.9 修复: 佳明国际 fallback 同样要显示 webLoginContainer（8.0 系列白屏）
+                    findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.VISIBLE
                     webView.visibility = android.view.View.VISIBLE
                     findViewById<android.view.View>(R.id.btnConfirmLogin)?.visibility = android.view.View.VISIBLE
                     val loginUrl = if (isCN) com.jichi.ob.api.GarminApi.LOGIN_URL_CN else com.jichi.ob.api.GarminApi.LOGIN_URL_COM
@@ -368,6 +370,10 @@ class LoginWebActivity : AppCompatActivity() {
             findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.setOnClickListener {
                 confirmManualLogin()
             }
+            // v8.0.9 修复: 8.0 系列 WebView 白屏——webLoginContainer 初始为 gone，
+            // 此前只有 iGPSPORT 切换逻辑会显示它；迈金/Outbase/行者/黑鸟/百锐腾/高驰/佳明等
+            // 所有走通用网页登录的平台必须显式显示容器，否则 WebView 一直隐藏（白屏）
+            findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.VISIBLE
  
             progressBar = findViewById(R.id.progressBar)
             webView = findViewById(R.id.webView)
