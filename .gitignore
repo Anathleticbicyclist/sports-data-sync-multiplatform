@@ -15,23 +15,3 @@ local.properties
 *.keystore
 jichi-ob-dev.keystore
 ui_preview/
-
-# ── 轨迹合并&透明贴纸（专有功能，不开源）────────────────
-# 该功能代码/UI 仅随 APK 分发，不推送至开源仓库；完整功能说明见项目根目录
-# 《鸡翅幸哲迈进OB_轨迹合并与透明贴纸功能文档.docx》（仅本地留存）
-/app/src/main/java/com/jichi/ob/merge/
-/app/src/main/java/com/jichi/ob/ui/MergeFragment.kt
-/app/src/main/java/com/jichi/ob/ui/TrackPreviewView.kt
-/app/src/main/java/com/jichi/ob/MergeTrial.kt
-/app/src/main/res/layout/fragment_merge.xml
-/app/src/main/res/drawable/merge_chip_blue.xml
-/app/src/main/res/drawable/merge_chip_gray.xml
-/app/src/main/res/drawable/merge_chip_red.xml
-/app/src/test/java/com/jichi/ob/merge/
-# 合并专有测试与轨迹样本（不开源）
-/app/src/test/
-# APK 产物不入库
-*.apk
-# 贴纸模板与背景（专有不开放）
-/app/src/main/assets/sticker_templates.html
-/app/src/main/res/drawable/bg_sticker_edit.xml

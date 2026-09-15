@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v8.0.8"
+                    android:text="开发体验版 v8.0.9"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,11 +102,11 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.0.8)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="贴纸真实轨迹渲染+粗细三档可调，透明/数据层/组合调节全面生效。欢迎试用提交反馈bug。" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.0.6" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="贴纸引擎重构：效果图同源渲染，24款预设1:1还原。轨迹合并相关功能限时体验到9月30号" android:textSize="12sp" android:textColor="@color/text_primary" android:lineSpacingExtra="2dp" />
-                
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.0.9)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.0.9 优化贴纸轨迹显示，修复网页登录" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.0.8 优化数据合并" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.0.7 优化显示逻辑" android:textSize="12sp" android:textColor="@color/text_primary" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
