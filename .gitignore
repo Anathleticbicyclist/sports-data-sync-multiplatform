@@ -15,3 +15,13 @@ local.properties
 *.keystore
 jichi-ob-dev.keystore
 ui_preview/
+
+# ===== 不开源（数据合并 & 轨迹 UI/贴纸，留存本地 Word 文档） =====
+app/src/main/java/com/jichi/ob/merge/
+app/src/main/java/com/jichi/ob/ui/MergeFragment.kt
+app/src/main/java/com/jichi/ob/ui/TrackPreviewView.kt
+app/src/main/res/layout/fragment_merge.xml
+app/src/main/assets/sticker_templates.html
+app/src/test/java/com/jichi/ob/MergeTimeTest.kt
+app/src/test/java/com/jichi/ob/RealFitMergeTest.kt
+app/src/test/java/com/jichi/ob/merge/

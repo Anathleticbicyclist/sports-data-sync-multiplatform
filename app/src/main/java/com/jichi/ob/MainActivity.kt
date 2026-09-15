@@ -1923,32 +1923,47 @@ class MainActivity : AppCompatActivity() {
      * - 未指定日期范围：只拉最近一页（30 条），秒开不卡；
      * - 指定日期范围：从最新翻页拉取直到覆盖范围（记录日期早于 fromDate 停止，上限 1000 防卡），再按范围过滤。
      */
-    suspend fun fetchMergeActivities(source: DataSource, fromDate: String? = null, toDate: String? = null): List<ActivityRecord> = withContext(Dispatchers.IO) {
+    /** 合并页记录分页结果 */
+    data class MergeFetchPage(val records: List<ActivityRecord>, val hasMore: Boolean)
+
+    /**
+     * 合并页拉取记录（v8.1.2 分页化）：
+     * - 无日期筛选：只拉最近 1 批（30 条），秒开；
+     * - 指定日期范围：从 skip 开始翻页拉取并过滤，单次最多拉 500 条防卡，hasMore=可能还有更早记录。
+     */
+    suspend fun fetchMergeActivities(source: DataSource, fromDate: String? = null, toDate: String? = null, skipStart: Int = 0): MergeFetchPage = withContext(Dispatchers.IO) {
         val out = LinkedHashMap<String, ActivityRecord>()
-        var skip = 0
+        var skip = skipStart
         val page = 30
-        val max = 1000
+        val max = 500
+        var fetched = 0
+        var lastBatchFull = false
         try {
-            while (out.size < max) {
+            while (fetched < max) {
                 val batch = try {
                     fetchActivities(source, skip, page)
                 } catch (e: Exception) {
                     break
                 }
-                if (batch.isEmpty()) break
-                for (r in batch) out[r.id] = r
-                skip += batch.size
-                // v7.9.11 秒开修复：无日期筛选时只拉最近 1 批（约 30 条），不再白拉 1000 条导致打开卡顿
-                if (fromDate == null && toDate == null) break
+                if (batch.isEmpty()) { lastBatchFull = false; break }
+                lastBatchFull = batch.size >= page
+                skip += batch.size; fetched += batch.size
+                if (fromDate == null && toDate == null) {
+                    for (r in batch) out[r.id] = r
+                    // v7.9.11 秒开修复：无日期筛选时只拉最近 1 批（约 30 条）
+                    break
+                }
+                for (r in batch) {
+                    val d = recDay(r.startTime)
+                    if ((fromDate == null || d >= fromDate) && (toDate == null || d <= toDate)) out[r.id] = r
+                }
                 if (batch.size < page) break
             }
         } catch (_: Exception) {}
         val list = out.values.toList()
-        if (fromDate == null && toDate == null) return@withContext list.take(page)
-        list.filter { rec ->
-            val d = recDay(rec.startTime)
-            (fromDate == null || d >= fromDate) && (toDate == null || d <= toDate)
-        }
+        if (fromDate == null && toDate == null) return@withContext MergeFetchPage(list.take(page), lastBatchFull)
+        // 有日期：拉到更早记录可能仍匹配 → hasMore=还有下一页可拉（未触上限且刚拉满页）
+        MergeFetchPage(list, lastBatchFull && fetched >= max)
     }
 
     private fun recDay(startTime: String): String = startTime.take(10)
