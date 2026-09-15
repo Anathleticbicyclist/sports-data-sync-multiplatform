@@ -75,6 +75,10 @@ class CodoonApi {
     private var lastMobile: String? = null
     private var lastPassword: String? = null
 
+    /** v8.1.1: 最近一次登录的 userId（validateToken 兜底用真实 userId，避免 user_id="0" 假阳性） */
+    @Volatile
+    private var lastUserId: String? = null
+
     data class LoginResult(val token: String, val refreshToken: String, val userId: String)
 
     // ===== 签名工具 =====
@@ -130,7 +134,8 @@ class CodoonApi {
         headers["authorization"] = authorization
         headers["timestamp"] = timestamp.toString()
         headers["signature"] = sign
-        headers["accept-encoding"] = "gzip"
+        // v8.1.1: 禁止手动设 accept-encoding: gzip——okhttp 仅在未设置时才自动解压；
+        // 手动设置后列表大响应返回 gzip 原始字节 → JSON 解析乱码（"响应非JSON"）
         if (contentType != null) headers["Content-Type"] = contentType
         return headers
     }
@@ -167,6 +172,7 @@ class CodoonApi {
             val access = json.optString("access_token").takeIf { it.isNotBlank() } ?: return@withContext null
             val refresh = json.optString("refresh_token")
             val uid = json.optString("user_id")
+            lastUserId = uid
             LoginResult(access, refresh, uid)
         } catch (e: Exception) {
             Log.e(TAG, "Codoon login error", e)
@@ -179,11 +185,14 @@ class CodoonApi {
             k + "=" + android.net.Uri.encode(v)
         }
 
-    /** 校验 token：拉一次列表（limit=1），成功返回 true */
-    suspend fun validateToken(token: String): Boolean = withContext(Dispatchers.IO) {
+    /** 校验 token：用真实 userId 拉一次列表（limit=1），成功返回 true（v8.1.1 不再用假 userId）
+     *  v8.1.1: uid 参数优先（启动检测传持久化 userId），避免重启后 lastUserId=null 用空串拉 500 条 */
+    suspend fun validateToken(token: String, uid: String? = null): Boolean = withContext(Dispatchers.IO) {
         if (token.isBlank()) return@withContext false
         try {
-            val (code, _) = postJson(token, "/api/get_old_route_log", mapOf("limit" to 1, "page" to 1, "user_id" to "0"))
+            // 绝不能用 "0"（服务端返回 200+空列表，造成假阳性"有效"）；空串会返回全部记录（慢）
+            val safeUid = uid?.takeIf { it.isNotBlank() && it != "0" } ?: (lastUserId ?: "")
+            val (code, _) = postJson(token, "/api/get_old_route_log", mapOf("limit" to 1, "page" to 1, "user_id" to safeUid))
             code == 200
         } catch (e: Exception) {
             Log.e(TAG, "Codoon validateToken error", e)
@@ -192,8 +201,8 @@ class CodoonApi {
     }
 
     /** 启动登录检测：token 有效返回 "咕咚用户"，无效返回 null */
-    suspend fun getUsername(token: String): String? = withContext(Dispatchers.IO) {
-        if (validateToken(token)) "咕咚用户" else null
+    suspend fun getUsername(token: String, uid: String? = null): String? = withContext(Dispatchers.IO) {
+        if (validateToken(token, uid)) "咕咚用户" else null
     }
 
     /** 401 时用最近一次登录的账号密码重新登录（内存兜底） */
@@ -226,8 +235,23 @@ class CodoonApi {
     /**
      * 获取活动列表（分页，每页500）。返回记录 extra 存 route_id（详情查询用）。
      * 覆盖全部运动类型（Hike/Run/Ride），过滤无 route_id 的无效记录。
+     * v8.1.1: 401 时自动用最近账号密码重登一次并重拉（修复"能登录但拉不到记录"）。
      */
     suspend fun getActivities(token: String, userId: String, skip: Int, limit: Int): List<ActivityRecord> =
+        withContext(Dispatchers.IO) {
+            try {
+                // v8.1.1: 脏 userId（空/"0"）用最近登录的真实 uid 兜底（"0"会让服务端返回200+空列表）
+                val safeUid = userId.takeIf { it.isNotBlank() && it != "0" } ?: (lastUserId ?: "")
+                fetchActivities(token, safeUid, skip, limit)
+            } catch (e: IllegalStateException) {
+                if (e.message?.contains("401") == true) {
+                    val rel = reLoginIfNeeded()
+                    if (rel != null) fetchActivities(rel.token, rel.userId, skip, limit) else throw e
+                } else throw e
+            }
+        }
+
+    private suspend fun fetchActivities(token: String, userId: String, skip: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             try {
                 val out = mutableListOf<ActivityRecord>()
@@ -236,12 +260,15 @@ class CodoonApi {
                     val (code, body) = postJson(token, "/api/get_old_route_log", mapOf("limit" to 500, "page" to page, "user_id" to userId))
                     if (code == 401) throw IllegalStateException("Codoon token 过期(401)")
                     if (code != 200) {
-                        Log.w(TAG, "Codoon list HTTP $code: ${body.take(120)}")
-                        break
+                        // v8.1.1: 非200 直接抛详细错误（原 break 静默导致"未获取到活动"难排查）
+                        throw IllegalStateException("Codoon list HTTP $code: ${body.take(150)}")
                     }
-                    val json = try { JSONObject(body) } catch (_: Exception) { null } ?: break
-                    val data = json.optJSONObject("data") ?: break
-                    val logList = data.optJSONArray("log_list") ?: break
+                    val json = try { JSONObject(body) } catch (_: Exception) { null }
+                        ?: throw IllegalStateException("Codoon list 响应非JSON: ${body.take(150)}")
+                    val data = json.optJSONObject("data")
+                        ?: throw IllegalStateException("Codoon list 无data: ${body.take(150)}")
+                    val logList = data.optJSONArray("log_list")
+                        ?: throw IllegalStateException("Codoon list 无log_list: ${body.take(150)}")
                     for (i in 0 until logList.length()) {
                         val item = logList.optJSONObject(i) ?: continue
                         val logId = item.optString("log_id").takeIf { it.isNotBlank() } ?: continue
@@ -252,7 +279,10 @@ class CodoonApi {
                         val start = item.optString("start_time", "").replace("T", " ").take(19)
                         val dist = item.optDouble("total_length", 0.0) / 1000.0
                         val dur = item.optLong("total_time", 0).toInt()
-                        out.add(ActivityRecord(logId, title, start, dist, dur, DataSource.CODOON, routeId))
+                        out.add(ActivityRecord(logId, title, start, dist, dur, DataSource.CODOON, routeId).also {
+                            // v8.1.1: 室内跑（跑步机 is_in_room=1）无GPS轨迹，标记供列表提示
+                            it.extra = if (item.optInt("is_in_room") == 1) "room" else null
+                        })
                     }
                     val hasMore = data.optBoolean("has_more", false)
                     if (!hasMore) break

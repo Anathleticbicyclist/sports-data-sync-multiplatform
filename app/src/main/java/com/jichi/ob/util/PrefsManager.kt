@@ -212,6 +212,9 @@ class PrefsManager(context: Context) {
     fun getCodoonAccount(): String? = prefs.getString("codoon_account", null)
     fun saveCodoonUserId(uid: String) { prefs.edit().putString("codoon_user_id", uid).apply() }
     fun getCodoonUserId(): String? = prefs.getString("codoon_user_id", null)
+    /** v8.1.1: 保存咕咚密码——token 失效后启动时用账号密码自动重登（咕咚无 refresh 端点） */
+    fun saveCodoonPassword(p: String) { prefs.edit().putString("codoon_password", p).apply() }
+    fun getCodoonPassword(): String? = prefs.getString("codoon_password", null)
     fun isCodoonLoggedIn(): Boolean = !getCodoonToken().isNullOrEmpty()
     /** v7.9.5: 咕咚轨迹坐标转换开关（默认关=WGS-84；若实测偏移可开启 GCJ-02→WGS-84） */
     fun isCodoonGcjConvertEnabled(): Boolean = prefs.getBoolean("codoon_gcj_convert", false)
