@@ -750,6 +750,7 @@ class MainActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 prefs.saveCodoonAccount(account)
+                prefs.saveCodoonPassword(password)
                 appendLog("🔐 咕咚直接登录中...")
                 lifecycleScope.launch(Dispatchers.IO) {
                     val result = codoonApi.login(account, password)
@@ -1076,7 +1077,7 @@ class MainActivity : AppCompatActivity() {
                         DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
                         DataSource.ZWIFT -> zwiftApi.getUsername(cred)
                         DataSource.KEEP -> keepApi.getUsername(cred)
-                        DataSource.CODOON -> codoonApi.getUsername(cred)
+                        DataSource.CODOON -> codoonApi.getUsername(cred, prefs.getCodoonUserId())
                         DataSource.ZEPP -> zeppApi.getUsername(cred)
                         DataSource.KOMOT -> {
                             val email = prefs.getKomootAccount()
@@ -1167,6 +1168,23 @@ class MainActivity : AppCompatActivity() {
      * 仅支持有刷新机制的平台；返回 null 表示无法刷新（需重新登录）
      */
     private suspend fun refreshCredentialOnStart(ds: DataSource, cred: String): String? = when (ds) {
+        DataSource.CODOON -> {
+            // v8.1.1: 咕咚无 refresh 端点，token 失效后用保存的账号密码自动重登（否则"登录状态记不住"）
+            val account = prefs.getCodoonAccount()
+            val password = prefs.getCodoonPassword()
+            if (account.isNullOrEmpty() || password.isNullOrEmpty()) null
+            else try {
+                val r = codoonApi.login(account, password)
+                if (r != null) {
+                    prefs.saveCodoonToken(r.token)
+                    prefs.saveCodoonUserId(r.userId)
+                    r.token
+                } else null
+            } catch (e: Exception) {
+                Log.w(TAG, "咕咚自动重登异常: ${e.message}")
+                null
+            }
+        }
         DataSource.MAGENE -> {
             val refresh = prefs.getMageneRefreshToken()
             if (refresh.isNullOrEmpty()) null else mageneApi.refreshToken(refresh)
@@ -1270,7 +1288,7 @@ class MainActivity : AppCompatActivity() {
                 DataSource.ZWIFT -> zwiftApi.getUsername(cred)
                 DataSource.INTERVALS_ICU -> "Intervals.icu用户"
                 DataSource.KEEP -> keepApi.getUsername(cred)
-                DataSource.CODOON -> codoonApi.getUsername(cred)
+                DataSource.CODOON -> codoonApi.getUsername(cred, prefs.getCodoonUserId())
                 DataSource.ZEPP -> zeppApi.getUsername(cred)
                 DataSource.KOMOT -> {
                     val email = prefs.getKomootAccount()

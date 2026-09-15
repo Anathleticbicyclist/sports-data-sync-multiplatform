@@ -244,9 +244,9 @@ class ZeppApi {
     private var cachedDeviceId: String? = null
     private fun deviceId(): String {
         cachedDeviceId?.let { return it }
-        val id = UUID.randomUUID().toString().uppercase()
-        cachedDeviceId = id
-        return id
+        // v8.1.1: 与社区验证实现一致用固定 device_id（随机 UUID 曾触发华米风控/参数校验）
+        cachedDeviceId = "02:00:00:00:00:00"
+        return cachedDeviceId!!
     }
 
     // ===== 通用 GET（带 apptoken）=====
