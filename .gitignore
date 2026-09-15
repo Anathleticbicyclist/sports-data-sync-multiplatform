@@ -32,3 +32,6 @@ ui_preview/
 /app/src/test/
 # APK 产物不入库
 *.apk
+# 贴纸模板与背景（专有不开放）
+/app/src/main/assets/sticker_templates.html
+/app/src/main/res/drawable/bg_sticker_edit.xml
