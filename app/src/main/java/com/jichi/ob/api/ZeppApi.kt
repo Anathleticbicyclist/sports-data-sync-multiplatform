@@ -139,6 +139,7 @@ class ZeppApi {
                 Log.w(TAG, "Zepp step2 login HTTP $code2: ${body2.take(150)}")
                 val err2 = when {
                     code2 == 429 || body2.contains("too many") -> "请求过于频繁，已被华米风控，请稍等几分钟再试"
+                    code2 == 401 || code2 == 403 -> "账号或密码错误，请重新输入"
                     else -> "登录失败(HTTP $code2)，请稍后再试"
                 }
                 return@withContext LoginResult("", "", err2)
@@ -171,6 +172,7 @@ class ZeppApi {
                 Log.w(TAG, "Zepp step3 app_token HTTP $code3: ${body3.take(150)}")
                 val err3 = when {
                     code3 == 429 || body3.contains("too many") -> "请求过于频繁，已被华米风控，请稍等几分钟再试"
+                    code3 == 401 || code3 == 403 -> "登录凭证已失效或被风控，请重新登录"
                     else -> "登录失败(HTTP $code3)，请稍后再试"
                 }
                 return@withContext LoginResult("", "", err3)

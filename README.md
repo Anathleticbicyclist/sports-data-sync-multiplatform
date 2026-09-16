@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.1.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.1.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.1.6 |
+| 当前版本 | v8.1.9 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -382,7 +382,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 感谢以下人员（均为骑行爱称）为软件测试提供的帮助：
 
-素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿
+素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿、泽、无名氏、我有一个朋友、N1d、ongoing33、七诗君、赵烨龙、狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾
 
 鸣谢青岛AUV俱乐部
 
@@ -412,6 +412,10 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.1.9 (2026-09-16)
+- 佳明国际登录重构：账号密码 App 内直连（老版表单通道，无需网页登录），绕开网页登录按钮风控与 mobile SSO 每天一次限制；登录成功自动清除本地冷却缓存，不再误报"24小时后登录"
+- 新增补充鸣谢人员（均为骑行爱称）：泽、无名氏、我有一个朋友、N1d、ongoing33、七诗君、赵烨龙、狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾
 
 ### v8.1.6 (2026-09-16)
 - 修复 Keep 骑行轨迹仍为空（最终根因）：Keep 详情返回的 rawDataURL 是私有链接（keepcdn 实测 403 拒绝访问），旧逻辑优先下载它、失败后不回退——轨迹永远拿不到，只能单点兜底。现改为**优先解码 geoPoints 加密轨迹**（本地可解、不依赖外部链接），rawDataURL 仅作回退；客户骑行记录实测 850 点完整轨迹、里程 30.8km 与官方一致
