@@ -12,6 +12,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
+import java.security.MessageDigest
+import java.security.SecureRandom
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -53,6 +55,20 @@ class SuuntoApi {
         var BUILTIN_SUBSCRIPTION_KEY: String = ""
         fun isBuiltinConfigured(): Boolean =
             BUILTIN_CLIENT_ID.isNotEmpty() && BUILTIN_CLIENT_SECRET.isNotEmpty() && BUILTIN_SUBSCRIPTION_KEY.isNotEmpty()
+
+        // v8.1.9: PKCE（授权码+code_verifier）——Suunto OAuth2 支持 PKCE，注册凭证后
+        // 即使不填 clientSecret 也能换 token。verifier 在授权前生成、换 token 时消费。
+        @Volatile var lastCodeVerifier: String? = null
+
+        /** 生成 PKCE verifier（43-128 位 url-safe）与 S256 challenge */
+        fun newPkce(): Pair<String, String> {
+            val bytes = ByteArray(64)
+            SecureRandom().nextBytes(bytes)
+            val verifier = Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+            val digest = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII))
+            val challenge = Base64.encodeToString(digest, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+            return verifier to challenge
+        }
     }
 
     private val client = OkHttpClient.Builder()
@@ -72,29 +88,57 @@ class SuuntoApi {
 
     data class LoginResult(val accessToken: String, val refreshToken: String, val expiresAt: Long)
 
-    /** 构造授权 URL（打开WebView让用户登录，redirect 捕获 code 后换 token） */
-    fun authorizeUrl(clientId: String): String =
-        "$AUTH_BASE/authorize?response_type=code&client_id=${java.net.URLEncoder.encode(clientId, "UTF-8")}&redirect_uri=${java.net.URLEncoder.encode(REDIRECT_URI, "UTF-8")}&state=jichiOB"
+    /** 构造授权 URL（打开WebView让用户登录，redirect 捕获 code 后换 token）
+     *  v8.1.9: 支持 PKCE——未填 clientSecret 时自动启用（Suunto OAuth2 官方支持），
+     *  verifier 暂存于 lastCodeVerifier，exchangeCode 时消费。 */
+    fun authorizeUrl(clientId: String): String {
+        val sb = StringBuilder()
+            .append("$AUTH_BASE/authorize?response_type=code&client_id=${java.net.URLEncoder.encode(clientId, "UTF-8")}")
+            .append("&redirect_uri=${java.net.URLEncoder.encode(REDIRECT_URI, "UTF-8")}")
+            .append("&state=jichiOB")
+        if (BUILTIN_CLIENT_SECRET.isEmpty()) {
+            val (v, c) = newPkce()
+            lastCodeVerifier = v
+            sb.append("&code_challenge=").append(c)
+            sb.append("&code_challenge_method=S256")
+        } else {
+            lastCodeVerifier = null
+        }
+        return sb.toString()
+    }
 
-    /** 用授权码换 token（Basic clientId:clientSecret） */
+    /** 用授权码换 token（v8.1.9: 有 verifier 走 PKCE 免 secret，否则 Basic clientId:clientSecret） */
     suspend fun exchangeCode(
         code: String, clientId: String, clientSecret: String, subscriptionKey: String
     ): LoginResult? = withContext(Dispatchers.IO) {
         try {
             cacheCreds(clientId, clientSecret, subscriptionKey)
-            val form = FormBody.Builder()
+            val formB = FormBody.Builder()
                 .add("grant_type", "authorization_code")
                 .add("code", code)
                 .add("redirect_uri", REDIRECT_URI)
-                .build()
-            val basic = "Basic " + Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
-            val req = Request.Builder()
-                .url("$AUTH_BASE/token")
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .addHeader("Authorization", basic)
-                .post(form)
-                .build()
-            client.newCall(req).execute().use { resp ->
+            val verifier = lastCodeVerifier
+            val reqB = if (verifier != null && clientSecret.isEmpty()) {
+                // PKCE：code_verifier 换 token，无需 Authorization 头
+                formB.add("client_id", clientId)
+                formB.add("code_verifier", verifier)
+                lastCodeVerifier = null
+                Request.Builder()
+                    .url("$AUTH_BASE/token")
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .post(formB.build())
+                    .build()
+            } else {
+                lastCodeVerifier = null
+                val basic = "Basic " + Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
+                Request.Builder()
+                    .url("$AUTH_BASE/token")
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .addHeader("Authorization", basic)
+                    .post(formB.build())
+                    .build()
+            }
+            client.newCall(reqB).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
                 if (resp.code != 200) {
                     Log.w(TAG, "Suunto exchangeCode HTTP ${resp.code}: ${body.take(200)}")
@@ -115,24 +159,32 @@ class SuuntoApi {
         }
     }
 
-    /** 用 refresh_token 换新 token */
+    /** 用 refresh_token 换新 token（v8.1.9: secret 为空时用 client_id 参数代替 Basic） */
     suspend fun refreshToken(
         refreshToken: String, clientId: String, clientSecret: String, subscriptionKey: String
     ): LoginResult? = withContext(Dispatchers.IO) {
         try {
             cacheCreds(clientId, clientSecret, subscriptionKey)
-            val form = FormBody.Builder()
+            val formB = FormBody.Builder()
                 .add("grant_type", "refresh_token")
                 .add("refresh_token", refreshToken)
-                .build()
-            val basic = "Basic " + Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
-            val req = Request.Builder()
-                .url("$AUTH_BASE/token")
-                .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .addHeader("Authorization", basic)
-                .post(form)
-                .build()
-            client.newCall(req).execute().use { resp ->
+            if (clientSecret.isEmpty()) formB.add("client_id", clientId)
+            val reqB = if (clientSecret.isNotEmpty()) {
+                val basic = "Basic " + Base64.encodeToString("$clientId:$clientSecret".toByteArray(), Base64.NO_WRAP)
+                Request.Builder()
+                    .url("$AUTH_BASE/token")
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .addHeader("Authorization", basic)
+                    .post(formB.build())
+                    .build()
+            } else {
+                Request.Builder()
+                    .url("$AUTH_BASE/token")
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .post(formB.build())
+                    .build()
+            }
+            client.newCall(reqB).execute().use { resp ->
                 val body = resp.body?.string() ?: ""
                 if (resp.code != 200) {
                     Log.w(TAG, "Suunto refreshToken HTTP ${resp.code}: ${body.take(200)}")

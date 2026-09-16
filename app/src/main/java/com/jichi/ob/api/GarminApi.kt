@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -38,7 +39,9 @@ import kotlin.coroutines.resume
 class GarminApi {
     companion object {
         private const val TAG = "GarminApi"
-        const val LOGIN_URL_COM = "https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fapp%2F"
+        // v8.2.0: 国际版改回佳明老 OAuth1 登录页 /sso/signin（新 /portal/sso/ 页 Sign In 按钮被 Garmin 前端 disabled，点击无反应；
+        // 老页实测可交互可登录，佳速通即用此通道）。service 用 /modern/（garth 协议标准），登录后 detectGarmin 抓 JWT_WEB+session 完整 cookie
+        const val LOGIN_URL_COM = "https://sso.garmin.com/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
         const val LOGIN_URL_CN = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
 
         // ===== 国际版/中国版 mobile SSO + DI OAuth 常量（参考garminconnect 0.3.x）=====
@@ -62,6 +65,19 @@ class GarminApi {
         )
         private const val NATIVE_API_UA = "GCM-Android-5.23"
         private const val NATIVE_X_GARMIN_UA = "com.garmin.android.apps.connectmobile/5.23; ; Google/sdk_gphone64_arm64/google; Android/33; Dalvik/2.1.0"
+
+        // ===== v8.1.9: 佳速通同款 Garth OAuth1 直连（账号密码 App 内直连 → oauth_token）=====
+        // 佳速通逆向实锤：authType=basic + GarminOAuth1ClientV + getOauth1Token + completeLoginWithTicket
+        //   + /sso/signin + /oauth-service/oauth/exchange/user/2.0 + /oauth-service/oauth/preauthorized
+        //   clientId=garminglobal6（Garth 开源协议标准）。绕开 mobile SSO"每天一次"限制与 WebView 登录页风控。
+        private const val OAUTH1_CONSUMER_KEY = "garminglobal6"
+        private const val OAUTH1_CONSUMER_SECRET = ""
+        private const val OAUTH1_SERVICE_COM = "https://connect.garmin.com/modern/"
+        private const val OAUTH1_SERVICE_CN = "https://connect.garmin.cn/modern/"
+        private const val SSO_SIGNIN_COM = "https://sso.garmin.com/sso/signin"
+        private const val SSO_SIGNIN_CN = "https://sso.garmin.cn/sso/signin"
+        private const val OAUTH1_BASE_COM = "https://connect.garmin.com"
+        private const val OAUTH1_BASE_CN = "https://connect.garmin.cn"
 
         @Volatile private var sharedWebView: WebView? = null
         @Volatile private var sharedWebViewReady = false
@@ -114,6 +130,22 @@ class GarminApi {
         /** 供外部写冷却（MainActivity中国区429路径用），按clientId×email记录 */
         fun writeCooldownFor(ds: DataSource, email: String, clientId: String? = null) {
             writeCooldown(ds, email, clientId)
+        }
+        /** v8.1.9: 清除账号冷却缓存（登录成功后调用；覆盖安装保留的旧冷却缓存会导致"24小时后登录"误拦截，
+         *  分身/新装无缓存可正常登录，说明服务端无硬限，本地缓存可安全清除） */
+        fun clearCooldownFor(ds: DataSource, email: String) {
+            try {
+                val ctx = appContext ?: return
+                val prefs = ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
+                val ed = prefs.edit()
+                ed.remove(cooldownKey(ds, null, null))            // 区域维度
+                ed.remove(cooldownKey(ds, email, null))           // email维度
+                ed.remove(cooldownKey(ds, email, "oauth1"))       // OAuth1通道
+                SSO_CHANNELS_COM.forEach { ed.remove(cooldownKey(ds, email, it.clientId)) }
+                SSO_CHANNELS_CN.forEach { ed.remove(cooldownKey(ds, email, it.clientId)) }
+                ed.apply()
+                addDebugLog("clearCooldownFor: 已清除账号[$email]冷却缓存")
+            } catch (_: Exception) {}
         }
         /** 是否处于佳明429风控冷却期；email为空时回退区域维度，clientId为空时回退email维度 */
         fun isCooldown(ds: DataSource, email: String? = null, clientId: String? = null): Boolean =
@@ -279,6 +311,239 @@ class GarminApi {
         }
     }
 
+    /**
+     * v8.1.9: 佳速通同款 Garth OAuth1 账号密码直连登录。
+     * 流程（与开源 garth 完全一致）：
+     *   ① GET /sso/signin 提取 _csrf（form ticket）
+     *   ② POST 表单 → 302 提取 service ticket
+     *   ③ GET /modern/?ticket= 拿 session cookie
+     *   ④ GET /oauth-service/oauth/exchange/user/2.0?ticket → oauth_token（OAuth1 签名）
+     *   ⑤ GET /oauth-service/oauth/preauthorized → oauth_token_secret
+     * 成功返回凭证 JSON（oauth_token/oauth_token_secret + cookie），后续业务请求走 OAuth1 Authorization。
+     * 绕开 mobile SSO 每天一次限制 与 WebView 登录页按钮 disabled 风控。
+     */
+    suspend fun loginOAuth1(email: String, password: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
+        val ds = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
+        val sso = if (isCN) SSO_SIGNIN_CN else SSO_SIGNIN_COM
+        val connect = if (isCN) OAUTH1_BASE_CN else OAUTH1_BASE_COM
+        val service = if (isCN) OAUTH1_SERVICE_CN else OAUTH1_SERVICE_COM
+        val locale = if (isCN) "zh-CN" else "en-US"
+        val oauth1ClientId = "GarminConnect"
+        try {
+            // v8.1.9: OAuth1 表单直连不再受本地冷却缓存拦截（分身穿机可正常登录=服务端无硬限；
+            // 覆盖安装保留的旧 mobile SSO 冷却缓存会导致误拦截"24小时后登录"，此处直接放行）
+            addDebugLog("loginOAuth1: 开始老表单直连 (账号=$email)")
+            val jar = mutableMapOf<String, String>()  // name -> value（简化 cookie 容器）
+
+            // ① GET 登录页拿 _csrf
+            val signinUrl = "$sso/signin?clientId=$oauth1ClientId&service=${java.net.URLEncoder.encode(service, "UTF-8")}&embed=false"
+            val pageReq = Request.Builder().url(signinUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .build()
+            val pageResp = client.newCall(pageReq).execute()
+            val pageHtml = pageResp.body?.string() ?: ""
+            collectCookies(pageResp, jar)
+            val csrf = Regex("""name=["']_csrf["'][^>]*value=["']([^"']+)""").find(pageHtml)?.groupValues?.get(1)
+                ?: Regex("""value=["']([^"']+)["'][^>]*name=["']_csrf["']""").find(pageHtml)?.groupValues?.get(1)
+            if (csrf == null) {
+                addDebugLog("loginOAuth1: 登录页无_csrf (HTTP ${pageResp.code})，页面可能被风控/改版")
+                return@withContext null
+            }
+            addDebugLog("loginOAuth1: 已获取 _csrf (${csrf.length}B)")
+
+            // ② POST 账号密码 → 提取 service ticket
+            val form = FormBody.Builder()
+                .add("username", email)
+                .add("password", password)
+                .add("embed", "false")
+                .add("_csrf", csrf)
+                .add("clientId", oauth1ClientId)
+                .add("service", service)
+                .add("locale", locale)
+                .build()
+            val postReq = Request.Builder().url(signinUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("Origin", if (isCN) "https://sso.garmin.cn" else "https://sso.garmin.com")
+                .header("Referer", signinUrl)
+                .post(form)
+                .build()
+            val postResp = client.newCall(postReq).execute()
+            collectCookies(postResp, jar)
+            val postBody = postResp.body?.string() ?: ""
+            // ticket 出现在 302 Location 或响应体（success redirect）
+            var ticket: String? = null
+            val loc = postResp.header("Location") ?: postResp.header("location")
+            if (loc != null) {
+                ticket = Regex("""[?&]ticket=([^&]+)""").find(loc)?.groupValues?.get(1)
+            }
+            if (ticket == null) {
+                ticket = Regex("""[?&]ticket=([^&]+)""").find(postBody)?.groupValues?.get(1)
+            }
+            if (ticket == null) {
+                // 失败提示：账号密码错误 or 验证码
+                val hint = when {
+                    postResp.code == 429 -> "429 风控，请稍后再试"
+                    postBody.contains("Invalid Credentials", true) || postBody.contains("invalid_username", true) -> "账号或密码错误"
+                    postBody.contains("captcha", true) || postBody.contains("verify", true) -> "需要验证码，请稍后在 App 内网页登录"
+                    else -> "HTTP ${postResp.code}"
+                }
+                addDebugLog("loginOAuth1: 无ticket ($hint), body=${postBody.take(120)}")
+                if (postResp.code == 429) writeCooldown(ds, email, "oauth1")
+                return@withContext null
+            }
+            addDebugLog("loginOAuth1: 获取 service ticket 成功")
+
+            // ③ 消费 ticket 拿 session cookie
+            val ticketUrl = "$connect/modern/?ticket=${java.net.URLEncoder.encode(ticket, "UTF-8")}"
+            val consumeReq = Request.Builder().url(ticketUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36")
+                .build()
+            val consumeResp = client.newCall(consumeReq).execute()
+            collectCookies(consumeResp, jar)
+            val consumeBody = consumeResp.body?.string() ?: ""
+            addDebugLog("loginOAuth1: ticket消费 HTTP ${consumeResp.code}")
+
+            // ④ ticket → OAuth1 token（佳速通同款，connect.garmin.com 若端点存活则用；2026实测该端点已下线→404自动降级DI）
+            val oauthToken = oauth1ExchangeToken(connect, ticket, isCN)
+            if (oauthToken != null) {
+                val tokenSecret = oauth1Preauthorized(connect, oauthToken, isCN)
+                if (tokenSecret != null) {
+                    val cookieStr = jar.entries.joinToString("; ") { (k, v) -> "$k=$v" }
+                    val sess = GarminSession(
+                        cookies = cookieStr,
+                        csrf = "",
+                        email = email,
+                        oauthToken = oauthToken,
+                        oauthTokenSecret = tokenSecret
+                    )
+                    val json = sess.toJson()
+                    addDebugLog("loginOAuth1: ✅ OAuth1登录成功 (cookie ${cookieStr.length}B)")
+                    return@withContext json
+                }
+            }
+            addDebugLog("loginOAuth1: OAuth1 exchange不可用(404下线)，改用ticket换DI token")
+
+            // ⑤ 降级：ticket → diauth 换 DI token（手机端可达，v8.1.6 已验证链路）
+            // service_url 必须与登录时使用的 service 一致（connect.{com|cn}/modern/）
+            val diCred = exchangeDiToken(ticket, isCN, email, service)
+            if (diCred != null) {
+                addDebugLog("loginOAuth1: ✅ 老表单登录成功，DI token已换 (降级通道)")
+                return@withContext diCred
+            }
+            addDebugLog("loginOAuth1: DI token交换失败，返回cookie凭证走gc-api")
+            // 最终保底：返回带 SESSION cookie 的凭证 → 业务请求走 gc-api cookie 链路（apiHeaders 支持）
+            val cookieStr = jar.entries.joinToString("; ") { (k, v) -> "$k=$v" }
+            if (cookieStr.contains("SESSION") || cookieStr.contains("CASTGC")) {
+                val sess = GarminSession(cookies = cookieStr, csrf = "", email = email)
+                return@withContext sess.toJson()
+            }
+            return@withContext null
+        } catch (e: Exception) {
+            addDebugLog("loginOAuth1异常: ${e.message}")
+            Log.e(TAG, "loginOAuth1 error", e)
+            null
+        }
+    }
+
+    /** OAuth1: exchange/user/2.0?ticket → oauth_token（consumer 签名，空 token） */
+    private suspend fun oauth1ExchangeToken(connect: String, ticket: String, isCN: Boolean): String? {
+        val url = "$connect/oauth-service/oauth/exchange/user/2.0?ticket=${java.net.URLEncoder.encode(ticket, "UTF-8")}"
+        val auth = oauth1AuthHeader("GET", url, token = "", tokenSecret = "")
+        val req = Request.Builder().url(url)
+            .header("Authorization", auth)
+            .header("User-Agent", "Garth-3.0.1")
+            .build()
+        client.newCall(req).execute().use { resp ->
+            val body = resp.body?.string() ?: ""
+            if (resp.code != 200) { addDebugLog("oauth1Exchange: HTTP ${resp.code} ${body.take(100)}"); return null }
+            // 响应是 XML <oauth_token>xxx</oauth_token> 或 JSON
+            return Regex("""<oauth_token>([^<]+)""").find(body)?.groupValues?.get(1)
+                ?: Regex("""oauth_token["']?\s*[:=]\s*["']([^"']+)""").find(body)?.groupValues?.get(1)
+                ?: body.trim().takeIf { it.startsWith("oauth_token=") }?.removePrefix("oauth_token=")?.trim()
+        }
+    }
+
+    /** OAuth1: preauthorized → oauth_token_secret */
+    private suspend fun oauth1Preauthorized(connect: String, token: String, isCN: Boolean): String? {
+        val url = "$connect/oauth-service/oauth/preauthorized"
+        val auth = oauth1AuthHeader("GET", url, token = token, tokenSecret = "")
+        val req = Request.Builder().url(url)
+            .header("Authorization", auth)
+            .header("User-Agent", "Garth-3.0.1")
+            .build()
+        client.newCall(req).execute().use { resp ->
+            val body = resp.body?.string() ?: ""
+            if (resp.code != 200) { addDebugLog("oauth1Preauth: HTTP ${resp.code} ${body.take(100)}"); return null }
+            return Regex("""<oauth_token_secret>([^<]+)""").find(body)?.groupValues?.get(1)
+                ?: Regex("""oauth_token_secret["']?\s*[:=]\s*["']([^"']+)""").find(body)?.groupValues?.get(1)
+        }
+    }
+
+    /** 生成 OAuth1 Authorization 头（HMAC-SHA1，consumer=garminglobal6） */
+    private fun oauth1AuthHeader(method: String, url: String, token: String, tokenSecret: String): String {
+        val ts = (System.currentTimeMillis() / 1000).toString()
+        val nonce = java.util.UUID.randomUUID().toString().replace("-", "")
+        val params = linkedMapOf<String, String>()
+        params["oauth_consumer_key"] = OAUTH1_CONSUMER_KEY
+        params["oauth_nonce"] = nonce
+        params["oauth_signature_method"] = "HMAC-SHA1"
+        params["oauth_timestamp"] = ts
+        if (token.isNotEmpty()) params["oauth_token"] = token
+        params["oauth_version"] = "1.0"
+        // 签名 base string 需包含 URL query 参数（ticket）
+        val urlObj = java.net.URI(url)
+        val query = urlObj.rawQuery
+        val all = LinkedHashMap<String, String>()
+        if (!query.isNullOrEmpty()) {
+            for (pair in query.split("&")) {
+                val idx = pair.indexOf('=')
+                if (idx > 0) all[decode(pair.substring(0, idx))] = decode(pair.substring(idx + 1))
+            }
+        }
+        all.putAll(params)
+        val sorted = all.toSortedMap()
+        val bodyStr = sorted.entries.joinToString("&") { (k, v) -> "${enc(k)}=${enc(v)}" }
+        val baseUrl = "${urlObj.scheme}://${urlObj.host}${if (urlObj.port > 0) ":${urlObj.port}" else ""}${urlObj.rawPath}"
+        val baseString = "$method&${enc(baseUrl)}&${enc(bodyStr)}"
+        val key = "${enc(OAUTH1_CONSUMER_SECRET)}&${enc(tokenSecret)}"
+        val signature = try {
+            val mac = javax.crypto.Mac.getInstance("HmacSHA1")
+            mac.init(javax.crypto.spec.SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA1"))
+            android.util.Base64.encodeToString(mac.doFinal(baseString.toByteArray(Charsets.UTF_8)), android.util.Base64.NO_WRAP)
+        } catch (_: Exception) { "" }
+        return buildString {
+            append("OAuth ")
+            val h = linkedMapOf<String, String>()
+            h["oauth_consumer_key"] = OAUTH1_CONSUMER_KEY
+            h["oauth_nonce"] = nonce
+            h["oauth_signature"] = signature
+            h["oauth_signature_method"] = "HMAC-SHA1"
+            h["oauth_timestamp"] = ts
+            if (token.isNotEmpty()) h["oauth_token"] = token
+            h["oauth_version"] = "1.0"
+            append(h.entries.joinToString(", ") { (k, v) -> "$k=\"${enc(v)}\"" })
+        }
+    }
+
+    private fun enc(s: String): String =
+        java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20").replace("*", "%2A").replace("%7E", "~")
+
+    private fun decode(s: String): String = java.net.URLDecoder.decode(s, "UTF-8")
+
+    /** 收集响应 Set-Cookie 到 jar */
+    private fun collectCookies(resp: okhttp3.Response, jar: MutableMap<String, String>) {
+        try {
+            resp.headers("Set-Cookie").forEach { setCookie ->
+                val name = setCookie.substringBefore("=").trim()
+                val value = setCookie.substringAfter("=").substringBefore(";")
+                if (name.isNotEmpty() && value.isNotEmpty()) jar[name] = value
+            }
+        } catch (_: Exception) {}
+    }
+
     private suspend fun exchangeDiToken(ticket: String, isCN: Boolean = false, email: String = "", channelServiceUrl: String = ""): String? = withContext(Dispatchers.IO) {
         val diTokenUrl = if (isCN) DI_TOKEN_URL_CN else DI_TOKEN_URL_COM
         val grantType = if (isCN) DI_GRANT_TYPE_CN else DI_GRANT_TYPE_COM
@@ -339,7 +604,10 @@ class GarminApi {
         val diRefreshToken: String = "",
         val diClientId: String = "",
         val diExpiresAt: Long = 0,
-        val email: String = ""
+        val email: String = "",
+        // v8.1.9: 佳速通同款 Garth OAuth1 直连凭证（账号密码 → oauth_token/oauth_token_secret）
+        val oauthToken: String = "",
+        val oauthTokenSecret: String = ""
     ) {
         fun toJson(): String = JSONObject().apply {
             put("cookies", cookies)
@@ -349,6 +617,8 @@ class GarminApi {
             if (diClientId.isNotEmpty()) put("di_client_id", diClientId)
             if (diExpiresAt > 0) put("di_expires_at", diExpiresAt)
             if (email.isNotEmpty()) put("email", email)
+            if (oauthToken.isNotEmpty()) put("oauth_token", oauthToken)
+            if (oauthTokenSecret.isNotEmpty()) put("oauth_token_secret", oauthTokenSecret)
         }.toString()
         companion object {
             fun fromJson(json: String): GarminSession? {
@@ -371,8 +641,10 @@ class GarminApi {
                     val diClientId = obj.optString("di_client_id", "")
                     val diExpiresAt = obj.optLong("di_expires_at", 0)
                     val email = obj.optString("email", "")
-                    if (cookies.isNotEmpty() || diToken.isNotEmpty()) {
-                        GarminSession(cookies, csrf, diToken, diRefreshToken, diClientId, diExpiresAt, email)
+                    val oauthToken = obj.optString("oauth_token", "")
+                    val oauthTokenSecret = obj.optString("oauth_token_secret", "")
+                    if (cookies.isNotEmpty() || diToken.isNotEmpty() || oauthToken.isNotEmpty()) {
+                        GarminSession(cookies, csrf, diToken, diRefreshToken, diClientId, diExpiresAt, email, oauthToken, oauthTokenSecret)
                     } else null
                 } catch (_: Exception) { null }
             }
@@ -502,6 +774,22 @@ class GarminApi {
         "DI-Backend" to if (ds == DataSource.GARMIN_CN) "connectapi.garmin.cn" else "connectapi.garmin.com",
         "Accept-Language" to if (ds == DataSource.GARMIN_CN) "zh-CN,zh;q=0.9" else "en-US,en;q=0.9"
     )
+
+    // v8.1.9: connectapi 直连 header 选择——OAuth1（佳速通同款）优先，其次 DI Bearer
+    private fun connectHeaders(sess: GarminSession, ds: DataSource, url: String, method: String = "GET"): Map<String, String> {
+        if (sess.oauthToken.isNotEmpty()) {
+            return mapOf(
+                "Authorization" to oauth1AuthHeader(method, url, sess.oauthToken, sess.oauthTokenSecret),
+                "User-Agent" to "Garth-3.0.1",
+                "Accept" to "application/json",
+                "X-app-ver" to "10861",
+                "X-lang" to if (ds == DataSource.GARMIN_CN) "zh-CN" else "en",
+                "X-GCExperience" to "GC5",
+                "DI-Backend" to if (ds == DataSource.GARMIN_CN) "connectapi.garmin.cn" else "connectapi.garmin.com"
+            )
+        }
+        return diHeaders(sess, ds)
+    }
 
     // v7.0.5: 中国版用cookie调用connectapi（不经过Cloudflare，因为中国版DI token交换失败）
     private fun connectApiCookieHeaders(sess: GarminSession, ds: DataSource): Map<String, String> {
@@ -868,10 +1156,10 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             // 国际版优先用DI token（connectapi，不经过Cloudflare）
-            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
                 val url = "${connectApiHost(ds)}/userprofile-service/socialProfile"
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                    connectHeaders(sess, ds, url).forEach { (k, v) -> addHeader(k, v) }
                 }.get().build()
                 client.newCall(req).execute().use { resp ->
                     if (resp.code != 200) return@withContext null
@@ -901,11 +1189,12 @@ class GarminApi {
             val sess = parseCredential(cred)
             addDebugLog("getActivities: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}")
             // v7.9.0: 国际版+中国版统一优先用DI token直连connectapi（不经过Cloudflare，速度快）
+            // v8.1.9: OAuth1 凭证优先（佳速通同款）
             // 原v7.4.8中国版优先WebView导致每请求JS fetch+base64+500ms轮询，传输慢；DI直连是纯HTTP，速度提升5-10倍
-            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
                 val url = "${connectApiHost(ds)}/activitylist-service/activities/search/activities?start=$offset&limit=$limit"
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                    connectHeaders(sess, ds, url).forEach { (k, v) -> addHeader(k, v) }
                 }.get().build()
                 client.newCall(req).execute().use { resp ->
                     addDebugLog("getActivities DI: HTTP ${resp.code}")
@@ -1002,10 +1291,11 @@ class GarminApi {
         try {
             val sess = parseCredential(cred)
             // v7.9.0: 国际版+中国版统一优先用DI token直连connectapi（纯HTTP，不经Cloudflare，速度5-10倍于WebView）
-            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+            // v8.1.9: OAuth1 凭证优先（佳速通同款）
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
                 val url = "${connectApiHost(ds)}/download-service/files/activity/$activityId"
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                    connectHeaders(sess, ds, url).forEach { (k, v) -> addHeader(k, v) }
                     addHeader("Accept", "*/*")
                 }.get().build()
                 client.newCall(req).execute().use { resp ->
@@ -1126,14 +1416,15 @@ class GarminApi {
             val sess = parseCredential(cred)
             addDebugLog("uploadActivity: ds=$ds, diToken=${sess?.diToken?.isNotEmpty() == true}, size=${data.size}")
             // v7.9.0: 国际版+中国版统一优先用DI token直连connectapi（纯HTTP，不经Cloudflare，速度5-10倍于WebView）
-            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && sess?.diToken?.isNotEmpty() == true) {
+            // v8.1.9: OAuth1 凭证优先（佳速通同款）
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
                 val url = "${connectApiHost(ds)}/upload-service/upload"
                 val body = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
                     .build()
                 val req = Request.Builder().url(url).apply {
-                    diHeaders(sess, ds).forEach { (k, v) -> addHeader(k, v) }
+                    connectHeaders(sess, ds, url, "POST").forEach { (k, v) -> addHeader(k, v) }
                     addHeader("Accept", "application/json")
                 }.post(body).build()
                 client.newCall(req).execute().use { resp ->

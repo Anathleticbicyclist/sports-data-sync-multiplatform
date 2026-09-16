@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v8.1.6"
+                    android:text="开发体验版 v8.1.9"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -102,10 +102,10 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.1.6)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.1.6 修复Keep骑行轨迹为空（轨迹解码通道切换）；轨迹合并限时体验至9月30日" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.1.9)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.1.9 佳明国际登录重构：账号密码App内直连（老版表单通道），绕开网页登录按钮风控；新增补充鸣谢人员" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.1.6 修复Keep骑行轨迹为空（轨迹解码通道切换）；轨迹合并限时体验至9月30日" android:textSize="12sp" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.1.5 修复Keep骑行轨迹为空（多接口兜底）" android:textSize="12sp" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.1.4 修复Keep骑行轨迹导入为空（完整轨迹）" android:textSize="12sp" android:textColor="@color/text_primary" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -134,7 +134,7 @@
             android:background="@drawable/bg_note_card">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="🙏 鸣谢" android:textColor="@color/primary" android:textSize="12sp" android:textStyle="bold" android:padding="2dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、捷安特、高驰、佳明、Wahoo、Outbase、Keep、咕咚、Zepp、Komoot、Suunto为运动用户提供的数据记录与存储服务" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿、泽、无名氏、我有一个朋友、N1d、ongoing33、七诗君、赵烨龙、狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="鸣谢青岛AUV俱乐部" android:textColor="@color/text_secondary" android:textSize="9sp" android:padding="1dp" android:layout_marginBottom="4dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" android:textColor="@color/text_secondary" android:textSize="10sp" android:padding="2dp" android:layout_marginBottom="8dp" />
         </LinearLayout>

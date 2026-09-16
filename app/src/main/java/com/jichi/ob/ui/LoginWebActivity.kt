@@ -267,17 +267,24 @@ class LoginWebActivity : AppCompatActivity() {
                     btnLogin.text = "登录中..."
                     val garminApi = com.jichi.ob.api.GarminApi()
                     val dsCooldown = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
-                    // v7.9.1: 仅当该账号在该区域【所有SSO通道】都处于冷却时才拦截（任一通道可用即放行，自动换通道登录绕开单通道限流）
-                    if (com.jichi.ob.api.GarminApi.isAllChannelsCooldown(dsCooldown, email)) {
-                        btnLogin.isEnabled = true
-                        btnLogin.text = "登录"
-                        tvStatus.text = "❌ 该账号所有佳明登录通道均处于风控冷却中，请约${com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)}分钟后重试\n（冷却针对该账号，可切换其他账号登录）"
-                        return@setOnClickListener
+                    // v8.1.9: 冷却缓存不再硬拦截登录（覆盖安装保留的旧缓存会误报"24小时后登录"；分身/新装无缓存可正常登录）。
+                    // 仅提示；OAuth1 表单直连直接放行，登录成功后自动清除冷却缓存
+                    val remainMin = com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)
+                    tvStatus.text = if (remainMin > 0) {
+                        "检测到本地冷却缓存(${remainMin}分钟)，已跳过直接尝试登录（登录成功将自动清除缓存）..."
+                    } else {
+                        "正在通过佳明官方老版直连通道登录..."
                     }
-                    tvStatus.text = "正在通过mobile SSO登录..."
                     GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
-                            val cred = garminApi.loginMobile(email, password, isCN)
+                            // v8.1.9: 国际版优先 OAuth1 账号密码直连（绕开 mobile SSO 每天一次限制与 WebView 按钮风控），
+                            // 失败再降级 mobile SSO；中国版保持 mobile SSO 优先，OAuth1 兜底
+                            var cred: String? = null
+                            if (!isCN) cred = garminApi.loginOAuth1(email, password, false)
+                            if (cred == null) cred = garminApi.loginMobile(email, password, isCN)
+                            if (cred == null && isCN) cred = garminApi.loginOAuth1(email, password, true)
+                            // v8.1.9: 登录成功自动清除该账号本地冷却缓存（覆盖安装保留的旧缓存不再误拦截后续登录）
+                            if (cred != null) com.jichi.ob.api.GarminApi.clearCooldownFor(dsCooldown, email)
                             runOnUiThread {
                                 if (cred != null) {
                                     tvStatus.text = "✅ 登录成功！"
