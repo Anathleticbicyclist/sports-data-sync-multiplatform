@@ -21,11 +21,14 @@ class KeepApiParseTest {
         return m.invoke(api, json) as List<DoubleArray>
     }
 
-    /** 反射调用私有 buildGpx，校验时间换算 */
+    /** 反射调用私有 buildGpx（9 参数），校验时间换算 */
     private fun buildGpx(points: List<DoubleArray>, startMs: Long, sport: String): String {
-        val m = KeepApi::class.java.getDeclaredMethod("buildGpx", List::class.java, Long::class.javaPrimitiveType, String::class.java)
+        val m = KeepApi::class.java.getDeclaredMethod("buildGpx", List::class.java, Long::class.javaPrimitiveType,
+            String::class.java, Double::class.javaPrimitiveType, Long::class.javaPrimitiveType,
+            Double::class.javaPrimitiveType, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+            String::class.java)
         m.isAccessible = true
-        return String(m.invoke(api, points, startMs, sport) as ByteArray, Charsets.UTF_8)
+        return String(m.invoke(api, points, startMs, sport, 0.0, 0L, 0.0, 0, 0, "") as ByteArray, Charsets.UTF_8)
     }
 
     @Test

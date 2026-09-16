@@ -364,8 +364,20 @@ class UploadEngine(private val context: android.content.Context? = null) {
                         val j2 = try { JSONObject(result) } catch (_: Exception) { null }
                         val code = j2?.optInt("code", -1) ?: -1
                         if (code == 200 || code == 0) {
-                            val id = j2?.optString("data", "") ?: ""
-                            UploadResult(true, targetId = id, message = "iGPSPORT上传成功(id=$id)")
+                            // v8.1.6 实测结论：iGPSPORT uploadByOss 是【异步解析】——
+                            // 只要 code∈{200,0} 即已入队处理，返回的 data 常为空（或为任务id），
+                            // 数据随后在 iGPSPORT 端异步解析入库。此前把"data 为空"判为失败是误报，
+                            // 导致明明已入库仍显示红色失败。data 非空时带上 id 便于核对。
+                            var id = j2?.optString("data", "") ?: ""
+                            if (id.isBlank() || id == "null") {
+                                val dataObj = j2?.optJSONObject("data")
+                                id = dataObj?.optString("id", "") ?: ""
+                            }
+                            if (id.isBlank() || id == "null") {
+                                UploadResult(true, message = "iGPSPORT已接收，异步解析中，稍后可在iGPSPORT查看")
+                            } else {
+                                UploadResult(true, targetId = id, message = "iGPSPORT上传成功(id=$id)")
+                            }
                         } else {
                             UploadResult(false, message = "iGPSPORT上传失败: ${result.take(150)}")
                         }

@@ -39,6 +39,12 @@ class KeepApi {
         private const val LOG_API = "https://api.gotokeep.com/pd/v3/runninglog"
         private const val FORM_MEDIA = "application/x-www-form-urlencoded;charset=utf-8"
         private const val UA = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
+        // v8.1.4d: Keep 详情接口按运动类型区分；列表接口仅这三类有效
+        private val KEEP_TYPES = setOf("running", "cycling", "hiking")
+        // v8.1.4: Keep geoPoints AES-128-CBC 密钥/IV（来自公开开源项目 running_page，
+        // base64("NTZmZTU5OzgyZzpkODczYw==")="56fe59;82g:d873c"，base64("MjM0Njg5MjQzMjkyMDMwMA==")="2346892432920300"）
+        private val KEEP_GEO_KEY = "56fe59;82g:d873c".toByteArray(Charsets.UTF_8)
+        private val KEEP_GEO_IV = "2346892432920300".toByteArray(Charsets.UTF_8)
     }
 
     private val client = OkHttpClient.Builder()
@@ -158,7 +164,9 @@ class KeepApi {
                             val start = formatTime(stats.optLong("startTime", 0))
                             val dist = stats.optDouble("distance", 0.0) / 1000.0  // 米→公里
                             val dur = stats.optLong("duration", 0).toInt()
-                            out.add(ActivityRecord(id, title, start, dist, dur, DataSource.KEEP, id))
+                            // v8.1.4d: extra 存 "id|type"（type 来自列表接口按类型抓取，是权威运动类型；
+                            // 仅存 id 时旧版/客户数据可能无 _cy 后缀导致下载走错接口无轨迹）
+                            out.add(ActivityRecord(id, title, start, dist, dur, DataSource.KEEP, "$id|$type"))
                             fetched++
                         }
                         // 分页：lastTimestamp 为 0 或无 → 结束
@@ -192,59 +200,116 @@ class KeepApi {
      */
     suspend fun downloadGpx(token: String, runId: String): ByteArray = withContext(Dispatchers.IO) {
         try {
-            // 1. 从 run_id 后缀识别运动类型（Keep 规范：_rn=running _cy=cycling _hk=hiking）
-            val sportType = when {
-                runId.endsWith("_cy") -> "cycling"
-                runId.endsWith("_hk") -> "hiking"
-                else -> "running"
+            // v8.1.4d: runId 可能为 "id|type"（列表接口权威运动类型），也可能只有 id（旧/客户数据无后缀）。
+            // 运动类型判定不可只靠后缀——客户记录 kp56dab847ae78 不带 _cy，误判 running 会走错接口导致无轨迹。
+            var id = runId
+            var typeHint = ""
+            if (runId.contains("|")) {
+                val parts = runId.split("|")
+                id = parts[0]
+                typeHint = parts.getOrElse(1) { "" }
             }
-            // 详情接口按类型选择（runninglog/cyclinglog/hikinglog）
-            val logApi = when (sportType) {
-                "cycling" -> "https://api.gotokeep.com/pd/v3/cyclinglog"
-                "hiking" -> "https://api.gotokeep.com/pd/v3/hikinglog"
-                else -> LOG_API
+            val suffix = when {
+                id.endsWith("_cy") -> "cycling"
+                id.endsWith("_hk") -> "hiking"
+                id.endsWith("_rn") -> "running"
+                else -> null
             }
-            // 2. 取详情拿 rawDataURL
-            val req = Request.Builder()
-                .url("$logApi/$runId")
-                .addHeader("Authorization", "Bearer $token")
-                .addHeader("User-Agent", UA)
-                .get()
-                .build()
-            val (code, body) = client.newCall(req).execute().use { resp ->
-                Pair(resp.code, resp.body?.string() ?: "")
+            // 候选详情接口（去重，按优先级）：typeHint(列表权威) > 后缀判定 > 三接口全试
+            val candidates = LinkedHashSet<String>()
+            if (typeHint in KEEP_TYPES) candidates.add(typeHint)
+            if (suffix != null) candidates.add(suffix)
+            for (t in listOf("cycling", "running", "hiking")) candidates.add(t)
+
+            var chosenSport: String = suffix ?: typeHint.ifEmpty { "running" }
+            var data: JSONObject? = null
+            for (apiType in candidates) {
+                val logApi = when (apiType) {
+                    "cycling" -> "https://api.gotokeep.com/pd/v3/cyclinglog"
+                    "hiking" -> "https://api.gotokeep.com/pd/v3/hikinglog"
+                    else -> LOG_API
+                }
+                val req = Request.Builder()
+                    .url("$logApi/$id")
+                    .addHeader("Authorization", "Bearer $token")
+                    .addHeader("User-Agent", UA)
+                    .get()
+                    .build()
+                val (code, body) = client.newCall(req).execute().use { resp ->
+                    Pair(resp.code, resp.body?.string() ?: "")
+                }
+                if (code == 401) throw IllegalStateException("Keep token 过期(401)")
+                if (code != 200) {
+                    Log.w(TAG, "Keep 详情接口 $logApi/$id → HTTP $code，尝试下一接口")
+                    continue
+                }
+                val json = try { JSONObject(body) } catch (_: Exception) { null }
+                val d = json?.optJSONObject("data")
+                // 有 data 即认定该接口正确（cyclinglog 返回 geoPoints，running/hiking 返回 rawDataURL）
+                if (d != null) {
+                    chosenSport = apiType
+                    data = d
+                    Log.i(TAG, "Keep 详情命中接口 $apiType（id=${id.take(20)}…）")
+                    break
+                }
             }
-            if (code == 401) throw IllegalStateException("Keep token 过期(401)")
-            if (code != 200) throw IllegalStateException("Keep 详情HTTP $code")
-            val json = try { JSONObject(body) } catch (_: Exception) { null }
-                ?: throw IllegalStateException("Keep 详情解析失败")
-            val data = json.optJSONObject("data")
-                ?: throw IllegalStateException("Keep 详情无data")
-            val startTime = data.optLong("startTime", 0)
+            val detail = data ?: throw IllegalStateException("Keep 详情解析失败(所有接口均无data)")
+            val startTime = detail.optLong("startTime", 0)
+            // v8.1.4: 读取详情元数据（实测 cyclinglog 无 rawDataURL 但必有 distance/duration，
+            // 单点兜底时透传到 GPX/FIT，保证目标平台里程/时长正确）
+            val metaDistance = detail.optDouble("distance", 0.0)  // 米
+            val metaDuration = detail.optLong("duration", 0)      // 秒
+            val metaCalorie = detail.optDouble("calorie", 0.0)    // 千卡
+            val metaHr = detail.optJSONObject("heartRate")
+            val metaAvgHr = metaHr?.optInt("averageHeartRate", 0) ?: 0
+            val metaMaxHr = metaHr?.optInt("maxHeartRate", 0) ?: 0
 
             // v7.9.2: 无轨迹也要上传（收不收由平台决定）。
-            // 1) 先尝试 rawDataURL 轨迹；2) 无轨迹时用 region 中心坐标构造单点 GPX 兜底上传
+            // v8.1.6: 轨迹获取顺序修正——**geoPoints 优先**（cycling/hiking 详情实测必返回且可本地解码），
+            // rawDataURL 次之（keepcdn 私有链接常返回 403 permission denied，实测带不带 token 均失效）。
+            // 旧逻辑先试 rawDataURL、失败后不回退 geoPoints → 客户骑行轨迹一直单点兜底（空轨迹）。
+            // 都无轨迹时用 region 中心坐标构造单点 GPX + 元数据兜底上传
             var points: List<DoubleArray> = emptyList()
             var usedFallback = false
-            val rawUrl = data.optString("rawDataURL").takeIf { it.isNotBlank() }
-            if (rawUrl != null) {
+            val rawUrl = detail.optString("rawDataURL").takeIf { it.isNotBlank() }
+            val geo = detail.optString("geoPoints").takeIf { it.isNotBlank() }
+
+            // 1) geoPoints（首选）：AES-128-CBC+zlib 加密轨迹，本地可解，不依赖外部链接
+            if (geo != null) {
+                points = decodeGeoPoints(geo)
+                if (points.isNotEmpty()) {
+                    Log.i(TAG, "Keep geoPoints 解码成功: ${points.size}点（$chosenSport 完整轨迹）")
+                } else {
+                    Log.w(TAG, "Keep geoPoints 解码失败，尝试 rawDataURL 兜底")
+                }
+            }
+            // 2) rawDataURL（次选）：running/hiking 部分记录可能只有 rawDataURL；失败不再直接兜底
+            if (points.isEmpty() && rawUrl != null) {
                 try {
-                    // 3. 取 rawDataURL（base64 编码的 GZIP 压缩 JSON）
                     val rawReq = Request.Builder().url(rawUrl).addHeader("User-Agent", UA).get().build()
                     val rawText = client.newCall(rawReq).execute().use { resp ->
+                        if (!resp.isSuccessful) throw IllegalStateException("HTTP ${resp.code} ${resp.message}")
                         resp.body?.string() ?: throw IllegalStateException("Keep 轨迹获取失败")
                     }
                     points = decodeRunmap(rawText)
+                    if (points.isNotEmpty()) {
+                        Log.i(TAG, "Keep rawDataURL 轨迹解码成功: ${points.size}点（$chosenSport）")
+                    } else {
+                        Log.w(TAG, "Keep rawDataURL 解码为空，走 region 兜底")
+                    }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Keep 轨迹获取失败，走 region 兜底: ${e.message}")
+                    Log.w(TAG, "Keep rawDataURL 轨迹获取失败，走 region 兜底: ${e.message}")
                 }
-            } else {
+            }
+            if (points.isEmpty() && geo == null && rawUrl == null) {
+                Log.w(TAG, "Keep 无 rawDataURL 且无 geoPoints，走元数据+region 兜底: distance=${metaDistance}m duration=${metaDuration}s")
                 usedFallback = true
             }
+            if (points.isEmpty()) usedFallback = true
             // 轨迹为空（室内/无GPS）→ region 中心坐标构造单点 GPX
             if (points.isEmpty()) {
                 usedFallback = true
-                val region = data.optJSONObject("region")
+                val region = detail.optJSONObject("region")
                 val cLat = region?.optDouble("latitude", 0.0) ?: 0.0
                 val cLon = region?.optDouble("longitude", 0.0) ?: 0.0
                 if (cLat != 0.0 || cLon != 0.0) {
@@ -267,7 +332,12 @@ class KeepApi {
             }
 
             // 4. 构建 GPX（无点且无坐标时也生成合法空 GPX，交由目标平台决定是否接收）
-            val gpx = buildGpx(points, startTime, sportType)
+            // v8.1.4: 单点兜底时透传 distance/duration/calorie/hr 到 GPX extensions，供 FIT 转换写入汇总
+            // v8.1.6: 透传 detail.dataType（outdoorCycling/indoorCycling/mountaineering 等精确类型）
+            //         写入 GPX <name>，供 FIT 转换完整映射 sport/sub_sport；<type> 保持列表大类。
+            val detailDataType = detail.optString("dataType", "").ifBlank { chosenSport }
+            val gpx = buildGpx(points, startTime, chosenSport,
+                metaDistance, metaDuration, metaCalorie, metaAvgHr, metaMaxHr, detailDataType)
             // 记录兜底标记（供日志提示，不影响上传）
             if (usedFallback) {
                 Log.i(TAG, "Keep 无轨迹，使用 region 坐标兜底上传(${points.size}点)")
@@ -276,6 +346,51 @@ class KeepApi {
         } catch (e: Exception) {
             Log.e(TAG, "Keep downloadGpx error", e)
             throw e
+        }
+    }
+
+    /**
+     * v8.1.4: 解码 Keep geoPoints（cycling/hiking 轨迹，AES-128-CBC + gzip 压缩 JSON）。
+     * 密钥与算法来自公开开源项目 running_page（github.com/yihong0618/running_page）——
+     * key=base64("NTZmZTU5OzgyZzpkODczYw==")="56fe59;82g:d873c"，
+     * iv =base64("MjM0Njg5MjQzMjkyMDMwMA==")="2346892432920300"。
+     * 解码链：base64 → AES-CBC 解密 → gzip 解压 → JSONArray（元素含 latitude/longitude/unixTimestamp/altitude）。
+     * 返回 [lat, lon, ts, alt] 点列表；失败返回空列表（由调用方走元数据兜底）。
+     */
+    private fun decodeGeoPoints(text: String): List<DoubleArray> {
+        return try {
+            val raw = base64Decode(text.trim())
+            val cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(
+                javax.crypto.Cipher.DECRYPT_MODE,
+                javax.crypto.spec.SecretKeySpec(KEEP_GEO_KEY, "AES"),
+                javax.crypto.spec.IvParameterSpec(KEEP_GEO_IV)
+            )
+            val pt = cipher.doFinal(raw)
+            // v8.1.4d: 先按 gzip 解压（实测 40/40 为 gzip 魔数 1f8b）；失败回退 zlib raw
+            // （running_page 用 zlib.decompress(bytes, 16+MAX_WBITS) 自动探测，兼容两种格式）
+            val out = ByteArrayOutputStream()
+            try {
+                java.util.zip.GZIPInputStream(ByteArrayInputStream(pt)).use { gzip ->
+                    val buf = ByteArray(8192)
+                    while (true) { val n = gzip.read(buf); if (n <= 0) break; out.write(buf, 0, n) }
+                }
+            } catch (_: Exception) {
+                out.reset()
+                val inflater = java.util.zip.Inflater(true)
+                inflater.setInput(pt)
+                val buf = ByteArray(8192)
+                while (!inflater.finished()) {
+                    val n = inflater.inflate(buf)
+                    if (n <= 0) break
+                    out.write(buf, 0, n)
+                }
+                inflater.end()
+            }
+            parsePoints(out.toString("UTF-8"))
+        } catch (e: Exception) {
+            Log.w(TAG, "Keep geoPoints AES 解码失败: ${e.message}")
+            emptyList()
         }
     }
 
@@ -378,16 +493,34 @@ class KeepApi {
         return points
     }
 
-    private fun base64Decode(s: String): ByteArray = android.util.Base64.decode(s, android.util.Base64.DEFAULT)
+    // minSdk 26：直接用 java.util.Base64（JVM 单测可跑，兼容 android.util.Base64 的全部使用场景）
+    private fun base64Decode(s: String): ByteArray = try {
+        java.util.Base64.getDecoder().decode(s.trim())
+    } catch (_: Exception) {
+        ByteArray(0)
+    }
 
     /** 构建标准 GPX（带时间戳与海拔）。points 每项 = [lat, lon, ts, alt]，ts 为绝对毫秒或相对秒。
-     *  sportType: running/cycling/hiking。同时写入 GPX 标准 <type> 元素（供 iGPSPORT 等直传 GPX 平台识别）
-     *  和 <name> 标记（供 GpxToFitConverter 识别运动类型） */
-    private fun buildGpx(points: List<DoubleArray>, startTimeMs: Long, sportType: String = "running"): ByteArray {
+     *  sportType: running/cycling/hiking（列表大类）。同时写入 GPX 标准 <type> 元素（供 iGPSPORT 等直传 GPX 平台识别）
+     *  和 <name> 标记（供 GpxToFitConverter 识别运动类型）。
+     *  dataType: v8.1.6 新增——Keep 详情精确类型（outdoorCycling/indoorCycling/mountaineering 等），
+     *  写入 <name>（"from keep - {dataType}"）供 FIT 转换完整映射 (sport, sub_sport)。
+     *  v8.1.6 修复：根元素声明 xmlns:jichi——此前 <extensions><jichi:*> 用了未声明命名空间前缀，
+     *  严格 XML 解析器（iGPSPORT 等）会整体拒绝解析 → 上传成功但不落库。
+     *  metaDistance(米)/metaDuration(秒)/metaCalorie(千卡)/metaAvgHr/metaMaxHr：v8.1.4 起
+     *  Keep cycling 单点兜底时透传详情元数据，写入 <extensions>，
+     *  GpxToFitConverter 解析后写入 FIT session 汇总（total_distance/时长/热量/心率）。 */
+    private fun buildGpx(
+        points: List<DoubleArray>, startTimeMs: Long, sportType: String = "running",
+        metaDistance: Double = 0.0, metaDuration: Long = 0,
+        metaCalorie: Double = 0.0, metaAvgHr: Int = 0, metaMaxHr: Int = 0,
+        dataType: String = ""
+    ): ByteArray {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        sb.append("<gpx creator=\"jichiOB\" version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\">\n")
-        sb.append("  <trk><name>from keep - ").append(sportType).append("</name><type>").append(sportType).append("</type><trkseg>\n")
+        sb.append("<gpx creator=\"jichiOB\" version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:gpxtpx=\"http://www.garmin.com/xmlschemas/TrackPointExtension/v1\" xmlns:jichi=\"http://jichi.ob\">\n")
+        val precise = dataType.ifBlank { sportType }
+        sb.append("  <trk><name>from keep - ").append(precise).append("</name><type>").append(sportType).append("</type><trkseg>\n")
         for (p in points) {
             val lat = p[0]; val lon = p[1]; val ts = p[2].toLong(); val alt = p[3]
             // v8.1.3: 时间换算修正——此前相对值一律 ×100 会把轨迹时长压缩 10 倍（秒→毫秒应为 ×1000）。
@@ -409,7 +542,17 @@ class KeepApi {
             if (!alt.isNaN()) sb.append("<ele>").append(String.format(java.util.Locale.US, "%.2f", alt)).append("</ele>")
             sb.append("</trkpt>\n")
         }
-        sb.append("  </trkseg></trk>\n")
+        sb.append("  </trkseg>\n")
+        if (metaDistance > 0.0 || metaDuration > 0L) {
+            sb.append("  <extensions>")
+                .append("<jichi:distance>").append(String.format(java.util.Locale.US, "%.1f", metaDistance)).append("</jichi:distance>")
+                .append("<jichi:duration>").append(metaDuration).append("</jichi:duration>")
+            if (metaCalorie > 0.0) sb.append("<jichi:calorie>").append(metaCalorie.toInt()).append("</jichi:calorie>")
+            if (metaAvgHr > 0) sb.append("<jichi:avgHr>").append(metaAvgHr).append("</jichi:avgHr>")
+            if (metaMaxHr > 0) sb.append("<jichi:maxHr>").append(metaMaxHr).append("</jichi:maxHr>")
+            sb.append("</extensions>\n")
+        }
+        sb.append("  </trk>\n")
         sb.append("</gpx>\n")
         return sb.toString().toByteArray(Charsets.UTF_8)
     }
