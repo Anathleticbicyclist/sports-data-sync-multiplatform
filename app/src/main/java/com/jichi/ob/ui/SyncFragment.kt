@@ -138,35 +138,47 @@ class SyncFragment : Fragment() {
         else -> R.color.log_normal
     }
 
-    /** MainActivity调用：追加日志（时间戳浅灰小字 + 消息分层着色） */
+    /** MainActivity调用：追加日志（时间戳浅灰小字 + 消息分层着色）
+     *  v8.1.3: 防御 Fragment detached（后台同步/协程回调时页面已销毁会 requireContext 崩溃） */
     fun appendLog(message: String) {
-        val ts = try { SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) } catch (_: Exception) { "??:??:??" }
-        val tv = tvLog
-        if (tv == null) {
-            pendingLogs.add("[$ts] $message")
+        val ctx = context
+        if (ctx == null || isDetached || !isAdded) {
+            // Fragment 已销毁：日志挂起，等下次进入页面时 flushPendingLogs 补显
+            val ts0 = try { SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) } catch (_: Exception) { "??:??:??" }
+            pendingLogs.add("[$ts0] $message")
             return
         }
-        val cur = tv.text
-        val sb: SpannableStringBuilder = when {
-            cur is SpannableStringBuilder -> cur
-            cur != null && cur.isNotEmpty() && cur.toString() != "等待操作..." -> SpannableStringBuilder(cur)
-            else -> SpannableStringBuilder()
+        try {
+            val ts = try { SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) } catch (_: Exception) { "??:??:??" }
+            val tv = tvLog
+            if (tv == null) {
+                pendingLogs.add("[$ts] $message")
+                return
+            }
+            val cur = tv.text
+            val sb: SpannableStringBuilder = when {
+                cur is SpannableStringBuilder -> cur
+                cur != null && cur.isNotEmpty() && cur.toString() != "等待操作..." -> SpannableStringBuilder(cur)
+                else -> SpannableStringBuilder()
+            }
+            if (sb.length > 0) sb.append('\n')
+
+            // 时间戳段：浅灰小字
+            val tsStart = sb.length
+            sb.append("[$ts] ")
+            sb.setSpan(AbsoluteSizeSpan(11, true), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(ForegroundColorSpan(ctx.getColor(R.color.log_time)), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            // 消息段：按类型着色
+            val msgStart = sb.length
+            sb.append(message)
+            sb.setSpan(ForegroundColorSpan(ctx.getColor(colorForMessage(message))), msgStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            tv.text = sb
+            if (isAutoScroll) logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+        } catch (_: Exception) {
+            // 任何 UI 状态异常都不允许冒泡到主线程导致崩溃；日志可丢失
         }
-        if (sb.length > 0) sb.append('\n')
-
-        // 时间戳段：浅灰小字
-        val tsStart = sb.length
-        sb.append("[$ts] ")
-        sb.setSpan(AbsoluteSizeSpan(11, true), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        sb.setSpan(ForegroundColorSpan(requireContext().getColor(R.color.log_time)), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-        // 消息段：按类型着色
-        val msgStart = sb.length
-        sb.append(message)
-        sb.setSpan(ForegroundColorSpan(requireContext().getColor(colorForMessage(message))), msgStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-        tv.text = sb
-        if (isAutoScroll) logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
     }
 
     /** v7.7.8: MainActivity调用——更新顶部统计卡片（成功/跳过/失败） */

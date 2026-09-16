@@ -282,8 +282,9 @@ class KeepApi {
     /** 解码压缩的轨迹 JSON：rawDataURL 为 base64 编码的 GZIP 压缩 JSON（H4sI 开头 = gzip 魔数），返回 [lat, lon, timestamp] 点列表 */
     private fun decodeRunmap(text: String): List<DoubleArray> {
         val b64 = text.trim().split("\n").joinToString("")
+        // v8.1.3: 兼容 rawDataURL 返回 JSON 包裹（{"data":"H4sI..."}）的情况——先尝试直接解压，失败再逐层兜底
         val raw = base64Decode(b64)
-        // v7.9.2 fix: rawDataURL 是 base64(gzip)，非 zlib raw——用 GZIPInputStream 解压
+        // 1) GZIP 解压
         val out = ByteArrayOutputStream()
         try {
             GZIPInputStream(ByteArrayInputStream(raw)).use { gzip ->
@@ -294,12 +295,33 @@ class KeepApi {
                     out.write(buf, 0, n)
                 }
             }
+            val pts = parsePoints(out.toString("UTF-8"))
+            if (pts.isNotEmpty()) return pts
         } catch (_: Exception) {
-            // 兜底：个别文件可能为 zlib raw（老数据），尝试 Inflater raw 解压
-            return decodeRunmapZlib(raw, b64)
+            // 2) zlib raw 兜底（老数据）
         }
-        val jsonStr = out.toString("UTF-8")
-        return parsePoints(jsonStr)
+        val zlibPts = decodeRunmapZlib(raw, b64)
+        if (zlibPts.isNotEmpty()) return zlibPts
+        // 3) 若 rawDataURL 是 JSON 包裹（如 {"data":"H4sI..."} 或 {"points":[...]}），提取内层再解
+        try {
+            val obj = org.json.JSONObject(b64)
+            val inner = obj.optString("data").takeIf { it.isNotBlank() }
+            if (inner != null) {
+                val innerRaw = base64Decode(inner.trim())
+                val innerOut = ByteArrayOutputStream()
+                GZIPInputStream(ByteArrayInputStream(innerRaw)).use { gz ->
+                    val buf = ByteArray(8192)
+                    while (true) { val n = gz.read(buf); if (n <= 0) break; innerOut.write(buf, 0, n) }
+                }
+                val pts = parsePoints(innerOut.toString("UTF-8"))
+                if (pts.isNotEmpty()) return pts
+            }
+            // JSON 未压缩数组直读
+            val direct = parsePoints(b64)
+            if (direct.isNotEmpty()) return direct
+        } catch (_: Exception) {
+        }
+        return emptyList()
     }
 
     /** zlib raw 兜底解压（老数据兼容） */
@@ -322,12 +344,27 @@ class KeepApi {
     }
 
     private fun parsePoints(jsonStr: String): List<DoubleArray> {
-        val arr = try { org.json.JSONArray(jsonStr) } catch (_: Exception) { null } ?: return emptyList()
+        // v8.1.3: 兼容 Keep 两种轨迹 JSON 结构：
+        //   1) 顶层 JSONArray（社区实现：元素含 lat/lon/timestamp/altitude/speed）
+        //   2) 顶层 JSONObject 内含 points/data/runmap/tracks 数组
+        //   元素坐标字段兼容 lat/lon 与 latitude/longitude
+        val root = try { org.json.JSONObject(jsonStr) } catch (_: Exception) { null }
+        val arr = when {
+            root != null -> {
+                root.optJSONArray("points")
+                    ?: root.optJSONArray("data")
+                    ?: root.optJSONArray("runmap")
+                    ?: root.optJSONArray("tracks")
+            }
+            else -> try { org.json.JSONArray(jsonStr) } catch (_: Exception) { null }
+        } ?: return emptyList()
         val points = mutableListOf<DoubleArray>()
         for (i in 0 until arr.length()) {
             val p = arr.optJSONObject(i) ?: continue
-            val lat = p.optDouble("latitude", Double.NaN)
-            val lon = p.optDouble("longitude", Double.NaN)
+            val lat = if (p.has("lat") && !p.isNull("lat")) p.optDouble("lat", Double.NaN)
+                     else p.optDouble("latitude", Double.NaN)
+            val lon = if (p.has("lon") && !p.isNull("lon")) p.optDouble("lon", Double.NaN)
+                     else p.optDouble("longitude", Double.NaN)
             if (lat.isNaN() || lon.isNaN()) continue
             // unixTimestamp 为绝对毫秒（最准）；缺失时用相对 timestamp + startTime 推算（兼容旧数据）
             val ts = if (p.has("unixTimestamp") && !p.isNull("unixTimestamp")) {
@@ -353,9 +390,17 @@ class KeepApi {
         sb.append("  <trk><name>from keep - ").append(sportType).append("</name><type>").append(sportType).append("</type><trkseg>\n")
         for (p in points) {
             val lat = p[0]; val lon = p[1]; val ts = p[2].toLong(); val alt = p[3]
-            // 相对秒（<100000000000）→ 用 startTime 推算；绝对毫秒（>=100000000000）直接用
+            // v8.1.3: 时间换算修正——此前相对值一律 ×100 会把轨迹时长压缩 10 倍（秒→毫秒应为 ×1000）。
+            //   <100000000000 = 相对值（非绝对毫秒）：
+            //     ≥100000000（相对毫秒，如 2.7 小时≈10^8ms）→ 直接用 startTime 推算；
+            //     <100000000（相对秒，如 5400s）→ ×1000 转毫秒；
+            //   绝对毫秒（>=100000000000，如 unixTimestamp）直接用。
             val time = if (ts > 0) {
-                val abs = if (ts < 100_000_000_000L) startTimeMs + ts * 100 else ts
+                val abs = when {
+                    ts >= 100_000_000_000L -> ts
+                    ts >= 100_000_000L -> startTimeMs + ts
+                    else -> startTimeMs + ts * 1000
+                }
                 formatGpxTime(abs)
             } else ""
             sb.append("    <trkpt lat=\"").append(String.format(java.util.Locale.US, "%.6f", lat))
