@@ -25,3 +25,11 @@ app/src/main/assets/sticker_templates.html
 app/src/test/java/com/jichi/ob/MergeTimeTest.kt
 app/src/test/java/com/jichi/ob/RealFitMergeTest.kt
 app/src/test/java/com/jichi/ob/merge/
+app/src/main/java/com/jichi/ob/MergeTrial.kt
+app/src/main/res/drawable/bg_sticker_edit.xml
+app/src/main/res/drawable/merge_chip_blue.xml
+app/src/main/res/drawable/merge_chip_gray.xml
+app/src/main/res/drawable/merge_chip_outline.xml
+app/src/main/res/drawable/merge_chip_red.xml
+app/src/main/res/drawable/merge_chip_white.xml
+app/src/main/res/drawable/merge_chip_white_on.xml

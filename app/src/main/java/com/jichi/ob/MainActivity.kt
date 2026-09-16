@@ -1305,11 +1305,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     // v7.6.2: 日志/进度/同步态统一转发给SyncFragment
+    // v8.1.3: Fragment detached 防御——后台同步/Worker 回调时页面可能已销毁，任何 UI 异常不允许冒泡崩溃
     private fun appendLog(message: String) {
         Log.i(TAG, message)
         // v7.6.9: 同步日志持久化，App重开/后台自动同步日志仍可见
         prefs.appendPersistLog(message)
-        runOnUiThread { syncFragment.appendLog(message) }
+        runOnUiThread {
+            try { syncFragment.appendLog(message) } catch (_: Exception) {}
+        }
     }
 
     // v6.7.5: 输出GarminApi调试日志到界面（转发SyncFragment）
@@ -1318,7 +1321,7 @@ class MainActivity : AppCompatActivity() {
             val logs = GarminApi.debugLogs
             synchronized(logs) {
                 if (logs.isNotEmpty()) {
-                    for (line in logs) { syncFragment.appendLog(line) }
+                    for (line in logs) { try { syncFragment.appendLog(line) } catch (_: Exception) {} }
                     logs.clear()
                 }
             }
