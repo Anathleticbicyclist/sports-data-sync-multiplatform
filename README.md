@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.1.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.1.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.1.3 |
+| 当前版本 | v8.1.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -412,6 +412,21 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.1.6 (2026-09-16)
+- 修复 Keep 骑行轨迹仍为空（最终根因）：Keep 详情返回的 rawDataURL 是私有链接（keepcdn 实测 403 拒绝访问），旧逻辑优先下载它、失败后不回退——轨迹永远拿不到，只能单点兜底。现改为**优先解码 geoPoints 加密轨迹**（本地可解、不依赖外部链接），rawDataURL 仅作回退；客户骑行记录实测 850 点完整轨迹、里程 30.8km 与官方一致
+- 修复 Keep 导入 iGPSPORT 上传成功但不入库：Keep 导出的 GPX 扩展字段（jichi:distance 等）缺少命名空间声明，iGPSPORT 严格 XML 解析器拒收整文件。已补全命名空间声明，并细化运动类型映射（室内/室外骑行、跑步、徒步、登山、步行、游泳、铁三、健身等 14 类完整映射到 FIT sport/sub_sport，室内骑行/游泳等不再误判为公路骑行）
+- iGPSPORT 上传提示修正：uploadByOss 为异步解析，返回空 id 不代表失败，不再误报红色失败，提示改为"已接收，异步解析中"
+- 轨迹合并功能限时体验至 9 月 30 日
+
+### v8.1.5 (2026-09-16)
+- 修复 Keep 骑行轨迹仍为空：下载记录时透传列表接口的权威运动类型（不再仅靠 id 后缀判断），并增加 running/cycling/hiking 三个详情接口自动兜底尝试——即使记录 id 不带类型后缀也能命中正确接口解码出完整轨迹
+- Keep 轨迹解码兼容 gzip 与 zlib 两种压缩格式（实测 40/40 记录完整解码，2556 点端到端验证）
+- 轨迹合并功能限时体验至 9 月 30 日
+
+### v8.1.4 (2026-09-16)
+- 修复 Keep 骑行（cycling）轨迹导入为空：实测 Keep cyclinglog 接口不返回轨迹 URL，但返回加密的 geoPoints（AES-128-CBC+zlib，密钥来自开源项目 running_page），现可直接解码出完整轨迹（2556 点实测），Outbase 等目标平台可显示完整轨迹与正确里程/时长，不再是单点 0 里程
+- 无轨迹的室内记录保留元数据兜底（distance/duration 透传 FIT 汇总）
 
 ### v8.1.3 (2026-09-16)
 - 修复同步页/主页偶发崩溃（页面切换时界面已销毁仍在更新提示，增加防护）
