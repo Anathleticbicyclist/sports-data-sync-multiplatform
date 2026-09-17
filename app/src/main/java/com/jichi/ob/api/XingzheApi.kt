@@ -105,7 +105,8 @@ class XingzheApi {
                             startTime = if (startTs > 0) fmt.format(Date(startTs)) else "",
                             distance = item.optDouble("distance", 0.0) / 1000.0,
                             duration = item.optInt("duration", 0),
-                            source = DataSource.XINGZHE
+                            source = DataSource.XINGZHE,
+                            startTimeMs = startTs
                         )
                     )
                 }

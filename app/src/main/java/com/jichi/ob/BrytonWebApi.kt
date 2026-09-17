@@ -177,7 +177,8 @@ class BrytonWebApi(
                     distance = distM / 1000.0,
                     duration = durS.toInt(),
                     source = DataSource.BRYTON,
-                    extra = null
+                    extra = null,
+                    startTimeMs = startTs
                 ))
             }
         } catch (e: Exception) {

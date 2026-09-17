@@ -125,8 +125,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settingsFragment: com.jichi.ob.ui.SyncSettingsFragment
     private lateinit var syncFragment: com.jichi.ob.ui.SyncFragment
     private lateinit var aboutFragment: com.jichi.ob.ui.AboutFragment
+    // v8.2.0: 记录中心（跨平台日期检索）
+    private lateinit var recordFragment: com.jichi.ob.ui.RecordCenterFragment
     // v7.9.7: 轨迹合并页（全屏覆盖）
     private lateinit var mergeFragment: com.jichi.ob.ui.MergeFragment
+    // v8.2.1: 实验室登录页（松拓/Zepp/百锐腾，可返回）
+    private lateinit var labLoginFragment: com.jichi.ob.ui.LabLoginFragment
 
     private var syncJob: Job? = null
     private var autoSyncJob: Job? = null
@@ -438,6 +442,27 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(emailInput)
         layout.addView(passwordInput)
+        // v8.2.1: 手动清空风控（不依赖登录态；提示强行重登会增加冷却）
+        val clearCooldownLink = android.widget.TextView(this).apply {
+            text = "→ 清空风控冷却（登录被限流/提示24小时后重试时点此）"
+            textSize = 12f
+            setTextColor(0xFFE65100.toInt())
+            setPadding(0, 20, 0, 0)
+            isClickable = true
+            isFocusable = true
+        }
+        clearCooldownLink.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("清空风控")
+                .setMessage("若清空风控后强行尝试登录，可能增加冷却时间，你确定清空吗？")
+                .setPositiveButton("确定清空") { _, _ ->
+                    com.jichi.ob.api.GarminApi.clearAllCooldownFor(DataSource.GARMIN_CN)
+                    android.widget.Toast.makeText(this, "佳明中国：风控冷却缓存已清空，可重新登录", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+        layout.addView(clearCooldownLink)
 
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("佳明中国直接登录")
@@ -453,7 +478,7 @@ class MainActivity : AppCompatActivity() {
                 // v7.9.1: 佳明中国补风控检查——按账号维度（中国区走OAuth1→OAuth2，主通道GCM_ANDROID_DARK）
                 if (com.jichi.ob.api.GarminApi.isCooldown(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")) {
                     val remain = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
-                    appendLog("❌ 该账号处于佳明中国风控冷却中，请约${remain}分钟后重试（冷却仅针对该账号，可切换其他账号登录）")
+                    appendLog("❌ 该账号处于佳明中国风控冷却中，请约${remain}分钟后重试；或到登录页点击【注销】清除该账号冷却缓存后立即重登（冷却仅针对该账号）")
                     return@setPositiveButton
                 }
                 appendLog("🔐 佳明中国直接登录中...")
@@ -1367,7 +1392,41 @@ class MainActivity : AppCompatActivity() {
                 val activities = fetchActivities(source, skip, count)
                 appendLog("📋 获取到 ${activities.size} 条活动")
                 flushGarminDebugLogs()
-                if (activities.isEmpty()) { appendLog("❌ 未获取到任何活动"); setSyncing(false); return@launch }
+                // v8.2.0: 拉取列表后落本地缓存（轻量元数据，IO线程写入；日期检索走缓存，对齐佳速通"登录后缓存列表"做法）
+                try {
+                    val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+                    cache.upsertBatch(source.shortName, activities.map {
+                        com.jichi.ob.util.ActivityCache.Entry(
+                            id = it.id,
+                            platform = source.shortName,
+                            startTime = if (it.startTimeMs > 0) it.startTimeMs else cache.parseStartTimeMs(it.startTime),
+                            type = it.extra ?: "",
+                            title = it.title,
+                            distanceKm = it.distance,
+                            durationSec = it.duration,
+                            filename = ""
+                        )
+                    })
+                    cache.prune(source.shortName)
+                    appendLog("💾 已缓存 ${activities.size} 条到记录中心")
+                    // v8.2.1: 同步完成可见提示（确认缓存入库，记录中心打开即可见）
+                    runOnUiThread {
+                        android.widget.Toast.makeText(
+                            this@MainActivity,
+                            "已写入记录中心 ${activities.size} 条（${source.displayName}）",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } catch (e: Exception) {
+                    appendLog("⚠️ 记录缓存失败: ${e.message}")
+                    runOnUiThread {
+                        android.widget.Toast.makeText(
+                            this@MainActivity,
+                            "⚠️ 记录缓存失败: ${e.message}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
                 // 多目标会话预校验
                 for (t in targets) {
                     when (t) {
@@ -1429,6 +1488,8 @@ class MainActivity : AppCompatActivity() {
                         FileOutputStream(localFile).use { it.write(fileData) }
                         val savedPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, localName, fileData)
                         appendLog("💾 已存: $savedPath (${fileData.size}字节)")
+                        // v8.2.0: 缓存回填文件名（记录中心可直接打开本地文件）
+                        try { com.jichi.ob.util.ActivityCache.get(this@MainActivity).setFilename(source.shortName, act.id, savedPath ?: "") } catch (_: Exception) {}
                     } catch (_: Exception) {}
                     // v7.6.7: 内层循环目标上传（同一文件，多目标复用）
                     for (target in pendingTargets) {
@@ -1862,13 +1923,17 @@ class MainActivity : AppCompatActivity() {
         settingsFragment = com.jichi.ob.ui.SyncSettingsFragment()
         syncFragment = com.jichi.ob.ui.SyncFragment()
         aboutFragment = com.jichi.ob.ui.AboutFragment()
+        recordFragment = com.jichi.ob.ui.RecordCenterFragment()
         mergeFragment = com.jichi.ob.ui.MergeFragment()
+        labLoginFragment = com.jichi.ob.ui.LabLoginFragment()
         supportFragmentManager.beginTransaction()
             .add(R.id.fragmentContainer, loginFragment, "login")
             .add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
             .add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
             .add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
+            .add(R.id.fragmentContainer, recordFragment, "records").hide(recordFragment)
             .add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
+            .add(R.id.fragmentContainer, labLoginFragment, "lab").hide(labLoginFragment)
             .commit()
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         bottomNav.setOnItemSelectedListener { item ->
@@ -1883,8 +1948,50 @@ class MainActivity : AppCompatActivity() {
         bottomNav.selectedItemId = R.id.nav_login
     }
 
+    // v8.2.1: 记录中心入口（关于页横条调用；全屏覆盖页，不占底部导航高频位）
+    fun openRecordCenter() {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().show(recordFragment).commit()
+        bottomNav?.visibility = android.view.View.GONE
+        toolbar?.visibility = android.view.View.GONE
+        try { recordFragment.refresh() } catch (_: Exception) {}
+    }
+
+    fun closeRecordCenter() {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().hide(recordFragment).commit()
+        bottomNav?.visibility = android.view.View.VISIBLE
+        toolbar?.visibility = android.view.View.VISIBLE
+        // 返回关于页（记录中心入口所在页）
+        try { showFragment(aboutFragment) } catch (_: Exception) {}
+    }
+
+    // v8.2.1: 实验室登录入口（关于页横条调用；独立页面，可返回，不占底部导航）
+    fun openLabLogin(platforms: List<com.jichi.ob.model.DataSource>) {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().show(labLoginFragment).commit()
+        bottomNav?.visibility = android.view.View.GONE
+        toolbar?.visibility = android.view.View.GONE
+        try { labLoginFragment.refreshStates() } catch (_: Exception) {}
+    }
+
+    fun closeLabLogin() {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().hide(labLoginFragment).commit()
+        bottomNav?.visibility = android.view.View.VISIBLE
+        toolbar?.visibility = android.view.View.VISIBLE
+        // 返回关于页（实验室入口所在页），并刷新登录页/设置页状态
+        try { showFragment(aboutFragment) } catch (_: Exception) {}
+        try { loginFragment.updateStatus() } catch (_: Exception) {}
+        try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
+    }
+
     private fun showFragment(target: androidx.fragment.app.Fragment) {
-        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment).filter { it !== target }
+        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment).filter { it !== target }
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
         tr.show(target).commit()
@@ -1894,6 +2001,10 @@ class MainActivity : AppCompatActivity() {
         // v7.7.4: hide/show 不触发 onResume，切到设置页时手动刷新来源/目标网格（登录/注销后即时生效，无需重启）
         if (target == settingsFragment) {
             try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
+        }
+        // v8.2.0: 切到记录中心时强制刷新（同步后立即显示新缓存）
+        if (target == recordFragment) {
+            try { recordFragment.refresh() } catch (_: Exception) {}
         }
     }
 

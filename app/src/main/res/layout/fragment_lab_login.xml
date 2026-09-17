@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_light"
+    android:padding="12dp">
+
+    <!-- 顶栏：返回 + 标题 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLabBack"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:minHeight="0dp"
+            android:paddingStart="12dp" android:paddingEnd="12dp"
+            android:text="← 返回"
+            android:textSize="13sp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:textColor="@color/primary"
+            app:cornerRadius="20dp" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="🧪 实验室"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+        <View android:layout_width="48dp" android:layout_height="1dp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="实验性接入平台：登录后可在设置页使用对应平台进行同步；实验功能可能存在不稳定性，请谨慎使用。"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:paddingBottom="10dp" />
+
+    <!-- 松拓 -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="16dp" app:cardElevation="0dp"
+        app:strokeColor="#E3EEFA" app:strokeWidth="1dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <View android:layout_width="8dp" android:layout_height="8dp" android:background="@drawable/bg_dot_suunto" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:text="松拓 Suunto" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/btnSuuntoLabLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="9sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
+            </LinearLayout>
+            <TextView android:id="@+id/tvSuuntoLabStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="11sp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnSuuntoLabLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="6dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录松拓" android:textSize="12sp" app:backgroundTint="@color/suunto_blue" app:cornerRadius="17dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Zepp -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="16dp" app:cardElevation="0dp"
+        app:strokeColor="#E3EEFA" app:strokeWidth="1dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <View android:layout_width="8dp" android:layout_height="8dp" android:background="@drawable/bg_dot_zepp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:text="Zepp" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/btnZeppLabLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="9sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
+            </LinearLayout>
+            <TextView android:id="@+id/tvZeppLabStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="11sp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnZeppLabLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="6dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录 Zepp" android:textSize="12sp" app:backgroundTint="@color/primary" app:cornerRadius="17dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 百锐腾 -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="16dp" app:cardElevation="0dp"
+        app:strokeColor="#E3EEFA" app:strokeWidth="1dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <View android:layout_width="8dp" android:layout_height="8dp" android:background="@drawable/bg_dot_bryton" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:text="百锐腾 Bryton" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/btnBrytonLabLogout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="注销" android:textSize="9sp" android:textColor="@color/text_secondary" android:background="@drawable/logout_bg" android:visibility="gone" />
+            </LinearLayout>
+            <TextView android:id="@+id/tvBrytonLabStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="未登录" android:textColor="@color/text_secondary" android:textSize="11sp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnBrytonLabLogin" android:layout_width="match_parent" android:layout_height="34dp" android:layout_marginTop="6dp" android:insetTop="0dp" android:insetBottom="0dp" android:minHeight="0dp" android:text="登录百锐腾" android:textSize="12sp" app:backgroundTint="@color/bryton_red" app:cornerRadius="17dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</LinearLayout>

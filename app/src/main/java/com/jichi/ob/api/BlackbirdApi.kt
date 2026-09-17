@@ -159,7 +159,8 @@ class BlackbirdApi {
                             startTime = formatStartTime(item.optLong("startTime", 0)),
                             distance = item.optDouble("distance", 0.0) / 1000.0,
                             duration = item.optInt("duration", 0),
-                            source = DataSource.BLACKBIRD
+                            source = DataSource.BLACKBIRD,
+                            startTimeMs = item.optLong("startTime", 0)
                         )
                     )
                     if (result.size >= limit) break

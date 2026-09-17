@@ -286,7 +286,7 @@ class SuuntoApi {
                         val dur = w.optLong("totalTime", 0).toInt()
                         val sport = w.optString("sport")
                         val title = sportToChinese(sport)
-                        out.add(ActivityRecord(key, title, start, dist, dur, DataSource.SUUNTO, key))
+                        out.add(ActivityRecord(key, title, start, dist, dur, DataSource.SUUNTO, key, startTimeMs = startTime))
                     }
                     offset += payload.length()
                     if (payload.length() < 50) break

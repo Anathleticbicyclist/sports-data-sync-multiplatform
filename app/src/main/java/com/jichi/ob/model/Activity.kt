@@ -11,7 +11,8 @@ data class ActivityRecord(
     val distance: Double,   // km
     val duration: Int,      // seconds
     val source: DataSource,
-    var extra: String? = null  // 平台附加信息
+    var extra: String? = null,  // 平台附加信息
+    var startTimeMs: Long = 0L  // v8.2.1: 平台直传的毫秒时间戳（最准；0 表示需从 startTime 字符串解析）
 )
 
 enum class DataSource(val displayName: String, val shortName: String) {
@@ -47,6 +48,11 @@ enum class DataSource(val displayName: String, val shortName: String) {
         /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
         fun sourcePlatforms(): List<DataSource> =
             listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP, CODOON, ZEPP, KOMOT, SUUNTO)
+        /** v8.2.1: 实验室平台（实验性接入；登录后设置页才显示对应按钮，未登录隐藏） */
+        fun labPlatforms(): List<DataSource> = listOf(ZEPP, SUUNTO)
+        fun isLabPlatform(ds: DataSource): Boolean = labPlatforms().contains(ds)
+        /** v8.2.1: 实验室登录页平台（松拓/Zepp/百锐腾；登录入口只在此页，可返回） */
+        fun labLoginPlatforms(): List<DataSource> = listOf(SUUNTO, ZEPP, BRYTON)
         fun fromShortName(s: String): DataSource? = entries.find { it.shortName == s }
     }
 }
