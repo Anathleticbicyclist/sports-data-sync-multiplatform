@@ -157,7 +157,13 @@ class IgpsportApi {
                     if (dist < 0) dist = item.optDouble("sportDistance", 0.0)
                     val distKm = if (dist >= 1000) dist / 1000.0 else dist
                     // v6.3.6: 用辅助函数探测时间字段，避免嵌套括号
+                    // v8.2.1: 优先毫秒时间戳字段（StartTime 等可能为 13 位 ms），否则字符串兜底
                     val startTime = probeTimeField(item)
+                    var startMs = 0L
+                    for (k in listOf("StartTime", "startTime", "start_time", "RideDate", "rideDate", "BeginTime", "beginTime")) {
+                        val v = item.optLong(k, 0L)
+                        if (v > 1_000_000_000L) { startMs = if (v > 1_000_000_000_000L) v else v * 1000L; break }
+                    }
                     result.add(
                         ActivityRecord(
                             id = rideId,
@@ -166,7 +172,8 @@ class IgpsportApi {
                             distance = distKm,
                             duration = item.optInt("Duration", item.optInt("duration", item.optInt("movingTime", 0))),
                             source = DataSource.IGPSPORT,
-                            extra = downloadUrl.ifEmpty { null }
+                            extra = downloadUrl.ifEmpty { null },
+                            startTimeMs = startMs
                         )
                     )
                     // v6.3.7 修复：添加limit条后立即break，否则for循环遍历完当前页20条全部添加（limit不生效）

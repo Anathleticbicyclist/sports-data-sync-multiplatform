@@ -72,6 +72,7 @@ class SyncFragment : Fragment() {
         }
         view.findViewById<TextView>(R.id.btnClearLog).setOnClickListener {
             tvLog?.text = ""
+            logLineCount = 0
             Toast.makeText(requireContext(), "日志已清空", Toast.LENGTH_SHORT).show()
         }
 
@@ -83,10 +84,7 @@ class SyncFragment : Fragment() {
         view.findViewById<MaterialButton>(R.id.btnClearSync)?.setOnClickListener { (activity as? MainActivity)?.clearSyncMemory() }
         view.findViewById<MaterialButton>(R.id.btnCopyLog)?.setOnClickListener { copyLog() }
 
-        // v7.9.7: 轨迹合并入口
-        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardMerge)?.setOnClickListener {
-            (activity as? MainActivity)?.openMerge()
-        }
+        // v8.2.1: 轨迹合并入口已移至关于页（cardMerge 从同步页移除）
 
         // 自动同步
         val switchAutoSync = view.findViewById<SwitchMaterial>(R.id.switchAutoSync)
@@ -140,6 +138,12 @@ class SyncFragment : Fragment() {
 
     /** MainActivity调用：追加日志（时间戳浅灰小字 + 消息分层着色）
      *  v8.1.3: 防御 Fragment detached（后台同步/协程回调时页面已销毁会 requireContext 崩溃） */
+    // v8.2.0: 日志性能优化——增量追加 + 行数上限 + 滚动防抖（修复同步时主线程卡顿）
+    private var logLineCount = 0
+    private val MAX_LOG_LINES = 500        // 超过后截断头部，保留尾部
+    private val TRIM_KEEP_LINES = 300      // 截断时保留的行数
+    private var lastScrollPost = 0L
+
     fun appendLog(message: String) {
         val ctx = context
         if (ctx == null || isDetached || !isAdded) {
@@ -155,27 +159,40 @@ class SyncFragment : Fragment() {
                 pendingLogs.add("[$ts] $message")
                 return
             }
-            val cur = tv.text
-            val sb: SpannableStringBuilder = when {
-                cur is SpannableStringBuilder -> cur
-                cur != null && cur.isNotEmpty() && cur.toString() != "等待操作..." -> SpannableStringBuilder(cur)
-                else -> SpannableStringBuilder()
-            }
-            if (sb.length > 0) sb.append('\n')
+            // v8.2.0: 增量追加——只构造新行，TextView.append 增量绘制，不再整体拷贝历史（旧实现每次 O(n) 重建，748条同步把主线程拖死）
+            val sb = SpannableStringBuilder()
+            if (tv.length() > 0) sb.append('\n')
 
-            // 时间戳段：浅灰小字
             val tsStart = sb.length
             sb.append("[$ts] ")
             sb.setSpan(AbsoluteSizeSpan(11, true), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             sb.setSpan(ForegroundColorSpan(ctx.getColor(R.color.log_time)), tsStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
-            // 消息段：按类型着色
             val msgStart = sb.length
             sb.append(message)
             sb.setSpan(ForegroundColorSpan(ctx.getColor(colorForMessage(message))), msgStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
-            tv.text = sb
-            if (isAutoScroll) logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+            tv.append(sb)
+            logLineCount++
+            // 行数上限：低频截断（仅超限时重建一次尾部，正常增量无成本）
+            if (logLineCount > MAX_LOG_LINES) {
+                val all = tv.text
+                val text = all.toString()
+                val nl = text.indexOf('\n')
+                if (nl in 1 until text.length - 1) {
+                    val trimmed = text.substring(nl + 1)
+                    tv.text = trimmed
+                    logLineCount = TRIM_KEEP_LINES
+                }
+            }
+            // 滚动防抖：≥200ms 才 post 一次（旧实现每条都 post，主线程消息堆积）
+            if (isAutoScroll) {
+                val now = System.currentTimeMillis()
+                if (now - lastScrollPost >= 200) {
+                    lastScrollPost = now
+                    logScrollView?.post { try { logScrollView?.fullScroll(ScrollView.FOCUS_DOWN) } catch (_: Exception) {} }
+                }
+            }
         } catch (_: Exception) {
             // 任何 UI 状态异常都不允许冒泡到主线程导致崩溃；日志可丢失
         }
@@ -203,7 +220,14 @@ class SyncFragment : Fragment() {
 
     fun setProgressIndeterminate(v: Boolean) { progressBar?.setProgressIndeterminate(v) }
     fun setProgressMax(max: Int) { progressBar?.setProgressMax(max) }
-    fun setProgress(cur: Int) { progressBar?.setProgress(cur) }
+    // v8.2.0: 进度节流——≥120ms 才真正刷新（进度条为连续值，合并感知不到跳变；避免748条同步高频切主线程）
+    private var lastProgressUi = 0L
+    fun setProgress(cur: Int) {
+        val now = System.currentTimeMillis()
+        if (now - lastProgressUi < 120) return
+        lastProgressUi = now
+        progressBar?.setProgress(cur)
+    }
 
     private fun copyLog() {
         val log = tvLog?.text?.toString() ?: ""

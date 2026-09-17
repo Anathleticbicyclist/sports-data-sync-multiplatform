@@ -170,6 +170,17 @@
             android:textColor="#FF6B00"
             android:clickable="true"
             android:focusable="true" />
+        <!-- v8.2.1: 手动清空风控（不依赖登录态；提示强行重登会增加冷却） -->
+        <TextView
+            android:id="@+id/tvClearCooldown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="→ 清空风控冷却（登录被限流/24小时后提示时点此）"
+            android:textSize="12sp"
+            android:textColor="#E65100"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginTop="12dp" />
     </LinearLayout>
     <!-- iGPSPORT 原生验证码登录（鸿蒙特别版 v7.7.3-hw，绕开旧WebView白屏） -->
     <LinearLayout

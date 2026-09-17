@@ -166,7 +166,7 @@ class KeepApi {
                             val dur = stats.optLong("duration", 0).toInt()
                             // v8.1.4d: extra 存 "id|type"（type 来自列表接口按类型抓取，是权威运动类型；
                             // 仅存 id 时旧版/客户数据可能无 _cy 后缀导致下载走错接口无轨迹）
-                            out.add(ActivityRecord(id, title, start, dist, dur, DataSource.KEEP, "$id|$type"))
+                            out.add(ActivityRecord(id, title, start, dist, dur, DataSource.KEEP, "$id|$type", startTimeMs = stats.optLong("startTime", 0)))
                             fetched++
                         }
                         // 分页：lastTimestamp 为 0 或无 → 结束
@@ -188,7 +188,6 @@ class KeepApi {
         if (ms <= 0) return ""
         return try {
             val f = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
-            f.timeZone = java.util.TimeZone.getTimeZone("UTC")
             f.format(java.util.Date(ms))
         } catch (_: Exception) { "" }
     }

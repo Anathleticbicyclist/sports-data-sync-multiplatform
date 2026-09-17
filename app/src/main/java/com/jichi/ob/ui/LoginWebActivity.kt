@@ -256,6 +256,18 @@ class LoginWebActivity : AppCompatActivity() {
                     val loginUrl = if (isCN) com.jichi.ob.api.GarminApi.LOGIN_URL_CN else com.jichi.ob.api.GarminApi.LOGIN_URL_COM
                     webView.loadUrl(loginUrl)
                 }
+                // v8.2.1: 手动清空风控（带确认提示；不依赖登录态）
+                findViewById<android.widget.TextView>(R.id.tvClearCooldown)?.setOnClickListener {
+                    androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("清空风控")
+                        .setMessage("若清空风控后强行尝试登录，可能增加冷却时间，你确定清空吗？")
+                        .setPositiveButton("确定清空") { _, _ ->
+                            com.jichi.ob.api.GarminApi.clearAllCooldownFor(com.jichi.ob.model.DataSource.GARMIN_COM)
+                            android.widget.Toast.makeText(this, "佳明国际：风控冷却缓存已清空，可重新登录", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        .setNegativeButton("取消", null)
+                        .show()
+                }
                 btnLogin.setOnClickListener {
                     val email = etEmail.text?.toString()?.trim() ?: ""
                     val password = etPassword.text?.toString() ?: ""

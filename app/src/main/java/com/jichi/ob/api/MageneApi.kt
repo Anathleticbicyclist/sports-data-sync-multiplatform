@@ -225,6 +225,8 @@ class MageneApi {
                     val id = item.optString("id", "")
                     if (id.isEmpty()) continue
                     val startTime = item.optString("start_riding_time", "")
+                    val startRaw = item.optLong("start_riding_time", 0L)
+                    val startMs = if (startRaw > 1_000_000_000L) (if (startRaw > 1_000_000_000_000L) startRaw else startRaw * 1000L) else 0L
                     var name = item.optString("name", "")
                     if (name == "null") name = ""
                     val title = name.ifEmpty {
@@ -238,7 +240,8 @@ class MageneApi {
                             startTime = startTime,
                             distance = item.optDouble("distance_km", 0.0),
                             duration = item.optInt("time_seconds", 0),
-                            source = DataSource.MAGENE
+                            source = DataSource.MAGENE,
+                            startTimeMs = startMs
                         )
                     )
                     if (result.size >= limit) break

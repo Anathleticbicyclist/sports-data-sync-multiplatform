@@ -77,6 +77,18 @@ class AboutFragment : Fragment() {
 
         // v7.8.0: 开源软件免责声明超链接 → 弹出双语免责声明弹窗
         view.findViewById<TextView>(R.id.tvDisclaimerLink)?.setOnClickListener { showDisclaimerDialog() }
+
+        // v8.2.1: 关于页功能横条
+        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardRecordCenter)?.setOnClickListener {
+            try { (activity as? com.jichi.ob.MainActivity)?.openRecordCenter() } catch (_: Exception) {}
+        }
+        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardMerge)?.setOnClickListener {
+            try { (activity as? com.jichi.ob.MainActivity)?.openMerge() } catch (_: Exception) {}
+        }
+        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardLabLogin)?.setOnClickListener {
+            // v8.2.1: 实验室独立页面（松拓/Zepp/百锐腾登录，可返回）
+            try { (activity as? com.jichi.ob.MainActivity)?.openLabLogin(com.jichi.ob.model.DataSource.labLoginPlatforms()) } catch (_: Exception) {}
+        }
     }
 
     /** v7.8.0: 免责声明弹窗（圆角淡蓝边框、内容可滚动、中英双语） */

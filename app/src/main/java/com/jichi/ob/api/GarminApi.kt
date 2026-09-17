@@ -127,7 +127,8 @@ class GarminApi {
             ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
                 .edit().putLong(cooldownKey(ds, email, clientId), System.currentTimeMillis() + COOLDOWN_MS).apply()
         }
-        /** 供外部写冷却（MainActivity中国区429路径用），按clientId×email记录 */
+        /** 供外部写冷却（MainActivity中国区429路径用），按clientId×email记录。
+         *  v8.2.1: 保留风控冷却（防封号），用户在"清除登录"时手动清缓存解除误拦截 */
         fun writeCooldownFor(ds: DataSource, email: String, clientId: String? = null) {
             writeCooldown(ds, email, clientId)
         }
@@ -145,6 +146,18 @@ class GarminApi {
                 SSO_CHANNELS_CN.forEach { ed.remove(cooldownKey(ds, email, it.clientId)) }
                 ed.apply()
                 addDebugLog("clearCooldownFor: 已清除账号[$email]冷却缓存")
+            } catch (_: Exception) {}
+        }
+        /** v8.2.1: 手动清空该区域【全部】冷却缓存（不依赖登录态；未登录也能一键解除误拦截） */
+        fun clearAllCooldownFor(ds: DataSource) {
+            try {
+                val ctx = appContext ?: return
+                val prefs = ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
+                val prefix = if (ds == DataSource.GARMIN_CN) "garmin_cn_" else "garmin_com_"
+                val ed = prefs.edit()
+                prefs.all.keys.filter { it.startsWith(prefix) }.forEach { ed.remove(it) }
+                ed.apply()
+                addDebugLog("clearAllCooldownFor: 已清空[${ds.shortName}]全部冷却缓存(${prefs.all.size} 键)")
             } catch (_: Exception) {}
         }
         /** 是否处于佳明429风控冷却期；email为空时回退区域维度，clientId为空时回退email维度 */
@@ -1208,13 +1221,15 @@ class GarminApi {
                         val item = arr.getJSONObject(i)
                         val id = item.optString("activityId")
                         if (id.isEmpty()) continue
+                        val startLocal = item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") }
                         out.add(ActivityRecord(
                             id,
                             item.optString("activityName").ifBlank { "佳明活动" },
-                            item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") },
+                            startLocal,
                             item.optDouble("distance", 0.0) / 1000.0,
                             item.optInt("duration", 0),
-                            ds
+                            ds,
+                            startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(startLocal)
                         ))
                     }
                     addDebugLog("getActivities DI成功: ${out.size}条")
@@ -1233,9 +1248,11 @@ class GarminApi {
                             val item = arr.getJSONObject(i)
                             val id = item.optString("activityId")
                             if (id.isEmpty()) continue
+                            val startLocal = item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") }
                             out.add(ActivityRecord(id, item.optString("activityName").ifBlank { "佳明活动" },
-                                item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") },
-                                item.optDouble("distance", 0.0) / 1000.0, item.optInt("duration", 0), ds))
+                                startLocal,
+                                item.optDouble("distance", 0.0) / 1000.0, item.optInt("duration", 0), ds,
+                                startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(startLocal)))
                         }
                         return@withContext out
                     }
@@ -1256,9 +1273,11 @@ class GarminApi {
                     val item = arr.getJSONObject(i)
                     val id = item.optString("activityId")
                     if (id.isEmpty()) continue
+                    val startLocal = item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") }
                     out.add(ActivityRecord(id, item.optString("activityName").ifBlank { "佳明活动" },
-                        item.optString("startTimeLocal").ifBlank { item.optString("startTimeGMT") },
-                        item.optDouble("distance", 0.0) / 1000.0, item.optInt("duration", 0), ds))
+                        startLocal,
+                        item.optDouble("distance", 0.0) / 1000.0, item.optInt("duration", 0), ds,
+                        startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(startLocal)))
                 }
                 out
             }

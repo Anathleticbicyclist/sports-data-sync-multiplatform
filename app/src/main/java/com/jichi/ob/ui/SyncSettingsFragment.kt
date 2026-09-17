@@ -160,6 +160,11 @@ class SyncSettingsFragment : Fragment() {
             val btn = gridSource.getChildAt(i) as? PlatformButton ?: continue
             val tag = btn.tag as? String ?: continue
             val sds = DataSource.fromShortName(tag)
+            // v8.2.1: 实验室平台未登录时隐藏（登录后设置页才显示对应按钮）
+            btn.visibility = android.view.View.VISIBLE
+            if (sds != null && DataSource.isLabPlatform(sds) && !prefs.isLoggedIn(sds)) {
+                btn.visibility = android.view.View.GONE
+            }
             btn.buttonText = sds?.displayName ?: tag
             btn.bind(platformColor(tag))
             btn.setOnClickListener {
@@ -192,6 +197,11 @@ class SyncSettingsFragment : Fragment() {
             val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
             val tag = btn.tag as? String ?: continue
             val tds = DataSource.fromShortName(tag)
+            // v8.2.1: 实验室平台未登录时隐藏（登录后设置页才显示对应按钮）
+            btn.visibility = android.view.View.VISIBLE
+            if (tds != null && DataSource.isLabPlatform(tds) && !prefs.isLoggedIn(tds)) {
+                btn.visibility = android.view.View.GONE
+            }
             btn.buttonText = tds?.displayName ?: tag
             btn.bind(platformColor(tag))
             // v7.8.0: Outbase 独占行强调——字号加大1/2(11→16.5sp)并始终加粗
@@ -216,6 +226,8 @@ class SyncSettingsFragment : Fragment() {
                 refreshTargetButtons()
             }
         }
+        // v8.2.1: 自动补位——隐藏平台释放格子，其余平台紧凑前移
+        rebuildGrid(gridTarget)
     }
 
     private fun refreshTargetButtons() {
@@ -346,6 +358,12 @@ class SyncSettingsFragment : Fragment() {
         for (i in 0 until gridSource.childCount) {
             val btn = gridSource.getChildAt(i) as? PlatformButton ?: continue
             val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
+            // v8.2.1: 实验室平台未登录时隐藏（登录后设置页才显示对应按钮）——与 target 网格对齐
+            btn.visibility = android.view.View.VISIBLE
+            if (DataSource.isLabPlatform(ds) && !prefs.isLoggedIn(ds)) {
+                btn.visibility = android.view.View.GONE
+                continue
+            }
             if (!prefs.isLoggedIn(ds)) {
                 btn.isEnabled = false
                 btn.setBackgroundColor(0xFFE8E8E8.toInt())
@@ -358,6 +376,39 @@ class SyncSettingsFragment : Fragment() {
                 setButtonSelected(btn, (btn.tag as? String) == selectedSourceTag, btn.tag as? String ?: "")
             }
         }
+        // v8.2.1: 自动补位——GONE 平台释放格子，其余平台紧凑前移（不留空洞、不出错行）
+        rebuildGrid(gridSource)
+    }
+
+    /**
+     * v8.2.1: 自动补位重排网格。
+     * GridLayout 对 GONE 子视图仍保留 grid cell（隐藏平台处会留空洞），追加占位卡会掉到下一行错位。
+     * 因此不增删按钮，只把可见平台按原顺序连续重排坐标（列满换行），隐藏平台排到末尾虚拟位置；
+     * 登录实验室平台后再调用本方法即可自动插回网格，实现"隐藏后自动补位"，无任何占位元素。
+     */
+    private fun rebuildGrid(grid: GridLayout) {
+        var col = 0
+        var row = 0
+        var goneRow = 100
+        for (i in 0 until grid.childCount) {
+            val btn = grid.getChildAt(i) as? PlatformButton ?: continue
+            val lp = btn.layoutParams as? GridLayout.LayoutParams ?: continue
+            if (btn.visibility == android.view.View.VISIBLE) {
+                lp.columnSpec = GridLayout.spec(col, 1f)
+                lp.rowSpec = GridLayout.spec(row)
+                col++
+                if (col >= 4) { col = 0; row++ }
+            } else {
+                // 隐藏平台排到末尾虚拟行（不可见，不占布局）
+                lp.columnSpec = GridLayout.spec(0, 1f)
+                lp.rowSpec = GridLayout.spec(goneRow++)
+            }
+            // ⚠️ 不能执行 btn.layoutParams = lp：PlatformButton 是 FrameLayout，赋值会触发
+            // checkLayoutParams 把 GridLayout.LayoutParams 转成 FrameLayout.LayoutParams，
+            // 之后 GridLayout 布局强转回 GridLayout.LayoutParams 抛 ClassCastException 闪退。
+            // 直接改 lp 字段（同引用）+ requestLayout 即可生效。
+        }
+        grid.requestLayout()
     }
 
     /**
@@ -378,6 +429,12 @@ class SyncSettingsFragment : Fragment() {
             for (i in 0 until gridTarget.childCount) {
                 val btn = gridTarget.getChildAt(i) as? PlatformButton ?: continue
                 val ds = DataSource.fromShortName(btn.tag as? String ?: "") ?: continue
+                // v8.2.1: 实验室平台未登录时隐藏（登录后设置页才显示对应按钮）
+                btn.visibility = android.view.View.VISIBLE
+                if (DataSource.isLabPlatform(ds) && !prefs.isLoggedIn(ds)) {
+                    btn.visibility = android.view.View.GONE
+                    continue
+                }
                 btn.isEnabled = prefs.isLoggedIn(ds) && UploadSupport.fromDataSource(ds).available
                 btn.alpha = if (btn.isEnabled) 1.0f else 0.7f
                 if (btn.isEnabled) setButtonSelected(btn, selectedTargetTags.contains(btn.tag as? String ?: ""), btn.tag as? String ?: "")
@@ -385,6 +442,8 @@ class SyncSettingsFragment : Fragment() {
             updateTargetChips()
             updateTargetCountLabel()
             updateForceRetransmitState()
+            // v8.2.1: 登录状态变化后重排（登录实验室平台 → 自动显示；注销 → 紧凑前移）
+            rebuildGrid(gridTarget)
         } catch (e: Exception) {
             // 忽略刷新异常
         }

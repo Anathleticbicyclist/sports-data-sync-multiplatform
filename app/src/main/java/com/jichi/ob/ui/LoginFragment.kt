@@ -56,9 +56,7 @@ class LoginFragment : Fragment() {
         statusViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.tvIcuStatus)
         statusViews[DataSource.KEEP] = view.findViewById(R.id.tvKeepStatus)
         statusViews[DataSource.CODOON] = view.findViewById(R.id.tvCodoonStatus)
-        statusViews[DataSource.ZEPP] = view.findViewById(R.id.tvZeppStatus)
         statusViews[DataSource.KOMOT] = view.findViewById(R.id.tvKomootStatus)
-        statusViews[DataSource.SUUNTO] = view.findViewById(R.id.tvSuuntoStatus)
 
         btnViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogin)
         btnViews[DataSource.XINGZHE] = view.findViewById(R.id.btnXingzheLogin)
@@ -76,9 +74,7 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.btnIcuLogin)
         btnViews[DataSource.KEEP] = view.findViewById(R.id.btnKeepLogin)
         btnViews[DataSource.CODOON] = view.findViewById(R.id.btnCodoonLogin)
-        btnViews[DataSource.ZEPP] = view.findViewById(R.id.btnZeppLogin)
         btnViews[DataSource.KOMOT] = view.findViewById(R.id.btnKomootLogin)
-        btnViews[DataSource.SUUNTO] = view.findViewById(R.id.btnSuuntoLogin)
 
         // v7.6.7: 注销按钮（每个卡片头部右上角，仅登录后显示）
         logoutViews[DataSource.IGPSPORT] = view.findViewById(R.id.btnIgpLogout)
@@ -97,9 +93,7 @@ class LoginFragment : Fragment() {
         logoutViews[DataSource.INTERVALS_ICU] = view.findViewById(R.id.btnIcuLogout)
         logoutViews[DataSource.KEEP] = view.findViewById(R.id.btnKeepLogout)
         logoutViews[DataSource.CODOON] = view.findViewById(R.id.btnCodoonLogout)
-        logoutViews[DataSource.ZEPP] = view.findViewById(R.id.btnZeppLogout)
         logoutViews[DataSource.KOMOT] = view.findViewById(R.id.btnKomootLogout)
-        logoutViews[DataSource.SUUNTO] = view.findViewById(R.id.btnSuuntoLogout)
 
         // 注销点击 → 确认后清除凭证并刷新
         for ((ds, tv) in logoutViews) {
@@ -108,7 +102,18 @@ class LoginFragment : Fragment() {
                     .setTitle("注销登录")
                     .setMessage("确定注销${ds.displayName}吗？注销后该平台将无法同步。")
                     .setPositiveButton("注销") { _, _ ->
+                        // v8.2.1: 佳明注销前先取凭证(内含email)，注销时顺带清除该账号风控冷却缓存
+                        // （国区/国际均可手动解除"冷却中"误拦截；风控逻辑保留，下次登录重新计算）
+                        val garminEmail = if (ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) {
+                            try {
+                                org.json.JSONObject(prefs.getCredential(ds)).optString("email", "")
+                                    .takeIf { it.isNotBlank() }
+                            } catch (_: Exception) { null }
+                        } else null
                         prefs.clearCredential(ds)
+                        if (garminEmail != null) {
+                            com.jichi.ob.api.GarminApi.clearCooldownFor(ds, garminEmail)
+                        }
                         // v7.7.3: 同时清除该平台WebView登录态(localStorage+cookie)，
                         // 避免"注销后重新登录仍用旧账号自动登录、看不到登录窗口"的问题
                         // v7.7.4: WebView登录类平台(除佳明/Wahoo)追加清空全部cookie，
@@ -117,7 +122,7 @@ class LoginFragment : Fragment() {
                         LoginWebActivity.clearPlatformWebLogin(ds.toLoginType(), wipeAllCookies = wipeAll)
                         // 若该平台被选为来源/目标，同步记忆残留不影响，登录页刷新即可
                         updateStatus()
-                        Toast.makeText(requireContext(), "已注销${ds.displayName}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "已注销${ds.displayName}" + if (garminEmail != null) "（风控冷却缓存已清除）" else "", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("取消", null)
                     .show()
@@ -141,9 +146,7 @@ class LoginFragment : Fragment() {
         btnViews[DataSource.INTERVALS_ICU]?.setOnClickListener { (activity as? MainActivity)?.openIntervalsIcuLogin() }
         btnViews[DataSource.KEEP]?.setOnClickListener { (activity as? MainActivity)?.openKeepLogin() }
         btnViews[DataSource.CODOON]?.setOnClickListener { (activity as? MainActivity)?.openCodoonLogin() }
-        btnViews[DataSource.ZEPP]?.setOnClickListener { (activity as? MainActivity)?.openZeppLogin() }
         btnViews[DataSource.KOMOT]?.setOnClickListener { (activity as? MainActivity)?.openKomootLogin() }
-        btnViews[DataSource.SUUNTO]?.setOnClickListener { (activity as? MainActivity)?.openSuuntoLogin() }
 
         // v7.6.7: fragment可见时刷新登录状态（登录返回/注销后自动同步）
         lifecycle.addObserver(object : androidx.lifecycle.LifecycleEventObserver {
