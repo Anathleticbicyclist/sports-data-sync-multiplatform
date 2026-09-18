@@ -159,8 +159,8 @@ class KeepApi {
                             if (logs.length() == 0) continue
                             val stats = logs.optJSONObject(0)?.optJSONObject("stats") ?: continue
                             val id = stats.optString("id").takeIf { it.isNotBlank() } ?: continue
-                            val title = stats.optString("type").takeIf { it.isNotBlank() }
-                                ?: if (type == "running") "跑步" else "骑行"
+                            // v8.2.5: 标题用中文运动类型（此前是接口英文 "cycling"，列表/详情显示难看）
+                            val title = if (type == "running") "跑步" else if (type == "cycling") "骑行" else if (type == "hiking") "徒步" else if (type == "swimming") "游泳" else if (type == "other") "运动" else type.ifBlank { "运动" }
                             val start = formatTime(stats.optLong("startTime", 0))
                             val dist = stats.optDouble("distance", 0.0) / 1000.0  // 米→公里
                             val dur = stats.optLong("duration", 0).toInt()

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_light">
+
+    <!-- v8.2.2: 新建任务向导——全屏覆盖页 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="6dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
+        <TextView
+            android:id="@+id/tvBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:text="‹ 返回"
+            android:textSize="15sp"
+            android:textColor="@color/primary"
+            android:clickable="true"
+            android:focusable="true" />
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="新建同步任务"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+        <TextView
+            android:layout_width="28dp"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- 步骤指示器（v8.2.3.4 两页制：平台 → 参数） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+        <TextView android:id="@+id/tvStep1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="① 平台" android:textSize="12sp" android:textColor="@color/primary" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  →  " android:textSize="12sp" android:textColor="@color/text_secondary" />
+        <TextView android:id="@+id/tvStep2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="② 参数" android:textSize="12sp" android:textColor="@color/text_secondary" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  →  " android:textSize="12sp" android:textColor="@color/text_secondary" />
+        <TextView android:id="@+id/tvStep3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="③ 完成" android:textSize="12sp" android:textColor="@color/text_secondary" android:visibility="gone" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/scrollStep"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/containerStep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrev"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:insetTop="0dp" android:insetBottom="0dp"
+            android:text="上一步"
+            android:textSize="13sp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:textColor="@color/text_secondary"
+            app:cornerRadius="12dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNext"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:insetTop="0dp" android:insetBottom="0dp"
+            android:text="下一步"
+            android:textSize="13sp"
+            app:backgroundTint="@color/primary"
+            app:cornerRadius="12dp" />
+    </LinearLayout>
+</LinearLayout>

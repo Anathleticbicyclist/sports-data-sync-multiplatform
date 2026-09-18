@@ -132,27 +132,39 @@ class MyWhooshApi {
     suspend fun getActivities(token: String, whooshId: String, skip: Int, limit: Int): List<ActivityRecord> =
         withContext(Dispatchers.IO) {
             try {
-                val payload = JSONObject().apply {
-                    put("page", 1)
-                    put("limit", limit)
-                    put("sortDate", "DESC")
-                }
-                val req = Request.Builder()
-                    .url("$API_BASE/activities")
-                    .addHeader("Authorization", "Bearer $token")
-                    .addHeader("Content-Type", JSON_MEDIA)
-                    .addHeader("User-Agent", UA)
-                    .post(jsonBody(payload))
-                    .build()
-                client.newCall(req).execute().use { resp ->
-                    if (resp.code == 401) throw IllegalStateException("MyWhoosh token 过期(401)")
-                    val body = resp.body?.string() ?: return@withContext emptyList()
-                    if (resp.code != 200) {
-                        Log.w(TAG, "MyWhoosh activities HTTP ${resp.code}: ${body.take(150)}")
-                        return@withContext emptyList()
+                // v8.2.3.9: 修复拉不全——原实现 page 固定1、skip 只在首屏内截取，
+                // 全量最多200条。改为内部循环翻页累计到 skip+limit 再统一截取。
+                val out = mutableListOf<ActivityRecord>()
+                var page = 1
+                while (out.size < skip + limit) {
+                    val payload = JSONObject().apply {
+                        put("page", page)
+                        put("limit", 50)
+                        put("sortDate", "DESC")
                     }
-                    parseActivities(body, skip, limit)
+                    val req = Request.Builder()
+                        .url("$API_BASE/activities")
+                        .addHeader("Authorization", "Bearer $token")
+                        .addHeader("Content-Type", JSON_MEDIA)
+                        .addHeader("User-Agent", UA)
+                        .post(jsonBody(payload))
+                        .build()
+                    val (code, body) = client.newCall(req).execute().use { resp ->
+                        if (resp.code == 401) throw IllegalStateException("MyWhoosh token 过期(401)")
+                        Pair(resp.code, resp.body?.string() ?: "")
+                    }
+                    if (code != 200) {
+                        Log.w(TAG, "MyWhoosh activities HTTP $code: ${body.take(150)}")
+                        break
+                    }
+                    val batch = parseActivities(body, 0, 50)
+                    if (batch.isEmpty()) break
+                    out.addAll(batch)
+                    if (batch.size < 50) break
+                    page++
+                    kotlinx.coroutines.delay(150)
                 }
+                out.distinctBy { it.id }.take((skip + limit).coerceAtLeast(1)).drop(skip)
             } catch (e: Exception) {
                 Log.e(TAG, "MyWhoosh getActivities error", e)
                 throw e
@@ -201,7 +213,9 @@ class MyWhooshApi {
                 ?: ""
             val dist = parseDouble(item, arrayOf("distanceKm", "distance", "totalDistance"))
             val dur = (parseDouble(item, arrayOf("duration", "durationSeconds", "totalTime")) ?: 0.0).toInt()
-            out.add(ActivityRecord(id, title, start, dist ?: 0.0, dur, DataSource.MYWHOOSH, fileId))
+            // v8.2.4: 补 startTimeMs（时间=0会沉底/日期检索失效）
+            out.add(ActivityRecord(id, title, start, dist ?: 0.0, dur, DataSource.MYWHOOSH, fileId,
+                startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(start)))
             idx++; count++
         }
         return out

@@ -165,7 +165,9 @@ class KomootApi {
                         val dur = t.optLong("duration", 0).toInt()
                         val sport = t.optString("sport")
                         val title = "$name ${sportToChinese(sport)}".trim()
-                        out.add(ActivityRecord(id, title, start, dist, dur, DataSource.KOMOT, id))
+                        // v8.2.4: 补 startTimeMs（时间=0会沉底/日期检索失效）
+                        out.add(ActivityRecord(id, title, start, dist, dur, DataSource.KOMOT, id,
+                            startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(t.optString("date"))))
                     }
                     page++
                     if (out.size >= skip + limit) break

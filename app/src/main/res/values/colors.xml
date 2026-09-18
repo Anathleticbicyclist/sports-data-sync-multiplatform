@@ -9,6 +9,7 @@
     <color name="splash_start">#C9E5FF</color>      <!-- 开屏渐变起始：淡蓝 -->
     <color name="splash_end">#4DAAFF</color>        <!-- 开屏渐变结束：天蓝 -->
     <color name="card_white">#FFFFFF</color>        <!-- 卡片白 -->
+    <color name="primary_light">#EAF4FF</color>     <!-- v8.2.2 主色浅底（选中态） -->
     <color name="divider">#E8EEF4</color>           <!-- 细分割线 -->
     <color name="text_primary">#1F2937</color>      <!-- 主文字：深灰 -->
     <color name="text_secondary">#9CA3AF</color>    <!-- 次文字：浅灰 -->

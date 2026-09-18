@@ -104,14 +104,17 @@ class BrytonApi {
                     val item = rows.getJSONObject(i)
                     val id = item.optLong("id", item.optLong("activityId", 0))
                     if (id <= 0) continue
+                    // v8.2.4: 补 startTimeMs（时间=0会导致记录中心排序沉底、日期检索失效）
+                    val startRaw = item.optString("startTime", item.optString("start_time", ""))
                     result.add(
                         ActivityRecord(
                             id = id.toString(),
                             title = item.optString("name", item.optString("title", "骑行")),
-                            startTime = item.optString("startTime", item.optString("start_time", "")),
+                            startTime = startRaw,
                             distance = item.optDouble("distance", 0.0) / 1000.0,
                             duration = item.optInt("duration", item.optInt("elapsedTime", 0)),
-                            source = DataSource.BRYTON
+                            source = DataSource.BRYTON,
+                            startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(startRaw)
                         )
                     )
                     if (result.size >= limit) break

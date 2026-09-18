@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- v8.3.1: 根改 ScrollView——平台卡片增多后支持上下滑动选择登录 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/bg_light">
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/bg_light"
-    android:padding="12dp">
+    android:padding="12dp"
+    android:id="@+id/labRoot">
 
     <!-- 顶栏：返回 + 标题 -->
     <LinearLayout
@@ -101,3 +107,4 @@
     </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>
+</ScrollView>

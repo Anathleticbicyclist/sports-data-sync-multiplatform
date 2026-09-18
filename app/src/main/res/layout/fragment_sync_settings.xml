@@ -12,6 +12,78 @@
         android:orientation="vertical"
         android:padding="8dp">
 
+        <!-- v8.2.3.5: 保存为任务（设置页即任务配置页：调好来源/目标/参数后一键保存为任务） -->
+        <!-- v8.2.3.8: 同步页已恢复「＋新建任务」二级向导，本卡隐藏（新建任务/模式切换均可在向导完成） -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCreateTask"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:visibility="gone"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#C9DFF7"
+            app:strokeWidth="1dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="44dp" android:layout_height="44dp" android:text="＋" android:textSize="24sp" android:textStyle="bold" android:textColor="@color/white" android:gravity="center" android:background="@drawable/primary_btn_bg" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="保存为同步任务" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="在上方选好来源/目标、调好参数后，保存为任务，可在同步页一键运行/自动同步" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="12dp">
+                    <androidx.appcompat.widget.AppCompatEditText
+                        android:id="@+id/etTaskName"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:hint="任务名（如：行者→佳明）"
+                        android:textSize="13sp"
+                        android:background="@drawable/input_box_bg"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:maxLines="1"
+                        android:inputType="text" />
+                    <TextView
+                        android:id="@+id/btnSaveTask"
+                        android:layout_width="wrap_content"
+                        android:layout_height="42dp"
+                        android:layout_marginStart="10dp"
+                        android:text="保存任务"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:gravity="center"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:background="@drawable/primary_btn_bg" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- v8.2.3.5: 同步模式（任务级：一对多 / 多对一；多对一仅用于保存任务） -->
+        <!-- v8.2.3.8: 同步页向导已含模式切换，本卡隐藏 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardTaskMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:visibility="gone"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#E3EEFA"
+            app:strokeWidth="1dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="同步模式（任务）" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+                    <TextView android:id="@+id/btnModeOneToMany" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" android:text="一对多（1来源→多目标）" android:textSize="12sp" android:gravity="center" android:background="@drawable/bg_check_update" android:textColor="@color/primary" android:layout_marginEnd="4dp" />
+                    <TextView android:id="@+id/btnModeManyToOne" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" android:text="多对一（多来源→1目标）" android:textSize="12sp" android:gravity="center" android:background="@drawable/bg_check_update" android:textColor="@color/text_secondary" android:layout_marginStart="4dp" />
+                </LinearLayout>
+                <TextView android:id="@+id/tvModeHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="一对多：批量同步/任务通用；多对一：仅保存为任务后在同步页运行" android:textSize="10sp" android:textColor="@color/text_secondary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
                 <!-- 同步设置 -->
                 <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -43,9 +115,16 @@
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/srcZp" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="zp" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/srcKt" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="kt" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/srcSu" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="su" />
-                </GridLayout>
+                                <com.jichi.ob.ui.PlatformButton android:id="@+id/src2b" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="2b" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcSt" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="st" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcPo" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="po" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcFb" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="fb" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcWi" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="wi" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/srcTp" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="tp" />
+</GridLayout>
                 
-                <TextView android:id="@+id/tvTargetHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="同步目标（可多选）:" android:textSize="13sp" android:textColor="@color/text_primary" />
+                <TextView android:id="@+id/tvCapHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="未登录平台已自动隐藏，去「登录」页登录后自动出现" android:textSize="10sp" android:textColor="@color/green" android:maxLines="2" />
+                <TextView android:id="@+id/tvTargetHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="同步目标（可多选）:" android:textSize="13sp" android:textColor="@color/text_primary" />
                 <GridLayout android:id="@+id/gridTarget" android:layout_width="match_parent" android:layout_height="wrap_content" android:columnCount="4">
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtOb" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_columnSpan="4" android:layout_margin="2dp" android:tag="ob" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtIgp" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="igp" />
@@ -62,7 +141,13 @@
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtKp" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="kp" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtKt" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="kt" />
                 <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtSu" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="su" />
-                </GridLayout>
+                                <com.jichi.ob.ui.PlatformButton android:id="@+id/tgt2b" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="2b" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtSt" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="st" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtPo" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="po" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtFb" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="fb" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtWi" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="wi" />
+                <com.jichi.ob.ui.PlatformButton android:id="@+id/tgtTp" android:layout_width="0dp" android:layout_height="44dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:tag="tp" />
+</GridLayout>
                 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal" android:gravity="center_vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📊 同步数量" android:textSize="13sp" android:textColor="@color/text_primary" />
@@ -87,6 +172,18 @@
                     <TextView android:id="@+id/tvSaveDir" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="10sp" android:textColor="@color/text_secondary" android:maxLines="1" android:ellipsize="middle" />
                     <!-- v7.8.1: 蓝色圆角框的文件夹按钮，点击打开存储目录查看已保存的FIT/GPX文件 -->
                     <ImageView android:id="@+id/btnOpenSaveDir" android:layout_width="38dp" android:layout_height="38dp" android:padding="10dp" android:src="@drawable/ic_folder" android:background="@drawable/bg_folder_btn" android:contentDescription="打开存储目录" android:clickable="true" android:focusable="true" />
+                </LinearLayout>
+                <!-- v8.2.6: 下载并发——多条来源数据并行下载（默认1=串行最稳；佳明国区/国际强制串行不受此影响） -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⬇ 下载并发" android:textSize="13sp" android:textColor="@color/text_primary" />
+                    <com.google.android.material.slider.Slider android:id="@+id/sliderDlConcurrency" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="4" android:stepSize="1" android:value="1" app:thumbColor="@color/primary" app:trackColorActive="@color/primary" />
+                    <TextView android:id="@+id/tvDlConcurrency" android:layout_width="40dp" android:layout_height="wrap_content" android:text="1" android:textSize="14sp" android:textStyle="bold" android:gravity="center" android:textColor="@color/primary" android:background="@drawable/input_box_bg" android:paddingTop="2dp" android:paddingBottom="2dp" />
+                </LinearLayout>
+                <!-- v8.2.6: 上传并发——一条数据同时上传多个目标（默认1=串行最稳；佳明/Keep 强制串行不受此影响） -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⬆ 上传并发" android:textSize="13sp" android:textColor="@color/text_primary" />
+                    <com.google.android.material.slider.Slider android:id="@+id/sliderUlConcurrency" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:valueFrom="1" android:valueTo="4" android:stepSize="1" android:value="1" app:thumbColor="@color/primary" app:trackColorActive="@color/primary" />
+                    <TextView android:id="@+id/tvUlConcurrency" android:layout_width="40dp" android:layout_height="wrap_content" android:text="1" android:textSize="14sp" android:textStyle="bold" android:gravity="center" android:textColor="@color/primary" android:background="@drawable/input_box_bg" android:paddingTop="2dp" android:paddingBottom="2dp" />
                 </LinearLayout>
                 <TextView android:id="@+id/tvSyncedCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="@color/green" />
                 </LinearLayout>

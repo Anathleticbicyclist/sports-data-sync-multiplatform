@@ -22,6 +22,8 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_SOURCE = "last_source"
         private const val KEY_LAST_TARGET = "last_target"
         private const val KEY_LAST_TARGETS = "last_targets"
+        private const val KEY_LAST_SOURCE_TAGS = "last_source_tags"
+        private const val KEY_TASK_MODE_MULTI = "task_mode_multi"
         private const val KEY_AUTO_SYNC = "auto_sync"
         private const val KEY_AUTO_INTERVAL = "auto_interval"
         private const val KEY_LAST_AUTO_SYNC_TIME = "last_auto_sync_time"
@@ -36,6 +38,11 @@ class PrefsManager(context: Context) {
         private const val KEY_STAT_OK = "stat_ok"
         private const val KEY_STAT_SKIP = "stat_skip"
         private const val KEY_STAT_FAIL = "stat_fail"
+        private const val KEY_TASKS = "sync_tasks_v1"
+        private const val KEY_DL_CONCURRENCY = "dl_concurrency"
+        private const val KEY_UL_CONCURRENCY = "ul_concurrency"
+        // v8.2.3: 会话内自动检查登录态开关（默认开；关闭后仅手动点「检测」）
+        private const val KEY_AUTO_CHECK = "auto_check_login"
         private const val MAX_LOG_LINES = 400
     }
 
@@ -126,6 +133,38 @@ class PrefsManager(context: Context) {
     }
     fun getGatewayCookies(): String? = prefs.getString("gateway_cookies", null)
     fun isOutbaseLoggedIn(): Boolean = !getOutbaseSessionId().isNullOrEmpty()
+
+    // ===== v8.2.9: 两步路（WebView cookie） =====
+    fun saveTwoBuluCookie(cookie: String) {
+        Log.d(TAG, "saveTwoBuluCookie: ${cookie.length}")
+        prefs.edit().putString("twobulu_cookie", cookie).apply()
+    }
+    fun getTwoBuluCookie(): String? = prefs.getString("twobulu_cookie", null)
+    fun isTwoBuluLoggedIn(): Boolean = !getTwoBuluCookie().isNullOrEmpty()
+    fun logoutTwoBulu() { saveTwoBuluCookie("") }
+
+    // ===== v8.2.9: 开发者自填 OAuth 实验室平台（Strava/Polar/Fitbit/Withings/TrainingPeaks）=====
+    fun labTokenKey(ds: com.jichi.ob.model.DataSource) = "lab_token_${ds.shortName}"
+    fun labRefreshKey(ds: com.jichi.ob.model.DataSource) = "lab_refresh_${ds.shortName}"
+    fun labClientIdKey(ds: com.jichi.ob.model.DataSource) = "lab_client_id_${ds.shortName}"
+    fun labClientSecretKey(ds: com.jichi.ob.model.DataSource) = "lab_client_secret_${ds.shortName}"
+    fun saveLabToken(ds: com.jichi.ob.model.DataSource, token: String, refresh: String = "") {
+        Log.d(TAG, "saveLabToken ${ds.shortName}: ${token.length}")
+        prefs.edit().putString(labTokenKey(ds), token).putString(labRefreshKey(ds), refresh).apply()
+    }
+    fun getLabToken(ds: com.jichi.ob.model.DataSource): String? = prefs.getString(labTokenKey(ds), null)
+    fun getLabRefresh(ds: com.jichi.ob.model.DataSource): String? = prefs.getString(labRefreshKey(ds), null)
+    fun saveLabClientId(ds: com.jichi.ob.model.DataSource, v: String) { prefs.edit().putString(labClientIdKey(ds), v).apply() }
+    fun saveLabClientSecret(ds: com.jichi.ob.model.DataSource, v: String) { prefs.edit().putString(labClientSecretKey(ds), v).apply() }
+    fun getLabClientId(ds: com.jichi.ob.model.DataSource): String? = prefs.getString(labClientIdKey(ds), null)
+    fun getLabClientSecret(ds: com.jichi.ob.model.DataSource): String? = prefs.getString(labClientSecretKey(ds), null)
+    fun isLabOAuthLoggedIn(ds: com.jichi.ob.model.DataSource): Boolean = !getLabToken(ds).isNullOrEmpty()
+    fun clearLabOAuth(ds: com.jichi.ob.model.DataSource) {
+        val e = prefs.edit()
+        e.remove(labTokenKey(ds)); e.remove(labRefreshKey(ds))
+        e.remove("username_${ds.shortName}")
+        e.apply()
+    }
 
     // ===== v6.5.0 新增：佳明(COM/CN) OAuth2 token + cookie =====
     fun saveGarminComToken(t: String) { prefs.edit().putString("garmin_com_token", t).apply() }
@@ -274,6 +313,8 @@ class PrefsManager(context: Context) {
         DataSource.ZEPP -> getZeppToken()
         DataSource.KOMOT -> getKomootToken()
         DataSource.SUUNTO -> getSuuntoToken()
+        DataSource.TWO_BULU -> getTwoBuluCookie()
+        DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> getLabToken(ds)
     }
     /** v7.5.9: 保存平台凭证（启动登录检测刷新后更新用） */
     fun saveCredential(ds: DataSource, cred: String) {
@@ -298,6 +339,8 @@ class PrefsManager(context: Context) {
             DataSource.ZEPP -> saveZeppToken(cred)
             DataSource.KOMOT -> saveKomootToken(cred)
             DataSource.SUUNTO -> saveSuuntoToken(cred)
+            DataSource.TWO_BULU -> saveTwoBuluCookie(cred)
+            DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> saveLabToken(ds, cred)
         }
     }
     /** v7.5.9: 清除平台凭证（启动登录检测判定失效时用，UI显示未登录） */
@@ -324,6 +367,8 @@ class PrefsManager(context: Context) {
             DataSource.ZEPP -> { e.remove("zepp_token"); e.remove("zepp_account"); e.remove("zepp_user_id") }
             DataSource.KOMOT -> { e.remove("komoot_token"); e.remove("komoot_account") }
             DataSource.SUUNTO -> { e.remove("suunto_token"); e.remove("suunto_refresh"); e.remove("suunto_subscription_key"); e.remove("suunto_client_id"); e.remove("suunto_client_secret") }
+            DataSource.TWO_BULU -> { e.remove("twobulu_cookie") }
+            DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> { clearLabOAuth(ds) }
         }
         e.remove("username_${ds.shortName}")
         e.apply()
@@ -349,6 +394,8 @@ class PrefsManager(context: Context) {
         DataSource.ZEPP -> isZeppLoggedIn()
         DataSource.KOMOT -> isKomootLoggedIn()
         DataSource.SUUNTO -> isSuuntoLoggedIn()
+            DataSource.TWO_BULU -> isTwoBuluLoggedIn()
+            DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> isLabOAuthLoggedIn(ds)
     }
 
     // ===== 用户名存储 =====
@@ -415,6 +462,8 @@ class PrefsManager(context: Context) {
     fun getLastSource(): String = prefs.getString(KEY_LAST_SOURCE, DataSource.XINGZHE.shortName) ?: DataSource.XINGZHE.shortName
     fun setLastSource(s: String) = prefs.edit().putString(KEY_LAST_SOURCE, s).apply()
     fun getLastTarget(): String = prefs.getString(KEY_LAST_TARGET, DataSource.OUTBASE.shortName) ?: DataSource.OUTBASE.shortName
+    /** v8.2.3.5: 原始目标记忆（无默认值，多对一恢复用——避免把 Outbase 误当用户选择） */
+    fun getLastTargetRaw(): String = prefs.getString(KEY_LAST_TARGET, "") ?: ""
     fun setLastTarget(s: String) = prefs.edit().putString(KEY_LAST_TARGET, s).apply()
     // v7.6.7: 一对多同步 - 多个目标平台（逗号分隔），空时回退到旧单选
     fun getLastTargets(): List<String> {
@@ -431,6 +480,16 @@ class PrefsManager(context: Context) {
         // 同步旧的单选字段（第一个目标），保持兼容
         if (targets.isNotEmpty()) setLastTarget(targets.first())
     }
+    // v8.2.3.5: 多对一模式（任务级）——多来源记忆 + 模式开关持久化
+    fun getLastSourceTags(): List<String> {
+        val raw = prefs.getString(KEY_LAST_SOURCE_TAGS, "") ?: ""
+        return raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+    fun setLastSourceTags(tags: List<String>) {
+        prefs.edit().putString(KEY_LAST_SOURCE_TAGS, tags.distinct().joinToString(",")).apply()
+    }
+    fun getTaskModeMulti(): Boolean = prefs.getBoolean(KEY_TASK_MODE_MULTI, false)
+    fun setTaskModeMulti(b: Boolean) = prefs.edit().putBoolean(KEY_TASK_MODE_MULTI, b).apply()
     fun isAutoSync(): Boolean = prefs.getBoolean(KEY_AUTO_SYNC, false)
     fun setAutoSync(b: Boolean) = prefs.edit().putBoolean(KEY_AUTO_SYNC, b).apply()
     fun getAutoInterval(): Int = prefs.getInt(KEY_AUTO_INTERVAL, 300) // 默认5分钟
@@ -472,6 +531,44 @@ class PrefsManager(context: Context) {
     fun clearPersistLogs() {
         try { prefs.edit().remove(KEY_PERSIST_LOG).apply() } catch (_: Exception) {}
     }
+
+    // ===== v8.2.2: 同步任务持久化（JSON数组）=====
+    fun getTasks(): List<com.jichi.ob.model.SyncTask> {
+        val json = prefs.getString(KEY_TASKS, null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).mapNotNull { i ->
+                try { com.jichi.ob.model.SyncTask.fromJson(arr.getJSONObject(i)) } catch (_: Exception) { null }
+            }
+        } catch (_: Exception) { emptyList() }
+    }
+    fun saveTasks(tasks: List<com.jichi.ob.model.SyncTask>) {
+        try {
+            val arr = JSONArray()
+            tasks.forEach { arr.put(it.toJson()) }
+            prefs.edit().putString(KEY_TASKS, arr.toString()).apply()
+        } catch (_: Exception) {}
+    }
+    fun upsertTask(task: com.jichi.ob.model.SyncTask) {
+        val tasks = getTasks().toMutableList()
+        val idx = tasks.indexOfFirst { it.id == task.id }
+        if (idx >= 0) tasks[idx] = task else tasks.add(0, task)
+        saveTasks(tasks)
+    }
+    fun deleteTask(id: String) {
+        saveTasks(getTasks().filter { it.id != id })
+    }
+    /** v8.2.2: 下载并发数（v8.2.6: 与上传并发拆分，默认改为1=串行最稳） */
+    fun getDownloadConcurrency(): Int = prefs.getInt(KEY_DL_CONCURRENCY, 1)
+    fun setDownloadConcurrency(n: Int) = prefs.edit().putInt(KEY_DL_CONCURRENCY, n).apply()
+
+    /** v8.2.6: 上传并发数（目标间并行上传，默认1=串行最稳；与下载并发独立） */
+    fun getUploadConcurrency(): Int = prefs.getInt(KEY_UL_CONCURRENCY, 1)
+    fun setUploadConcurrency(n: Int) = prefs.edit().putInt(KEY_UL_CONCURRENCY, n).apply()
+
+    /** v8.2.3: 会话内自动检查登录态开关（默认开） */
+    fun isAutoCheckLogin(): Boolean = prefs.getBoolean(KEY_AUTO_CHECK, true)
+    fun setAutoCheckLogin(b: Boolean) = prefs.edit().putBoolean(KEY_AUTO_CHECK, b).apply()
 
     fun clearAll() = prefs.edit().clear().apply()
 }

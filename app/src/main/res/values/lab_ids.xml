@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="tvLabDynStatus" type="id"/>
+    <item name="btnLabDynLogin" type="id"/>
+    <item name="btnLabDynLogout" type="id"/>
+</resources>
