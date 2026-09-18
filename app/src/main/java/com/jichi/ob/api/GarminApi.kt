@@ -1558,4 +1558,104 @@ class GarminApi {
             "佳明上传异常: ${e.message}"
         }
     }
+
+    // ==================== v8.3.5: Wellness 健康数据同步（步数/睡眠/HRV/压力）====================
+
+    /**
+     * 下载指定日期的 wellness 原始数据（zip 原样返回，由调用方解压）。
+     * 参考 dailysync-rev：GET {GC_API}/download-service/files/wellness/{yyyy-MM-dd}
+     */
+    suspend fun downloadWellnessZip(ds: DataSource, cred: String, date: String): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val sess = parseCredential(cred)
+            // 优先 DI/OAuth1 直连 connectapi（与 getActivities/downloadFit 一致）
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
+                val url = "${connectApiHost(ds)}/download-service/files/wellness/$date"
+                val req = Request.Builder().url(url).apply {
+                    connectHeaders(sess, ds, url).forEach { (k, v) -> addHeader(k, v) }
+                    addHeader("Accept", "*/*")
+                }.get().build()
+                client.newCall(req).execute().use { resp ->
+                    addDebugLog("downloadWellness DI: HTTP ${resp.code} date=$date")
+                    if (resp.code != 200) {
+                        addDebugLog("downloadWellness DI失败: ${resp.body?.string()?.take(120)}")
+                        return@withContext null
+                    }
+                    return@withContext resp.body?.bytes()
+                }
+            }
+            // 兜底：gc-api + OkHttp
+            val url = "${gcApiHost(ds)}/download-service/files/wellness/$date"
+            val headers = apiHeaders(ds, cred).toMutableMap()
+            headers["Accept"] = "*/*"
+            val req = Request.Builder().url(url).apply { headers.forEach { (k, v) -> addHeader(k, v) } }.get().build()
+            client.newCall(req).execute().use { resp ->
+                if (resp.code != 200) { addDebugLog("downloadWellness OkHttp HTTP ${resp.code}"); return@withContext null }
+                resp.body?.bytes()
+            }
+        } catch (e: Exception) {
+            addDebugLog("downloadWellness异常: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * 上传健康数据 FIT 文件。
+     * 返回：null=成功；"重复(已在佳明存在)"；"需绑定健康设备(419)"；其他错误字符串
+     */
+    suspend fun uploadWellnessFit(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val sess = parseCredential(cred)
+            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
+                val url = "${connectApiHost(ds)}/upload-service/upload"
+                val body = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
+                    .build()
+                val req = Request.Builder().url(url).apply {
+                    connectHeaders(sess, ds, url, "POST").forEach { (k, v) -> addHeader(k, v) }
+                    addHeader("Accept", "application/json")
+                }.post(body).build()
+                client.newCall(req).execute().use { resp ->
+                    val result = resp.body?.string() ?: ""
+                    addDebugLog("uploadWellness DI: HTTP ${resp.code}, result=${result.take(160)}")
+                    return@withContext when (resp.code) {
+                        200, 201, 202 -> null
+                        409 -> if (result.contains("Duplicate Wellness", true) || result.contains("Duplicate Activity", true))
+                            "重复(已在佳明存在)" else "佳明健康上传冲突 HTTP 409: ${result.take(100)}"
+                        419 -> "需绑定健康设备(419)"
+                        400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
+                        else -> "佳明健康上传失败 HTTP ${resp.code}: ${result.take(100)}"
+                    }
+                }
+            }
+            // 兜底：gc-api + OkHttp
+            val url = "${gcApiHost(ds)}/upload-service/upload/"
+            val body = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
+                .build()
+            val headers = apiHeaders(ds, cred).toMutableMap()
+            headers["Accept"] = "application/json"
+            val req = Request.Builder().url(url).apply { headers.forEach { (k, v) -> addHeader(k, v) } }.post(body).build()
+            client.newCall(req).execute().use { resp ->
+                val result = resp.body?.string() ?: ""
+                addDebugLog("uploadWellness OkHttp HTTP ${resp.code}: ${result.take(160)}")
+                when (resp.code) {
+                    200, 201, 202 -> null
+                    409 -> if (result.contains("Duplicate Wellness", true) || result.contains("Duplicate Activity", true))
+                        "重复(已在佳明存在)" else "佳明健康上传冲突 HTTP 409: ${result.take(100)}"
+                    419 -> "需绑定健康设备(419)"
+                    400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
+                    else -> "佳明健康上传失败 HTTP ${resp.code}: ${result.take(100)}"
+                }
+            }
+        } catch (e: java.io.IOException) {
+            addDebugLog("uploadWellness连接错误: ${e.message}")
+            "佳明健康上传异常(连接错误): ${e.message}"
+        } catch (e: Exception) {
+            addDebugLog("uploadWellness异常: ${e.message}")
+            "佳明健康上传异常: ${e.message}"
+        }
+    }
 }

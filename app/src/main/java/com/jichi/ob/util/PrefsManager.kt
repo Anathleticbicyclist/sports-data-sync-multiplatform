@@ -441,6 +441,12 @@ class PrefsManager(context: Context) {
         prefs.edit().remove(KEY_SYNCED_IDS).apply()
     }
 
+    // ===== v8.3.5: 增量游标（按源平台最后成功同步时间，失败不推进）=====
+    fun getSyncCursor(sourceShort: String): Long = prefs.getLong("sync_cursor_$sourceShort", 0L)
+    fun setSyncCursor(sourceShort: String, startTimeMs: Long) {
+        prefs.edit().putLong("sync_cursor_$sourceShort", startTimeMs).apply()
+    }
+
     // ===== v7.7.8: 累计统计（成功/跳过/失败，不清除记忆一直累加）=====
     private fun statKey(type: String): String = when (type) {
         "ok" -> KEY_STAT_OK
