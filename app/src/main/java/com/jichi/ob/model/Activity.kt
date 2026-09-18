@@ -55,12 +55,12 @@ enum class DataSource(val displayName: String, val shortName: String) {
     companion object {
         /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
         fun sourcePlatforms(): List<DataSource> =
-            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP, CODOON, ZEPP, KOMOT, SUUNTO, TWO_BULU, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
+            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP, CODOON, ZEPP, KOMOT, SUUNTO, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
         /** v8.2.1: 实验室平台（实验性接入；登录后设置页才显示对应按钮，未登录隐藏） */
-        fun labPlatforms(): List<DataSource> = listOf(ZEPP, SUUNTO, TWO_BULU, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
+        fun labPlatforms(): List<DataSource> = listOf(ZEPP, SUUNTO, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
         fun isLabPlatform(ds: DataSource): Boolean = labPlatforms().contains(ds)
         /** v8.2.1: 实验室登录页平台（松拓/Zepp/百锐腾；登录入口只在此页，可返回） */
-        fun labLoginPlatforms(): List<DataSource> = listOf(SUUNTO, ZEPP, BRYTON, TWO_BULU, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
+        fun labLoginPlatforms(): List<DataSource> = listOf(SUUNTO, ZEPP, BRYTON, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
         fun fromShortName(s: String): DataSource? = entries.find { it.shortName == s }
     }
 }
@@ -93,7 +93,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     ZEPP(false, "仅下载"),
     KOMOT(true, "官方内部API"),
     SUUNTO(true, "官方Cloud API"),
-    TWO_BULU(true, "网页版上传(待真机验证)"),
+    TWO_BULU(false, "仅下载(逆向接口不公开)"),
     STRAVA(true, "官方上传API(需自填开发者凭证)"),
     POLAR(false, "官方仅下载"),
     FITBIT(false, "官方仅下载"),

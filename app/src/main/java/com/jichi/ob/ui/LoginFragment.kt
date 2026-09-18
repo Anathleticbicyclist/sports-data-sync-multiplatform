@@ -38,7 +38,7 @@ class LoginFragment : Fragment() {
 
     /** v8.3.1: 全局接入——已登录的实验室平台（两步路/P0五平台）自动出现在登录页，登录后全链路可用 */
     private val LAB_LOGIN_EXTRA = listOf(
-        DataSource.TWO_BULU, DataSource.STRAVA, DataSource.POLAR,
+        DataSource.STRAVA, DataSource.POLAR,
         DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS
     )
 
@@ -330,10 +330,10 @@ class LoginFragment : Fragment() {
         DataSource.OUTBASE -> R.drawable.bg_dot_outbase
         DataSource.INTERVALS_ICU -> R.drawable.bg_dot_intervals_icu
         DataSource.KEEP -> R.drawable.bg_dot_keep
+        DataSource.TWO_BULU -> R.drawable.bg_dot_keep
         DataSource.CODOON -> R.drawable.bg_dot_codoon
         DataSource.KOMOT -> R.drawable.bg_dot_komoot
         DataSource.SUUNTO -> R.drawable.bg_dot_suunto
-        DataSource.TWO_BULU -> R.drawable.bg_dot_keep
         DataSource.STRAVA -> R.drawable.bg_dot_keep
         DataSource.POLAR -> R.drawable.bg_dot_keep
         DataSource.FITBIT -> R.drawable.bg_dot_keep

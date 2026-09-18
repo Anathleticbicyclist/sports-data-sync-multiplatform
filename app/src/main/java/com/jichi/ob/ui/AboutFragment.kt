@@ -82,9 +82,6 @@ class AboutFragment : Fragment() {
         view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardRecordCenter)?.setOnClickListener {
             try { (activity as? com.jichi.ob.MainActivity)?.openRecordCenter() } catch (_: Exception) {}
         }
-        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardMerge)?.setOnClickListener {
-            try { (activity as? com.jichi.ob.MainActivity)?.openMerge() } catch (_: Exception) {}
-        }
         view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardLabLogin)?.setOnClickListener {
             // v8.2.1: 实验室独立页面（松拓/Zepp/百锐腾登录，可返回）
             try { (activity as? com.jichi.ob.MainActivity)?.openLabLogin(com.jichi.ob.model.DataSource.labLoginPlatforms()) } catch (_: Exception) {}

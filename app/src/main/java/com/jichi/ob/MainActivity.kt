@@ -122,7 +122,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var corosApi: CorosApi
     private lateinit var wahooApi: WahooApi
     private lateinit var devOAuthApi: com.jichi.ob.api.DevOAuth2Api
-    private lateinit var twoBuluApi: com.jichi.ob.api.TwoBuluApi
     private lateinit var uploadEngine: UploadEngine
 
     // v7.6.2: 四页面Fragment引用
@@ -133,17 +132,11 @@ class MainActivity : AppCompatActivity() {
     // v8.2.0: 记录中心（跨平台日期检索）
     private lateinit var recordFragment: com.jichi.ob.ui.RecordCenterFragment
     // v7.9.7: 轨迹合并页（全屏覆盖）
-    private lateinit var mergeFragment: com.jichi.ob.ui.MergeFragment
     // v8.2.1: 实验室登录页（松拓/Zepp/百锐腾，可返回）
     private lateinit var labLoginFragment: com.jichi.ob.ui.LabLoginFragment
-    private lateinit var createTaskFragment: com.jichi.ob.ui.CreateTaskFragment
 
     private var syncJob: Job? = null
     private var autoSyncJob: Job? = null
-    // v8.2.2: 任务化同步——任务引擎独立 Job，与批量同步互斥
-    private var taskJob: Job? = null
-    @Volatile private var taskActive = false
-    internal val isTaskRunning: Boolean get() = taskActive
     internal val isBatchSyncing: Boolean get() = syncJob?.isActive == true
     // v8.2.3: 最近一次网络检测的失效平台（登录页卡片红标用；checkAllLogins 结果）
     @Volatile internal var lastInvalidPlatforms: List<DataSource> = emptyList()
@@ -198,10 +191,6 @@ class MainActivity : AppCompatActivity() {
                             fetchUsernameAfterLogin(DataSource.BRYTON)
                         } else appendLog("⚠️ 百锐腾cookie异常，请重新登录")
                     }
-                    LoginWebActivity.TYPE_TWO_BULU -> if (sid.length > 10) {
-                        prefs.saveTwoBuluCookie(sid)
-                        appendLog("✅ 两步路登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.TWO_BULU)
-                    } else appendLog("⚠️ 两步路登录失败: cookie异常")
                     LoginWebActivity.TYPE_OUTBASE -> if (sid.length > 10) {
                         prefs.saveOutbaseSessionId(sid)
                         prefs.saveGatewayCookies(extra)
@@ -351,7 +340,6 @@ class MainActivity : AppCompatActivity() {
             corosApi = CorosApi()
             wahooApi = WahooApi()
             devOAuthApi = com.jichi.ob.api.DevOAuth2Api(this)
-            twoBuluApi = com.jichi.ob.api.TwoBuluApi(this)
             uploadEngine = UploadEngine(this)
             if (!SAVE_DIR.exists()) SAVE_DIR.mkdirs()
             initFragments()
@@ -476,13 +464,13 @@ class MainActivity : AppCompatActivity() {
             DataSource.KOMOT -> openKomootLogin()
             DataSource.ZEPP -> openZeppLogin()
             DataSource.SUUNTO -> openSuuntoLogin()
-            DataSource.TWO_BULU -> openLogin(LoginWebActivity.TYPE_TWO_BULU, "https://www.2bulu.com/")
             DataSource.STRAVA -> openDevOAuthLogin(DataSource.STRAVA, LoginWebActivity.TYPE_STRAVA)
             DataSource.POLAR -> openDevOAuthLogin(DataSource.POLAR, LoginWebActivity.TYPE_POLAR)
             DataSource.FITBIT -> openDevOAuthLogin(DataSource.FITBIT, LoginWebActivity.TYPE_FITBIT)
             DataSource.WITHINGS -> openDevOAuthLogin(DataSource.WITHINGS, LoginWebActivity.TYPE_WITHINGS)
             DataSource.TRAININGPEAKS -> openDevOAuthLogin(DataSource.TRAININGPEAKS, LoginWebActivity.TYPE_TRAININGPEAKS)
             DataSource.BRYTON -> openLogin(LoginWebActivity.TYPE_BRYTON, com.jichi.ob.api.BrytonApi.LOGIN_URL)
+            DataSource.TWO_BULU -> openLogin(LoginWebActivity.TYPE_TWO_BULU, "https://www.2bulu.com/")
         }
     }
 
@@ -1752,11 +1740,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     internal fun startSync() {
-        // v8.2.2: 任务×批量互斥——任务运行中禁止启动批量同步
-        if (taskActive) {
-            Toast.makeText(this, "同步任务运行中，请先停止任务", Toast.LENGTH_SHORT).show()
-            return
-        }
         // v8.2.3.5: 多对一模式仅用于任务——批量同步需一对多
         if (settingsFragment.isTaskModeMulti()) {
             Toast.makeText(this, "多对一模式仅用于任务：请先点「保存为任务」，再到同步页运行任务", Toast.LENGTH_LONG).show()
@@ -1992,207 +1975,7 @@ class MainActivity : AppCompatActivity() {
 
     internal fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
 
-    // ===== v8.2.2: 任务化同步引擎（与批量同步互斥）=====
-    internal fun runTask(task: com.jichi.ob.model.SyncTask) {
-        if (syncJob?.isActive == true) {
-            Toast.makeText(this, "批量同步运行中，请先停止", Toast.LENGTH_SHORT).show(); return
-        }
-        if (taskActive) return
-        val sources = task.sources.mapNotNull { DataSource.fromShortName(it) }.distinct()
-        var targets = task.targets.mapNotNull { DataSource.fromShortName(it) }.distinct()
-        if (sources.isEmpty() || targets.isEmpty()) {
-            Toast.makeText(this, "任务未配置来源或目标", Toast.LENGTH_SHORT).show(); return
-        }
-        val unavailable = targets.filter { !UploadSupport.fromDataSource(it).available && it != DataSource.KEEP }
-        if (unavailable.isNotEmpty())
-            Toast.makeText(this, "${unavailable.joinToString { it.displayName }}上传不可用，已移除", Toast.LENGTH_SHORT).show()
-        targets = targets.filter { UploadSupport.fromDataSource(it).available || it == DataSource.KEEP }
-        if (targets.isEmpty()) { Toast.makeText(this, "没有可用的同步目标", Toast.LENGTH_SHORT).show(); return }
-        val notLoggedSrc = sources.filter { !prefs.isLoggedIn(it) }
-        if (notLoggedSrc.isNotEmpty()) {
-            Toast.makeText(this, "请先登录${notLoggedSrc.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
-        }
-        val notLoggedTgt = targets.filter { it != DataSource.KEEP && !prefs.isLoggedIn(it) }
-        if (notLoggedTgt.isNotEmpty()) {
-            Toast.makeText(this, "请先登录${notLoggedTgt.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
-        }
-        appendLog("━━━━━━━━━━━━━━━━━━━━━━")
-        appendLog("📦 任务开始: ${task.name}（${sources.size}来源 × ${targets.size}目标）")
-        taskActive = true
-        refreshTaskUi()
-        taskJob = lifecycleScope.launch(Dispatchers.IO) {
-            var ok = 0; var skipped = 0; var failed = 0
-            try {
-                for (source in sources) {
-                    if (!taskActive) break
-                    appendLog("📥 [${source.displayName}] 获取活动列表...")
-                    val activities = try { fetchActivities(source, task.skip, task.count) } catch (e: Exception) {
-                        Log.e(TAG, "task fetch ${source.displayName} error", e)
-                        appendLog("❌ ${source.displayName} 获取列表失败: ${e.message}")
-                        recordSync(source, "err", 0, 0, 1, "获取列表失败: ${e.message}")
-                        failed++
-                        continue
-                    }
-                    appendLog("📋 获取到 ${activities.size} 条活动")
-                    flushGarminDebugLogs()
-                    // 落缓存（对齐批量行为：拉列表即入记录中心）
-                    try {
-                        val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
-                        cache.upsertBatch(source.shortName, activities.map {
-                            com.jichi.ob.util.ActivityCache.Entry(
-                                id = it.id, platform = source.shortName,
-                                startTime = normStartMs(it.startTimeMs, it.startTime, cache),
-                                type = cleanCacheType(source, it.extra), title = it.title,
-                                distanceKm = it.distance, durationSec = it.duration, filename = "",
-                                extra = it.extra ?: ""
-                            )
-                        })
-                        appendLog("💾 已缓存 ${activities.size} 条到记录中心")
-                    } catch (e: Exception) { appendLog("⚠️ 记录缓存失败: ${e.message}") }
-                    // 增量：跳过缓存已有 id（对齐佳速通"登录后缓存列表、增量拉取"做法）
-                    // v8.2.6: 改用批量判重 existsIds（此前全量载入 queryByPlatform 到内存，2000条时低效）
-                    var list = activities
-                    if (task.incremental) {
-                        try {
-                            val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
-                            val existIds = cache.existsIds(source.shortName, list.map { it.id })
-                            val before = list.size
-                            list = list.filter { !existIds.contains(it.id) }
-                            if (list.size < before)
-                                appendLog("⏭️ 增量模式: 跳过缓存已有 ${before - list.size} 条，本次同步 ${list.size} 条")
-                        } catch (e: Exception) { Log.w(TAG, "增量过滤失败: ${e.message}") }
-                    }
-                    val force = task.force || targets.size > 1
-                    // v8.2.3: P2 并发按平台风险分级——先收集待下载条目（含各目标记忆过滤），下载阶段并行，上传阶段串行
-                    val pendingItems = mutableListOf<Pair<Int, Pair<com.jichi.ob.model.ActivityRecord, List<DataSource>>>>()
-                    for ((i, act) in list.withIndex()) {
-                        if (!taskActive) break
-                        val pendingTargets = targets.filter { t ->
-                            val syncKey = "${source.shortName}_${act.id}_to_${t.shortName}"
-                            force || !prefs.isSynced(syncKey)
-                        }
-                        if (pendingTargets.isEmpty()) {
-                            skipped++; prefs.addStat("skip")
-                            appendLog("⏭️ [${i+1}/${list.size}] 已同步跳过: ${act.title.take(20)}")
-                            continue
-                        }
-                        pendingItems.add(i to (act to pendingTargets))
-                    }
-                    // 下载并发：低风险来源按全局并发数(1-4)；佳明国区/国际强制串行（风控敏感，避免并发触发冷却）
-                    val dlConc = if (source == DataSource.GARMIN_COM || source == DataSource.GARMIN_CN)
-                        1 else prefs.getDownloadConcurrency().coerceIn(1, 4)
-                    val dlSem = java.util.concurrent.Semaphore(dlConc)
-                    class Downloaded(val act: com.jichi.ob.model.ActivityRecord, val fileData: ByteArray?, val localFile: File?)
-                    val dlResults = coroutineScope {
-                        pendingItems.map { (i, pair) ->
-                            async {
-                                val act = pair.first
-                                if (!taskActive) return@async Downloaded(act, null, null)
-                                dlSem.acquire()
-                                try {
-                                    appendLog("⬇️ [${i+1}/${list.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
-                                    val fileData = try { downloadActivity(source, targets.first(), act, task.coordinateConvert) } catch (e: Exception) {
-                                        appendLog("❌ 下载失败: ${e.message}")
-                                        recordSync(source, "err", 0, 0, 1, "下载失败: ${e.message}")
-                                        failed++; prefs.addStat("fail")
-                                        return@async Downloaded(act, null, null)
-                                    }
-                                    if (fileData == null || fileData.size < 100) {
-                                        appendLog("❌ 文件数据无效")
-                                        recordSync(source, "err", 0, 0, 1, "文件数据无效")
-                                        failed++; prefs.addStat("fail")
-                                        return@async Downloaded(act, null, null)
-                                    }
-                                    val ext = if (isFit(fileData)) "fit" else "gpx"
-                                    val localName = com.jichi.ob.util.FileNameGenerator.generate(source, act, ext)
-                                    val localFile = File(cacheDir, localName)
-                                    try {
-                                        FileOutputStream(localFile).use { it.write(fileData) }
-                                        val savedPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, localName, fileData)
-                                        appendLog("💾 已存: $savedPath (${fileData.size}字节)")
-                                        recordSync(source, "dl", 1, 0, 0, "下载 ${act.title.take(20)} ${fileData.size}字节")
-                                        try { com.jichi.ob.util.ActivityCache.get(this@MainActivity).setFilename(source.shortName, act.id, savedPath ?: "") } catch (_: Exception) {}
-                                    } catch (_: Exception) {}
-                                    Downloaded(act, fileData, localFile)
-                                } finally {
-                                    dlSem.release()
-                                }
-                            }
-                        }.awaitAll()
-                    }
-                    // v8.2.3.3: 上传阶段"目标间并发"——一条数据同时上传到多个目标（受全局并发数限制）
-                    // 佳明国区/国际/Keep（弹窗引导）强制串行，避免风控与弹窗叠加；其余目标按并发数并行
-                    for ((dl, pair) in dlResults.zip(pendingItems.map { it.second })) {
-                        if (!taskActive) break
-                        val fileData = dl.fileData ?: continue
-                        val act = dl.act
-                        val localFile = dl.localFile ?: continue
-                        val localName = localFile.name
-                        val pendingTargets = pair.second
-                        val normalTargets = pendingTargets.filter {
-                            it != DataSource.GARMIN_COM && it != DataSource.GARMIN_CN && it != DataSource.KEEP
-                        }
-                        val serialTargets = pendingTargets.filter {
-                            it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN || it == DataSource.KEEP
-                        }
-                        val upConc = prefs.getUploadConcurrency().coerceIn(1, 4)
-                        val upSem = java.util.concurrent.Semaphore(upConc)
-                        // 普通目标并行上传（上传函数返回增量，避免共享计数竞争）
-                        val deltas = coroutineScope {
-                            normalTargets.map { target ->
-                                async {
-                                    upSem.acquire()
-                                    try {
-                                        uploadOneToTarget(source, act, fileData, localFile, localName, target)
-                                    } finally {
-                                        upSem.release()
-                                    }
-                                }
-                            }.awaitAll()
-                        }
-                        for ((dOk, dSkip, dFail) in deltas) { ok += dOk; skipped += dSkip; failed += dFail }
-                        // 佳明/Keep 串行上传
-                        for (target in serialTargets) {
-                            if (!taskActive) break
-                            val (dOk, dSkip, dFail) = uploadOneToTarget(source, act, fileData, localFile, localName, target)
-                            ok += dOk; skipped += dSkip; failed += dFail
-                        }
-                        kotlinx.coroutines.delay(150)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "task sync error", e)
-                appendLog("❌ 任务异常: ${e.message}")
-            } finally {
-                taskActive = false
-                prefs.upsertTask(task.copyRun(ok, skipped, failed))
-                appendLog("━━━━━━━━━━━━━━━━━━━━━━")
-                appendLog("📦 任务完成: 成功$ok / 跳过$skipped / 失败$failed")
-                runOnUiThread {
-                    syncFragment.setStats(prefs.getStatOk(), prefs.getStatSkip(), prefs.getStatFail())
-                    settingsFragment.setSyncedCount(prefs.getSyncedCount())
-                    refreshTaskUi()
-                    // v8.2.3.4: 任务落库后刷新首页登录卡片条数徽标
-                    try { loginFragment.updateStatus() } catch (_: Exception) {}
-                }
-            }
-        }
-    }
-
-    internal fun stopTask() {
-        taskJob?.cancel()
-        taskActive = false
-        appendLog("⏹ 正在停止任务...")
-        refreshTaskUi()
-    }
-
     /** v8.2.2: 刷新任务区互斥状态（任务运行中批量开始按钮置灰等） */
-    internal fun refreshTaskUi() {
-        runOnUiThread {
-            try { syncFragment.refreshTaskState() } catch (_: Exception) {}
-            try { settingsFragment.refreshTaskState() } catch (_: Exception) {}
-        }
-    }
 
     /** v8.2.3.3: 上传到单个目标（目标间并发调用）。返回 (成功, 跳过, 失败) 增量，避免并发下共享计数竞争 */
     private suspend fun uploadOneToTarget(
@@ -2237,10 +2020,6 @@ class MainActivity : AppCompatActivity() {
             // v8.3.1: 开发者 OAuth 平台上传（Strava/TP 官方上传API；Polar/Fitbit/Withings 官方无上传，返回不支持）
             val ok = devOAuthApi.uploadFile(target, localFile)
             com.jichi.ob.api.UploadEngine.UploadResult(ok, message = if (ok) "${target.displayName}上传成功" else "${target.displayName}上传失败（官方接口不支持或凭证失效）")
-        } else if (target == DataSource.TWO_BULU) {
-            // v8.3.1: 两步路网页上传——接口受WAF限制，返回待真机校准提示（不阻塞同步流程）
-            val ok = twoBuluApi.uploadFile(localFile)
-            com.jichi.ob.api.UploadEngine.UploadResult(ok, message = if (ok) "两步路上传成功" else "两步路网页上传接口待真机校准")
         } else {
             uploadEngine.upload(target, targetCred, fileData, act, upExtra)
         }
@@ -2477,7 +2256,6 @@ class MainActivity : AppCompatActivity() {
                 if (email.isNullOrEmpty()) emptyList() else komootApi.getActivities(email, cred, skip, limit)
             }
             DataSource.SUUNTO -> suuntoApi.getActivities(cred, suuntoSubscriptionKey() ?: "", skip, limit)
-            DataSource.TWO_BULU -> twoBuluApi.fetchActivities(skip, limit)   // 浏览捕获模式已入库，从缓存库读取
             DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS ->
                 devOAuthApi.fetchActivities(source, skip, limit)
             else -> emptyList()
@@ -2633,18 +2411,14 @@ class MainActivity : AppCompatActivity() {
         syncFragment = com.jichi.ob.ui.SyncFragment()
         aboutFragment = com.jichi.ob.ui.AboutFragment()
         recordFragment = com.jichi.ob.ui.RecordCenterFragment()
-        mergeFragment = com.jichi.ob.ui.MergeFragment()
         labLoginFragment = com.jichi.ob.ui.LabLoginFragment()
-        createTaskFragment = com.jichi.ob.ui.CreateTaskFragment()
         supportFragmentManager.beginTransaction()
             .add(R.id.fragmentContainer, loginFragment, "login")
             .add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
             .add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
             .add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
             .add(R.id.fragmentContainer, recordFragment, "records").hide(recordFragment)
-            .add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
             .add(R.id.fragmentContainer, labLoginFragment, "lab").hide(labLoginFragment)
-            .add(R.id.fragmentContainer, createTaskFragment, "createtask").hide(createTaskFragment)
             .commit()
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         bottomNav.setOnItemSelectedListener { item ->
@@ -2667,10 +2441,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     // v8.2.3.5: 设置页保存任务后，刷新同步页任务列表
-    fun refreshTasksFromSettings() {
-        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
-        try { settingsFragment.refreshTaskState() } catch (_: Exception) {}
-    }
 
     // v8.2.1: 记录中心入口（关于页横条调用；全屏覆盖页，不占底部导航高频位）
     fun openRecordCenter() {
@@ -2715,44 +2485,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     // v8.2.2: 新建任务向导（设置页「＋新建同步任务」横条入口；全屏覆盖页，可返回）
-    fun openCreateTask() {
-        // v8.3.2: 新建任务限时体验到期（2026-10-07）——到期后点击提醒，不进入向导
-        if (System.currentTimeMillis() >= 1791302400000L) {
-            try {
-                android.app.AlertDialog.Builder(this)
-                    .setTitle("提示")
-                    .setMessage("版本过旧，需要获取更新，关注抖音:多吃两口获取更新")
-                    .setPositiveButton("知道了", null)
-                    .show()
-            } catch (_: Exception) {}
-            return
-        }
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().show(createTaskFragment).commit()
-        bottomNav?.visibility = android.view.View.GONE
-        toolbar?.visibility = android.view.View.GONE
-    }
-
-    fun closeCreateTask() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().hide(createTaskFragment).commit()
-        bottomNav?.visibility = android.view.View.VISIBLE
-        toolbar?.visibility = android.view.View.VISIBLE
-        // v8.2.3.8: 返回打开向导前的 tab（不再硬编码设置页；底部高亮与页面保持一致）
-        when (bottomNav?.selectedItemId) {
-            R.id.nav_login -> showFragment(loginFragment)
-            R.id.nav_settings -> showFragment(settingsFragment)
-            R.id.nav_about -> showFragment(aboutFragment)
-            else -> showFragment(syncFragment)
-        }
-        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
-        try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
-    }
 
     private fun showFragment(target: androidx.fragment.app.Fragment) {
-        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment, createTaskFragment).filter { it !== target }
+        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment).filter { it !== target }
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
         tr.show(target).commit()
@@ -2770,28 +2505,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ============ v7.9.7 轨迹合并：全屏覆盖页 ============
-    fun openMerge() {
-        // v8.0.0 限时体验：9月30号之前可用，系统时间过期后自动失效
-        if (!MergeTrial.isAvailable()) {
-            android.widget.Toast.makeText(this, "轨迹合并&透明贴纸 限时体验已结束", android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().show(mergeFragment).commit()
-        bottomNav?.visibility = android.view.View.GONE
-        toolbar?.visibility = android.view.View.GONE
-    }
-
-    fun closeMerge() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().hide(mergeFragment).commit()
-        bottomNav?.visibility = android.view.View.VISIBLE
-        toolbar?.visibility = android.view.View.VISIBLE
-        // 返回同步页（合并入口所在页）
-        try { showFragment(syncFragment) } catch (_: Exception) {}
-    }
 
     /**
      * 合并页拉取活动列表。

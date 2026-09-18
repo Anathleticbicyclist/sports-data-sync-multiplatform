@@ -179,7 +179,6 @@ class LabLoginFragment : Fragment() {
         DataSource.SUUNTO -> LoginWebActivity.TYPE_SUUNTO
         DataSource.ZEPP -> "zepp"
         DataSource.BRYTON -> LoginWebActivity.TYPE_BRYTON
-        DataSource.TWO_BULU -> LoginWebActivity.TYPE_TWO_BULU
         DataSource.STRAVA -> LoginWebActivity.TYPE_STRAVA
         DataSource.POLAR -> LoginWebActivity.TYPE_POLAR
         DataSource.FITBIT -> LoginWebActivity.TYPE_FITBIT

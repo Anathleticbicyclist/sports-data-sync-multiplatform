@@ -135,13 +135,6 @@ class PrefsManager(context: Context) {
     fun isOutbaseLoggedIn(): Boolean = !getOutbaseSessionId().isNullOrEmpty()
 
     // ===== v8.2.9: 两步路（WebView cookie） =====
-    fun saveTwoBuluCookie(cookie: String) {
-        Log.d(TAG, "saveTwoBuluCookie: ${cookie.length}")
-        prefs.edit().putString("twobulu_cookie", cookie).apply()
-    }
-    fun getTwoBuluCookie(): String? = prefs.getString("twobulu_cookie", null)
-    fun isTwoBuluLoggedIn(): Boolean = !getTwoBuluCookie().isNullOrEmpty()
-    fun logoutTwoBulu() { saveTwoBuluCookie("") }
 
     // ===== v8.2.9: 开发者自填 OAuth 实验室平台（Strava/Polar/Fitbit/Withings/TrainingPeaks）=====
     fun labTokenKey(ds: com.jichi.ob.model.DataSource) = "lab_token_${ds.shortName}"
@@ -291,6 +284,11 @@ class PrefsManager(context: Context) {
     fun getSuuntoClientSecret(): String? = prefs.getString("suunto_client_secret", null)
     fun isSuuntoLoggedIn(): Boolean = !getSuuntoToken().isNullOrEmpty()
 
+    fun saveTwoBuluCookie(cookie: String) { prefs.edit().putString("twobulu_cookie", cookie).apply() }
+    fun getTwoBuluCookie(): String? = prefs.getString("twobulu_cookie", null)
+    fun isTwoBuluLoggedIn(): Boolean = !getTwoBuluCookie().isNullOrEmpty()
+    fun logoutTwoBulu() { saveTwoBuluCookie("") }
+
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
@@ -324,6 +322,7 @@ class PrefsManager(context: Context) {
             DataSource.MAGENE -> saveMageneToken(cred)
             DataSource.BLACKBIRD -> saveBlackbirdCookie(cred)
             DataSource.BRYTON -> saveBrytonCookie(cred)
+            DataSource.TWO_BULU -> saveTwoBuluCookie(cred)
             DataSource.GIANT -> saveGiantToken(cred)
             DataSource.OUTBASE -> saveOutbaseSessionId(cred)
             DataSource.GARMIN_COM -> saveGarminComToken(cred)
@@ -339,7 +338,6 @@ class PrefsManager(context: Context) {
             DataSource.ZEPP -> saveZeppToken(cred)
             DataSource.KOMOT -> saveKomootToken(cred)
             DataSource.SUUNTO -> saveSuuntoToken(cred)
-            DataSource.TWO_BULU -> saveTwoBuluCookie(cred)
             DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> saveLabToken(ds, cred)
         }
     }
@@ -351,6 +349,9 @@ class PrefsManager(context: Context) {
             DataSource.XINGZHE -> e.remove("xingzhe_session_id")
             DataSource.MAGENE -> { e.remove("magene_token"); e.remove("magene_refresh_token") }
             DataSource.BLACKBIRD -> e.remove("blackbird_cookie")
+            DataSource.TWO_BULU -> e.remove("twobulu_cookie")
+            DataSource.TWO_BULU -> e.remove("twobulu_cookie")
+            DataSource.TWO_BULU -> { e.remove("twobulu_cookie") }
             DataSource.BRYTON -> { e.remove("bryton_cookie"); e.remove("bryton_token"); e.remove("bryton_user_id") }
             DataSource.GIANT -> e.remove("giant_token")
             DataSource.OUTBASE -> { e.remove("outbase_session_id"); e.remove("gateway_cookies") }
@@ -367,7 +368,6 @@ class PrefsManager(context: Context) {
             DataSource.ZEPP -> { e.remove("zepp_token"); e.remove("zepp_account"); e.remove("zepp_user_id") }
             DataSource.KOMOT -> { e.remove("komoot_token"); e.remove("komoot_account") }
             DataSource.SUUNTO -> { e.remove("suunto_token"); e.remove("suunto_refresh"); e.remove("suunto_subscription_key"); e.remove("suunto_client_id"); e.remove("suunto_client_secret") }
-            DataSource.TWO_BULU -> { e.remove("twobulu_cookie") }
             DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> { clearLabOAuth(ds) }
         }
         e.remove("username_${ds.shortName}")
@@ -378,6 +378,7 @@ class PrefsManager(context: Context) {
         DataSource.XINGZHE -> isXingzheLoggedIn()
         DataSource.MAGENE -> isMageneLoggedIn()
         DataSource.BLACKBIRD -> isBlackbirdLoggedIn()
+        DataSource.TWO_BULU -> isTwoBuluLoggedIn()
         DataSource.BRYTON -> isBrytonLoggedIn()
         DataSource.GIANT -> isGiantLoggedIn()
         DataSource.OUTBASE -> isOutbaseLoggedIn()
@@ -394,7 +395,6 @@ class PrefsManager(context: Context) {
         DataSource.ZEPP -> isZeppLoggedIn()
         DataSource.KOMOT -> isKomootLoggedIn()
         DataSource.SUUNTO -> isSuuntoLoggedIn()
-            DataSource.TWO_BULU -> isTwoBuluLoggedIn()
             DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS -> isLabOAuthLoggedIn(ds)
     }
 
@@ -532,32 +532,6 @@ class PrefsManager(context: Context) {
         try { prefs.edit().remove(KEY_PERSIST_LOG).apply() } catch (_: Exception) {}
     }
 
-    // ===== v8.2.2: 同步任务持久化（JSON数组）=====
-    fun getTasks(): List<com.jichi.ob.model.SyncTask> {
-        val json = prefs.getString(KEY_TASKS, null) ?: return emptyList()
-        return try {
-            val arr = JSONArray(json)
-            (0 until arr.length()).mapNotNull { i ->
-                try { com.jichi.ob.model.SyncTask.fromJson(arr.getJSONObject(i)) } catch (_: Exception) { null }
-            }
-        } catch (_: Exception) { emptyList() }
-    }
-    fun saveTasks(tasks: List<com.jichi.ob.model.SyncTask>) {
-        try {
-            val arr = JSONArray()
-            tasks.forEach { arr.put(it.toJson()) }
-            prefs.edit().putString(KEY_TASKS, arr.toString()).apply()
-        } catch (_: Exception) {}
-    }
-    fun upsertTask(task: com.jichi.ob.model.SyncTask) {
-        val tasks = getTasks().toMutableList()
-        val idx = tasks.indexOfFirst { it.id == task.id }
-        if (idx >= 0) tasks[idx] = task else tasks.add(0, task)
-        saveTasks(tasks)
-    }
-    fun deleteTask(id: String) {
-        saveTasks(getTasks().filter { it.id != id })
-    }
     /** v8.2.2: 下载并发数（v8.2.6: 与上传并发拆分，默认改为1=串行最稳） */
     fun getDownloadConcurrency(): Int = prefs.getInt(KEY_DL_CONCURRENCY, 1)
     fun setDownloadConcurrency(n: Int) = prefs.edit().putInt(KEY_DL_CONCURRENCY, n).apply()

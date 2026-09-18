@@ -85,12 +85,6 @@ class SyncSettingsFragment : Fragment() {
         // v7.8.1: 点击文件夹按钮打开存储目录，查看已保存的FIT/GPX文件
         view.findViewById<ImageView>(R.id.btnOpenSaveDir)?.setOnClickListener { openSaveDir() }
 
-        // v8.2.3.5: 保存为任务——设置页即任务配置页（来源/目标/参数 → 一键保存为任务，替代独立向导）
-        // v8.2.3.8: 同步页已恢复「＋新建任务」二级向导，设置页保存任务卡隐藏；保留代码逻辑（findViewById 不崩）
-        // view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardCreateTask)?.setOnClickListener {
-        //     saveCurrentAsTask(view)
-        // }
-        // view.findViewById<TextView>(R.id.btnSaveTask)?.setOnClickListener { saveCurrentAsTask(view) }
 
         // v8.2.3.5: 同步模式开关（一对多/多对一）
         // v8.2.3.8: 卡片已隐藏——强制复位为一对多（多对一仅走向导任务），避免残留多对一状态锁死设置页
@@ -173,48 +167,6 @@ class SyncSettingsFragment : Fragment() {
     }
 
     /** v8.2.3.5: 将当前设置（来源/目标/参数）保存为同步任务 */
-    private fun saveCurrentAsTask(view: View) {
-        // 多对一：多来源→1目标；一对多：1来源→多目标
-        val sources: List<String>
-        val targets: List<String>
-        if (multiSourceMode) {
-            sources = selectedSourceTags.filter { DataSource.fromShortName(it)?.let { ds -> prefs.isLoggedIn(ds) } == true }
-            targets = if (selectedTargetTag.isBlank()) emptyList() else listOf(selectedTargetTag)
-        } else {
-            sources = if (selectedSourceTag.isBlank()) emptyList() else listOf(selectedSourceTag)
-            targets = selectedTargetTags.toList()
-        }
-        if (sources.isEmpty()) {
-            Toast.makeText(requireContext(), "请先在下方选择已登录的同步来源", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (targets.isEmpty()) {
-            Toast.makeText(requireContext(), "请至少选择一个同步目标", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val srcNames = sources.joinToString("、") { DataSource.fromShortName(it)?.displayName ?: it }
-        val tgtNames = targets.joinToString("、") { DataSource.fromShortName(it)?.displayName ?: it }
-        val nameInput = (view.findViewById<android.widget.EditText>(R.id.etTaskName)?.text?.toString()?.trim())
-            ?.takeIf { it.isNotBlank() }
-            ?: "$srcNames→$tgtNames"
-        val task = com.jichi.ob.model.SyncTask(
-            id = java.util.UUID.randomUUID().toString(),
-            name = nameInput,
-            sources = sources,
-            targets = targets,
-            count = prefs.getSyncCount(),
-            skip = prefs.getSkipCount(),
-            incremental = true,
-            force = view.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchForceRetransmit)?.isChecked ?: false,
-            coordinateConvert = view.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchGcj02)?.isChecked ?: false,
-            autoSync = false
-        )
-        prefs.upsertTask(task)
-        Toast.makeText(requireContext(), "任务已保存：$nameInput", Toast.LENGTH_SHORT).show()
-        // 清空任务名输入，方便连续保存
-        view.findViewById<android.widget.EditText>(R.id.etTaskName)?.text?.clear()
-        (activity as? com.jichi.ob.MainActivity)?.refreshTasksFromSettings()
-    }
 
     /** v8.2.3: 能力矩阵提示条（统计隐藏平台数） */
     private fun updateCapHint() {

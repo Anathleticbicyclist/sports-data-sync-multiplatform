@@ -33,3 +33,15 @@ app/src/main/res/drawable/merge_chip_outline.xml
 app/src/main/res/drawable/merge_chip_red.xml
 app/src/main/res/drawable/merge_chip_white.xml
 app/src/main/res/drawable/merge_chip_white_on.xml
+
+# ===== 开源版排除：逆向攻坚 + 新建任务 + 合并轨迹/贴纸 =====
+app/src/main/java/com/jichi/ob/api/TwoBuluApi.kt
+app/src/main/java/com/jichi/ob/model/SyncTask.kt
+app/src/main/java/com/jichi/ob/ui/CreateTaskFragment.kt
+app/src/main/res/layout/fragment_create_task.xml
+app/src/main/java/com/jichi/ob/merge/
+app/src/main/java/com/jichi/ob/ui/MergeFragment.kt
+app/src/main/java/com/jichi/ob/ui/TrackPreviewView.kt
+app/src/main/res/layout/fragment_merge.xml
+app/src/main/assets/sticker_templates.html
+app/src/main/java/com/jichi/ob/MergeTrial.kt
