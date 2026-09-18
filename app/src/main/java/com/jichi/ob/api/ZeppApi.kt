@@ -332,7 +332,9 @@ class ZeppApi {
                             val dur = item.optString("run_time", "0").toIntOrNull() ?: 0
                             val start = formatEpochSeconds(trackId.toLongOrNull() ?: 0L)
                             val source = item.optString("source", "run.mifit.huami.com")
-                            out.add(ActivityRecord(trackId, name, start, dist, dur, DataSource.ZEPP, source))
+                            // v8.2.4: trackid 即 epoch 秒 → startTimeMs 直传（时间=0会沉底/日期检索失效）
+                            out.add(ActivityRecord(trackId, name, start, dist, dur, DataSource.ZEPP, source,
+                                startTimeMs = (trackId.toLongOrNull() ?: 0L) * 1000L))
                         }
                     }
                     val nxt = data.optString("next", "-1")

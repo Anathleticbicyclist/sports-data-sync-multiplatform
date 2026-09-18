@@ -176,8 +176,8 @@ class CorosApi {
         fallback
     }
 
-    /** 获取活动列表 */
-    suspend fun getActivities(cred: String, offset: Int, limit: Int): List<ActivityRecord> = withContext(Dispatchers.IO) {
+    /** 获取活动列表（v8.2.4: ds 区分中国/国际，避免国际记录被错标为中国） */
+    suspend fun getActivities(cred: String, offset: Int, limit: Int, ds: DataSource = DataSource.COROS_CN): List<ActivityRecord> = withContext(Dispatchers.IO) {
         val (token, regionId, _) = parseCredential(cred)
         if (token.isEmpty()) return@withContext emptyList()
         try {
@@ -216,8 +216,10 @@ class CorosApi {
                     val startTime = item.optString("startTime").ifBlank { "" }
                     val distance = item.optDouble("distance", 0.0) / 1000.0
                     val duration = item.optInt("duration", 0)
-                    out.add(ActivityRecord(labelId, title, startTime, distance, duration, DataSource.COROS_CN,
-                        extra = "sportType=$sportType"))
+                    // v8.2.4: 补 startTimeMs（时间=0会沉底/日期检索失效）；ds 区分中国/国际
+                    out.add(ActivityRecord(labelId, title, startTime, distance, duration, ds,
+                        extra = "sportType=$sportType",
+                        startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(startTime)))
                 }
                 if (pageList.length() < 200) break // 最后一页，没有更多数据
                 currentOffset = page * 200

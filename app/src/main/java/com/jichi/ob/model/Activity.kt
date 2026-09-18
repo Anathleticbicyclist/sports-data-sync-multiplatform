@@ -42,17 +42,25 @@ enum class DataSource(val displayName: String, val shortName: String) {
     ZEPP("Zepp", "zp"),
     // v7.9.6 新增：Komoot / Suunto（松拓）——双向（下载源+上传目标）
     KOMOT("Komoot", "kt"),
-    SUUNTO("松拓", "su");
+    SUUNTO("松拓", "su"),
+    // v8.2.9 新增：两步路（WebView 登录；上传/下载接口真机验证中，先实验级接入）
+    TWO_BULU("两步路", "2b"),
+    // v8.2.9 新增：开发者自填 OAuth 实验室平台（松拓式：用户自填 clientId/secret；官方免费开发者平台）
+    STRAVA("Strava", "st"),
+    POLAR("Polar", "po"),
+    FITBIT("Fitbit", "fb"),
+    WITHINGS("Withings", "wi"),
+    TRAININGPEAKS("TrainingPeaks", "tp");
 
     companion object {
         /** 可作为"来源(下载)"的平台（百锐腾保留下载开发中；捷安特暂不支持下载不设置按钮） */
         fun sourcePlatforms(): List<DataSource> =
-            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP, CODOON, ZEPP, KOMOT, SUUNTO)
+            listOf(IGPSPORT, XINGZHE, MAGENE, BLACKBIRD, BRYTON, GARMIN_COM, GARMIN_CN, COROS_CN, COROS_INT, WAHOO, MYWHOOSH, ZWIFT, KEEP, CODOON, ZEPP, KOMOT, SUUNTO, TWO_BULU, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
         /** v8.2.1: 实验室平台（实验性接入；登录后设置页才显示对应按钮，未登录隐藏） */
-        fun labPlatforms(): List<DataSource> = listOf(ZEPP, SUUNTO)
+        fun labPlatforms(): List<DataSource> = listOf(ZEPP, SUUNTO, TWO_BULU, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
         fun isLabPlatform(ds: DataSource): Boolean = labPlatforms().contains(ds)
         /** v8.2.1: 实验室登录页平台（松拓/Zepp/百锐腾；登录入口只在此页，可返回） */
-        fun labLoginPlatforms(): List<DataSource> = listOf(SUUNTO, ZEPP, BRYTON)
+        fun labLoginPlatforms(): List<DataSource> = listOf(SUUNTO, ZEPP, BRYTON, TWO_BULU, STRAVA, POLAR, FITBIT, WITHINGS, TRAININGPEAKS)
         fun fromShortName(s: String): DataSource? = entries.find { it.shortName == s }
     }
 }
@@ -84,7 +92,13 @@ enum class UploadSupport(val available: Boolean, val note: String) {
     CODOON(false, "仅下载"),
     ZEPP(false, "仅下载"),
     KOMOT(true, "官方内部API"),
-    SUUNTO(true, "官方Cloud API");
+    SUUNTO(true, "官方Cloud API"),
+    TWO_BULU(true, "网页版上传(待真机验证)"),
+    STRAVA(true, "官方上传API(需自填开发者凭证)"),
+    POLAR(false, "官方仅下载"),
+    FITBIT(false, "官方仅下载"),
+    WITHINGS(false, "官方仅下载"),
+    TRAININGPEAKS(true, "官方上传API(待验证)");
 
     companion object {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {
@@ -108,6 +122,12 @@ enum class UploadSupport(val available: Boolean, val note: String) {
             DataSource.ZEPP -> ZEPP
             DataSource.KOMOT -> KOMOT
             DataSource.SUUNTO -> SUUNTO
+            DataSource.TWO_BULU -> TWO_BULU
+            DataSource.STRAVA -> STRAVA
+            DataSource.POLAR -> POLAR
+            DataSource.FITBIT -> FITBIT
+            DataSource.WITHINGS -> WITHINGS
+            DataSource.TRAININGPEAKS -> TRAININGPEAKS
         }
     }
 }

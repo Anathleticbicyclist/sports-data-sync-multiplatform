@@ -36,6 +36,7 @@ class IgpsportApi {
         private const val ACTIVITY_URL = "$BASE/web-gateway/web-analyze/activity/queryMyActivity"
         private const val DOWNLOAD_URL = "$BASE/web-gateway/web-analyze/activity/getDownloadUrl"
         private const val PER_PAGE = 20  // iGPSPORT每页最多20
+        private const val FIT_EPOCH = 631065600000L // FIT epoch 1989-12-31 → unix ms 偏移
     }
  
     private val client = OkHttpClient.Builder()
@@ -43,6 +44,72 @@ class IgpsportApi {
         .readTimeout(120, TimeUnit.SECONDS)
         .followRedirects(true)
         .build()
+
+    /** v8.2.6: 调试钩子——把列表接口首条真实字段/时间值回传给上层（写入平台日志，供实机排查igp时间字段） */
+    @Volatile var debugHook: ((String) -> Unit)? = null
+
+    /**
+     * v8.2.6: 从 FIT 二进制解析起始时间（用户实测确认：igp 直接下载的 FIT 不重命名也带时间）。
+     * 解析 file_id.time_created（global msg 0, field 4）或首个 record.timestamp（global msg 20, field 253）。
+     * @return unix 毫秒；解析失败返回 0
+     */
+    fun parseFitStartTimeMs(bytes: ByteArray): Long {
+        try {
+            if (bytes.size < 14 || bytes[8] != '.'.code.toByte() || bytes[9] != 'F'.code.toByte() ||
+                bytes[10] != 'I'.code.toByte() || bytes[11] != 'T'.code.toByte()) return 0
+            val headerSize = bytes[0].toInt() and 0xFF
+            val dataSize = ((bytes[4].toLong() and 0xFF) or ((bytes[5].toLong() and 0xFF) shl 8) or
+                    ((bytes[6].toLong() and 0xFF) shl 16) or ((bytes[7].toLong() and 0xFF) shl 24))
+            if (headerSize <= 0 || headerSize >= bytes.size) return 0
+            var pos = headerSize
+            val end = minOf(bytes.size.toLong(), headerSize + dataSize).toInt()
+            var firstRecordTs = 0L
+            val localDefs = HashMap<Int, Pair<Int, List<IntArray>>>() // localType -> (globalNum, [(fieldNum, size, baseType)])
+            var guard = 0
+            while (pos + 1 <= end && guard < 200000) {
+                guard++
+                val hdr = bytes[pos].toInt() and 0xFF
+                val localType = hdr and 0x0F
+                val isDef = (hdr and 0x40) != 0
+                if (isDef) {
+                    if (pos + 5 > end) break
+                    val globalNum = (bytes[pos + 1].toInt() and 0xFF) or ((bytes[pos + 2].toInt() and 0xFF) shl 8)
+                    val fieldCount = bytes[pos + 3].toInt() and 0xFF
+                    var p = pos + 4
+                    val fields = ArrayList<IntArray>(fieldCount)
+                    for (i in 0 until fieldCount) {
+                        if (p + 3 > end) break
+                        val fn = bytes[p].toInt() and 0xFF
+                        val size = bytes[p + 1].toInt() and 0xFF
+                        val bt = bytes[p + 2].toInt() and 0xFF
+                        fields.add(intArrayOf(fn, size, bt))
+                        p += 3
+                    }
+                    localDefs[localType] = globalNum to fields
+                    pos = p
+                } else {
+                    val def = localDefs[localType] ?: break
+                    val (globalNum, fields) = def
+                    var p = pos + 1
+                    for ((fn, size, _) in fields) {
+                        if (p + size > end) break
+                        if (size == 4 && (fn == 253 || (globalNum == 0 && fn == 4))) {
+                            val v = (bytes[p].toLong() and 0xFF) or ((bytes[p + 1].toLong() and 0xFF) shl 8) or
+                                    ((bytes[p + 2].toLong() and 0xFF) shl 16) or ((bytes[p + 3].toLong() and 0xFF) shl 24)
+                            if (v > 0x10000000L) { // 有效时间（FIT epoch 起算秒）
+                                val ms = v * 1000L + FIT_EPOCH
+                                if (globalNum == 0) return ms // file_id.time_created 最权威
+                                if (firstRecordTs == 0L && globalNum == 20) firstRecordTs = ms
+                            }
+                        }
+                        p += size
+                    }
+                    pos = p
+                }
+            }
+            return firstRecordTs
+        } catch (_: Exception) { return 0 }
+    }
  
     private fun authHeaders(token: String) = mapOf(
         "Authorization" to "Bearer $token",
@@ -146,6 +213,8 @@ class IgpsportApi {
                         }
                         Log.w(TAG, "===== iGPSPORT首活动调试 ===== keys=$allKeys")
                         Log.w(TAG, "===== 时间字段: ${timeVals.joinToString(", ") ?: "(全部为空)"} =====")
+                        // v8.2.6: 同时回传平台日志（用户App内可见，实机反馈真实字段）
+                        debugHook?.invoke("iGPSPORT首条字段: $allKeys\n时间字段: ${timeVals.joinToString(", ") ?: "(空)"} title=${item.optString("Title", "")} id=$rideId")
                     }
                     if (rideId.isEmpty()) continue
                     val downloadUrl = item.optString("DownloadUrl",
@@ -158,11 +227,25 @@ class IgpsportApi {
                     val distKm = if (dist >= 1000) dist / 1000.0 else dist
                     // v6.3.6: 用辅助函数探测时间字段，避免嵌套括号
                     // v8.2.1: 优先毫秒时间戳字段（StartTime 等可能为 13 位 ms），否则字符串兜底
+                    // v8.2.5: 三重兜底——①数字时间戳字段 ②字符串时间字段 parse ③id/title 内嵌 yyyyMMdd_HHmmss 正则提取（igp导入记录常见，如 kp_20200804_082017_running_kp...）
                     val startTime = probeTimeField(item)
                     var startMs = 0L
-                    for (k in listOf("StartTime", "startTime", "start_time", "RideDate", "rideDate", "BeginTime", "beginTime")) {
+                    for (k in listOf("StartTime", "startTime", "start_time", "RideDate", "rideDate", "BeginTime", "beginTime",
+                            "createTime", "CreateTime", "RideTime", "rideTime", "start_date", "startDate", "Date", "date")) {
                         val v = item.optLong(k, 0L)
                         if (v > 1_000_000_000L) { startMs = if (v > 1_000_000_000_000L) v else v * 1000L; break }
+                    }
+                    if (startMs <= 0 && startTime.isNotEmpty()) startMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(startTime)
+                    if (startMs <= 0) {
+                        val m = Regex("""(\d{4})(\d{2})(\d{2})[_](\d{2})(\d{2})(\d{2})""").find("$rideId|${item.optString("Title", item.optString("title", ""))}")
+                        if (m != null) {
+                            try {
+                                startMs = java.time.LocalDateTime.of(
+                                    m.groupValues[1].toInt(), m.groupValues[2].toInt(), m.groupValues[3].toInt(),
+                                    m.groupValues[4].toInt(), m.groupValues[5].toInt(), m.groupValues[6].toInt()
+                                ).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                            } catch (_: Exception) {}
+                        }
                     }
                     result.add(
                         ActivityRecord(

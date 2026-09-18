@@ -69,6 +69,9 @@ import com.jichi.ob.util.UpdateChecker
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -118,6 +121,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var intervalsIcuApi: IntervalsIcuApi
     private lateinit var corosApi: CorosApi
     private lateinit var wahooApi: WahooApi
+    private lateinit var devOAuthApi: com.jichi.ob.api.DevOAuth2Api
+    private lateinit var twoBuluApi: com.jichi.ob.api.TwoBuluApi
     private lateinit var uploadEngine: UploadEngine
 
     // v7.6.2: 四页面Fragment引用
@@ -131,9 +136,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mergeFragment: com.jichi.ob.ui.MergeFragment
     // v8.2.1: 实验室登录页（松拓/Zepp/百锐腾，可返回）
     private lateinit var labLoginFragment: com.jichi.ob.ui.LabLoginFragment
+    private lateinit var createTaskFragment: com.jichi.ob.ui.CreateTaskFragment
 
     private var syncJob: Job? = null
     private var autoSyncJob: Job? = null
+    // v8.2.2: 任务化同步——任务引擎独立 Job，与批量同步互斥
+    private var taskJob: Job? = null
+    @Volatile private var taskActive = false
+    internal val isTaskRunning: Boolean get() = taskActive
+    internal val isBatchSyncing: Boolean get() = syncJob?.isActive == true
+    // v8.2.3: 最近一次网络检测的失效平台（登录页卡片红标用；checkAllLogins 结果）
+    @Volatile internal var lastInvalidPlatforms: List<DataSource> = emptyList()
+    private var autoCheckDone = false  // v8.2.3: 会话内自动检查只跑一次
     private lateinit var fixWebView: android.webkit.WebView
     private var fixJsReady = false
     private val notifPermissionLauncher = registerForActivityResult(
@@ -184,6 +198,10 @@ class MainActivity : AppCompatActivity() {
                             fetchUsernameAfterLogin(DataSource.BRYTON)
                         } else appendLog("⚠️ 百锐腾cookie异常，请重新登录")
                     }
+                    LoginWebActivity.TYPE_TWO_BULU -> if (sid.length > 10) {
+                        prefs.saveTwoBuluCookie(sid)
+                        appendLog("✅ 两步路登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.TWO_BULU)
+                    } else appendLog("⚠️ 两步路登录失败: cookie异常")
                     LoginWebActivity.TYPE_OUTBASE -> if (sid.length > 10) {
                         prefs.saveOutbaseSessionId(sid)
                         prefs.saveGatewayCookies(extra)
@@ -250,10 +268,34 @@ class MainActivity : AppCompatActivity() {
                             }
                         } else appendLog("⚠️ 松拓登录失败: 未捕获到授权码或未配置凭证")
                     }
+                    LoginWebActivity.TYPE_STRAVA, LoginWebActivity.TYPE_POLAR, LoginWebActivity.TYPE_FITBIT,
+                    LoginWebActivity.TYPE_WITHINGS, LoginWebActivity.TYPE_TRAININGPEAKS -> {
+                        // v8.2.9: P0 实验室平台 —— OAuth2 授权码 → 换 token（用户自填 clientId/secret）
+                        val ds = when (type) {
+                            LoginWebActivity.TYPE_STRAVA -> DataSource.STRAVA
+                            LoginWebActivity.TYPE_POLAR -> DataSource.POLAR
+                            LoginWebActivity.TYPE_FITBIT -> DataSource.FITBIT
+                            LoginWebActivity.TYPE_WITHINGS -> DataSource.WITHINGS
+                            else -> DataSource.TRAININGPEAKS
+                        }
+                        if (sid.length > 5) {
+                            val code = sid
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                val ok = devOAuthApi.exchangeCode(ds, code)
+                                runOnUiThread {
+                                    if (ok) {
+                                        appendLog("✅ ${ds.displayName}登录成功"); fetchUsernameAfterLogin(ds)
+                                    } else appendLog("⚠️ ${ds.displayName}token换取失败（请检查凭证与scope）")
+                                    loginFragment.updateStatus()
+                                }
+                            }
+                        } else appendLog("⚠️ ${ds.displayName}登录失败: 未捕获到授权码")
+                    }
                 }
                 loginFragment.updateStatus()
                 // v7.7.4: 登录成功后刷新设置页来源/目标网格，目标立即可选，无需重启App
                 try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+                // v8.2.5: 失效平台重登后清失效清单——已统一收敛到 fetchUsernameAfterLogin（所有平台登录成功公共入口）
             }
         } catch (e: Exception) {
             Log.e(TAG, "login result error", e)
@@ -262,14 +304,22 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // v7.5.7: 全局崩溃捕获，堆栈写入文件，下次启动显示在日志中定位闪退
+        // v8.2.2: 同时写入公共存储目录（Download/鸡翅幸哲迈进OB/crash_last.txt），用户可直接查看/发我定位
         val crashFile = File(cacheDir, "last_crash.txt")
+        val crashPublic = try {
+            val dir = SAVE_DIR
+            if (!dir.exists()) dir.mkdirs()
+            File(dir, "crash_last.txt")
+        } catch (_: Exception) { null }
         val oldHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
                 val sw = StringWriter()
                 throwable.printStackTrace(PrintWriter(sw))
                 val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                crashFile.writeText("时间: $time\n线程: ${thread.name}\n\n$sw")
+                val content = "时间: $time\n线程: ${thread.name}\n\n$sw"
+                crashFile.writeText(content)
+                try { crashPublic?.writeText(content) } catch (_: Exception) {}
             } catch (_: Exception) {}
             oldHandler?.uncaughtException(thread, throwable)
         }
@@ -300,6 +350,8 @@ class MainActivity : AppCompatActivity() {
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
             corosApi = CorosApi()
             wahooApi = WahooApi()
+            devOAuthApi = com.jichi.ob.api.DevOAuth2Api(this)
+            twoBuluApi = com.jichi.ob.api.TwoBuluApi(this)
             uploadEngine = UploadEngine(this)
             if (!SAVE_DIR.exists()) SAVE_DIR.mkdirs()
             initFragments()
@@ -310,8 +362,21 @@ class MainActivity : AppCompatActivity() {
             appendLog("📱 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLog("📂 存储目录: ${SAVE_DIR.absolutePath}")
             appendLog("💾 已同步记录: ${prefs.getSyncedCount()} 条")
-            // v7.5.9: 启动登录检测（异步，不阻塞界面）
-            checkAllLogins()
+            // v8.2.2: 启动改轻量本地校验（不发网络请求，避免启动即撞平台风控）；
+            //         网络级登录检测收敛到登录页"一键检测"按钮
+            initLoginStatesLight()
+            // v8.2.3: 会话内自动检查——延迟5s后台串行校验一次（默认开，可关；不弹窗不阻塞，失败静默）
+            if (prefs.isAutoCheckLogin() && !autoCheckDone) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        kotlinx.coroutines.delay(5000)
+                        if (autoCheckDone) return@launch
+                        autoCheckDone = true
+                        appendLog("🔍 会话内自动检查登录态...")
+                        checkAllLogins()
+                    } catch (_: Exception) {}
+                }
+            }
             // v7.7.6: 启动静默检查更新（仅发现新版才提示，24h内不重复打扰；不阻塞启动）
             UpdateChecker.check(this, force = false)
             // v7.5.7: 显示上次崩溃信息（如果有）
@@ -333,6 +398,92 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra(LoginWebActivity.EXTRA_LOGIN_TYPE, type)
         intent.putExtra(LoginWebActivity.EXTRA_URL, url)
         loginLauncher.launch(intent)
+    }
+
+    /** v8.2.2: 统一平台登录入口（登录页详情弹窗/实验室复用） */
+    /** v8.2.6: 合并上传/数据变更后刷新首页登录卡（缓存数、最近记录、统计） */
+    internal fun refreshLoginCardsIfAny() {
+        runOnUiThread {
+            try { loginFragment.updateStatus() } catch (_: Exception) {}
+        }
+    }
+
+    /** v8.2.9: 开发者自填 OAuth 平台登录——无凭证先弹输入框 */
+    private fun openDevOAuthLogin(ds: DataSource, loginType: String) {
+        val cid = prefs.getLabClientId(ds)
+        val csec = prefs.getLabClientSecret(ds)
+        if (cid.isNullOrEmpty() || csec.isNullOrEmpty()) {
+            showLabCredentialDialog(ds, loginType)
+        } else {
+            val url = com.jichi.ob.api.DevOAuth2Api.buildAuthUrl(ds, cid)
+            openLogin(loginType, url)
+        }
+    }
+
+    /** v8.2.9: 实验室凭证输入对话框（松拓式：用户自填 clientId/clientSecret） */
+    private fun showLabCredentialDialog(ds: DataSource, loginType: String) {
+        val input = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(60, 20, 60, 0)
+        }
+        val etId = android.widget.EditText(this).apply {
+            hint = "Client ID（开发者平台申请）"
+            textSize = 14f
+        }
+        val etSec = android.widget.EditText(this).apply {
+            hint = "Client Secret（开发者平台申请）"
+            textSize = 14f
+        }
+        input.addView(etId); input.addView(etSec)
+        android.app.AlertDialog.Builder(this)
+            .setTitle("填写 ${ds.displayName} 开发者凭证")
+            .setMessage("前往 ${ds.displayName} 开发者平台自助申请（免费），填写后即可登录。凭证仅存本机。")
+            .setView(input)
+            .setPositiveButton("保存并登录") { _, _ ->
+                val id = etId.text.toString().trim()
+                val sec = etSec.text.toString().trim()
+                if (id.isNotEmpty() && sec.isNotEmpty()) {
+                    prefs.saveLabClientId(ds, id)
+                    prefs.saveLabClientSecret(ds, sec)
+                    val url = com.jichi.ob.api.DevOAuth2Api.buildAuthUrl(ds, id)
+                    openLogin(loginType, url)
+                } else {
+                    android.widget.Toast.makeText(this, "凭证不能为空", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    internal fun openPlatformLogin(ds: DataSource) {
+        when (ds) {
+            DataSource.IGPSPORT -> openLogin(LoginWebActivity.TYPE_IGPSPORT, com.jichi.ob.api.IgpsportApi.LOGIN_URL)
+            DataSource.XINGZHE -> openLogin(LoginWebActivity.TYPE_XINGZHE, com.jichi.ob.api.XingzheApi.LOGIN_URL)
+            DataSource.MAGENE -> openLogin(LoginWebActivity.TYPE_MAGENE, com.jichi.ob.api.MageneApi.LOGIN_URL)
+            DataSource.BLACKBIRD -> openLogin(LoginWebActivity.TYPE_BLACKBIRD, com.jichi.ob.api.BlackbirdApi.LOGIN_URL)
+            DataSource.GIANT -> openGiantLogin()
+            DataSource.OUTBASE -> openLogin(LoginWebActivity.TYPE_OUTBASE, com.jichi.ob.api.OutbaseApi.LOGIN_URL)
+            DataSource.GARMIN_COM -> openLogin(LoginWebActivity.TYPE_GARMIN_COM, com.jichi.ob.api.GarminApi.LOGIN_URL_COM)
+            DataSource.GARMIN_CN -> openGarminCnLogin()
+            DataSource.COROS_CN -> openLogin(LoginWebActivity.TYPE_COROS_CN, com.jichi.ob.api.CorosApi.LOGIN_URL_CN)
+            DataSource.COROS_INT -> openLogin(LoginWebActivity.TYPE_COROS_INT, com.jichi.ob.api.CorosApi.LOGIN_URL_INT)
+            DataSource.WAHOO -> openWahooLogin()
+            DataSource.MYWHOOSH -> openMywhooshLogin()
+            DataSource.ZWIFT -> openZwiftLogin()
+            DataSource.INTERVALS_ICU -> openIntervalsIcuLogin()
+            DataSource.KEEP -> openKeepLogin()
+            DataSource.CODOON -> openCodoonLogin()
+            DataSource.KOMOT -> openKomootLogin()
+            DataSource.ZEPP -> openZeppLogin()
+            DataSource.SUUNTO -> openSuuntoLogin()
+            DataSource.TWO_BULU -> openLogin(LoginWebActivity.TYPE_TWO_BULU, "https://www.2bulu.com/")
+            DataSource.STRAVA -> openDevOAuthLogin(DataSource.STRAVA, LoginWebActivity.TYPE_STRAVA)
+            DataSource.POLAR -> openDevOAuthLogin(DataSource.POLAR, LoginWebActivity.TYPE_POLAR)
+            DataSource.FITBIT -> openDevOAuthLogin(DataSource.FITBIT, LoginWebActivity.TYPE_FITBIT)
+            DataSource.WITHINGS -> openDevOAuthLogin(DataSource.WITHINGS, LoginWebActivity.TYPE_WITHINGS)
+            DataSource.TRAININGPEAKS -> openDevOAuthLogin(DataSource.TRAININGPEAKS, LoginWebActivity.TYPE_TRAININGPEAKS)
+            DataSource.BRYTON -> openLogin(LoginWebActivity.TYPE_BRYTON, com.jichi.ob.api.BrytonApi.LOGIN_URL)
+        }
     }
 
     /** v7.4.5: Wahoo 登录——恢复WahooOAuth2Service后台自动化登录（v7.3.0验证通过的方案），SCOPES含workouts_write支持上传 */
@@ -513,11 +664,23 @@ class MainActivity : AppCompatActivity() {
                             runOnUiThread {
                                 appendLog("❌ 佳明中国触发风控限流(429)，已写入冷却。该账号请约${remain}分钟后重试（冷却仅针对该账号）")
                                 loginFragment.updateStatus()
+                                showGarminLoginFailDialog("佳明中国", "触发风控限流(429)，该账号请约${remain}分钟后重试。冷却期内反复尝试会延长封禁。")
                             }
                         } else {
                             runOnUiThread {
                                 appendLog("❌ 佳明中国登录失败: $msg")
                                 loginFragment.updateStatus()
+                                // v8.2.3.1: 密码错误/两步验证等失败必须弹窗提醒，不能只落日志
+                                val hint = when {
+                                    msg.contains("INVALID_USERNAME_PASSWORD") || msg.contains("invalid_username_password") || msg.contains("401") ->
+                                        "账号或密码错误，请检查后重试。"
+                                    msg.contains("MFA") || msg.contains("mfa") || msg.contains("two") || msg.contains("verify") ->
+                                        "该账号开启了两步验证，请先关闭两步验证（或使用网页版完成验证）后再登录。"
+                                    msg.contains("captcha") || msg.contains("Captcha") ->
+                                        "触发人机验证，请稍后再试或改用网页版登录。"
+                                    else -> "登录失败：$msg"
+                                }
+                                showGarminLoginFailDialog("佳明中国", hint)
                             }
                         }
                     }
@@ -525,6 +688,17 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    /** v8.2.3.1: 佳明登录失败统一弹窗（密码错误/两步验证/风控等，不依赖日志可见性） */
+    private fun showGarminLoginFailDialog(region: String, hint: String) {
+        try {
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("$region 登录失败")
+                .setMessage(hint + "\n\n提示：若多次失败触发风控，可到登录页该平台详情里「清空风控」后再试。")
+                .setPositiveButton("知道了", null)
+                .show()
+        } catch (_: Exception) {}
     }
 
     /** v7.8.0: 捷安特直接登录——账号密码原生表单直调 GiantApi（纯API，无需WebView） */
@@ -1068,12 +1242,37 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun checkAllLogins() {
-        appendLog("🔍 启动登录检测中...")
+    /**
+     * v8.2.2: 启动轻量登录检测——只做本地凭证校验（不发网络请求），
+     * 避免启动即撞平台风控；网络级检测由登录页"一键检测"触发 checkAllLogins。
+     */
+    /** v8.2.3: 平台统计 + 平台日志写入（IO 线程调用；type: dl下载/ok上传成功/skip跳过/err失败） */
+    private fun recordSync(ds: DataSource, type: String, okDelta: Int = 0, skipDelta: Int = 0, failDelta: Int = 0, msg: String = "") {
+        try {
+            val cache = com.jichi.ob.util.ActivityCache.get(this)
+            cache.addPlatformStat(ds.shortName, okDelta, skipDelta, failDelta, System.currentTimeMillis())
+            if (msg.isNotEmpty()) cache.addPlatformLog(ds.shortName, type, msg)
+        } catch (_: Exception) {}
+    }
+
+    private fun initLoginStatesLight() {
+        val logged = DataSource.sourcePlatforms().count { prefs.isLoggedIn(it) }
+        val cacheCount = try { com.jichi.ob.util.ActivityCache.get(this).queryByPlatform("").size } catch (_: Exception) { 0 }
+        appendLog("📊 启动登录检测: $logged 个平台凭证有效（网络检测请用登录页「一键检测」）")
+        runOnUiThread {
+            loginFragment.updateStatus()
+            try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
+        }
+    }
+
+    /** v8.2.2: 一键检测——网络级登录态全量校验（登录页按钮触发；onDone 返回汇总） */
+    internal fun checkAllLogins(onDone: ((valid: Int, refreshed: Int, invalid: Int) -> Unit)? = null) {
+        appendLog("🔍 登录检测中...")
         lifecycleScope.launch(Dispatchers.IO) {
             var valid = 0
             var refreshed = 0
             var invalid = 0
+            val invalidList = ArrayList<DataSource>()
             val platforms = listOf(
                 DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
                 DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
@@ -1100,7 +1299,13 @@ class MainActivity : AppCompatActivity() {
                         DataSource.COROS_INT -> corosApi.getUsername(cred)
                         DataSource.WAHOO -> wahooApi.getUsername(cred)
                         DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
-                        DataSource.ZWIFT -> zwiftApi.getUsername(cred)
+                        DataSource.ZWIFT -> {
+                            val u = zwiftApi.getUsername(cred)
+                            if (u != null && zwiftApi.isTrialAccount(cred)) {
+                                appendLog("⚠️ Zwift 为试用订阅账号：可查看活动列表，但 Zwift 不提供 FIT 文件下载，需升级会员")
+                            }
+                            u
+                        }
                         DataSource.KEEP -> keepApi.getUsername(cred)
                         DataSource.CODOON -> codoonApi.getUsername(cred, prefs.getCodoonUserId())
                         DataSource.ZEPP -> zeppApi.getUsername(cred)
@@ -1112,6 +1317,12 @@ class MainActivity : AppCompatActivity() {
                             val sk = suuntoSubscriptionKey()
                             if (sk.isNullOrEmpty()) null else suuntoApi.getUsername(cred, sk)
                         }
+                        DataSource.TWO_BULU -> "两步路用户"
+                        DataSource.STRAVA -> "Strava用户"
+                        DataSource.POLAR -> "Polar用户"
+                        DataSource.FITBIT -> "Fitbit用户"
+                        DataSource.WITHINGS -> "Withings用户"
+                        DataSource.TRAININGPEAKS -> "TrainingPeaks用户"
                         DataSource.INTERVALS_ICU -> {
                             // v7.8.5: API Key 有效性即登录态
                             if (intervalsIcuApi.validateKey(cred))
@@ -1167,6 +1378,7 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新$suffix") }
                 } else {
                     invalid++
+                    invalidList.add(ds)
                     if (ds == DataSource.WAHOO || ds == DataSource.COROS_CN || ds == DataSource.COROS_INT
                         || ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) {
                         // v7.6.8: Wahoo/高驰失效时【绝不】清除凭证！
@@ -1182,8 +1394,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             runOnUiThread {
+                lastInvalidPlatforms = invalidList
                 loginFragment.updateStatus()
                 appendLog("📊 登录检测完成: ${valid}有效 / ${refreshed}刷新成功 / ${invalid}失效")
+                onDone?.invoke(valid, refreshed, invalid)
             }
         }
     }
@@ -1293,6 +1507,11 @@ class MainActivity : AppCompatActivity() {
         else prefs.getSuuntoSubscriptionKey()
 
     private fun fetchUsernameAfterLogin(ds: DataSource) {
+        // v8.2.5: 所有平台登录成功的统一入口——立即从失效清单移除该平台并刷新登录卡片（此前需手动点"检测"才恢复红标）
+        if (lastInvalidPlatforms.isNotEmpty() && lastInvalidPlatforms.contains(ds)) {
+            lastInvalidPlatforms = lastInvalidPlatforms.filter { it != ds }
+            runOnUiThread { try { loginFragment.updateStatus() } catch (_: Exception) {} }
+        }
         lifecycleScope.launch(Dispatchers.IO) {
             val cred = prefs.getCredential(ds) ?: return@launch
             val name = when (ds) {
@@ -1310,7 +1529,13 @@ class MainActivity : AppCompatActivity() {
                 DataSource.COROS_INT -> corosApi.getUsername(cred)
                 DataSource.WAHOO -> wahooApi.getUsername(cred)
                 DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
-                DataSource.ZWIFT -> zwiftApi.getUsername(cred)
+                DataSource.ZWIFT -> {
+                    val u = zwiftApi.getUsername(cred)
+                    if (u != null && zwiftApi.isTrialAccount(cred)) {
+                        appendLog("⚠️ Zwift 为试用订阅账号：可查看活动列表，但 Zwift 不提供 FIT 文件下载，需升级会员")
+                    }
+                    u
+                }
                 DataSource.INTERVALS_ICU -> "Intervals.icu用户"
                 DataSource.KEEP -> keepApi.getUsername(cred)
                 DataSource.CODOON -> codoonApi.getUsername(cred, prefs.getCodoonUserId())
@@ -1320,12 +1545,180 @@ class MainActivity : AppCompatActivity() {
                     if (email.isNullOrEmpty()) null else komootApi.getUsername(email, cred)
                 }
                 DataSource.SUUNTO -> suuntoApi.getUsername(cred, suuntoSubscriptionKey() ?: "")
+                DataSource.TWO_BULU -> "两步路用户"
+                DataSource.STRAVA -> "Strava用户"
+                DataSource.POLAR -> "Polar用户"
+                DataSource.FITBIT -> "Fitbit用户"
+                DataSource.WITHINGS -> "Withings用户"
+                DataSource.TRAININGPEAKS -> "TrainingPeaks用户"
             }
             if (name != null) {
                 prefs.saveUsername(ds, name)
                 appendLog("👤 ${ds.displayName}用户: $name")
                 runOnUiThread { loginFragment.updateStatus() }
             }
+            // v8.2.3.4: 登录成功后询问是否预拉取最近运动记录（用户可暂不；后台执行不卡登录）
+            runOnUiThread {
+                try {
+                    if (!isFinishing && !isDestroyed) {
+                        androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                            .setTitle("拉取最近运动记录？")
+                            .setMessage("已登录 ${ds.displayName}。是否立即拉取最近运动记录到记录中心？\n（后台执行不影响使用；也可在批量同步时自动写入缓存）")
+                            .setPositiveButton("立即拉取") { _, _ -> preloadRecent(ds) }
+                            .setNegativeButton("暂不", null)
+                            .show()
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    /** v8.2.3.10: 时间归一——秒→毫秒；startTimeMs 无效时用时间字符串解析兜底；再归一次秒→毫秒 */
+    private fun normStartMs(ms: Long, timeStr: String, cache: com.jichi.ob.util.ActivityCache): Long {
+        var t = ms
+        if (t > 0 && t < 1_000_000_000_000L) t *= 1000L
+        if (t <= 0) t = cache.parseStartTimeMs(timeStr)
+        if (t > 0 && t < 1_000_000_000_000L) t *= 1000L
+        return t
+    }
+
+    /** v8.2.5: 从平台 extra 提取干净运动类型（历史实现把 extra 原样塞进 type 列导致记录中心显示长串） */
+    private fun cleanCacheType(ds: com.jichi.ob.model.DataSource, extra: String?): String {
+        val s = extra ?: return ""
+        return when (ds) {
+            com.jichi.ob.model.DataSource.KEEP -> {  // extra="id|type"
+                val i = s.indexOf('|')
+                val t = if (i >= 0) s.substring(i + 1) else ""
+                when (t) { "running" -> "跑步"; "cycling" -> "骑行"; "hiking" -> "徒步"; "swimming" -> "游泳"; "other" -> "运动"; else -> t }
+            }
+            else -> ""  // 其余平台 extra 是下载凭证，无类型语义
+        }
+    }
+
+    /** v8.2.3.9: 预拉取全部运动记录元数据入库（循环分页全量；上限=缓存库单平台2000条；后台IO不卡UI；失败可见反馈） */
+    fun preloadRecent(ds: DataSource) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val n = preloadAllOf(ds)
+            if (n == 0) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "${ds.displayName} 暂无运动记录", Toast.LENGTH_SHORT).show()
+                    try { loginFragment.updateStatus() } catch (_: Exception) {}
+                }
+            } else if (n > 0) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "已拉取 $n 条 ${ds.displayName} 记录", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    /** v8.2.3.9: 登录页「拉取全部」——串行拉取所有已登录平台（防并发触发风控），汇总反馈 */
+    fun preloadAll() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val platforms = DataSource.entries.filter { it != DataSource.OUTBASE && prefs.isLoggedIn(it) }
+            if (platforms.isEmpty()) {
+                runOnUiThread { Toast.makeText(this@MainActivity, "暂无已登录平台", Toast.LENGTH_SHORT).show() }
+                return@launch
+            }
+            appendLog("🔄 手动拉取全部：${platforms.joinToString("、") { it.displayName }}")
+            var okCount = 0
+            var total = 0
+            for (ds in platforms) {
+                val n = try { preloadAllOf(ds) } catch (e: Exception) { -1 }
+                if (n >= 0) { okCount++; total += n }
+            }
+            appendLog("✅ 拉取完成：$okCount 个平台共 $total 条")
+            runOnUiThread {
+                Toast.makeText(this@MainActivity, "拉取完成：$okCount 个平台共 $total 条记录", Toast.LENGTH_LONG).show()
+                try { loginFragment.updateStatus() } catch (_: Exception) {}
+                try { if (::recordFragment.isInitialized) recordFragment.refresh() } catch (_: Exception) {}
+            }
+        }
+    }
+
+    /** 单平台全量拉取核心：返回入库条数（0=无记录，-1=失败）；日志逐批输出进度 */
+    private suspend fun preloadAllOf(ds: DataSource): Int {
+        try {
+            appendLog("📥 ${ds.displayName} 预拉取全部运动记录...")
+            val all = mutableListOf<ActivityRecord>()
+            val seen = HashSet<String>()
+            var skip = 0
+            val BATCH = 200
+            val MAX = 2000 // 与缓存库单平台上限一致
+            var batches = 0
+            // v8.2.3.9: 判据修正——只有「空返回」或「id 全重复（游标未动）」才算拉完；
+            // 不再用 batch.size < BATCH（Keep 每页仅返回部分记录，不足一批不代表没有更多）
+            while (all.size < MAX && batches < 60) {
+                val batch = try {
+                    fetchActivities(ds, skip, BATCH)
+                } catch (e: Exception) {
+                    appendLog("⚠️ ${ds.displayName} 第 ${skip + 1} 条起拉取中断: ${e.message}")
+                    break
+                }
+                if (batch.isEmpty()) break
+                // 防死循环：本批 id 与已拉全部重复 → 平台游标未前进，收口
+                val before = seen.size
+                batch.forEach { seen.add(it.id) }
+                if (seen.size == before) break
+                all.addAll(batch)
+                batches++
+                appendLog("📥 ${ds.displayName} 已拉取 ${all.size} 条...")
+                skip += batch.size
+            }
+            if (all.isEmpty()) {
+                appendLog("⏳ ${ds.displayName} 暂无运动记录")
+                return 0
+            }
+            // v8.2.6: igp 列表接口不带时间 → 对时间缺失记录下载 FIT 解析时间回填（限最近30条，避免全量下载过重）
+            if (ds == com.jichi.ob.model.DataSource.IGPSPORT) {
+                val missingCount = all.count { it.startTimeMs <= 0 }
+                if (missingCount > 0) {
+                    val token = prefs.getIgpsportToken()
+                    if (!token.isNullOrEmpty()) {
+                        appendLog("⏳ iGPSPORT ${missingCount} 条无时间，下载 FIT 解析（限最近30条）...")
+                        var fixed = 0
+                        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                        for (rec in all.filter { it.startTimeMs <= 0 }.take(30)) {
+                            try {
+                                val fit = igpsportApi.downloadFitFile(token, rec.id, rec.extra)
+                                val ms = igpsportApi.parseFitStartTimeMs(fit)
+                                if (ms > 0) {
+                                    rec.startTimeMs = ms
+                                    val idx = all.indexOf(rec)
+                                    if (idx >= 0) all[idx] = rec.copy(startTime = fmt.format(java.util.Date(ms)))
+                                    fixed++
+                                }
+                            } catch (_: Exception) {}
+                        }
+                        appendLog("✅ iGPSPORT FIT 时间回填 ${fixed}/${minOf(missingCount, 30)} 条（未回填的可单点下载后自动补）")
+                    }
+                }
+            }
+            val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+            cache.upsertBatch(ds.shortName, all.map {
+                com.jichi.ob.util.ActivityCache.Entry(
+                    id = it.id,
+                    platform = ds.shortName,
+                    startTime = normStartMs(it.startTimeMs, it.startTime, cache),
+                    type = cleanCacheType(ds, it.extra),
+                    title = it.title,
+                    distanceKm = it.distance,
+                    durationSec = it.duration,
+                    filename = "",
+                    extra = it.extra ?: ""
+                )
+            })
+            // v8.2.3.10: 预拉取平台日志写入详情弹窗可见（导入/成功/失败）
+            cache.addPlatformLog(ds.shortName, "导入", "预拉取 ${all.size} 条记录入库")
+            appendLog("💾 ${ds.displayName} 已缓存 ${all.size} 条记录到记录中心")
+            runOnUiThread {
+                try { loginFragment.updateStatus() } catch (_: Exception) {}
+                try { if (::recordFragment.isInitialized) recordFragment.refresh() } catch (_: Exception) {}
+            }
+            return all.size
+        } catch (e: Exception) {
+            appendLog("⚠️ ${ds.displayName} 预拉取失败: ${e.message}")
+            return -1
         }
     }
 
@@ -1359,6 +1752,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     internal fun startSync() {
+        // v8.2.2: 任务×批量互斥——任务运行中禁止启动批量同步
+        if (taskActive) {
+            Toast.makeText(this, "同步任务运行中，请先停止任务", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // v8.2.3.5: 多对一模式仅用于任务——批量同步需一对多
+        if (settingsFragment.isTaskModeMulti()) {
+            Toast.makeText(this, "多对一模式仅用于任务：请先点「保存为任务」，再到同步页运行任务", Toast.LENGTH_LONG).show()
+            return
+        }
         val source = settingsFragment.getSelectedSource()
         // v7.6.7: 一对多同步 - 支持多目标
         var targets = settingsFragment.getSelectedTargets().distinct().filter { it != source }
@@ -1399,15 +1802,15 @@ class MainActivity : AppCompatActivity() {
                         com.jichi.ob.util.ActivityCache.Entry(
                             id = it.id,
                             platform = source.shortName,
-                            startTime = if (it.startTimeMs > 0) it.startTimeMs else cache.parseStartTimeMs(it.startTime),
-                            type = it.extra ?: "",
+                            startTime = normStartMs(it.startTimeMs, it.startTime, cache),
+                            type = cleanCacheType(source, it.extra),
                             title = it.title,
                             distanceKm = it.distance,
                             durationSec = it.duration,
-                            filename = ""
+                            filename = "",
+                            extra = it.extra ?: ""
                         )
                     })
-                    cache.prune(source.shortName)
                     appendLog("💾 已缓存 ${activities.size} 条到记录中心")
                     // v8.2.1: 同步完成可见提示（确认缓存入库，记录中心打开即可见）
                     runOnUiThread {
@@ -1469,15 +1872,18 @@ class MainActivity : AppCompatActivity() {
                     }
                     if (pendingTargets.isEmpty()) {
                         skipped++; updateStats("skip"); appendLog("⏭️ [${i+1}/${activities.size}] 已同步跳过: ${act.title.take(20)}")
+                        recordSync(source, "skip", 0, 0, 0, "已同步跳过 ${act.title.take(20)}")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     appendLog("⬇️ [${i+1}/${activities.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
                     val fileData = try { downloadActivity(source, targets.first(), act) } catch (e: Exception) {
                         appendLog("❌ 下载失败: ${e.message}"); failed++; updateStats("fail")
+                        recordSync(source, "err", 0, 0, 1, "下载失败: ${e.message}")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     if (fileData == null || fileData.size < 100) {
                         appendLog("❌ 文件数据无效"); failed++; updateStats("fail")
+                        recordSync(source, "err", 0, 0, 1, "文件数据无效")
                         withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1) }; continue
                     }
                     val ext = if (isFit(fileData)) "fit" else "gpx"
@@ -1488,6 +1894,7 @@ class MainActivity : AppCompatActivity() {
                         FileOutputStream(localFile).use { it.write(fileData) }
                         val savedPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, localName, fileData)
                         appendLog("💾 已存: $savedPath (${fileData.size}字节)")
+                        recordSync(source, "dl", 1, 0, 0, "下载 ${act.title.take(20)} ${fileData.size}字节")
                         // v8.2.0: 缓存回填文件名（记录中心可直接打开本地文件）
                         try { com.jichi.ob.util.ActivityCache.get(this@MainActivity).setFilename(source.shortName, act.id, savedPath ?: "") } catch (_: Exception) {}
                     } catch (_: Exception) {}
@@ -1539,8 +1946,8 @@ class MainActivity : AppCompatActivity() {
                             uploadEngine.upload(target, targetCred, fileData, act, upExtra)
                         }
                         val tCost = System.currentTimeMillis() - t0
-                        if (result.success) { success++; updateStats("ok"); prefs.addSyncedId(syncKey); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
-                        else if (result.skipped) { skipped++; updateStats("skip"); prefs.addSyncedId(syncKey); appendLog("⏭️ 已存在跳过: ${result.message}") }
+                        if (result.success) { success++; updateStats("ok"); prefs.addSyncedId(syncKey); recordSync(target, "ok", 0, 1, 0, "上传成功 ${act.title.take(20)}"); appendLog("✅ 上传成功(${tCost}ms): ${result.message}") }
+                        else if (result.skipped) { skipped++; updateStats("skip"); prefs.addSyncedId(syncKey); recordSync(target, "skip", 0, 1, 0, "已存在跳过 ${act.title.take(20)}"); appendLog("⏭️ 已存在跳过: ${result.message}") }
                         else {
                             // v7.5.3: Wahoo 401自动刷新token并重试一次
                             var retrySuccess = false
@@ -1558,12 +1965,13 @@ class MainActivity : AppCompatActivity() {
                                         if (retryResult.success) {
                                             retrySuccess = true
                                             success++; updateStats("ok"); prefs.addSyncedId(syncKey)
+                                            recordSync(target, "ok", 0, 1, 0, "重试上传成功 ${act.title.take(20)}")
                                             appendLog("✅ 重试上传成功(${System.currentTimeMillis() - t0}ms): ${retryResult.message}")
                                         }
                                     }
                                 }
                             }
-                            if (!retrySuccess) { failed++; updateStats("fail"); appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
+                            if (!retrySuccess) { failed++; updateStats("fail"); recordSync(target, "err", 0, 0, 1, "上传失败 ${act.title.take(20)}: ${result.message}"); appendLog("❌ 上传失败(${tCost}ms): ${result.message}") }
                         }
                     }
                     withContext(Dispatchers.Main) { syncFragment.setProgress(i + 1); settingsFragment.setSyncedCount(prefs.getSyncedCount()) }
@@ -1572,13 +1980,303 @@ class MainActivity : AppCompatActivity() {
                 appendLog("━━━━━━━━━━━━━━━━━━━━━━")
                 appendLog("📊 同步完成: 成功$success / 跳过$skipped / 失败$failed")
                 // v7.7.8: 同步结束更新统计卡片
-                withContext(Dispatchers.Main) { syncFragment.setStats(prefs.getStatOk(), prefs.getStatSkip(), prefs.getStatFail()) }
+                withContext(Dispatchers.Main) {
+                    syncFragment.setStats(prefs.getStatOk(), prefs.getStatSkip(), prefs.getStatFail())
+                    // v8.2.3.4: 同步落库后刷新首页登录卡片条数徽标（数据已写入缓存库）
+                    try { loginFragment.updateStatus() } catch (_: Exception) {}
+                }
             } catch (e: Exception) { Log.e(TAG, "sync error", e); appendLog("❌ 同步异常: ${e.message}") }
             finally { setSyncing(false) }
         }
     }
 
     internal fun stopSync() { syncJob?.cancel(); appendLog("⏹ 正在停止同步...") }
+
+    // ===== v8.2.2: 任务化同步引擎（与批量同步互斥）=====
+    internal fun runTask(task: com.jichi.ob.model.SyncTask) {
+        if (syncJob?.isActive == true) {
+            Toast.makeText(this, "批量同步运行中，请先停止", Toast.LENGTH_SHORT).show(); return
+        }
+        if (taskActive) return
+        val sources = task.sources.mapNotNull { DataSource.fromShortName(it) }.distinct()
+        var targets = task.targets.mapNotNull { DataSource.fromShortName(it) }.distinct()
+        if (sources.isEmpty() || targets.isEmpty()) {
+            Toast.makeText(this, "任务未配置来源或目标", Toast.LENGTH_SHORT).show(); return
+        }
+        val unavailable = targets.filter { !UploadSupport.fromDataSource(it).available && it != DataSource.KEEP }
+        if (unavailable.isNotEmpty())
+            Toast.makeText(this, "${unavailable.joinToString { it.displayName }}上传不可用，已移除", Toast.LENGTH_SHORT).show()
+        targets = targets.filter { UploadSupport.fromDataSource(it).available || it == DataSource.KEEP }
+        if (targets.isEmpty()) { Toast.makeText(this, "没有可用的同步目标", Toast.LENGTH_SHORT).show(); return }
+        val notLoggedSrc = sources.filter { !prefs.isLoggedIn(it) }
+        if (notLoggedSrc.isNotEmpty()) {
+            Toast.makeText(this, "请先登录${notLoggedSrc.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
+        }
+        val notLoggedTgt = targets.filter { it != DataSource.KEEP && !prefs.isLoggedIn(it) }
+        if (notLoggedTgt.isNotEmpty()) {
+            Toast.makeText(this, "请先登录${notLoggedTgt.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
+        }
+        appendLog("━━━━━━━━━━━━━━━━━━━━━━")
+        appendLog("📦 任务开始: ${task.name}（${sources.size}来源 × ${targets.size}目标）")
+        taskActive = true
+        refreshTaskUi()
+        taskJob = lifecycleScope.launch(Dispatchers.IO) {
+            var ok = 0; var skipped = 0; var failed = 0
+            try {
+                for (source in sources) {
+                    if (!taskActive) break
+                    appendLog("📥 [${source.displayName}] 获取活动列表...")
+                    val activities = try { fetchActivities(source, task.skip, task.count) } catch (e: Exception) {
+                        Log.e(TAG, "task fetch ${source.displayName} error", e)
+                        appendLog("❌ ${source.displayName} 获取列表失败: ${e.message}")
+                        recordSync(source, "err", 0, 0, 1, "获取列表失败: ${e.message}")
+                        failed++
+                        continue
+                    }
+                    appendLog("📋 获取到 ${activities.size} 条活动")
+                    flushGarminDebugLogs()
+                    // 落缓存（对齐批量行为：拉列表即入记录中心）
+                    try {
+                        val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+                        cache.upsertBatch(source.shortName, activities.map {
+                            com.jichi.ob.util.ActivityCache.Entry(
+                                id = it.id, platform = source.shortName,
+                                startTime = normStartMs(it.startTimeMs, it.startTime, cache),
+                                type = cleanCacheType(source, it.extra), title = it.title,
+                                distanceKm = it.distance, durationSec = it.duration, filename = "",
+                                extra = it.extra ?: ""
+                            )
+                        })
+                        appendLog("💾 已缓存 ${activities.size} 条到记录中心")
+                    } catch (e: Exception) { appendLog("⚠️ 记录缓存失败: ${e.message}") }
+                    // 增量：跳过缓存已有 id（对齐佳速通"登录后缓存列表、增量拉取"做法）
+                    // v8.2.6: 改用批量判重 existsIds（此前全量载入 queryByPlatform 到内存，2000条时低效）
+                    var list = activities
+                    if (task.incremental) {
+                        try {
+                            val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+                            val existIds = cache.existsIds(source.shortName, list.map { it.id })
+                            val before = list.size
+                            list = list.filter { !existIds.contains(it.id) }
+                            if (list.size < before)
+                                appendLog("⏭️ 增量模式: 跳过缓存已有 ${before - list.size} 条，本次同步 ${list.size} 条")
+                        } catch (e: Exception) { Log.w(TAG, "增量过滤失败: ${e.message}") }
+                    }
+                    val force = task.force || targets.size > 1
+                    // v8.2.3: P2 并发按平台风险分级——先收集待下载条目（含各目标记忆过滤），下载阶段并行，上传阶段串行
+                    val pendingItems = mutableListOf<Pair<Int, Pair<com.jichi.ob.model.ActivityRecord, List<DataSource>>>>()
+                    for ((i, act) in list.withIndex()) {
+                        if (!taskActive) break
+                        val pendingTargets = targets.filter { t ->
+                            val syncKey = "${source.shortName}_${act.id}_to_${t.shortName}"
+                            force || !prefs.isSynced(syncKey)
+                        }
+                        if (pendingTargets.isEmpty()) {
+                            skipped++; prefs.addStat("skip")
+                            appendLog("⏭️ [${i+1}/${list.size}] 已同步跳过: ${act.title.take(20)}")
+                            continue
+                        }
+                        pendingItems.add(i to (act to pendingTargets))
+                    }
+                    // 下载并发：低风险来源按全局并发数(1-4)；佳明国区/国际强制串行（风控敏感，避免并发触发冷却）
+                    val dlConc = if (source == DataSource.GARMIN_COM || source == DataSource.GARMIN_CN)
+                        1 else prefs.getDownloadConcurrency().coerceIn(1, 4)
+                    val dlSem = java.util.concurrent.Semaphore(dlConc)
+                    class Downloaded(val act: com.jichi.ob.model.ActivityRecord, val fileData: ByteArray?, val localFile: File?)
+                    val dlResults = coroutineScope {
+                        pendingItems.map { (i, pair) ->
+                            async {
+                                val act = pair.first
+                                if (!taskActive) return@async Downloaded(act, null, null)
+                                dlSem.acquire()
+                                try {
+                                    appendLog("⬇️ [${i+1}/${list.size}] 下载: ${act.title.take(20)} id=${act.id} (${"%.1f".format(act.distance)}km)")
+                                    val fileData = try { downloadActivity(source, targets.first(), act, task.coordinateConvert) } catch (e: Exception) {
+                                        appendLog("❌ 下载失败: ${e.message}")
+                                        recordSync(source, "err", 0, 0, 1, "下载失败: ${e.message}")
+                                        failed++; prefs.addStat("fail")
+                                        return@async Downloaded(act, null, null)
+                                    }
+                                    if (fileData == null || fileData.size < 100) {
+                                        appendLog("❌ 文件数据无效")
+                                        recordSync(source, "err", 0, 0, 1, "文件数据无效")
+                                        failed++; prefs.addStat("fail")
+                                        return@async Downloaded(act, null, null)
+                                    }
+                                    val ext = if (isFit(fileData)) "fit" else "gpx"
+                                    val localName = com.jichi.ob.util.FileNameGenerator.generate(source, act, ext)
+                                    val localFile = File(cacheDir, localName)
+                                    try {
+                                        FileOutputStream(localFile).use { it.write(fileData) }
+                                        val savedPath = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, localName, fileData)
+                                        appendLog("💾 已存: $savedPath (${fileData.size}字节)")
+                                        recordSync(source, "dl", 1, 0, 0, "下载 ${act.title.take(20)} ${fileData.size}字节")
+                                        try { com.jichi.ob.util.ActivityCache.get(this@MainActivity).setFilename(source.shortName, act.id, savedPath ?: "") } catch (_: Exception) {}
+                                    } catch (_: Exception) {}
+                                    Downloaded(act, fileData, localFile)
+                                } finally {
+                                    dlSem.release()
+                                }
+                            }
+                        }.awaitAll()
+                    }
+                    // v8.2.3.3: 上传阶段"目标间并发"——一条数据同时上传到多个目标（受全局并发数限制）
+                    // 佳明国区/国际/Keep（弹窗引导）强制串行，避免风控与弹窗叠加；其余目标按并发数并行
+                    for ((dl, pair) in dlResults.zip(pendingItems.map { it.second })) {
+                        if (!taskActive) break
+                        val fileData = dl.fileData ?: continue
+                        val act = dl.act
+                        val localFile = dl.localFile ?: continue
+                        val localName = localFile.name
+                        val pendingTargets = pair.second
+                        val normalTargets = pendingTargets.filter {
+                            it != DataSource.GARMIN_COM && it != DataSource.GARMIN_CN && it != DataSource.KEEP
+                        }
+                        val serialTargets = pendingTargets.filter {
+                            it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN || it == DataSource.KEEP
+                        }
+                        val upConc = prefs.getUploadConcurrency().coerceIn(1, 4)
+                        val upSem = java.util.concurrent.Semaphore(upConc)
+                        // 普通目标并行上传（上传函数返回增量，避免共享计数竞争）
+                        val deltas = coroutineScope {
+                            normalTargets.map { target ->
+                                async {
+                                    upSem.acquire()
+                                    try {
+                                        uploadOneToTarget(source, act, fileData, localFile, localName, target)
+                                    } finally {
+                                        upSem.release()
+                                    }
+                                }
+                            }.awaitAll()
+                        }
+                        for ((dOk, dSkip, dFail) in deltas) { ok += dOk; skipped += dSkip; failed += dFail }
+                        // 佳明/Keep 串行上传
+                        for (target in serialTargets) {
+                            if (!taskActive) break
+                            val (dOk, dSkip, dFail) = uploadOneToTarget(source, act, fileData, localFile, localName, target)
+                            ok += dOk; skipped += dSkip; failed += dFail
+                        }
+                        kotlinx.coroutines.delay(150)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "task sync error", e)
+                appendLog("❌ 任务异常: ${e.message}")
+            } finally {
+                taskActive = false
+                prefs.upsertTask(task.copyRun(ok, skipped, failed))
+                appendLog("━━━━━━━━━━━━━━━━━━━━━━")
+                appendLog("📦 任务完成: 成功$ok / 跳过$skipped / 失败$failed")
+                runOnUiThread {
+                    syncFragment.setStats(prefs.getStatOk(), prefs.getStatSkip(), prefs.getStatFail())
+                    settingsFragment.setSyncedCount(prefs.getSyncedCount())
+                    refreshTaskUi()
+                    // v8.2.3.4: 任务落库后刷新首页登录卡片条数徽标
+                    try { loginFragment.updateStatus() } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
+    internal fun stopTask() {
+        taskJob?.cancel()
+        taskActive = false
+        appendLog("⏹ 正在停止任务...")
+        refreshTaskUi()
+    }
+
+    /** v8.2.2: 刷新任务区互斥状态（任务运行中批量开始按钮置灰等） */
+    internal fun refreshTaskUi() {
+        runOnUiThread {
+            try { syncFragment.refreshTaskState() } catch (_: Exception) {}
+            try { settingsFragment.refreshTaskState() } catch (_: Exception) {}
+        }
+    }
+
+    /** v8.2.3.3: 上传到单个目标（目标间并发调用）。返回 (成功, 跳过, 失败) 增量，避免并发下共享计数竞争 */
+    private suspend fun uploadOneToTarget(
+        source: DataSource,
+        act: com.jichi.ob.model.ActivityRecord,
+        fileData: ByteArray,
+        localFile: File,
+        localName: String,
+        target: DataSource
+    ): Triple<Int, Int, Int> {
+        val syncKey = "${source.shortName}_${act.id}_to_${target.shortName}"
+        val t0 = System.currentTimeMillis()
+        appendLog("📤 上传到 ${target.displayName} (${fileData.size}字节)...")
+        if (target == DataSource.BRYTON)
+            appendLog("⏳ 正在打开百锐腾页面并注入登录态，页面加载约5-15秒...")
+        var targetCred = prefs.getCredential(target) ?: ""
+        if (target == DataSource.GARMIN_COM || target == DataSource.GARMIN_CN) {
+            val newCred = garminApi.ensureValidToken(target, targetCred)
+            if (newCred != targetCred) {
+                targetCred = newCred
+                if (target == DataSource.GARMIN_COM) prefs.saveGarminComToken(targetCred)
+                else prefs.saveGarminCnToken(targetCred)
+            }
+        }
+        if (target == DataSource.WAHOO) {
+            val wahooRefresh = prefs.getWahooRefresh()
+            val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+            val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+            if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
+                val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
+                if (newToken != targetCred) { targetCred = newToken; prefs.saveWahooToken(targetCred) }
+            }
+        }
+        val csrf = if (target == DataSource.XINGZHE) (prefs.getXingzheCsrf() ?: "") else ""
+        val upExtra = if (csrf.isNotEmpty()) mapOf("csrf" to csrf) else emptyMap()
+        val result = if (target == DataSource.BRYTON) {
+            uploadToBrytonViaWebView(localFile.absolutePath)
+        } else if (target == DataSource.KEEP) {
+            showKeepImportGuide(localName, localFile.absolutePath)
+            com.jichi.ob.api.UploadEngine.UploadResult(true, message = "已生成 $localName，请在 Keep App 内手动导入")
+        } else if (target == DataSource.STRAVA || target == DataSource.TRAININGPEAKS || target == DataSource.POLAR || target == DataSource.FITBIT || target == DataSource.WITHINGS) {
+            // v8.3.1: 开发者 OAuth 平台上传（Strava/TP 官方上传API；Polar/Fitbit/Withings 官方无上传，返回不支持）
+            val ok = devOAuthApi.uploadFile(target, localFile)
+            com.jichi.ob.api.UploadEngine.UploadResult(ok, message = if (ok) "${target.displayName}上传成功" else "${target.displayName}上传失败（官方接口不支持或凭证失效）")
+        } else if (target == DataSource.TWO_BULU) {
+            // v8.3.1: 两步路网页上传——接口受WAF限制，返回待真机校准提示（不阻塞同步流程）
+            val ok = twoBuluApi.uploadFile(localFile)
+            com.jichi.ob.api.UploadEngine.UploadResult(ok, message = if (ok) "两步路上传成功" else "两步路网页上传接口待真机校准")
+        } else {
+            uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+        }
+        val tCost = System.currentTimeMillis() - t0
+        return if (result.success) {
+            prefs.addStat("ok"); prefs.addSyncedId(syncKey); recordSync(target, "ok", 0, 1, 0, "上传成功 ${act.title.take(20)}"); appendLog("✅ 上传成功(${tCost}ms): ${result.message}")
+            Triple(1, 0, 0)
+        } else if (result.skipped) {
+            prefs.addStat("skip"); prefs.addSyncedId(syncKey); recordSync(target, "skip", 0, 1, 0, "已存在跳过 ${act.title.take(20)}"); appendLog("⏭️ 已存在跳过: ${result.message}")
+            Triple(0, 1, 0)
+        } else {
+            var retrySuccess = false
+            if (target == DataSource.WAHOO && result.message.contains("401")) {
+                val wahooRefresh = prefs.getWahooRefresh()
+                val wahooClientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
+                val wahooClientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
+                if (!wahooRefresh.isNullOrEmpty() && !wahooClientId.isNullOrEmpty() && !wahooClientSecret.isNullOrEmpty()) {
+                    val newToken = wahooApi.ensureValidToken(targetCred, wahooRefresh, wahooClientId, wahooClientSecret)
+                    if (newToken != targetCred) {
+                        targetCred = newToken; prefs.saveWahooToken(targetCred)
+                        val retryResult = uploadEngine.upload(target, targetCred, fileData, act, upExtra)
+                        if (retryResult.success) {
+                            retrySuccess = true
+                            prefs.addStat("ok"); prefs.addSyncedId(syncKey)
+                            recordSync(target, "ok", 0, 1, 0, "重试上传成功 ${act.title.take(20)}")
+                            appendLog("✅ 重试上传成功(${System.currentTimeMillis() - t0}ms): ${retryResult.message}")
+                        }
+                    }
+                }
+            }
+            if (!retrySuccess) {
+                prefs.addStat("fail"); recordSync(target, "err", 0, 0, 1, "上传失败 ${act.title.take(20)}: ${result.message}"); appendLog("❌ 上传失败(${tCost}ms): ${result.message}")
+                Triple(0, 0, 1)
+            } else Triple(1, 0, 0)
+        }
+    }
 
     /** v7.9.2: Keep 半自动上传引导——文件已生成，提示用户在 Keep App 内手动导入 */
     private fun showKeepImportGuide(fileName: String, filePath: String) {
@@ -1745,8 +2443,8 @@ class MainActivity : AppCompatActivity() {
             }
             DataSource.GARMIN_COM -> garminApi.getActivities(source, cred, skip, limit)
             DataSource.GARMIN_CN -> garminApi.getActivities(source, cred, skip, limit)
-            DataSource.COROS_CN -> corosApi.getActivities(cred, skip, limit)
-            DataSource.COROS_INT -> corosApi.getActivities(cred, skip, limit)
+            DataSource.COROS_CN -> corosApi.getActivities(cred, skip, limit, DataSource.COROS_CN)
+            DataSource.COROS_INT -> corosApi.getActivities(cred, skip, limit, DataSource.COROS_INT)
             DataSource.WAHOO -> {
                 // v7.1.3: Wahoo优先用内置生产凭证刷新token，其次用用户配置的凭证
                 var token = cred
@@ -1779,6 +2477,9 @@ class MainActivity : AppCompatActivity() {
                 if (email.isNullOrEmpty()) emptyList() else komootApi.getActivities(email, cred, skip, limit)
             }
             DataSource.SUUNTO -> suuntoApi.getActivities(cred, suuntoSubscriptionKey() ?: "", skip, limit)
+            DataSource.TWO_BULU -> twoBuluApi.fetchActivities(skip, limit)   // 浏览捕获模式已入库，从缓存库读取
+            DataSource.STRAVA, DataSource.POLAR, DataSource.FITBIT, DataSource.WITHINGS, DataSource.TRAININGPEAKS ->
+                devOAuthApi.fetchActivities(source, skip, limit)
             else -> emptyList()
         }
     }
@@ -1803,7 +2504,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun downloadActivity(source: DataSource, target: DataSource = DataSource.OUTBASE, record: ActivityRecord): ByteArray? {
+    private suspend fun downloadActivity(source: DataSource, target: DataSource = DataSource.OUTBASE, record: ActivityRecord, convertMagene: Boolean = true): ByteArray? {
         val cred = prefs.getCredential(source) ?: return null
         var data = when (source) {
             DataSource.IGPSPORT -> igpsportApi.downloadFitFile(cred, record.id, record.extra)
@@ -1819,11 +2520,12 @@ class MainActivity : AppCompatActivity() {
                     val result = mageneApi.downloadFit(cred, record.id)
                     // 迈金坐标转换: 仅对fit_content接口下载的GCJ-02坐标FIT执行转换
                     // 七牛云直链(durl)下载的已是WGS84，不转换
-                    if (prefs.isGcj02Convert() && result.fromFitContent && isFit(result.data)) {
+                    // v8.2.3.1: 任务级开关 convertMagene（默认开=跟随设置页全局开关；任务可单独关）
+                    if (prefs.isGcj02Convert() && convertMagene && result.fromFitContent && isFit(result.data)) {
                         appendLog("🔄 迈金fit_content来源(GCJ-02)，执行WGS84转换...")
                         convertFitCoordinates(result.data)
                     } else {
-                        if (prefs.isGcj02Convert() && !result.fromFitContent) {
+                        if (prefs.isGcj02Convert() && convertMagene && !result.fromFitContent) {
                             appendLog("ℹ️ 迈金七牛云直链(WGS84)，无需转换")
                         }
                         result.data
@@ -1875,8 +2577,15 @@ class MainActivity : AppCompatActivity() {
                 mywhooshApi.downloadFit(cred, whooshId, record.extra ?: "")
             }
             DataSource.ZWIFT -> {
-                // v7.8.4: Zwift S3 直链下载（extra=bucket|key），S3 无需 token
-                zwiftApi.downloadFit(record.extra ?: "")
+                // v8.3.2: Zwift 下载 403 修复——S3 直链失败自动回退 API 鉴权下载
+                try {
+                    val zw = zwiftApi.downloadFit(record.extra ?: "", cred, record.id)
+                    appendLog("✅ Zwift 下载成功 (v8.3.3: S3直链+详情预检+API兜底)")
+                    zw
+                } catch (e: Exception) {
+                    appendLog("❌ Zwift 下载失败: ${e.message}")
+                    null
+                }
             }
             DataSource.KEEP -> {
                 // v7.9.2: Keep 下载轨迹→GPX（extra=run_id），上传引擎自动转 FIT
@@ -1926,6 +2635,7 @@ class MainActivity : AppCompatActivity() {
         recordFragment = com.jichi.ob.ui.RecordCenterFragment()
         mergeFragment = com.jichi.ob.ui.MergeFragment()
         labLoginFragment = com.jichi.ob.ui.LabLoginFragment()
+        createTaskFragment = com.jichi.ob.ui.CreateTaskFragment()
         supportFragmentManager.beginTransaction()
             .add(R.id.fragmentContainer, loginFragment, "login")
             .add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
@@ -1934,6 +2644,7 @@ class MainActivity : AppCompatActivity() {
             .add(R.id.fragmentContainer, recordFragment, "records").hide(recordFragment)
             .add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
             .add(R.id.fragmentContainer, labLoginFragment, "lab").hide(labLoginFragment)
+            .add(R.id.fragmentContainer, createTaskFragment, "createtask").hide(createTaskFragment)
             .commit()
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         bottomNav.setOnItemSelectedListener { item ->
@@ -1946,6 +2657,19 @@ class MainActivity : AppCompatActivity() {
             true
         }
         bottomNav.selectedItemId = R.id.nav_login
+    }
+
+    // v8.2.3.5: 新建任务引导——切到设置页（设置页=任务配置页，调好来源/目标/参数后点「保存为任务」）
+    fun switchToSettingsTab() {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        bottomNav?.selectedItemId = R.id.nav_settings
+        Toast.makeText(this, "在设置页选好来源/目标后，点「保存为任务」", Toast.LENGTH_LONG).show()
+    }
+
+    // v8.2.3.5: 设置页保存任务后，刷新同步页任务列表
+    fun refreshTasksFromSettings() {
+        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
+        try { settingsFragment.refreshTaskState() } catch (_: Exception) {}
     }
 
     // v8.2.1: 记录中心入口（关于页横条调用；全屏覆盖页，不占底部导航高频位）
@@ -1990,8 +2714,45 @@ class MainActivity : AppCompatActivity() {
         try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
     }
 
+    // v8.2.2: 新建任务向导（设置页「＋新建同步任务」横条入口；全屏覆盖页，可返回）
+    fun openCreateTask() {
+        // v8.3.2: 新建任务限时体验到期（2026-10-07）——到期后点击提醒，不进入向导
+        if (System.currentTimeMillis() >= 1791302400000L) {
+            try {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("提示")
+                    .setMessage("版本过旧，需要获取更新，关注抖音:多吃两口获取更新")
+                    .setPositiveButton("知道了", null)
+                    .show()
+            } catch (_: Exception) {}
+            return
+        }
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().show(createTaskFragment).commit()
+        bottomNav?.visibility = android.view.View.GONE
+        toolbar?.visibility = android.view.View.GONE
+    }
+
+    fun closeCreateTask() {
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        supportFragmentManager.beginTransaction().hide(createTaskFragment).commit()
+        bottomNav?.visibility = android.view.View.VISIBLE
+        toolbar?.visibility = android.view.View.VISIBLE
+        // v8.2.3.8: 返回打开向导前的 tab（不再硬编码设置页；底部高亮与页面保持一致）
+        when (bottomNav?.selectedItemId) {
+            R.id.nav_login -> showFragment(loginFragment)
+            R.id.nav_settings -> showFragment(settingsFragment)
+            R.id.nav_about -> showFragment(aboutFragment)
+            else -> showFragment(syncFragment)
+        }
+        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
+        try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
+    }
+
     private fun showFragment(target: androidx.fragment.app.Fragment) {
-        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment).filter { it !== target }
+        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment, createTaskFragment).filter { it !== target }
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
         tr.show(target).commit()
@@ -2179,6 +2940,106 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 appendLog("❌ 测试下载异常: ${e.message}")
+            }
+        }
+    }
+
+    /** v8.2.3.10: 记录中心单点下载——从源平台拉取 FIT/GPX 存本地并回填缓存文件名 */
+    /** v8.2.6: 批量修复 iGPSPORT 缺失时间——对缓存库中 start_time<=0 的记录逐个下载 FIT 解析回填
+     *  （列表接口不带时间；FIT 文件自带 file_id.time_created，串行下载防触发风控，限 100 条） */
+    internal fun repairIgpTimes() {
+        val token = prefs.getIgpsportToken()
+        if (token.isNullOrEmpty()) {
+            Toast.makeText(this, "iGPSPORT 未登录，无法修复时间", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "开始修复 iGPSPORT 缺失时间（后台进行，查看平台日志）", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+                val bad = cache.queryBadTime(com.jichi.ob.model.DataSource.IGPSPORT.shortName, 100)
+                if (bad.isEmpty()) {
+                    appendLog("✅ iGPSPORT 无缺失时间记录")
+                    return@launch
+                }
+                appendLog("🔧 修复 iGPSPORT 缺失时间: ${bad.size} 条（下载 FIT 解析，串行）...")
+                var fixed = 0
+                for ((i, rec) in bad.withIndex()) {
+                    if (!isFinishing) {
+                        try {
+                            val fit = igpsportApi.downloadFitFile(token, rec.id, rec.extra)
+                            val ms = igpsportApi.parseFitStartTimeMs(fit)
+                            if (ms > 0) {
+                                cache.setStartTime(com.jichi.ob.model.DataSource.IGPSPORT.shortName, rec.id, ms)
+                                fixed++
+                                if (fixed % 10 == 0) appendLog("✅ 已修复 $fixed/${bad.size} 条")
+                            }
+                        } catch (e: Exception) { Log.w(TAG, "igp 时间修复单条失败: ${e.message}") }
+                    }
+                    kotlinx.coroutines.delay(300) // 串行节流，避免风控
+                }
+                appendLog("✅ iGPSPORT 时间修复完成: 成功 $fixed / ${bad.size} 条")
+                withContext(Dispatchers.Main) {
+                    try { if (::recordFragment.isInitialized) recordFragment.reload() } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "igp 时间批量修复失败", e)
+                appendLog("❌ iGPSPORT 时间修复失败: ${e.message}")
+            }
+        }
+    }
+
+    internal fun downloadCacheEntry(entry: com.jichi.ob.util.ActivityCache.Entry) {        val ds = com.jichi.ob.model.DataSource.fromShortName(entry.platform)
+        if (ds == null) {
+            Toast.makeText(this, "未知平台: ${entry.platform}", Toast.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                appendLog("⬇️ 单点下载: [${ds.displayName}] ${entry.title.take(20)} (${"%.1f".format(entry.distanceKm)}km)")
+                val act = com.jichi.ob.model.ActivityRecord(
+                    id = entry.id,
+                    title = entry.title.ifBlank { "活动 ${entry.id.take(8)}" },
+                    startTime = "",
+                    distance = entry.distanceKm,
+                    duration = entry.durationSec,
+                    source = ds,
+                    extra = entry.extra,
+                    startTimeMs = entry.startTime
+                )
+                val data = downloadActivity(ds, record = act) ?: throw Exception("下载返回空数据")
+                if (data.size < 100) throw Exception("下载数据无效 (${data.size}字节)")
+                val ext = if (isFit(data)) "fit" else "gpx"
+                val name = FileNameGenerator.generate(ds, act, ext)
+                val path = com.jichi.ob.util.FileSaver.saveToDownloads(this@MainActivity, name, data)
+                try {
+                    com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+                        .setFilename(ds.shortName, entry.id, path ?: "")
+                } catch (_: Exception) {}
+                // v8.2.6: igp 记录时间缺失（1970）时，下载的 FIT 自带时间 → 解析回填，立即修复记录中心时间
+                if (ds == com.jichi.ob.model.DataSource.IGPSPORT && entry.startTime <= 0 && isFit(data)) {
+                    try {
+                        val ms = igpsportApi.parseFitStartTimeMs(data)
+                        if (ms > 0) {
+                            com.jichi.ob.util.ActivityCache.get(this@MainActivity)
+                                .setStartTime(ds.shortName, entry.id, ms)
+                            val t = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+                                .format(java.util.Date(ms))
+                            appendLog("✅ iGPSPORT 时间已从 FIT 回填: $t")
+                        } else appendLog("⚠️ iGPSPORT FIT 未解析到时间字段")
+                    } catch (_: Exception) {}
+                }
+                appendLog("💾 已存: $path (${data.size}字节)")
+                appendLog("✅ 单点下载完成: $name")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "已下载 $name", Toast.LENGTH_LONG).show()
+                    try { if (::recordFragment.isInitialized) recordFragment.reload() } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                appendLog("⚠️ 单点下载失败: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "下载失败: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

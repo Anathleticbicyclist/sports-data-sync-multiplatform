@@ -56,6 +56,12 @@ class LoginWebActivity : AppCompatActivity() {
         const val TYPE_COROS_INT = "coros_int"
         const val TYPE_WAHOO = "wahoo"
         const val TYPE_SUUNTO = "suunto"
+        const val TYPE_TWO_BULU = "2bulu"
+        const val TYPE_STRAVA = "strava"
+        const val TYPE_POLAR = "polar"
+        const val TYPE_FITBIT = "fitbit"
+        const val TYPE_WITHINGS = "withings"
+        const val TYPE_TRAININGPEAKS = "trainingpeaks"
         const val RESULT_TOKEN = "***"
         const val RESULT_SESSION_ID = "session_id"
         const val RESULT_LOGIN_TYPE = "login_type"
@@ -93,6 +99,12 @@ class LoginWebActivity : AppCompatActivity() {
                 TYPE_COROS_INT -> { origins = listOf("https://training.coros.com"); domains = listOf("training.coros.com", "coros.com") }
                 TYPE_WAHOO -> { origins = listOf("https://sso.wahoo.com", "https://api.wahooligan.com"); domains = listOf("sso.wahoo.com", "api.wahooligan.com", "wahoo.com") }
                 TYPE_SUUNTO -> { origins = listOf("https://cloudapi-oauth.suunto.com", "https://cloudapi.suunto.com"); domains = listOf("cloudapi-oauth.suunto.com", "cloudapi.suunto.com", "suunto.com", "localhost") }
+                TYPE_STRAVA -> { origins = emptyList(); domains = listOf("www.strava.com", "strava.com", "localhost") }
+                TYPE_POLAR -> { origins = emptyList(); domains = listOf("flow.polar.com", "polar.com", "polaraccesslink.com", "localhost") }
+                TYPE_FITBIT -> { origins = emptyList(); domains = listOf("www.fitbit.com", "fitbit.com", "api.fitbit.com", "localhost") }
+                TYPE_WITHINGS -> { origins = emptyList(); domains = listOf("account.withings.com", "withings.com", "api.health.nokia.com", "localhost") }
+                TYPE_TRAININGPEAKS -> { origins = emptyList(); domains = listOf("oauth.trainingpeaks.com", "trainingpeaks.com", "api.trainingpeaks.com", "localhost") }
+                TYPE_TWO_BULU -> { origins = listOf("https://www.2bulu.com", "https://2bulu.com"); domains = listOf("www.2bulu.com", "2bulu.com") }
                 else -> return
             }
             // 清除localStorage（按origin）
@@ -186,6 +198,12 @@ class LoginWebActivity : AppCompatActivity() {
         TYPE_COROS_INT -> DataSource.COROS_INT
         TYPE_WAHOO -> DataSource.WAHOO
         TYPE_SUUNTO -> DataSource.SUUNTO
+        TYPE_STRAVA -> DataSource.STRAVA
+        TYPE_POLAR -> DataSource.POLAR
+        TYPE_FITBIT -> DataSource.FITBIT
+        TYPE_WITHINGS -> DataSource.WITHINGS
+        TYPE_TRAININGPEAKS -> DataSource.TRAININGPEAKS
+        TYPE_TWO_BULU -> DataSource.TWO_BULU
         else -> DataSource.IGPSPORT
     }
 
@@ -216,6 +234,12 @@ class LoginWebActivity : AppCompatActivity() {
                 TYPE_COROS_INT -> "登录高驰国际"
                 TYPE_WAHOO -> "登录 Wahoo"
                 TYPE_SUUNTO -> "登录 松拓"
+                TYPE_STRAVA -> "登录 Strava"
+                TYPE_POLAR -> "登录 Polar"
+                TYPE_FITBIT -> "登录 Fitbit"
+                TYPE_WITHINGS -> "登录 Withings"
+                TYPE_TRAININGPEAKS -> "登录 TrainingPeaks"
+                TYPE_TWO_BULU -> "登录 两步路"
                 else -> "登录"
             }
             toolbar.setNavigationOnClickListener { detected = true; finish() }
@@ -312,13 +336,20 @@ class LoginWebActivity : AppCompatActivity() {
                                     // v7.9.0: 若已触发429冷却，优先提示冷却时长（避免用户误以为密码错误反复重试）
                                     // v7.9.1: 按该账号任一通道冷却提示（多通道轮换后仍失败，说明全部通道受限或密码错误）
                                     val cooldownMin = com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)
-                                    tvStatus.text = if (cooldownMin > 0) {
-                                        "❌ 登录失败，该账号所有佳明登录通道均触发风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
+                                    val failText = if (cooldownMin > 0) {
+                                        "登录失败，该账号所有佳明登录通道均触发风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
                                     } else {
-                                        "❌ 登录失败，请检查邮箱密码\n" +
-                                            "（开启了两步验证需先关闭）\n" +
-                                            "佳明对频繁登录有风控：请保证账号密码一次输对，勿同时登录开发体验版与正式版；多次失败会触发限流，请过几小时或次日再试"
+                                        "登录失败，请检查邮箱密码\n（开启了两步验证需先关闭）\n佳明对频繁登录有风控：请保证账号密码一次输对，勿同时登录开发体验版与正式版；多次失败会触发限流，请过几小时或次日再试"
                                     }
+                                    tvStatus.text = "❌ $failText"
+                                    // v8.2.3.1: 登录失败/两步验证/密码错误必须弹窗提醒，不能只落在状态栏
+                                    try {
+                                        android.app.AlertDialog.Builder(this@LoginWebActivity)
+                                            .setTitle("佳明${if (isCN) "中国" else "国际"}登录失败")
+                                            .setMessage(failText + "\n\n若已开启两步验证（短信/邮箱验证码），请关闭后再试；否则请确认账号密码正确。")
+                                            .setPositiveButton("知道了", null)
+                                            .show()
+                                    } catch (_: Exception) {}
                                 }
                             }
                         } catch (e: Exception) {
@@ -349,6 +380,7 @@ class LoginWebActivity : AppCompatActivity() {
                         progressBar.visibility = android.view.View.VISIBLE
                     }
                     override fun onPageFinished(view: WebView?, url: String?) {
+                        if (loginType == TYPE_TWO_BULU && url != null) twoBuluInjectKmlClick(url)
                         progressBar.visibility = android.view.View.GONE
                         checkCount++
                         if (checkCount == 1) webView.post(checkRunnable)
@@ -359,7 +391,7 @@ class LoginWebActivity : AppCompatActivity() {
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
                     if (url != null) urlHistory.add("shouldOverride: $url")
                     // v7.4.4: Wahoo回调URL在这里拦截，避免SSL错误导致捕获失败
-                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && !detected) {
+                    if (isOAuth2CallbackType(loginType) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -428,7 +460,7 @@ class LoginWebActivity : AppCompatActivity() {
                     Log.d(TAG, "[$loginType] PageStarted: $url")
                     if (url != null) urlHistory.add("pageStarted: $url")
                     // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
-                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
+                    if (isOAuth2CallbackType(loginType) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -474,7 +506,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val failingUrl = request?.url?.toString()
                     Log.e(TAG, "[$loginType] Error: ${error?.description} for $failingUrl")
                     if (failingUrl != null) urlHistory.add("onError: $failingUrl")
-                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && failingUrl != null && (failingUrl.contains("localhost:8080") || failingUrl.contains("wahoo/callback")) && failingUrl.contains("code=") && !detected) {
+                    if (isOAuth2CallbackType(loginType) && failingUrl != null && (failingUrl.contains("localhost:8080") || failingUrl.contains("wahoo/callback")) && failingUrl.contains("code=") && !detected) {
                         val code = extractWahooCode(failingUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -507,7 +539,7 @@ class LoginWebActivity : AppCompatActivity() {
                         webViewUrl != null && webViewUrl.contains("localhost:8080") && webViewUrl.contains("code=") -> webViewUrl
                         else -> null
                     }
-                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && candidateUrl != null && !detected) {
+                    if (isOAuth2CallbackType(loginType) && candidateUrl != null && !detected) {
                         val code = extractWahooCode(candidateUrl)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -538,7 +570,7 @@ class LoginWebActivity : AppCompatActivity() {
                     val url = request?.url?.toString()
                     Log.d(TAG, "[$loginType] shouldOverrideUrlLoading: $url")
                     if (url != null) urlHistory.add("shouldOverride: $url")
-                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
+                    if (isOAuth2CallbackType(loginType) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -557,7 +589,7 @@ class LoginWebActivity : AppCompatActivity() {
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     Log.d(TAG, "[$loginType] doUpdateVisitedHistory: $url")
                     if (url != null) urlHistory.add("doUpdate: $url")
-                    if ((loginType == TYPE_WAHOO || loginType == TYPE_SUUNTO) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
+                    if (isOAuth2CallbackType(loginType) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
                         if (!code.isNullOrEmpty()) {
                             detected = true
@@ -859,6 +891,8 @@ class LoginWebActivity : AppCompatActivity() {
             TYPE_COROS_INT -> detectCoros(cn = false)
             TYPE_WAHOO -> detectWahoo()
             TYPE_SUUNTO -> detectWahoo()  // v7.9.6: 松拓同为 OAuth2 回调 localhost:8080?code=，复用 Wahoo 兜底
+            TYPE_STRAVA, TYPE_POLAR, TYPE_FITBIT, TYPE_WITHINGS, TYPE_TRAININGPEAKS -> detectWahoo()  // v8.2.9: P0 实验室平台同为 OAuth2 回调，复用
+            TYPE_TWO_BULU -> detectTwoBulu()
         }
     }
 
@@ -1062,6 +1096,11 @@ class LoginWebActivity : AppCompatActivity() {
         return null
     }
 
+
+    /** v8.2.9: 是否 OAuth2 回调型登录（Wahoo/松拓/P0实验室五平台：localhost:8080?code=） */
+    private fun isOAuth2CallbackType(t: String): Boolean =
+        t == TYPE_WAHOO || t == TYPE_SUUNTO || t == TYPE_STRAVA || t == TYPE_POLAR || t == TYPE_FITBIT || t == TYPE_WITHINGS || t == TYPE_TRAININGPEAKS
+
     /** v6.5.0: Wahoo 检测登录 —— OAuth2 回调 localhost:8080?code= 已由 onPageStarted 处理，兜底读 webView.url */
     private fun detectWahoo() {
         val url = webView.url ?: return
@@ -1074,6 +1113,105 @@ class LoginWebActivity : AppCompatActivity() {
             .putExtra(RESULT_TOKEN, code)
             .putExtra(RESULT_LOGIN_TYPE, TYPE_WAHOO))
         finish()
+    }
+
+    /**
+     * v8.2.9: 两步路检测登录 —— 网页版无开放登录API（全版本加壳+雷池WAF），走 WebView 手动登录。
+     * 检测 2bulu.com 域 cookie 是否已带登录会话（长度足够即视为登录成功），
+     * 完整 cookie 交 MainActivity 持久化，供上传/下载网页版接口复用。
+     */
+    private fun detectTwoBulu() {
+        val cm = CookieManager.getInstance()
+        val all = listOf(
+            cm.getCookie("https://www.2bulu.com"),
+            cm.getCookie("https://2bulu.com"),
+            cm.getCookie("2bulu.com")
+        ).filterNotNull().joinToString("; ")
+        // 未登录时 cookie 很短或为空；登录后含会话/鉴权 cookie，长度显著增长
+        if (all.length < 40) return
+        if (!verifying.compareAndSet(false, true)) return
+        Thread {
+            try {
+                // 用 cookie 请求网页版已知白名单接口验证登录态（未登录返回 nologin）
+                val req = okhttp3.Request.Builder()
+                    .url("https://www.2bulu.com/community/queryList.htm")
+                    .addHeader("Cookie", all)
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36")
+                    .get().build()
+                val resp = okhttp3.OkHttpClient().newCall(req).execute()
+                val body = resp.body?.string() ?: ""
+                val loggedIn = !body.contains("nologin") && body.length > 50
+                if (loggedIn) {
+                    detected = true
+                    Log.i(TAG, "✅ 两步路登录验证通过, cookie len=${all.length}")
+                    runOnUiThread {
+                        // v8.3.0: 两步路"浏览即捕获"——先存登录结果，不关闭，进入浏览模式自动下载KML
+                        setResult(Activity.RESULT_OK, Intent()
+                            .putExtra(RESULT_SESSION_ID, all)
+                            .putExtra(RESULT_LOGIN_TYPE, TYPE_TWO_BULU))
+                        enterTwoBuluBrowseMode(all)
+                    }
+                } else {
+                    Log.d(TAG, "两步路cookie验证未通过(未登录), 继续检测: ${body.take(80)}")
+                    verifying.set(false)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "两步路验证异常: ${e.message}")
+                verifying.set(false)
+            }
+        }.start()
+    }
+
+    /**
+     * v8.3.0: 两步路"浏览即捕获下载"模式
+     * 参照社区项目 daimou03/2bulu_kml_project 真机流程：轨迹详情页 www.2bulu.com/track/t-<id>.htm
+     * 内"下载"按钮 → 点击 → KML 选项 → 触发浏览器下载。
+     * App 内：保持 WebView 打开，onPageFinished 命中 /track/t- 时注入 JS 模拟点击下载按钮，
+     * setDownloadListener 捕获 KML 下载 URL → 带 cookie 保存到本地 + 写入缓存库。
+     */
+    private var twoBuluBrowseMode = false
+    private var lastKmlTrack = ""
+
+    private fun enterTwoBuluBrowseMode(cookie: String) {
+        twoBuluBrowseMode = true
+        try { title = "两步路（浏览轨迹自动下载KML）" } catch (_: Exception) {}
+        android.widget.Toast.makeText(this, "两步路登录成功！浏览轨迹详情页将自动下载KML，按返回键退出", android.widget.Toast.LENGTH_LONG).show()
+        Log.i(TAG, "进入两步路浏览模式, cookie len=${cookie.length}")
+        try {
+            webView.setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
+                Log.i(TAG, "两步路下载捕获: $url mime=$mimetype disp=$contentDisposition")
+                val isKml = url.contains(".kml", true) || (mimetype ?: "").contains("kml", true) ||
+                    (contentDisposition ?: "").contains("kml", true) || (contentDisposition ?: "").contains("filename", true)
+                if (isKml) {
+                    val tid = lastKmlTrack.ifBlank { url.substringAfterLast("/").substringBefore("?").substringBefore(".kml") }
+                    com.jichi.ob.api.TwoBuluApi.saveKmlDownload(this, url, cookie, tid)
+                } else {
+                    android.widget.Toast.makeText(this, "检测到文件下载（非KML）：$url", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    /** v8.3.0: 两步路轨迹详情页 → 注入 JS 模拟点击"下载→KML"（daimou03 真机选择器） */
+    private fun twoBuluInjectKmlClick(url: String) {
+        if (!twoBuluBrowseMode) return
+        val m = Regex("track/t-([A-Za-z0-9%._~+-]+).htm").find(url)
+        val tid = m?.groupValues?.get(1) ?: return
+        lastKmlTrack = tid
+        Log.i(TAG, "两步路轨迹详情页: t-$tid, 注入KML下载点击")
+        val js = """
+            (function(){
+              try{
+                var d8 = document.querySelector('#base_area > div:nth-child(8) > ul');
+                if(d8){ var lis = d8.querySelectorAll('li'); if(lis.length>1) lis[1].click(); }
+                setTimeout(function(){
+                  var dd = document.querySelector('#base_area > div:nth-child(8) > div:nth-child(3) > ul');
+                  if(dd){ var ps = dd.querySelectorAll('li p'); if(ps.length>0) ps[0].click(); }
+                }, 700);
+              }catch(e){}
+            })();
+        """.trimIndent()
+        webView.post { webView.evaluateJavascript(js, null) }
     }
 
     /** 手动确认登录: 用户点击按钮后捕获当前凭证 */

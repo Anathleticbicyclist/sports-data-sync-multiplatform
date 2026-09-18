@@ -279,10 +279,12 @@ class CodoonApi {
                         val start = item.optString("start_time", "").replace("T", " ").take(19)
                         val dist = item.optDouble("total_length", 0.0) / 1000.0
                         val dur = item.optLong("total_time", 0).toInt()
-                        out.add(ActivityRecord(logId, title, start, dist, dur, DataSource.CODOON, routeId).also {
-                            // v8.1.1: 室内跑（跑步机 is_in_room=1）无GPS轨迹，标记供列表提示
-                            it.extra = if (item.optInt("is_in_room") == 1) "room" else null
-                        })
+                        // v8.2.4: 补 startTimeMs（时间=0会沉底/日期检索失效）
+                        val rec = ActivityRecord(logId, title, start, dist, dur, DataSource.CODOON, routeId,
+                            startTimeMs = com.jichi.ob.util.ActivityCache.parseStartTimeMs(start))
+                        // v8.1.1: 室内跑（跑步机 is_in_room=1）无GPS轨迹，标记供列表提示
+                        rec.extra = if (item.optInt("is_in_room") == 1) "room" else null
+                        out.add(rec)
                     }
                     val hasMore = data.optBoolean("has_more", false)
                     if (!hasMore) break

@@ -12,6 +12,36 @@
         android:orientation="vertical"
         android:padding="8dp">
 
+        <!-- v8.2.2: 📦 同步任务区（Tab3 顶部，与⚡批量同步平级，不折叠） -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#C9DFF7"
+            app:strokeWidth="1dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📦 同步任务" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                    <TextView android:id="@+id/tvTaskHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 个任务" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/containerTasks" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                <TextView
+                    android:id="@+id/btnGoCreate"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:background="@drawable/bg_check_update"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:text="＋ 新建任务（多来源 × 多目标）"
+                    android:textColor="@color/primary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- v7.7.8: 统计卡片（成功/跳过/失败） -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -183,6 +213,21 @@
                         android:textColor="@color/primary"
                         android:textSize="11sp" />
                     <TextView
+                        android:id="@+id/btnFullLog"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:paddingStart="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="4dp"
+                        android:background="@drawable/bg_check_update"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:text="完整日志"
+                        android:textColor="@color/primary"
+                        android:textSize="11sp" />
+                    <TextView
                         android:id="@+id/btnClearLog"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -198,7 +243,15 @@
                         android:textColor="@color/primary"
                         android:textSize="11sp" />
                 </LinearLayout>
-                <ScrollView android:id="@+id/svLog" android:layout_width="match_parent" android:layout_height="250dp" android:nestedScrollingEnabled="true" android:layout_marginTop="6dp" android:background="#F8FAFC" android:padding="6dp">
+                <TextView
+                    android:id="@+id/tvLogCap"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="前台仅显示最近 3 条，完整记录点「完整日志」查看"
+                    android:textSize="9sp"
+                    android:textColor="@color/text_secondary" />
+                <ScrollView android:id="@+id/svLog" android:layout_width="match_parent" android:layout_height="90dp" android:nestedScrollingEnabled="true" android:layout_marginTop="6dp" android:background="#F8FAFC" android:padding="6dp">
                     <TextView android:id="@+id/tvLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="等待操作..." android:textSize="12sp" android:lineSpacingExtra="3dp" android:textColor="@color/log_normal" />
                 </ScrollView>
             </LinearLayout>

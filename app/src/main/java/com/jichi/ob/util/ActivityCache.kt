@@ -26,7 +26,8 @@ class ActivityCache private constructor(context: Context) {
         val title: String,        // 活动标题
         val distanceKm: Double,   // 里程（km）
         val durationSec: Int,     // 时长（秒）
-        val filename: String      // 本地已下载文件名（未下载为空）
+        val filename: String,     // 本地已下载文件名（未下载为空）
+        val extra: String = ""    // v8.2.3.10: 平台下载凭证（igp下载URL/Keep run_id/高驰sportType等），单点下载用
     )
 
     companion object {
@@ -40,6 +41,10 @@ class ActivityCache private constructor(context: Context) {
         const val TABLE = "activity_cache"
         // 记录条数上限：单平台最多缓存 2000 条（防库无限膨胀；超出按时间删除最旧）
         const val MAX_ROWS_PER_PLATFORM = 2000
+        // v8.2.3: 平台统计表 / 平台日志表（登录页平台卡统计 + 详情弹窗平台日志）
+        const val TABLE_STATS = "sync_stats"
+        const val TABLE_PLOGS = "platform_logs"
+        const val MAX_PLOGS_PER_PLATFORM = 200
         /** v8.2.1: 静态容错解析时间字符串 → epoch ms（各平台直传 startTimeMs 用；失败返回 0） */
             fun parseStartTimeMs(s: String?): Long {
                 if (s.isNullOrBlank()) return 0L
@@ -105,14 +110,117 @@ class ActivityCache private constructor(context: Context) {
                     distance_km REAL DEFAULT 0,
                     duration_sec INTEGER DEFAULT 0,
                     filename TEXT DEFAULT '',
+                    extra TEXT DEFAULT '',
                     PRIMARY KEY (platform, id)
                 )"""
             )
+                // v8.2.3.10: 旧库补 extra 列（单点下载凭证）
+            try {
+                db.execSQL("ALTER TABLE $TABLE ADD COLUMN extra TEXT DEFAULT ''")
+            } catch (_: Exception) {}
                 // 日期检索索引：(platform, start_time) 复合索引
             try {
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_platform_time ON $TABLE (platform, start_time)")
             } catch (_: Exception) {}
+                // v8.2.3: 平台统计表（单行/平台，累计 ok/skip/fail + 最后同步时间）
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS $TABLE_STATS (
+                    platform TEXT PRIMARY KEY,
+                    ok INTEGER DEFAULT 0,
+                    skip INTEGER DEFAULT 0,
+                    fail INTEGER DEFAULT 0,
+                    last_sync INTEGER DEFAULT 0
+                )"""
+            )
+                // v8.2.3: 平台日志表（时间倒序，每平台保留最近 200 条）
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS $TABLE_PLOGS (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    platform TEXT NOT NULL,
+                    time INTEGER NOT NULL,
+                    type TEXT DEFAULT '',
+                    msg TEXT DEFAULT ''
+                )"""
+            )
+            try {
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_plogs_platform ON $TABLE_PLOGS (platform, id)")
+            } catch (_: Exception) {}
         }
+
+        // ===== v8.2.3: 平台统计 =====
+        /** 平台统计（ok/skip/fail 累计 + 最后同步时间）；无记录返回全 0 */
+        data class PlatformStat(val ok: Int, val skip: Int, val fail: Int, val lastSync: Long)
+
+        /** 平台统计累计 + 最后同步时间更新（IO 线程） */
+        fun addPlatformStat(platform: String, okDelta: Int = 0, skipDelta: Int = 0, failDelta: Int = 0, lastSyncMs: Long = 0L) {
+            if (okDelta == 0 && skipDelta == 0 && failDelta == 0 && lastSyncMs == 0L) return
+            db.beginTransaction()
+            try {
+                db.execSQL(
+                    """INSERT INTO $TABLE_STATS (platform, ok, skip, fail, last_sync)
+                       VALUES (?, ?, ?, ?, ?)
+                       ON CONFLICT(platform) DO UPDATE SET
+                         ok = ok + ?, skip = skip + ?, fail = fail + ?,
+                         last_sync = CASE WHEN ? > 0 THEN ? ELSE last_sync END""",
+                    arrayOf(
+                        platform, okDelta.toString(), skipDelta.toString(), failDelta.toString(), lastSyncMs.toString(),
+                        okDelta.toString(), skipDelta.toString(), failDelta.toString(),
+                        lastSyncMs.toString(), lastSyncMs.toString()
+                    )
+                )
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
+        }
+
+        /** 读取平台统计（IO 线程）；无记录返回全 0 */
+        fun getPlatformStat(platform: String): PlatformStat {
+            db.rawQuery(
+                "SELECT ok, skip, fail, last_sync FROM $TABLE_STATS WHERE platform = ?", arrayOf(platform)
+            ).use { c ->
+                return if (c.moveToFirst())
+                    PlatformStat(c.getInt(0), c.getInt(1), c.getInt(2), c.getLong(3))
+                else PlatformStat(0, 0, 0, 0L)
+            }
+        }
+
+        // ===== v8.2.3: 平台日志 =====
+        /** 追加一条平台日志（IO 线程；type: 导入/导出/错误） */
+        fun addPlatformLog(platform: String, type: String, msg: String) {
+            db.execSQL(
+                "INSERT INTO $TABLE_PLOGS (platform, time, type, msg) VALUES (?, ?, ?, ?)",
+                arrayOf(platform, System.currentTimeMillis().toString(), type, msg)
+            )
+            try {
+                val cnt = db.rawQuery(
+                    "SELECT COUNT(*) FROM $TABLE_PLOGS WHERE platform = ?", arrayOf(platform)
+                ).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
+                if (cnt > MAX_PLOGS_PER_PLATFORM) {
+                    db.delete(
+                        TABLE_PLOGS,
+                        "platform = ? AND id NOT IN (SELECT id FROM $TABLE_PLOGS WHERE platform = ? ORDER BY id DESC LIMIT ?)",
+                        arrayOf(platform, platform, MAX_PLOGS_PER_PLATFORM.toString())
+                    )
+                }
+            } catch (_: Exception) {}
+        }
+
+        /** 读取平台日志（时间倒序，默认最近 10 条；IO 线程） */
+        fun getPlatformLogs(platform: String, limit: Int = 10): List<PlatformLog> {
+            val out = ArrayList<PlatformLog>()
+            db.query(
+                TABLE_PLOGS,
+                arrayOf("time", "type", "msg"),
+                "platform = ?", arrayOf(platform), null, null,
+                "id DESC", limit.coerceIn(1, MAX_PLOGS_PER_PLATFORM).toString()
+            ).use { c ->
+                while (c.moveToNext()) out.add(PlatformLog(c.getLong(0), c.getString(1), c.getString(2)))
+            }
+            return out
+        }
+
+        data class PlatformLog(val time: Long, val type: String, val msg: String)
 
             /** 批量 upsert（单平台，事务；调用方须在 IO 线程） */
         fun upsertBatch(platform: String, entries: List<Entry>) {
@@ -121,8 +229,8 @@ class ActivityCache private constructor(context: Context) {
             try {
                 val stmt = db.compileStatement(
                     """INSERT OR REPLACE INTO $TABLE
-                       (id, platform, start_time, type, title, distance_km, duration_sec, filename)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+                       (id, platform, start_time, type, title, distance_km, duration_sec, filename, extra)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
                 )
                 for (e in entries) {
                     stmt.bindString(1, e.id)
@@ -133,6 +241,7 @@ class ActivityCache private constructor(context: Context) {
                     stmt.bindDouble(6, e.distanceKm)
                     stmt.bindLong(7, e.durationSec.toLong())
                     stmt.bindString(8, e.filename)
+                    stmt.bindString(9, e.extra)
                     stmt.executeInsert()
                 }
                 db.setTransactionSuccessful()
@@ -160,7 +269,7 @@ class ActivityCache private constructor(context: Context) {
             val out = ArrayList<Entry>()
             db.query(
                 TABLE,
-                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename"),
+                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename", "extra"),
                 "platform = ? AND start_time >= ? AND start_time <= ?",
                 arrayOf(platform, startMs.toString(), endMs.toString()),
                 null, null, "start_time DESC"
@@ -175,7 +284,7 @@ class ActivityCache private constructor(context: Context) {
             val out = ArrayList<Entry>()
             db.query(
                 TABLE,
-                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename"),
+                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename", "extra"),
                 "platform = ?", arrayOf(platform), null, null, "start_time DESC"
             ).use { c ->
                 while (c.moveToNext()) out.add(readEntry(c))
@@ -188,7 +297,7 @@ class ActivityCache private constructor(context: Context) {
             val out = ArrayList<Entry>()
             db.query(
                 TABLE,
-                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename"),
+                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename", "extra"),
                 "start_time >= ? AND start_time <= ?",
                 arrayOf(startMs.toString(), endMs.toString()),
                 null, null, "start_time DESC"
@@ -207,6 +316,62 @@ class ActivityCache private constructor(context: Context) {
             }
         }
 
+            /** v8.2.6: 平台缓存中最新运动记录的时间戳（同步任务"新数据判定"核心：拉取列表后仅处理 startTime > 该值的记录） */
+        fun getLastStartTimeMs(platform: String): Long {
+            db.rawQuery(
+                "SELECT MAX(start_time) FROM $TABLE WHERE platform = ? AND start_time > 0", arrayOf(platform)
+            ).use { c ->
+                return if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L
+            }
+        }
+
+            /** v8.2.6: 批量判重——返回给定 id 中已存在缓存的子集（比全量载入 queryByPlatform 高效，供同步任务增量过滤） */
+        fun existsIds(platform: String, ids: Collection<String>): Set<String> {
+            if (ids.isEmpty()) return emptySet()
+            val out = HashSet<String>()
+            val chunks = ids.chunked(500)
+            for (chunk in chunks) {
+                val placeholders = chunk.joinToString(",") { "?" }
+                db.rawQuery(
+                    "SELECT id FROM $TABLE WHERE platform = ? AND id IN ($placeholders)",
+                    arrayOf(platform) + chunk.toTypedArray()
+                ).use { c ->
+                    while (c.moveToNext()) out.add(c.getString(0))
+                }
+            }
+            return out
+        }
+
+            /** v8.2.6: 某时间点之后的新记录（数据合并/增量同步：来源平台拉取后按时间戳筛"新数据"） */
+        fun queryNewSince(platform: String, sinceMs: Long, limit: Int = 500): List<Entry> {
+            val out = ArrayList<Entry>()
+            db.query(
+                TABLE,
+                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename", "extra"),
+                "platform = ? AND start_time > ?",
+                arrayOf(platform, sinceMs.toString()),
+                null, null, "start_time ASC", limit.toString()
+            ).use { c ->
+                while (c.moveToNext()) out.add(readEntry(c))
+            }
+            return out
+        }
+
+            /** v8.2.6: 时间缺失（start_time<=0，1970 占位）的记录——igp 等平台 FIT 回填修复用 */
+        fun queryBadTime(platform: String, limit: Int = 100): List<Entry> {
+            val out = ArrayList<Entry>()
+            db.query(
+                TABLE,
+                arrayOf("id", "platform", "start_time", "type", "title", "distance_km", "duration_sec", "filename", "extra"),
+                "platform = ? AND start_time <= 0",
+                arrayOf(platform),
+                null, null, "rowid ASC", limit.toString()
+            ).use { c ->
+                while (c.moveToNext()) out.add(readEntry(c))
+            }
+            return out
+        }
+
             /** 平台记录数 */
         fun count(platform: String): Int {
             db.rawQuery("SELECT COUNT(*) FROM $TABLE WHERE platform = ?", arrayOf(platform)).use { c ->
@@ -219,11 +384,25 @@ class ActivityCache private constructor(context: Context) {
             db.delete(TABLE, "platform = ?", arrayOf(platform))
         }
 
+            /** v8.2.3.4: 删除单条记录（记录中心详情弹窗"删除"） */
+        fun deleteEntry(platform: String, id: String) {
+            db.delete(TABLE, "platform = ? AND id = ?", arrayOf(platform, id))
+        }
+
             /** 更新某条记录的文件名（下载完成后回填） */
         fun setFilename(platform: String, id: String, filename: String) {
             db.execSQL(
                 "UPDATE $TABLE SET filename = ? WHERE platform = ? AND id = ?",
                 arrayOf(filename, platform, id)
+            )
+        }
+
+            /** v8.2.6: 回填单条记录时间（igp 等平台 FIT 下载解析后调用；startTimeMs<=0 时忽略） */
+        fun setStartTime(platform: String, id: String, startTimeMs: Long) {
+            if (startTimeMs <= 0) return
+            db.execSQL(
+                "UPDATE $TABLE SET start_time = ? WHERE platform = ? AND id = ?",
+                arrayOf(startTimeMs.toString(), platform, id)
             )
         }
     /** 容错解析各平台 startTime 字符串 → epoch ms（委托静态实现，供 MainActivity 兜底） */
@@ -232,10 +411,12 @@ class ActivityCache private constructor(context: Context) {
     /** v8.2.1: 解析平台 ISO8601 时间串 → 毫秒（供各平台 fetch 时直传 startTimeMs） */
     fun parseIsoMs(s: String?): Long = parseStartTimeMs(s)
 
-    /** 删除过期记录（保留最近 keepDays 天，默认 365） */
+    /** 删除过期记录（保留最近 keepDays 天，默认 365）
+     *  v8.2.3.10: 仅删「时间有效且超龄」的记录——start_time<=0 表示时间未解析，
+     *  一旦删除将造成"拉取完成但记录中心为空"的假象，必须保留待后续修复 */
     fun prune(platform: String, keepDays: Int = 365) {
         val cutoff = System.currentTimeMillis() - keepDays * 24 * 3600 * 1000L
-        db.delete(TABLE, "platform = ? AND start_time < ?", arrayOf(platform, cutoff.toString()))
+        db.delete(TABLE, "platform = ? AND start_time > 0 AND start_time < ?", arrayOf(platform, cutoff.toString()))
     }
 
     private fun readEntry(c: android.database.Cursor): Entry = Entry(
@@ -246,6 +427,7 @@ class ActivityCache private constructor(context: Context) {
         title = c.getString(4),
         distanceKm = c.getDouble(5),
         durationSec = c.getInt(6),
-        filename = c.getString(7)
+        filename = c.getString(7),
+        extra = if (c.columnCount > 8) c.getString(8) ?: "" else ""
     )
 }
