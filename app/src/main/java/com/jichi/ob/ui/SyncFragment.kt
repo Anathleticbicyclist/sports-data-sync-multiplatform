@@ -312,12 +312,13 @@ class SyncFragment : Fragment() {
         row3.addView(TextView(ctx).apply {
             text = buildString {
                 if (task.incremental) append("增量")
+                if (task.wellness) { if (isNotEmpty()) append("·"); append("健康") }
                 if (task.force) { if (isNotEmpty()) append("·"); append("强制重传") }
                 if (task.autoSync) { if (isNotEmpty()) append("·"); append("自动") }
                 if (isEmpty()) append("全量")
             }
             textSize = 10f
-            setTextColor(ctx.getColor(R.color.log_info))
+            setTextColor(ctx.getColor(if (task.wellness) R.color.green else R.color.log_info))
         })
         row3.addView(TextView(ctx).apply {
             text = "  最近: " + when {

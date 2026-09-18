@@ -41,6 +41,7 @@ class CreateTaskFragment : Fragment() {
     private val selectedTargets = LinkedHashSet<DataSource>()
     private var taskName = ""
     private var incremental = true
+    private var wellness = false   // v8.3.5: 健康数据同步（步数/睡眠/HRV/压力，需佳明↔佳明）
     private var count = 200
     private var skip = 0
     private var force = false
@@ -109,6 +110,7 @@ class CreateTaskFragment : Fragment() {
             coordinateConvert = coordinateConvert,
             autoSync = autoSync,
             autoIntervalSec = autoIntervalSec,
+            wellness = wellness,
             enabled = true
         )
         prefs.upsertTask(task)
@@ -344,13 +346,25 @@ class CreateTaskFragment : Fragment() {
             override fun afterTextChanged(s: android.text.Editable?) { taskName = s?.toString() ?: "" }
         })
 
-        // 增量开关 v8.2.3.1: 明确"仅同步最新数据"语义（依据缓存库，库里没有才同步）
+        // 增量开关 v8.3.5: 增量游标语义（按最后同步时间增量，失败自动重试）
         containerStep.addView(SwitchMaterial(requireContext()).apply {
-            text = "仅同步最新数据（缓存库中不存在的记录）"
+            text = "仅同步最新数据（增量游标，失败自动重试）"
             textSize = 13f
             isChecked = incremental
             setOnCheckedChangeListener { _, checked -> incremental = checked }
         })
+        // v8.3.5: 健康数据同步开关（仅佳明来源+佳明目标时显示；CN↔COM 双向）
+        val hasGarminSrc = selectedSources.any { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
+        val hasGarminTgt = selectedTargets.any { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
+        if (hasGarminSrc && hasGarminTgt) {
+            containerStep.addView(SwitchMaterial(requireContext()).apply {
+                text = "同步健康数据（步数/睡眠/HRV/压力）"
+                textSize = 13f
+                isChecked = wellness
+                setOnCheckedChangeListener { _, checked -> wellness = checked }
+            })
+            containerStep.addView(sectionHint("健康数据同步需佳明来源与佳明目标（如佳明中国↔佳明国际）；目标账号需已绑定健康设备（手表/手环），按天同步最近数据"))
+        }
         // v8.2.3.1: 迈金坐标转换任务级开关（仅来源含迈金时显示）
         if (selectedSources.contains(DataSource.MAGENE)) {
             containerStep.addView(SwitchMaterial(requireContext()).apply {
@@ -379,7 +393,7 @@ class CreateTaskFragment : Fragment() {
             isChecked = force
             setOnCheckedChangeListener { _, checked -> force = checked }
         })
-        containerStep.addView(sectionHint("💡 增量模式：依据记录中心缓存库，自动跳过已缓存的旧记录，只同步最新数据；多来源×多目标即多对一/一对多"))
+        containerStep.addView(sectionHint("💡 增量模式：按源平台最后同步时间游标增量，失败不推进游标、下次自动重试；多来源×多目标即多对一/一对多"))
     }
 
     private fun paramSliderRow(label: String, initValue: Int, min: Int, max: Int, onChange: (Int) -> Unit): LinearLayout {

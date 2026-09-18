@@ -20,6 +20,7 @@ data class SyncTask(
     val coordinateConvert: Boolean = true, // v8.2.3.1: 迈金坐标转换（GCJ-02→WGS84），默认开
     val autoSync: Boolean = false,  // 任务级自动同步
     val autoIntervalSec: Int = 900, // 自动间隔（秒，≥15min）
+    val wellness: Boolean = false,  // v8.3.5: 同步健康数据（步数/睡眠/HRV/压力，需佳明↔佳明）
     val enabled: Boolean = true,    // 启用
     val lastRunTime: Long = 0L,     // 上次运行时间
     val lastRunOk: Int = 0,
@@ -38,6 +39,7 @@ data class SyncTask(
         put("coordinateConvert", coordinateConvert)
         put("autoSync", autoSync)
         put("autoIntervalSec", autoIntervalSec)
+        put("wellness", wellness)
         put("enabled", enabled)
         put("lastRunTime", lastRunTime)
         put("lastRunOk", lastRunOk)
@@ -68,6 +70,7 @@ data class SyncTask(
                 coordinateConvert = o.optBoolean("coordinateConvert", true),
                 autoSync = o.optBoolean("autoSync", false),
                 autoIntervalSec = o.optInt("autoIntervalSec", 900),
+                wellness = o.optBoolean("wellness", false),
                 enabled = o.optBoolean("enabled", true),
                 lastRunTime = o.optLong("lastRunTime", 0L),
                 lastRunOk = o.optInt("lastRunOk", 0),
