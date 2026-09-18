@@ -39,6 +39,12 @@ import kotlin.coroutines.resume
 class GarminApi {
     companion object {
         private const val TAG = "GarminApi"
+        // v8.3.4: 最近一次 Garmin 登录的致命错误（账号密码不匹配 / 两步验证）。
+        // 致命错误 = 所有通道通用（换 clientId 无意义，继续尝试只会污染更多通道触发风控），调用方应停止后续通道并直接提示。
+        // 非致命（429/风控/网络）保持 null。登录调用前由调用方重置。
+        @Volatile
+        var lastGarminAuthError: String? = null
+
         // v8.2.0: 国际版改回佳明老 OAuth1 登录页 /sso/signin（新 /portal/sso/ 页 Sign In 按钮被 Garmin 前端 disabled，点击无反应；
         // 老页实测可交互可登录，佳速通即用此通道）。service 用 /modern/（garth 协议标准），登录后 detectGarmin 抓 JWT_WEB+session 完整 cookie
         const val LOGIN_URL_COM = "https://sso.garmin.com/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
@@ -255,8 +261,7 @@ class GarminApi {
      * @return JSON凭证字符串 {"di_token":"...","di_refresh_token":"...","di_client_id":"...","email":"..."}
      */
     suspend fun loginMobile(email: String, password: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
-        try {
-            val ds = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
+        try {            val ds = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
             val channels = if (isCN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
             val ssoOrigin = if (isCN) "https://sso.garmin.cn" else "https://sso.garmin.com"
             val locale = if (isCN) "zh-CN" else "en-US"
@@ -293,21 +298,48 @@ class GarminApi {
                 lastCode = loginResp.code
                 addDebugLog("loginMobile[${ch.clientId}]: HTTP ${loginResp.code}, body=${loginBody.take(150)}")
                 if (loginResp.code == 429) {
-                    // v7.9.1: 429只冷却该clientId×email通道，继续尝试下一通道（换通道可绕开单通道限流）
+                    // v8.3.4: 429是账号级信号（佳明对错误凭证/两步验证/真风控统一回429防枚举）——
+                    // 第一通道即停，不再尝试后续通道，避免污染全部通道触发24H风控
                     writeCooldown(ds, email, ch.clientId)
-                    addDebugLog("loginMobile: 通道[${ch.clientId}] 429限流，已写冷却，尝试下一通道")
+                    addDebugLog("loginMobile[${ch.clientId}]: 429风控——账号级信号（密码错/两步验证/真风控），立即停止后续通道")
+                    lastGarminAuthError = "风控限流"
+                    return@withContext null
+                }
+                if (loginResp.code != 200) {
+                    // v8.3.4: 非200响应（401等）同样携带responseStatus——识别账号级致命错误并立即停止，
+                    // 避免继续尝试后续通道把错误密码/两步验证污染到所有通道触发24H风控
+                    if (loginBody.isNotBlank()) {
+                        try {
+                            val errRes = JSONObject(loginBody)
+                            val errType = errRes.optJSONObject("responseStatus")?.optString("type") ?: ""
+                            if (errType == "MFA_REQUIRED") {
+                                addDebugLog("loginMobile[${ch.clientId}]: 需要MFA验证(HTTP ${loginResp.code})，标记致命错误并停止全部SSO通道")
+                                lastGarminAuthError = "两步验证"
+                                return@withContext null
+                            }
+                            if (errType == "INVALID_USERNAME_PASSWORD" || errType == "INVALID_PASSWORD"
+                                || errType.contains("INVALID", true) || errType.contains("PASSWORD", true)) {
+                                addDebugLog("loginMobile[${ch.clientId}]: 账号密码不匹配 type=$errType (HTTP ${loginResp.code})，标记致命错误并停止全部SSO通道")
+                                lastGarminAuthError = "密码错误"
+                                return@withContext null
+                            }
+                        } catch (_: Exception) {}
+                    }
                     continue
                 }
-                if (loginResp.code != 200) continue
                 val res = JSONObject(loginBody)
                 val respType = res.optJSONObject("responseStatus")?.optString("type") ?: ""
                 if (respType == "MFA_REQUIRED") {
-                    addDebugLog("loginMobile[${ch.clientId}]: 需要MFA验证，暂不支持")
-                    continue
+                    // v8.3.4: MFA/两步验证为账号级——所有通道都会要求验证，标记致命错误并立即停止，避免污染其余通道
+                    addDebugLog("loginMobile[${ch.clientId}]: 需要MFA验证，标记致命错误并停止全部SSO通道")
+                    lastGarminAuthError = "两步验证"
+                    return@withContext null
                 }
                 if (respType != "SUCCESSFUL") {
-                    addDebugLog("loginMobile[${ch.clientId}]: 登录失败 type=$respType")
-                    continue
+                    // v8.3.4: 账号密码不匹配同样为账号级——继续试其他通道只会加重风控，立即停止
+                    addDebugLog("loginMobile[${ch.clientId}]: 登录失败 type=$respType，标记致命错误并停止全部SSO通道")
+                    lastGarminAuthError = "密码错误"
+                    return@withContext null
                 }
                 val ticket = res.getString("serviceTicketId")
                 addDebugLog("loginMobile[${ch.clientId}]: 获取serviceTicket成功")
@@ -341,11 +373,14 @@ class GarminApi {
         val connect = if (isCN) OAUTH1_BASE_CN else OAUTH1_BASE_COM
         val service = if (isCN) OAUTH1_SERVICE_CN else OAUTH1_SERVICE_COM
         val locale = if (isCN) "zh-CN" else "en-US"
-        val oauth1ClientId = "GarminConnect"
+        // v8.3.4: OAuth1 页面 clientId 双通道——GarminConnect 被限流/风控时换 garminglobal6（garth 开源协议官方组合），
+        // 两个通道共用同一套 _csrf→ticket→OAuth1/DI 流程；仅页面级失败（无csrf/429）才换通道，密码错误等直接返回。
+        val oauth1ClientIds = if (isCN) arrayOf("GarminConnect") else arrayOf("GarminConnect", "garminglobal6")
+        clientIdLoop@ for (oauth1ClientId in oauth1ClientIds) {
         try {
             // v8.1.9: OAuth1 表单直连不再受本地冷却缓存拦截（分身穿机可正常登录=服务端无硬限；
             // 覆盖安装保留的旧 mobile SSO 冷却缓存会导致误拦截"24小时后登录"，此处直接放行）
-            addDebugLog("loginOAuth1: 开始老表单直连 (账号=$email)")
+            addDebugLog("loginOAuth1: 开始老表单直连 (账号=$email, clientId=$oauth1ClientId)")
             val jar = mutableMapOf<String, String>()  // name -> value（简化 cookie 容器）
 
             // ① GET 登录页拿 _csrf
@@ -360,8 +395,8 @@ class GarminApi {
             val csrf = Regex("""name=["']_csrf["'][^>]*value=["']([^"']+)""").find(pageHtml)?.groupValues?.get(1)
                 ?: Regex("""value=["']([^"']+)["'][^>]*name=["']_csrf["']""").find(pageHtml)?.groupValues?.get(1)
             if (csrf == null) {
-                addDebugLog("loginOAuth1: 登录页无_csrf (HTTP ${pageResp.code})，页面可能被风控/改版")
-                return@withContext null
+                addDebugLog("loginOAuth1: 登录页无_csrf (HTTP ${pageResp.code})，页面可能被风控/改版，换通道")
+                continue@clientIdLoop
             }
             addDebugLog("loginOAuth1: 已获取 _csrf (${csrf.length}B)")
 
@@ -404,8 +439,24 @@ class GarminApi {
                     else -> "HTTP ${postResp.code}"
                 }
                 addDebugLog("loginOAuth1: 无ticket ($hint), body=${postBody.take(120)}")
-                if (postResp.code == 429) writeCooldown(ds, email, "oauth1")
-                return@withContext null
+                if (postResp.code == 429) {
+                    // v8.3.4: 429是账号级信号（佳明对错误凭证/两步验证/真风控统一回429防枚举）——
+                    // 第一通道即停，不再换 clientId，避免污染全部通道触发24H风控
+                    writeCooldown(ds, email, "oauth1")
+                    addDebugLog("loginOAuth1[$oauth1ClientId]: 429风控——账号级信号（密码错/两步验证/真风控），立即停止后续通道")
+                    lastGarminAuthError = "风控限流"
+                    return@withContext null
+                }
+                // v8.3.4: 致命错误（账号级，换通道无意义且污染更多通道）——标记后直接停止
+                if (postBody.contains("Invalid Credentials", true) || postBody.contains("invalid_username", true)
+                    || postBody.contains("incorrect username or password", true)) {
+                    lastGarminAuthError = "密码错误"
+                } else if (postBody.contains("two-step", true) || postBody.contains("two step", true)
+                    || postBody.contains("verification", true) || postBody.contains("MFA", true)
+                    || postBody.contains("security code", true)) {
+                    lastGarminAuthError = "两步验证"
+                }
+                return@withContext null // 密码错误/两步验证/验证码等，停止整个登录流程
             }
             addDebugLog("loginOAuth1: 获取 service ticket 成功")
 
@@ -455,10 +506,13 @@ class GarminApi {
             }
             return@withContext null
         } catch (e: Exception) {
-            addDebugLog("loginOAuth1异常: ${e.message}")
+            addDebugLog("loginOAuth1异常(clientId=$oauth1ClientId): ${e.message}")
             Log.e(TAG, "loginOAuth1 error", e)
-            null
+            // 换下一个 clientId 通道重试
         }
+        }
+        addDebugLog("loginOAuth1: ${oauth1ClientIds.joinToString()} 全部通道失败")
+        return@withContext null
     }
 
     /** OAuth1: exchange/user/2.0?ticket → oauth_token（consumer 签名，空 token） */
