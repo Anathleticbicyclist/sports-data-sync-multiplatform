@@ -1767,6 +1767,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** v8.3.5: 毫秒时间戳 → "MM-dd HH:mm"（游标日志显示） */
+    private fun fmtTime(ms: Long): String = try {
+        java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(Date(ms))
+    } catch (e: Exception) { ms.toString() }
+
     // v6.7.5: 输出GarminApi调试日志到界面（转发SyncFragment）
     private fun flushGarminDebugLogs() {
         try {
@@ -2059,12 +2064,13 @@ class MainActivity : AppCompatActivity() {
             try {
                 for (source in sources) {
                     if (!taskActive) break
+                    var srcFailed = 0  // v8.3.5: 本来源失败计数（用于游标推进判定）
                     appendLog("📥 [${source.displayName}] 获取活动列表...")
                     val activities = try { fetchActivities(source, task.skip, task.count) } catch (e: Exception) {
                         Log.e(TAG, "task fetch ${source.displayName} error", e)
                         appendLog("❌ ${source.displayName} 获取列表失败: ${e.message}")
                         recordSync(source, "err", 0, 0, 1, "获取列表失败: ${e.message}")
-                        failed++
+                        failed++; srcFailed++
                         continue
                     }
                     appendLog("📋 获取到 ${activities.size} 条活动")
@@ -2083,10 +2089,16 @@ class MainActivity : AppCompatActivity() {
                         })
                         appendLog("💾 已缓存 ${activities.size} 条到记录中心")
                     } catch (e: Exception) { appendLog("⚠️ 记录缓存失败: ${e.message}") }
-                    // 增量：跳过缓存已有 id（对齐佳速通"登录后缓存列表、增量拉取"做法）
-                    // v8.2.6: 改用批量判重 existsIds（此前全量载入 queryByPlatform 到内存，2000条时低效）
+                    // v8.3.5: 增量=游标时间过滤 + 缓存 existsIds 双保险（游标失败不推进，下次自动重试）
                     var list = activities
                     if (task.incremental) {
+                        val cursor = prefs.getSyncCursor(source.shortName)
+                        if (cursor > 0L) {
+                            val before = list.size
+                            list = list.filter { it.startTimeMs > cursor }
+                            if (list.size < before)
+                                appendLog("⏭️ 增量游标: 跳过游标之前 ${before - list.size} 条（最后同步 ${fmtTime(cursor)}）")
+                        }
                         try {
                             val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
                             val existIds = cache.existsIds(source.shortName, list.map { it.id })
@@ -2096,6 +2108,22 @@ class MainActivity : AppCompatActivity() {
                                 appendLog("⏭️ 增量模式: 跳过缓存已有 ${before - list.size} 条，本次同步 ${list.size} 条")
                         } catch (e: Exception) { Log.w(TAG, "增量过滤失败: ${e.message}") }
                     }
+                    // v8.3.5: 佳明目标上传前查重预检——预拉目标端列表，按 开始时间|时长 键预判重复（命中不下载不上传）
+                    val garminPrecheck = mutableMapOf<DataSource, Set<String>>()
+                    for (gt in targets) {
+                        if (gt != DataSource.GARMIN_COM && gt != DataSource.GARMIN_CN) continue
+                        try {
+                            val gtCred = prefs.getCredential(gt) ?: continue
+                            val existing = garminApi.getActivities(gt, gtCred, 0, 999)
+                            garminPrecheck[gt] = existing.mapNotNull { r ->
+                                if (r.startTimeMs > 0) "${r.startTimeMs}|${r.duration}" else null
+                            }.toSet()
+                            appendLog("🔎 查重预检: ${gt.displayName} 已有 ${existing.size} 条，同时间同时长自动跳过")
+                        } catch (e: Exception) {
+                            appendLog("⚠️ 查重预检 ${gt.displayName} 失败（不影响同步）: ${e.message}")
+                        }
+                    }
+                    flushGarminDebugLogs()
                     val force = task.force || targets.size > 1
                     // v8.2.3: P2 并发按平台风险分级——先收集待下载条目（含各目标记忆过滤），下载阶段并行，上传阶段串行
                     val pendingItems = mutableListOf<Pair<Int, Pair<com.jichi.ob.model.ActivityRecord, List<DataSource>>>>()
@@ -2103,7 +2131,11 @@ class MainActivity : AppCompatActivity() {
                         if (!taskActive) break
                         val pendingTargets = targets.filter { t ->
                             val syncKey = "${source.shortName}_${act.id}_to_${t.shortName}"
-                            force || !prefs.isSynced(syncKey)
+                            val needSync = force || !prefs.isSynced(syncKey)
+                            if (!needSync) return@filter false
+                            // v8.3.5: 查重预检命中（同时间同时长已在目标端）→ 不下载不上传；强制重传除外
+                            val preDup = act.startTimeMs > 0 && garminPrecheck[t]?.contains("${act.startTimeMs}|${act.duration}") == true
+                            !preDup
                         }
                         if (pendingTargets.isEmpty()) {
                             skipped++; prefs.addStat("skip")
@@ -2128,13 +2160,13 @@ class MainActivity : AppCompatActivity() {
                                     val fileData = try { downloadActivity(source, targets.first(), act, task.coordinateConvert) } catch (e: Exception) {
                                         appendLog("❌ 下载失败: ${e.message}")
                                         recordSync(source, "err", 0, 0, 1, "下载失败: ${e.message}")
-                                        failed++; prefs.addStat("fail")
+                                        failed++; srcFailed++; prefs.addStat("fail")
                                         return@async Downloaded(act, null, null)
                                     }
                                     if (fileData == null || fileData.size < 100) {
                                         appendLog("❌ 文件数据无效")
                                         recordSync(source, "err", 0, 0, 1, "文件数据无效")
-                                        failed++; prefs.addStat("fail")
+                                        failed++; srcFailed++; prefs.addStat("fail")
                                         return@async Downloaded(act, null, null)
                                     }
                                     val ext = if (isFit(fileData)) "fit" else "gpx"
@@ -2184,14 +2216,43 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }.awaitAll()
                         }
-                        for ((dOk, dSkip, dFail) in deltas) { ok += dOk; skipped += dSkip; failed += dFail }
+                        for ((dOk, dSkip, dFail) in deltas) { ok += dOk; skipped += dSkip; failed += dFail; srcFailed += dFail }
                         // 佳明/Keep 串行上传
                         for (target in serialTargets) {
                             if (!taskActive) break
                             val (dOk, dSkip, dFail) = uploadOneToTarget(source, act, fileData, localFile, localName, target)
-                            ok += dOk; skipped += dSkip; failed += dFail
+                            ok += dOk; skipped += dSkip; failed += dFail; srcFailed += dFail
                         }
                         kotlinx.coroutines.delay(150)
+                    }
+                    // v8.3.5: 游标推进——本来源全部成功（无失败）时推进到本批最新活动时间；失败不推进，下次自动重试
+                    if (task.incremental && srcFailed == 0) {
+                        val newest = (list.maxOfOrNull { it.startTimeMs } ?: activities.firstOrNull()?.startTimeMs ?: 0L)
+                        if (newest > 0) {
+                            prefs.setSyncCursor(source.shortName, newest)
+                            appendLog("📌 增量游标已推进: ${source.displayName} → ${fmtTime(newest)}")
+                        }
+                    }
+                }
+                // v8.3.5: 阶段2 健康数据同步（任务开启 + 佳明来源与佳明目标 CN↔COM）
+                if (task.wellness && taskActive) {
+                    val gSrc = sources.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
+                    val gTgt = targets.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
+                    if (gSrc != null && gTgt != null && gSrc != gTgt) {
+                        appendLog("📊 [健康数据] 开始同步 ${gSrc.displayName} → ${gTgt.displayName}（最近 ${com.jichi.ob.api.GarminWellnessSync.DEFAULT_DAYS} 天）...")
+                        try {
+                            val srcCred = prefs.getCredential(gSrc) ?: ""
+                            val tgtCred = prefs.getCredential(gTgt) ?: ""
+                            val w = com.jichi.ob.api.GarminWellnessSync.sync(
+                                garminApi, gSrc, srcCred, gTgt, tgtCred
+                            ) { appendLog(it) }
+                            ok += w.ok; skipped += w.duplicate; failed += w.failed
+                        } catch (e: Exception) {
+                            appendLog("❌ [健康数据] 同步异常: ${e.message}")
+                            failed++
+                        }
+                    } else {
+                        appendLog("⚠️ [健康数据] 需佳明来源与佳明目标（CN↔COM）且不相同，当前任务不满足，已跳过")
                     }
                 }
             } catch (e: Exception) {

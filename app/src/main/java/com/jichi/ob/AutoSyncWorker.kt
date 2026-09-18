@@ -134,6 +134,25 @@ class AutoSyncWorker(
                         failedDetails += r.failedDetails
                         skippedDetails += r.skippedDetails
                     }
+                    // v8.3.5: 后台健康数据同步（任务开启 + 佳明来源与佳明目标 CN↔COM）
+                    if (task.wellness) {
+                        val gSrc = srcs.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
+                        val gTgt = tgts.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
+                        if (gSrc != null && gTgt != null && gSrc != gTgt) {
+                            plog("📊 [自动][健康数据] 开始同步 ${gSrc.displayName} → ${gTgt.displayName}（最近 ${GarminWellnessSync.DEFAULT_DAYS} 天）...")
+                            try {
+                                val srcCred = prefs.getCredential(gSrc) ?: ""
+                                val tgtCred = prefs.getCredential(gTgt) ?: ""
+                                val w = GarminWellnessSync.sync(garminApi, gSrc, srcCred, gTgt, tgtCred) { plog(it) }
+                                tSynced += w.ok; tSkipped += w.duplicate; tFailed += w.failed
+                                if (w.ok > 0) successDetails += "健康数据 ${w.ok} 天 → ${gTgt.displayName}"
+                                if (w.failed > 0) failedDetails += "健康数据失败 ${w.failed} → ${gTgt.displayName}"
+                            } catch (e: Exception) {
+                                plog("❌ [自动][健康数据] 同步异常: ${e.message?.take(60)}")
+                                tFailed++
+                            }
+                        }
+                    }
                     totalSynced += tSynced; totalSkipped += tSkipped; totalFailed += tFailed
                     val tgtNames = tgts.joinToString("、") { it.displayName }
                     taskLines.add("${task.name}: ${srcs.joinToString("、") { it.displayName }}→$tgtNames · 新${tSynced} 跳${tSkipped} 败${tFailed}")
