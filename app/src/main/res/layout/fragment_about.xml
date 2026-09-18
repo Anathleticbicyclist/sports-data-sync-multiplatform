@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:text="开发体验版 v8.3.3"
+                    android:text="开发体验版 v8.3.4"
                     android:textColor="@color/primary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -245,11 +245,10 @@
                 app:strokeColor="#E3EEFA"
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.3.3)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.3.3 贴纸3D轨迹对齐Outbase：细橙线+窗帘式竖向投影（任何角度灰带竖直向下）、无发光无平面线、4000点全量高精度渲染；Zwift下载修复（S3 key编码修复+下载前权限预检+列表分页上限50）；导出轨迹偏移修复" android:textSize="12sp" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.3.2 贴纸3D立体投影重制：粗缎带立体轨道、海拔Z轴抬升、强垂直投影、受光/背光层次；修复导出轨迹偏移（导出与预览完全一致）；Zwift下载403修复（S3直链失败自动回退API鉴权下载）" android:textSize="12sp" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.3.1 贴纸3D轨迹立体投射：轨迹按海拔Z轴立体抬升、可左右/俯仰拖拽旋转、正下方垂直投影、随高度明暗渐变；平面/3D一键切换，轨迹永不截断；实验室页支持滑动浏览" android:textSize="12sp" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.2.9 贴纸轨迹修复：恢复短边等比缩放居中，彻底解决 9:16/3:4/1:1 轨迹截断，导出与预览完全一致；增加补充鸣谢人员" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.3.4)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.3.4 优化轨迹合并优化贴纸体验，优化佳明国际国内通道登陆逻辑(密码一次就会触发风控，请确保正确)" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.3.3 优化zwfit登陆" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.3.2 优化登陆逻辑" android:textSize="12sp" android:textColor="@color/text_primary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

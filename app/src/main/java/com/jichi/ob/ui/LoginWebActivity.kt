@@ -14,6 +14,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.jichi.ob.R
@@ -153,6 +154,7 @@ class LoginWebActivity : AppCompatActivity() {
     private val urlHistory = mutableListOf<String>()  // v7.1.7: URL历史记录，用于调试Wahoo授权码捕获
     private val verifying = AtomicBoolean(false)
     private var checkCount = 0
+    private var lastReportedLoginError: String? = null  // v8.3.4: 佳明WebView页面错误去重（同一错误只弹一次）
  
     private val checkRunnable = object : Runnable {
         override fun run() {
@@ -313,45 +315,96 @@ class LoginWebActivity : AppCompatActivity() {
                     }
                     GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
+                            // v8.3.4: 开启佳明登录调试日志（写入App日志页，方便排障）
+                            com.jichi.ob.api.GarminApi.enableDebugLogs = true
                             // v8.1.9: 国际版优先 OAuth1 账号密码直连（绕开 mobile SSO 每天一次限制与 WebView 按钮风控），
                             // 失败再降级 mobile SSO；中国版保持 mobile SSO 优先，OAuth1 兜底
-                            var cred: String? = null
-                            if (!isCN) cred = garminApi.loginOAuth1(email, password, false)
-                            if (cred == null) cred = garminApi.loginMobile(email, password, isCN)
-                            if (cred == null && isCN) cred = garminApi.loginOAuth1(email, password, true)
-                            // v8.1.9: 登录成功自动清除该账号本地冷却缓存（覆盖安装保留的旧缓存不再误拦截后续登录）
-                            if (cred != null) com.jichi.ob.api.GarminApi.clearCooldownFor(dsCooldown, email)
-                            runOnUiThread {
-                                if (cred != null) {
-                                    tvStatus.text = "✅ 登录成功！"
-                                    detected = true
-                                    setResult(Activity.RESULT_OK, Intent()
-                                        .putExtra(RESULT_TOKEN, cred)
-                                        .putExtra(RESULT_LOGIN_TYPE, loginType))
-                                    finish()
-                                } else {
-                                    btnLogin.isEnabled = true
-                                    btnLogin.text = "登录"
-                                    // v7.7.3: 区分常见失败原因，给出佳明风控提示（佳明对频繁登录有限流，冷却期约数小时到一天）
-                                    // v7.9.0: 若已触发429冷却，优先提示冷却时长（避免用户误以为密码错误反复重试）
-                                    // v7.9.1: 按该账号任一通道冷却提示（多通道轮换后仍失败，说明全部通道受限或密码错误）
-                                    val cooldownMin = com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)
-                                    val failText = if (cooldownMin > 0) {
-                                        "登录失败，该账号所有佳明登录通道均触发风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
+                            // v8.3.4: 致命错误（密码错误/两步验证）为账号级——一旦出现立即停止全部后续通道，
+                            // 弹窗让用户检查对应项后再登录（避免污染所有通道触发风控）；弹窗提供「仍然继续」强制忽略
+                            suspend fun doGarminLogin(ignoreFatal: Boolean) {
+                                com.jichi.ob.api.GarminApi.lastGarminAuthError = null
+                                com.jichi.ob.api.GarminApi.addDebugLog("[${if (isCN) "佳明中国" else "佳明国际"}] 开始登录 email=${email.take(3)}*** ignoreFatal=$ignoreFatal")
+                                var cred: String? = null
+                                if (!isCN) cred = garminApi.loginOAuth1(email, password, false)
+                                var fatalErr = if (ignoreFatal) null else com.jichi.ob.api.GarminApi.lastGarminAuthError
+                                if (cred == null && fatalErr == null) cred = garminApi.loginMobile(email, password, isCN)
+                                if (cred == null && fatalErr == null) fatalErr = com.jichi.ob.api.GarminApi.lastGarminAuthError
+                                if (cred == null && fatalErr == null && isCN) cred = garminApi.loginOAuth1(email, password, true)
+                                // v8.1.9: 登录成功自动清除该账号本地冷却缓存（覆盖安装保留的旧缓存不再误拦截后续登录）
+                                if (cred != null) com.jichi.ob.api.GarminApi.clearCooldownFor(dsCooldown, email)
+                                val finalCred = cred
+                                val finalFatal = fatalErr
+                                com.jichi.ob.api.GarminApi.addDebugLog("[${if (isCN) "佳明中国" else "佳明国际"}] 登录结果: ${if (finalCred!=null) "成功" else "失败"} fatal=$finalFatal")
+                                runOnUiThread {
+                                    if (finalCred != null) {
+                                        tvStatus.text = "✅ 登录成功！"
+                                        detected = true
+                                        setResult(Activity.RESULT_OK, Intent()
+                                            .putExtra(RESULT_TOKEN, finalCred)
+                                            .putExtra(RESULT_LOGIN_TYPE, loginType))
+                                        finish()
                                     } else {
-                                        "登录失败，请检查邮箱密码\n（开启了两步验证需先关闭）\n佳明对频繁登录有风控：请保证账号密码一次输对，勿同时登录开发体验版与正式版；多次失败会触发限流，请过几小时或次日再试"
+                                        btnLogin.isEnabled = true
+                                        btnLogin.text = "登录"
+                                        // v8.3.4: 登录失败时截取最近日志（运行日志页同源，保证窗口日志与实际日志一致）
+                                        flushGarminDebugToPersist()
+                                        var garminLogTail = try {
+                                            com.jichi.ob.util.PrefsManager(this@LoginWebActivity).getPersistLogs().takeLast(18).joinToString("\n")
+                                        } catch (_: Exception) { "" }
+                                        if (garminLogTail.isBlank()) {
+                                            garminLogTail = synchronized(com.jichi.ob.api.GarminApi.debugLogs) {
+                                                com.jichi.ob.api.GarminApi.debugLogs.takeLast(18).joinToString("\n")
+                                            }
+                                        }
+                                        fun buildMsgWithLog(body: String): String =
+                                            if (garminLogTail.isNotBlank()) body + "\n\n——— 佳明登录日志 ———\n" + garminLogTail else body
+                                        if (finalFatal != null) {
+                                            // v8.3.4: 致命错误直接提示对应项，让用户检查后再登录（不再弹通用风控文案、不再尝试后续通道）
+                                            val fatalMsg = when (finalFatal) {
+                                                "密码错误" -> "账号或密码不匹配，请检查邮箱和密码后重试。\n（佳明对错误密码敏感：输错一次即可能触发风控，继续尝试其他通道会导致 24H 无法登录，请先确认密码正确）"
+                                                "两步验证" -> "检测到该账号开启了两步验证（短信/邮箱验证码）。\n请先在佳明官网账号设置中关闭两步验证，再回 App 登录。\n（继续尝试其他通道会触发风控，可能导致 24H 无法登录）"
+                                                "风控限流" -> "该账号已触发佳明风控限流（可能是密码有误，也可能是该账号被临时限流）。\n请先检查账号密码是否正确，并等待冷却结束后再登录。\n（继续尝试其他通道会触发更严风控，可能导致 24H 无法登录）"
+                                                else -> finalFatal
+                                            }
+                                            tvStatus.text = "❌ 登录失败：$finalFatal"
+                                            val fatalMsgFull = fatalMsg + "\n\n如果不确定可以将报错日志通过抖音发给「多吃两口」排查。"
+                                            // v8.3.4: 统一美化弹窗（可滑动日志 + 复制/仍然继续登陆/知道了；仍然继续需二次确认）
+                                            showGarminResultDialog(
+                                                title = "佳明${if (isCN) "中国" else "国际"}登录失败",
+                                                guide = fatalMsgFull,
+                                                logTail = garminLogTail,
+                                                showContinue = true,
+                                                onContinue = {
+                                                    btnLogin.isEnabled = false
+                                                    btnLogin.text = "登录中(忽略警告)..."
+                                                    GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) { doGarminLogin(true) }
+                                                }
+                                            )
+                                            return@runOnUiThread
+                                        }
+                                        // v7.7.3: 区分常见失败原因，给出佳明风控提示（佳明对频繁登录有限流，冷却期约数小时到一天）
+                                        // v7.9.0: 若已触发429冷却，优先提示冷却时长（避免用户误以为密码错误反复重试）
+                                        // v7.9.1: 按该账号任一通道冷却提示（多通道轮换后仍失败，说明全部通道受限或密码错误）
+                                        val cooldownMin = com.jichi.ob.api.GarminApi.cooldownRemainAnyMinutes(dsCooldown, email)
+                                        val failText = if (cooldownMin > 0) {
+                                            "登录失败，该账号所有佳明登录通道均触发风控限流\n请约${cooldownMin}分钟后重试（冷却期内反复尝试会延长封禁）"
+                                        } else {
+                                            "登录失败，请检查邮箱密码\n（开启了两步验证需先关闭）\n佳明对频繁登录有风控：请保证账号密码一次输对，勿同时登录开发体验版与正式版；多次失败会触发限流，请过几小时或次日再试"
+                                        }
+                                        tvStatus.text = "❌ $failText"
+                                        val failTextFull = failText + "\n\n若已开启两步验证（短信/邮箱验证码），请关闭后再试；否则请确认账号密码正确。\n\n如果不确定可以将报错日志通过抖音发给「多吃两口」排查。"
+                                        // v8.2.3.1: 登录失败/两步验证/密码错误必须弹窗提醒，不能只落在状态栏
+                                        showGarminResultDialog(
+                                            title = "佳明${if (isCN) "中国" else "国际"}登录失败",
+                                            guide = failTextFull,
+                                            logTail = garminLogTail,
+                                            showContinue = false,
+                                            onContinue = {}
+                                        )
                                     }
-                                    tvStatus.text = "❌ $failText"
-                                    // v8.2.3.1: 登录失败/两步验证/密码错误必须弹窗提醒，不能只落在状态栏
-                                    try {
-                                        android.app.AlertDialog.Builder(this@LoginWebActivity)
-                                            .setTitle("佳明${if (isCN) "中国" else "国际"}登录失败")
-                                            .setMessage(failText + "\n\n若已开启两步验证（短信/邮箱验证码），请关闭后再试；否则请确认账号密码正确。")
-                                            .setPositiveButton("知道了", null)
-                                            .show()
-                                    } catch (_: Exception) {}
                                 }
                             }
+                            doGarminLogin(false)
                         } catch (e: Exception) {
                             runOnUiThread {
                                 btnLogin.isEnabled = true
@@ -459,6 +512,11 @@ class LoginWebActivity : AppCompatActivity() {
                     progressBar.visibility = android.view.View.VISIBLE
                     Log.d(TAG, "[$loginType] PageStarted: $url")
                     if (url != null) urlHistory.add("pageStarted: $url")
+                    // v8.3.4: 佳明WebView登录运行日志（国内/国际统一）
+                    if (loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) {
+                        com.jichi.ob.api.GarminApi.enableDebugLogs = true
+                        com.jichi.ob.api.GarminApi.addDebugLog("[${if (loginType == TYPE_GARMIN_CN) "佳明中国" else "佳明国际"}][WebView] 开始加载: $url")
+                    }
                     // v6.5.0: Wahoo OAuth2 回调 localhost:8080?code=xxx
                     if (isOAuth2CallbackType(loginType) && url != null && (url.contains("localhost:8080") || url.contains("wahoo/callback")) && url.contains("code=") && !detected) {
                         val code = extractWahooCode(url)
@@ -498,6 +556,9 @@ class LoginWebActivity : AppCompatActivity() {
                     if (checkCount == 1) webView.post(checkRunnable)
                     // v6.5.6: 佳明页面注入JS监听器（拦截ticket）
                     if ((loginType == TYPE_GARMIN_COM || loginType == TYPE_GARMIN_CN) && !detected) {
+                        // v8.3.4: 佳明WebView登录运行日志
+                        com.jichi.ob.api.GarminApi.enableDebugLogs = true
+                        com.jichi.ob.api.GarminApi.addDebugLog("[${if (loginType == TYPE_GARMIN_CN) "佳明中国" else "佳明国际"}][WebView] 页面加载完成: $url，等待登录")
                         view?.evaluateJavascript(injectGarminListener(), null)
                     }
                 }
@@ -985,6 +1046,92 @@ class LoginWebActivity : AppCompatActivity() {
     /** v6.7.2: 佳明 检测登录 —— 必须同时提取JWT_WEB + session两个cookie（gc-api缺一返回401）
      *  国际版必须用/app/路径登录（/modern/会被重定向到中国区）
      *  凭证格式：JSON {"jwt_web":"...","session":"...","csrf":"..."} */
+    /** v8.3.4: 把GarminApi调试日志并入持久日志池（保证弹窗日志=运行日志页，窗口日志与实际一致） */
+    private fun flushGarminDebugToPersist() {
+        try {
+            val logs = com.jichi.ob.api.GarminApi.debugLogs
+            synchronized(logs) {
+                if (logs.isNotEmpty()) {
+                    val prefs = com.jichi.ob.util.PrefsManager(this@LoginWebActivity)
+                    for (line in logs) { prefs.appendPersistLog(line) }
+                    logs.clear()
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    /** v8.3.4: 复制文本到剪贴板（佳明日志反馈用） */
+    private fun copyLogText(text: String) {
+        try {
+            val cm = getSystemService(android.content.ClipboardManager::class.java)
+            cm?.setPrimaryClip(android.content.ClipData.newPlainText("garminLog", text))
+            Toast.makeText(this@LoginWebActivity, "日志已复制，可粘贴反馈", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
+    }
+
+    /** v8.3.4: 佳明登录结果弹窗（美化版）——引导文案 + 可滑动日志 + 复制/仍然继续登陆/知道了
+     *  @param showContinue 是否显示「仍然继续登陆」（致命错误时显示；确认后二次确认再强制忽略）
+     *  @param onContinue   用户二次确认后回调（执行忽略警告继续登录） */
+    private fun showGarminResultDialog(
+        title: String,
+        guide: String,
+        logTail: String,
+        showContinue: Boolean,
+        onContinue: () -> Unit
+    ) {
+        try {
+            // v8.3.4: 原生Dialog直接setContentView（show前设窗口参数，避免部分ROM按钮行被挤出/窗口高度异常）
+            val dialog = android.app.Dialog(this@LoginWebActivity, android.R.style.Theme_Translucent_NoTitleBar)
+            val view = layoutInflater.inflate(R.layout.dialog_garmin_login, null)
+            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogTitle).text = title
+            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogGuide).text = guide
+            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogLog).text =
+                if (logTail.isNotBlank()) logTail else "（暂无佳明日志）"
+            val btnContinue = view.findViewById<android.widget.TextView>(R.id.btnGarminContinue)
+            if (showContinue) btnContinue.visibility = android.view.View.VISIBLE else btnContinue.visibility = android.view.View.GONE
+            view.findViewById<android.widget.TextView>(R.id.btnGarminCopyLog).setOnClickListener {
+                copyLogText(guide + "\n\n——— 佳明登录日志 ———\n" + (if (logTail.isNotBlank()) logTail else "（暂无佳明日志）"))
+            }
+            view.findViewById<android.widget.TextView>(R.id.btnGarminOk).setOnClickListener { dialog.dismiss() }
+            btnContinue.setOnClickListener {
+                dialog.dismiss()
+                // v8.3.4: 二次确认——忽略警告继续登陆其他端口（带可滑动日志 + 复制按钮；用户自己决定，风险自担）
+                try {
+                    val confirmDialog = android.app.Dialog(this@LoginWebActivity, android.R.style.Theme_Translucent_NoTitleBar)
+                    val confirmView = layoutInflater.inflate(R.layout.dialog_garmin_confirm, null)
+                    confirmView.findViewById<android.widget.TextView>(R.id.tvGarminConfirmGuide).text =
+                        "忽略警告继续登陆其他端口？\n\n若账号密码有误或已被风控，继续尝试其他端口会导致所有端口均被触发风控（24H 无法登录）。是否确认继续？"
+                    confirmView.findViewById<android.widget.TextView>(R.id.tvGarminConfirmLog).text =
+                        if (logTail.isNotBlank()) logTail else "（暂无佳明日志）"
+                    confirmView.findViewById<android.widget.TextView>(R.id.btnGarminConfirmCopy).setOnClickListener {
+                        copyLogText("忽略警告继续登陆其他端口\n\n——— 佳明登录日志 ———\n" + (if (logTail.isNotBlank()) logTail else "（暂无佳明日志）"))
+                    }
+                    confirmView.findViewById<android.widget.TextView>(R.id.btnGarminConfirmCancel).setOnClickListener { confirmDialog.dismiss() }
+                    confirmView.findViewById<android.widget.TextView>(R.id.btnGarminConfirmOk).setOnClickListener {
+                        confirmDialog.dismiss()
+                        onContinue()
+                    }
+                    confirmDialog.setContentView(confirmView)
+                    confirmDialog.setCancelable(true)
+                    confirmDialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+                    confirmDialog.window?.setLayout(
+                        (resources.displayMetrics.widthPixels * 0.9f).toInt(),
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                    confirmDialog.show()
+                } catch (_: Exception) {}
+            }
+            dialog.setContentView(view)
+            dialog.setCancelable(true)
+            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.9f).toInt(),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            dialog.show()
+        } catch (_: Exception) {}
+    }
+
     private fun detectGarmin(cn: Boolean) {
         if (!verifying.compareAndSet(false, true)) return
         val cm = CookieManager.getInstance()
@@ -994,10 +1141,17 @@ class LoginWebActivity : AppCompatActivity() {
         val sessionCookie = extractCookieValue(cookieStr, "session")
         if (jwtWeb.length < 20 || sessionCookie.length < 20) {
             Log.d(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}，继续检测...")
+            // v8.3.4: 检测日志（限频：只在无cookie且首次检测时记录，避免刷屏）
+            if (checkCount <= 3) {
+                com.jichi.ob.api.GarminApi.enableDebugLogs = true
+                com.jichi.ob.api.GarminApi.addDebugLog("[${if (cn) "佳明中国" else "佳明国际"}][WebView] 登录检测中：尚未捕获登录态，等待页面登录完成")
+            }
             verifying.set(false)
             return
         }
         Log.i(TAG, "佳明${if(cn)"中国"else"国际"} JWT_WEB+session已捕获，正在提取CSRF...")
+        com.jichi.ob.api.GarminApi.enableDebugLogs = true
+        com.jichi.ob.api.GarminApi.addDebugLog("[${if (cn) "佳明中国" else "佳明国际"}][WebView] 已捕获登录态(JWT_WEB+session)，正在提取CSRF...")
         // 从页面HTML提取CSRF token
         webView.evaluateJavascript(
             "(function(){try{" +
@@ -1020,6 +1174,8 @@ class LoginWebActivity : AppCompatActivity() {
                     .put("cookies", allCookies)
                     .toString()
                 Log.i(TAG, "✅ 佳明${if(cn)"中国"else"国际"}登录成功, JWT_WEB len=${jwtWeb.length}, session len=${sessionCookie.length}, 所有cookie len=${allCookies.length}, CSRF=${csrf.take(8)}...")
+                com.jichi.ob.api.GarminApi.enableDebugLogs = true
+                com.jichi.ob.api.GarminApi.addDebugLog("[${if (cn) "佳明中国" else "佳明国际"}][WebView] ✅ 登录成功(JWT_WEB+session已捕获)")
                 runOnUiThread {
                     setResult(Activity.RESULT_OK, Intent()
                         .putExtra(RESULT_TOKEN, credential)
@@ -1512,6 +1668,61 @@ class LoginWebActivity : AppCompatActivity() {
             val cn = loginType == TYPE_GARMIN_CN
             exchangeGarminTicket(ticket, cn)
         }
+
+        // v8.3.4: 佳明WebView登录页错误文本回传（密码错误/两步验证/风控等）——国内国际统一弹窗风格（带日志+复制+检查引导）
+        @android.webkit.JavascriptInterface
+        fun onLoginError(msg: String) {
+            if (isFinishing || detected) return
+            val text = msg?.trim().orEmpty()
+            if (text.isEmpty() || text.length > 500) return
+            if (text == lastReportedLoginError) return
+            lastReportedLoginError = text
+            Log.i(TAG, "[$loginType] 佳明页面错误: $text")
+            com.jichi.ob.api.GarminApi.enableDebugLogs = true
+            com.jichi.ob.api.GarminApi.addDebugLog("[${if (loginType == TYPE_GARMIN_CN) "佳明中国" else "佳明国际"}][WebView] 页面错误: $text")
+            runOnUiThread {
+                // v8.3.4: 运行日志页同源日志池，保证窗口日志与实际日志一致
+                flushGarminDebugToPersist()
+                var garminLogTail = try {
+                    com.jichi.ob.util.PrefsManager(this@LoginWebActivity).getPersistLogs().takeLast(18).joinToString("\n")
+                } catch (_: Exception) { "" }
+                if (garminLogTail.isBlank()) {
+                    garminLogTail = synchronized(com.jichi.ob.api.GarminApi.debugLogs) {
+                        com.jichi.ob.api.GarminApi.debugLogs.takeLast(18).joinToString("\n")
+                    }
+                }
+                val body = text
+                val t = body.lowercase()
+                // v8.3.4: 错误分类精确化——强信号优先：明确密码错误→提示密码错误；明确两步验证→提示两步验证；
+                // 弱信号按剩余关键词归类，避免"验证码/两步"与"密码错误"互相误判
+                val strongPwd = t.contains("invalid username") || t.contains("invalid password") || t.contains("incorrect password")
+                        || t.contains("invalid credentials") || t.contains("密码错误") || t.contains("密码不正确") || t.contains("用户名或密码")
+                val strongMfa = t.contains("two-step") || t.contains("two step") || t.contains("two factor")
+                        || t.contains("verification code") || t.contains("security code") || t.contains("两步验证") || t.contains(" mfa")
+                val weakPwd = t.contains("password") || t.contains("invalid") || t.contains("incorrect")
+                        || t.contains("密码") || t.contains("无效") || t.contains("用户名")
+                val weakMfa = t.contains("verification") || t.contains("验证码") || t.contains("两步") || t.contains("mfa")
+                val isPwd = strongPwd || (!strongMfa && weakPwd)
+                val isMfa = strongMfa || (!isPwd && weakMfa)
+                val isCooldown = t.contains("429") || t.contains("rate limit") || t.contains("too many")
+                        || t.contains("频繁") || t.contains("风控") || t.contains("限流")
+                val guide = when {
+                    isPwd -> "账号或密码不匹配：请检查邮箱和密码后重试。\n（佳明对错误密码敏感：输错一次即可能触发风控，请先确认密码正确，避免继续尝试导致 24H 无法登录）"
+                    isMfa -> "检测到两步验证（短信/邮箱验证码）：请先在佳明官网账号设置中关闭两步验证，再回 App 登录。\n继续尝试会触发风控，可能导致 24H 无法登录。"
+                    isCooldown -> "该账号已触发佳明风控限流：请先检查账号密码是否正确，并等待冷却结束后再登录。\n（冷却期内反复尝试会延长封禁，可能导致 24H 无法登录）"
+                    else -> "登录失败：请检查邮箱密码是否正确。\n（若提示两步验证，请先在佳明官网关闭；继续尝试会触发风控，可能导致 24H 无法登录）"
+                }
+                val fullMsg = "佳明页面提示：$text\n\n$guide\n\n如果不确定可以将报错日志通过抖音发给「多吃两口」排查。"
+                // v8.3.4: 统一美化弹窗（可滑动日志 + 复制 + 知道了）
+                showGarminResultDialog(
+                    title = "佳明${if (loginType == TYPE_GARMIN_CN) "中国" else "国际"}登录失败",
+                    guide = fullMsg,
+                    logTail = garminLogTail,
+                    showContinue = false,
+                    onContinue = {}
+                )
+            }
+        }
     }
 
     /** v6.5.6: 注入佳明ticket监听器JS（拦截URL/fragment/postMessage/AJAX响应中的ticket） */
@@ -1575,6 +1786,24 @@ class LoginWebActivity : AppCompatActivity() {
                     });
                 };
             }
+            // v8.3.4: 6. 轮询页面错误提示文本（密码错误/两步验证/风控等），回传App统一弹窗（带日志+复制）
+            var lastErr = '';
+            var errKeys = ['password','invalid','incorrect','two-step','two step','verification','security code','rate limit','too many','429','密码','无效','用户名','验证码','两步','频繁','风控','限流'];
+            setInterval(function() {
+                try {
+                    var t = document.body ? document.body.innerText : '';
+                    if (!t) return;
+                    var hit = '';
+                    for (var i = 0; i < errKeys.length; i++) {
+                        if (t.toLowerCase().indexOf(errKeys[i]) >= 0) { hit = t; break; }
+                    }
+                    if (hit && hit !== lastErr && window.GarminBridge) {
+                        lastErr = hit;
+                        var msg = hit.replace(/\\s+/g, ' ').substring(0, 300);
+                        window.GarminBridge.onLoginError(msg);
+                    }
+                } catch(e) {}
+            }, 2000);
         })();
         """.trimIndent()
     }

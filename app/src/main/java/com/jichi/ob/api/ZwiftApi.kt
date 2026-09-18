@@ -78,7 +78,12 @@ class ZwiftApi {
                 LoginResult(token, json.optString("refresh_token"), null)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Zwift login error", e)
+            /* v8.3.4: SSL 证书链失败分类提示（与同步链路一致） */
+            if (e is javax.net.ssl.SSLException || e.cause is javax.net.ssl.SSLException) {
+                Log.w(TAG, "Zwift 登录证书校验失败，请切换网络后重试", e)
+            } else {
+                Log.e(TAG, "Zwift login error", e)
+            }
             null
         }
     }
@@ -159,10 +164,11 @@ class ZwiftApi {
                     ?: throw IllegalStateException("Zwift 无法解析玩家ID")
                 var lastErr: Exception? = null
                 for (base in BASE_HOSTS) {
+                    var req: Request? = null
                     try {
                         val useLimit = maxOf(1, minOf(limit, MAX_LIST_LIMIT))
                         val url = "$base/api/profiles/$pid/activities?start=$skip&limit=$useLimit"
-                        val req = Request.Builder()
+                        req = Request.Builder()
                             .url(url)
                             .addHeader("Accept", "application/json")
                             .addHeader("Authorization", "Bearer $token")
@@ -176,12 +182,32 @@ class ZwiftApi {
                         }
                     } catch (e: Exception) {
                         if (e is IllegalStateException && e.message?.contains("401") == true) throw e
+                        if (e is javax.net.ssl.SSLException && req != null) {
+                            /* v8.3.4: 证书链验证失败（Chain validation failed）多为网络中间层/代理瞬时问题，
+                               同 host 自动重试一次（与 Wahoo 兜底策略一致），仍失败换下一个 host */
+                            Log.w(TAG, "Zwift SSL异常(${e.javaClass.simpleName})，同host重试一次")
+                            try {
+                                client.newCall(req).execute().use { resp ->
+                                    if (resp.code == 401) throw IllegalStateException("Zwift token 过期(401)")
+                                    val body = resp.body?.string() ?: return@withContext emptyList()
+                                    if (resp.code != 200) throw IllegalStateException("Zwift HTTP ${resp.code}: ${body.take(100)}")
+                                    return@withContext parseActivities(body, skip, limit)
+                                }
+                            } catch (e2: Exception) {
+                                lastErr = e2
+                            }
+                            continue
+                        }
                         lastErr = e
                     }
                 }
                 throw lastErr ?: IllegalStateException("Zwift 所有host请求失败")
             } catch (e: Exception) {
                 Log.e(TAG, "Zwift getActivities error", e)
+                /* v8.3.4: SSL 类错误包装为中文友好提示（用户可据此切网络），不裸抛英文堆栈 */
+                if (e is javax.net.ssl.SSLException || e.cause is javax.net.ssl.SSLException) {
+                    throw IllegalStateException("Zwift 证书校验失败：当前网络可能受限，请切换网络（WiFi/流量）后重试")
+                }
                 throw e
             }
         }

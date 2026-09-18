@@ -347,6 +347,7 @@ class MainActivity : AppCompatActivity() {
             ZeppApi.gcjConvertEnabled = prefs.isZeppGcjConvertEnabled()
             intervalsIcuApi = IntervalsIcuApi()
             GarminApi.setAppContext(this)  // v7.9.0: 佳明429风控冷却持久化
+            com.jichi.ob.api.GarminApi.enableDebugLogs = true  // v8.3.4: 全局开启佳明运行日志（登录/检测/同步/冷却写入App日志页，方便用户复制反馈排障）
             garminApi.initWebView(this)  // v6.7.3: 国际版用WebView绕过Cloudflare
             corosApi = CorosApi()
             wahooApi = WahooApi()
@@ -690,14 +691,47 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    /** v8.2.3.1: 佳明登录失败统一弹窗（密码错误/两步验证/风控等，不依赖日志可见性） */
+    /** v8.3.4: 佳明登录失败统一弹窗（国内/国际风格一致）——引导文案 + 可滑动日志 + 复制/知道了 */
     private fun showGarminLoginFailDialog(region: String, hint: String) {
         try {
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("$region 登录失败")
-                .setMessage(hint + "\n\n提示：若多次失败触发风控，可到登录页该平台详情里「清空风控」后再试。")
-                .setPositiveButton("知道了", null)
-                .show()
+            // v8.3.4: 先把佳明调试日志并入持久日志池（弹窗日志=运行日志页）
+            flushGarminDebugLogs()
+            // v8.3.4: 原生Dialog直接setContentView（show前设窗口参数，避免部分ROM按钮行被挤出/窗口高度异常）
+            val dialog = android.app.Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+            val view = layoutInflater.inflate(R.layout.dialog_garmin_login, null)
+            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogTitle).text = "$region 登录失败"
+            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogGuide).text =
+                hint + "\n\n如果不确定可以将报错日志通过抖音发给「多吃两口」排查。"
+            var logTail = try {
+                // v8.3.4: 取运行日志页同源日志池（appendLog持久日志），保证窗口日志与实际日志一致
+                prefs.getPersistLogs().takeLast(18).joinToString("\n")
+            } catch (_: Exception) { "" }
+            if (logTail.isBlank()) {
+                logTail = synchronized(com.jichi.ob.api.GarminApi.debugLogs) {
+                    com.jichi.ob.api.GarminApi.debugLogs.takeLast(18).joinToString("\n")
+                }
+            }
+            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogLog).text =
+                if (logTail.isNotBlank()) logTail else "（暂无佳明日志）"
+            // 致命错误场景不提供「仍然继续登陆」；普通失败同样关闭该按钮
+            view.findViewById<android.widget.TextView>(R.id.btnGarminContinue).visibility = android.view.View.GONE
+            view.findViewById<android.widget.TextView>(R.id.btnGarminCopyLog).setOnClickListener {
+                try {
+                    val cm = getSystemService(android.content.ClipboardManager::class.java)
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("garminLog",
+                        hint + "\n\n——— 佳明登录日志 ———\n" + (if (logTail.isNotBlank()) logTail else "（暂无佳明日志）")))
+                    android.widget.Toast.makeText(this, "日志已复制，可粘贴反馈", android.widget.Toast.LENGTH_SHORT).show()
+                } catch (_: Exception) {}
+            }
+            view.findViewById<android.widget.TextView>(R.id.btnGarminOk).setOnClickListener { dialog.dismiss() }
+            dialog.setContentView(view)
+            dialog.setCancelable(true)
+            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            dialog.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.9f).toInt(),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            dialog.show()
         } catch (_: Exception) {}
     }
 

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v8.3.4: 佳明登录结果弹窗——引导文案 + 可滑动日志区 + 复制/仍然继续登陆/知道了 三按钮 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_disclaimer_dialog"
+    android:padding="18dp">
+
+    <TextView
+        android:id="@+id/tvGarminDialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="佳明登录失败"
+        android:textColor="@color/primary"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#2B8CFF" />
+
+    <TextView
+        android:id="@+id/tvGarminDialogGuide"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="佳明登录日志（可滑动）"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <ScrollView
+        android:id="@+id/scrollGarminLog"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="4dp"
+        android:background="#1E293B"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/tvGarminDialogLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="2dp"
+            android:textColor="#D1D5DB"
+            android:textIsSelectable="true"
+            android:textSize="10sp" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/btnGarminCopyLog"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:gravity="center"
+            android:background="@drawable/bg_check_update"
+            android:text="复制日志"
+            android:textColor="@color/primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnGarminContinue"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:gravity="center"
+            android:background="@drawable/bg_check_update"
+            android:text="仍然继续登陆"
+            android:textColor="#E65100"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnGarminOk"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/bg_check_update"
+            android:text="知道了"
+            android:textColor="@color/primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
