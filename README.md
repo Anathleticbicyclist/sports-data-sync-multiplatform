@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.3.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.3.4-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.3.3 |
+| 当前版本 | v8.3.4 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -412,6 +412,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.3.4 (2026-09-18)
+- 🧩 优化轨迹合并优化贴纸体验：导出与预览像素级对齐（数据/单位间隙、字体位置修复）
+- 🔐 优化佳明国际国内通道登陆逻辑：密码错误/两步验证/风控限流任一通道即停并弹窗引导检查（避免污染全部通道触发24H风控），可强制忽略警告继续登录；国内国际失败弹窗风格一致（含滑动日志窗口、复制日志、多吃两口排查引导）
+- 🛠️ Zwift 下载权限预检：试用订阅账号无 FIT 下载权限时给出明确提示（fitnessData=NOT_AVAILABLE）
+- 🔒 开源仓库合规化：继续剔除不开源模块代码
 
 ### v8.3.3 (2026-09-18)
 - 🧩 贴纸3D轨迹对齐Outbase：细橙线+窗帘式竖向投影（任何角度灰带竖直向下）、无发光无平面线、4000点全量高精度渲染
