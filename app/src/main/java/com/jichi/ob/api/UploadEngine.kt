@@ -502,36 +502,22 @@ class UploadEngine(private val context: android.content.Context? = null) {
         return try {
             if (token.isBlank()) return UploadResult(false, message = "迈金未登录，请先登录迈金")
 
-            // v8.4.2: 迈金只收FIT。GPX源必须先转FIT（同黑鸟逻辑），保留运动类型/功率/心率/踏频等字段。
+            // v8.4.2: 迈金只收FIT。GPX源转FIT——直接用自研转换器（完整file_id/session/lap/activity/record消息流）。
+            // 官方gpx2fit.js只生成file_id+record，缺session/lap/activity汇总，迈金异步入库时丢弃。
             var convertedNote: String
             val uploadBytes: ByteArray = if (GpxToFitConverter.isFit(fitData)) {
                 convertedNote = ""
                 fitData
             } else {
-                Log.d(TAG, "迈金 GPX源 ${fitData.size} bytes，开始转FIT（保留运动类型/心率/功率/踏频）...")
-                val officialFit = try {
-                    if (outbaseBridge != null) {
-                        val f = outbaseBridge!!.convertGpxToFit(fitData, add8Hours = false)
-                        Log.d(TAG, "迈金 GPX->FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
-                        f
-                    } else null
+                Log.d(TAG, "迈金 GPX源 ${fitData.size} bytes，转FIT（自研完整消息流）...")
+                try {
+                    val f = GpxToFitConverter.convert(fitData)
+                    convertedNote = " (GPX→FIT ${fitData.size}→${f.size}字节)"
+                    f
                 } catch (e: Exception) {
-                    Log.e(TAG, "迈金 官方gpx2fit异常: ${e.message}", e); null
-                }
-                if (officialFit != null) {
-                    convertedNote = " (GPX→FIT ${fitData.size}→${officialFit.size}字节)"
-                    officialFit
-                } else {
-                    try {
-                        val f = GpxToFitConverter.convert(fitData)
-                        Log.d(TAG, "迈金 GPX->FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
-                        convertedNote = " (GPX→FIT自研 ${fitData.size}→${f.size}字节)"
-                        f
-                    } catch (e: Exception) {
-                        Log.w(TAG, "迈金 自研转换也失败: ${e.message}")
-                        convertedNote = " (⚠️转换失败仍传GPX: ${e.message})"
-                        fitData
-                    }
+                    Log.w(TAG, "迈金 GPX->FIT失败: ${e.message}")
+                    convertedNote = " (⚠️转换失败: ${e.message})"
+                    fitData
                 }
             }
 
