@@ -495,12 +495,46 @@ class UploadEngine(private val context: android.content.Context? = null) {
         }
     }
 
-    private fun uploadToMagene(
+    private suspend fun uploadToMagene(
         token: String, fitData: ByteArray, record: ActivityRecord, extra: Map<String, String>
     ): UploadResult {
         val start = System.currentTimeMillis()
         return try {
             if (token.isBlank()) return UploadResult(false, message = "迈金未登录，请先登录迈金")
+
+            // v8.4.2: 迈金只收FIT。GPX源必须先转FIT（同黑鸟逻辑），保留运动类型/功率/心率/踏频等字段。
+            var convertedNote: String
+            val uploadBytes: ByteArray = if (GpxToFitConverter.isFit(fitData)) {
+                convertedNote = ""
+                fitData
+            } else {
+                Log.d(TAG, "迈金 GPX源 ${fitData.size} bytes，开始转FIT（保留运动类型/心率/功率/踏频）...")
+                val officialFit = try {
+                    if (outbaseBridge != null) {
+                        val f = outbaseBridge!!.convertGpxToFit(fitData, add8Hours = false)
+                        Log.d(TAG, "迈金 GPX->FIT(官方gpx2fit): ${fitData.size} -> ${f.size} bytes")
+                        f
+                    } else null
+                } catch (e: Exception) {
+                    Log.e(TAG, "迈金 官方gpx2fit异常: ${e.message}", e); null
+                }
+                if (officialFit != null) {
+                    convertedNote = " (GPX→FIT ${fitData.size}→${officialFit.size}字节)"
+                    officialFit
+                } else {
+                    try {
+                        val f = GpxToFitConverter.convert(fitData)
+                        Log.d(TAG, "迈金 GPX->FIT(自研兜底): ${fitData.size} -> ${f.size} bytes")
+                        convertedNote = " (GPX→FIT自研 ${fitData.size}→${f.size}字节)"
+                        f
+                    } catch (e: Exception) {
+                        Log.w(TAG, "迈金 自研转换也失败: ${e.message}")
+                        convertedNote = " (⚠️转换失败仍传GPX: ${e.message})"
+                        fitData
+                    }
+                }
+            }
+
             val fileName = FileNameGenerator.generate(DataSource.MAGENE, record, "fit")
 
             // v7.6.3: 顽鹿OTM新上传接口（2026-09-04 实测可用）
@@ -509,7 +543,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
             // 上传为异步入库（约15-20秒出现在列表），接口返回 success_count>=1 即接收成功。
             val body = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("jilu0", fileName, fitData.toRequestBody("application/octet-stream".toMediaType()))
+                .addFormDataPart("jilu0", fileName, uploadBytes.toRequestBody("application/octet-stream".toMediaType()))
                 .build()
             val req = Request.Builder()
                 .url(MAGENE_UPLOAD_URL)
@@ -529,7 +563,7 @@ class UploadEngine(private val context: android.content.Context? = null) {
                     val code = json?.optInt("code", -1) ?: -1
                     val successCount = json?.optJSONObject("data")?.optInt("success_count", 0) ?: 0
                     if (code == 200 && successCount >= 1) {
-                        return UploadResult(true, message = "迈金上传成功(OTM API)")
+                        return UploadResult(true, message = "迈金上传成功(OTM API)$convertedNote")
                     }
                 }
                 UploadResult(false, message = "迈金上传失败: HTTP ${resp.code} ${result.take(100)}")

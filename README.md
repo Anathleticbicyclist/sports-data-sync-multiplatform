@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.4.1 |
+| 当前版本 | v8.4.2 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -412,6 +412,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.4.2 (2026-09-19)
+- 修复迈金(顽鹿运动)只收 FIT：GPX 源自动转 FIT 再上传，保留运动类型/心率/功率/踏频
+- 涉及源：Keep/咕咚/Zepp/Komoot/行者GPX回退/黑鸟GPX回退
+- 运动类型自动识别：跑步/骑行/游泳/徒步/爬山，不默认自行车
 
 ### v8.4.1 (2026-09-19)
 - 优化佳明国际登录体验：OAuth1 登录基地址双路轮询（connect.garmin.com/signin/ 活通道 + sso.garmin.com 老通道兜底），clientId 双通道（GarminConnect / garminglobal6），共 4 条登录路径；密码错误/429 风控/两步验证即停规则不变，避免污染通道触发 24H 封禁
