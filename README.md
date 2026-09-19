@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.4.2 |
+| 当前版本 | v8.4.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -412,6 +412,9 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.4.3 (2026-09-19)
+- 修复迈金 GPX 转 FIT 后入库问题：改用自研完整消息流（file_id/session/lap/activity/record），官方 gpx2fit.js 缺汇总消息导致迈金异步入库丢弃
 
 ### v8.4.2 (2026-09-19)
 - 修复迈金(顽鹿运动)只收 FIT：GPX 源自动转 FIT 再上传，保留运动类型/心率/功率/踏频
