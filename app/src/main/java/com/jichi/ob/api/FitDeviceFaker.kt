@@ -15,13 +15,14 @@ object FitDeviceFaker {
     private const val TAG = "FitDeviceFaker"
 
     const val GARMIN_MANUFACTURER = 1
-    const val GARMIN_EDGE_830 = 3122
+    const val GARMIN_EDGE_830 = 3122        // 骑行码表
+    const val GARMIN_FORERUNNER_945 = 2967  // 跑步手表
 
     /** 是否看起来已是 Garmin 设备（跳过伪装） */
     fun isAlreadyGarmin(fitData: ByteArray): Boolean {
         return try {
             val info = scanFileId(fitData) ?: return false
-            info.manufacturer == GARMIN_MANUFACTURER && info.product == GARMIN_EDGE_830
+            info.manufacturer == GARMIN_MANUFACTURER
         } catch (e: Exception) { false }
     }
 
@@ -94,10 +95,13 @@ object FitDeviceFaker {
     }
 
     /**
-     * 伪装 FIT 为 Garmin Edge 830。
+     * 伪装 FIT 为 Garmin 设备。
+     * @param isCycling true=骑行活动伪装成Edge 830；false=跑步/徒步等伪装成Forerunner 945
      * @return 伪装后的字节，失败返回原数据
      */
-    fun fake(fitData: ByteArray): ByteArray {
+    fun fake(fitData: ByteArray, isCycling: Boolean = true): ByteArray {
+        val productId = if (isCycling) GARMIN_EDGE_830 else GARMIN_FORERUNNER_945
+        val deviceName = if (isCycling) "Edge 830" else "Forerunner 945"
         return try {
             val out = fitData.copyOf()
             val headerSize = if (out.size >= 12) (out[0].toInt() and 0xFF) else 14
@@ -149,7 +153,7 @@ object FitDeviceFaker {
                             modified = true
                         }
                         def.fields[prodField]?.let { off ->
-                            writeU16(out, pos + 1 + off, GARMIN_EDGE_830, def.arch)
+                            writeU16(out, pos + 1 + off, productId, def.arch)
                             modified = true
                         }
                     }
@@ -170,7 +174,7 @@ object FitDeviceFaker {
                     writeU16le(out, fitEnd, crc)
                 }
             }
-            Log.d(TAG, "FIT 已伪装为 Garmin Edge 830 (${fitData.size} -> ${out.size} bytes)")
+            Log.d(TAG, "FIT 已伪装为 Garmin $deviceName (${fitData.size} -> ${out.size} bytes)")
             out
         } catch (e: Exception) {
             Log.e(TAG, "fake error", e)

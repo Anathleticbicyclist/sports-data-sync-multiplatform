@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.5.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.5.8-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.5.7 |
+| 当前版本 | v8.5.8 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -412,6 +412,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.5.8 (2026-09-20)
+- 佳明FIT设备伪装按运动类型分别执行：骑行活动伪装成Edge 830(product=3122)，跑步/徒步活动伪装成Forerunner 945(product=2967)
+- 伪装仅在上传佳明中国/佳明国际时生效，其他平台零影响
+- 解决跑步活动伪装成骑行码表导致Garmin Connect不计算训练负荷/疲劳度的问题
+- CRC-16重算保证FIT文件合法
 
 ### v8.5.7 (2026-09-20)
 - 修复Keep同步拉不到最新运动：`lastDate`改回0（实测当前时间戳会跳过最近运动）

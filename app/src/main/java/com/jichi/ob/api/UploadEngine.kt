@@ -689,10 +689,15 @@ class UploadEngine(private val context: android.content.Context? = null) {
                     Log.d(TAG, "佳明 GPX->FIT(自研兜底): ${fitData.size} -> ${ff.size} bytes"); ff
                 } catch (e: Exception) { Log.w(TAG, "佳明 自研转换失败: ${e.message}"); fitData }
             }
-            // v6.5.0: 非Garmin设备FIT被拒 → 伪装为 Garmin Edge 830
+            // v6.5.0: 非Garmin设备FIT被拒 → 伪装为 Garmin 设备
+            // v8.5.8: 按运动类型分别伪装——骑行→Edge 830，跑步/徒步→Forerunner 945
+            val isCycling = record.extra?.contains("骑行") == true ||
+                record.extra?.contains("cycling") == true ||
+                record.extra?.contains("ride") == true
             val faked = if (!FitDeviceFaker.isAlreadyGarmin(fitBytes)) {
-                Log.d(TAG, "佳明 FIT设备伪装: Edge 830")
-                FitDeviceFaker.fake(fitBytes)
+                val devName = if (isCycling) "Edge 830" else "Forerunner 945"
+                Log.d(TAG, "佳明 FIT设备伪装: $devName (运动类型=${record.extra})")
+                FitDeviceFaker.fake(fitBytes, isCycling)
             } else fitBytes
             val fileName = FileNameGenerator.generate(target, record, "fit")
             val err = garminApi.uploadActivity(target, cred, faked, fileName)

@@ -288,7 +288,7 @@ class LoginFragment : Fragment() {
         (activity as? MainActivity)?.lastInvalidPlatforms?.toSet() ?: emptySet()
 
     /** v8.2.3: 异步刷新全部已登录平台的累计统计 + 缓存条数（IO 查询，主线程更新，不卡 UI） */
-    private fun refreshStats() {
+    internal fun refreshStats() {
         val act = activity as? MainActivity ?: return
         val logged = allLoginPlatforms().filter { prefs.isLoggedIn(it) }
         if (logged.isEmpty()) return

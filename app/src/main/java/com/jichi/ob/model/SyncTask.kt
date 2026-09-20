@@ -25,7 +25,9 @@ data class SyncTask(
     val lastRunTime: Long = 0L,     // 上次运行时间
     val lastRunOk: Int = 0,
     val lastRunSkip: Int = 0,
-    val lastRunFail: Int = 0
+    val lastRunFail: Int = 0,
+    val lastRunDetail: String = "",  // v8.4.4: 本次各平台明细 JSON
+    val recentRuns: List<String> = emptyList()  // v8.4.8: 最近5次运行记录 JSON 数组 [{time,ok,skip,fail,detail}]
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
@@ -45,12 +47,23 @@ data class SyncTask(
         put("lastRunOk", lastRunOk)
         put("lastRunSkip", lastRunSkip)
         put("lastRunFail", lastRunFail)
+        put("lastRunDetail", lastRunDetail)
+        put("recentRuns", JSONArray(recentRuns))
     }
 
-    fun copyRun(ok: Int, skip: Int, fail: Int): SyncTask = copy(
-        lastRunTime = System.currentTimeMillis(),
-        lastRunOk = ok, lastRunSkip = skip, lastRunFail = fail
-    )
+    fun copyRun(ok: Int, skip: Int, fail: Int, detail: String = ""): SyncTask {
+        val now = System.currentTimeMillis()
+        val entry = JSONObject().apply {
+            put("time", now); put("ok", ok); put("skip", skip); put("fail", fail); put("detail", detail)
+        }.toString()
+        val newHistory = (listOf(entry) + recentRuns).take(5)  // 保留最近5次
+        return copy(
+            lastRunTime = now,
+            lastRunOk = ok, lastRunSkip = skip, lastRunFail = fail,
+            lastRunDetail = detail,
+            recentRuns = newHistory
+        )
+    }
 
     companion object {
         fun fromJson(o: JSONObject): SyncTask {
@@ -75,7 +88,11 @@ data class SyncTask(
                 lastRunTime = o.optLong("lastRunTime", 0L),
                 lastRunOk = o.optInt("lastRunOk", 0),
                 lastRunSkip = o.optInt("lastRunSkip", 0),
-                lastRunFail = o.optInt("lastRunFail", 0)
+                lastRunFail = o.optInt("lastRunFail", 0),
+                lastRunDetail = o.optString("lastRunDetail", ""),
+                recentRuns = o.optJSONArray("recentRuns")?.let { a ->
+                    (0 until a.length()).mapNotNull { a.optString(it) }
+                } ?: emptyList()
             )
         }
     }
