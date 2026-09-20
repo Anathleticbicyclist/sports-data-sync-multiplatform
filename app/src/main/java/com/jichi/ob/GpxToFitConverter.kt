@@ -43,9 +43,10 @@ object GpxToFitConverter {
     private val META_CAL_RE = Pattern.compile("<jichi:calorie>(\\d+)</jichi:calorie>")
     private val META_AVGHR_RE = Pattern.compile("<jichi:avgHr>(\\d+)</jichi:avgHr>")
     private val META_MAXHR_RE = Pattern.compile("<jichi:maxHr>(\\d+)</jichi:maxHr>")
+    private val META_AVGCAD_RE = Pattern.compile("<jichi:avgCadence>([\\d.]+)</jichi:avgCadence>")
 
     /** v8.1.4: Keep cycling 单点兜底元数据（distance米/duration秒/calorie千卡/avgHr/maxHr） */
-    data class Meta(val dist: Double = 0.0, val dur: Long = 0L, val cal: Int = 0, val avgHr: Int = 0, val maxHr: Int = 0) {
+    data class Meta(val dist: Double = 0.0, val dur: Long = 0L, val cal: Int = 0, val avgHr: Int = 0, val maxHr: Int = 0, val avgCadence: Int = 0) {
         val valid: Boolean get() = dist > 0.0 || dur > 0L
     }
 
@@ -55,6 +56,7 @@ object GpxToFitConverter {
         META_CAL_RE.matcher(gpx).let { if (it.find()) it.group(1).toIntOrNull() ?: 0 else 0 },
         META_AVGHR_RE.matcher(gpx).let { if (it.find()) it.group(1).toIntOrNull() ?: 0 else 0 },
         META_MAXHR_RE.matcher(gpx).let { if (it.find()) it.group(1).toIntOrNull() ?: 0 else 0 },
+        META_AVGCAD_RE.matcher(gpx).let { if (it.find()) it.group(1).toDoubleOrNull()?.toInt() ?: 0 else 0 },
     )
 
     data class TrackPoint(val lat: Double, val lon: Double, val ele: Double, val ts: Long, val hr: Int = 0, val cad: Int = 0, val power: Int = 0)
@@ -202,7 +204,7 @@ object GpxToFitConverter {
         val resolvedSport = if (detSport > 0) detSport else 2
         val meta = parseMeta(gpxStr)
         // v8.1.4: 单点兜底时用 Keep 详情元数据覆盖 total_distance/时长（cal/hr 单点场景无真实值，按现有规则计算）
-        return convertPoints(pts, resolvedSport, meta.dist, meta.dur, detSub)
+        return convertPoints(pts, resolvedSport, meta.dist, meta.dur, detSub, meta.avgCadence)
     }
 
     /**
@@ -212,7 +214,7 @@ object GpxToFitConverter {
      * @param subSport FIT sub_sport 枚举（0=generic，2=street，6=indoor_cycling，7=road 等；0=不指定）
      * @param metaDistKeep / metaDurKeep 单点兜底元数据（仅单点轨迹时覆盖 total_distance/时长；0=不覆盖）
      */
-    fun convertPoints(pts: List<TrackPoint>, sport: Int = 2, metaDistKeep: Double = 0.0, metaDurKeep: Long = 0L, subSport: Int = 0): ByteArray {
+    fun convertPoints(pts: List<TrackPoint>, sport: Int = 2, metaDistKeep: Double = 0.0, metaDurKeep: Long = 0L, subSport: Int = 0, metaAvgCadence: Int = 0): ByteArray {
         require(pts.isNotEmpty()) { "无有效轨迹点" }
         val startUnix = pts.firstOrNull { it.ts > 0L }?.ts ?: (System.currentTimeMillis() / 1000)
         val body = buildFitBody(pts, startUnix, sport, subSport, metaDistKeep, metaDurKeep)

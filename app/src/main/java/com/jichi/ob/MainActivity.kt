@@ -355,7 +355,11 @@ class MainActivity : AppCompatActivity() {
             twoBuluApi = com.jichi.ob.api.TwoBuluApi(this)
             uploadEngine = UploadEngine(this)
             if (!SAVE_DIR.exists()) SAVE_DIR.mkdirs()
-            initFragments()
+            if (savedInstanceState == null) {
+                initFragments()
+            } else {
+                restoreFragments()
+            }
             initFixWebView()
             requestNotificationPermission()
             appendLog("🚴 鸡翅幸哲迈进OB($APP_EDITION) $APP_VERSION 启动")
@@ -391,6 +395,13 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "onCreate failed", e)
         }
+    }
+
+    /** v8.4.4: 回到前台时轻量刷新登录卡片统计（不重建任务卡片避免卡顿） */
+    override fun onResume() {
+        super.onResume()
+        try { loginFragment.refreshStats() } catch (_: Exception) {}
+        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
     }
 
     internal fun openLogin(type: String, url: String) {
@@ -1758,13 +1769,27 @@ class MainActivity : AppCompatActivity() {
 
     // v7.6.2: 日志/进度/同步态统一转发给SyncFragment
     // v8.1.3: Fragment detached 防御——后台同步/Worker 回调时页面可能已销毁，任何 UI 异常不允许冒泡崩溃
+    private val logQueue = java.util.concurrent.ConcurrentLinkedQueue<String>()
+    private var logFlushing = false
+
     private fun appendLog(message: String) {
         Log.i(TAG, message)
-        // v7.6.9: 同步日志持久化，App重开/后台自动同步日志仍可见
         prefs.appendPersistLog(message)
-        runOnUiThread {
-            try { syncFragment.appendLog(message) } catch (_: Exception) {}
-        }
+        // v8.5.1: 节流批量刷新，避免每条日志都runOnUiThread阻塞主线程导致其他页面空白
+        logQueue.add(message)
+        if (logFlushing) return
+        logFlushing = true
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            logFlushing = false
+            val batch = StringBuilder()
+            while (true) {
+                val line = logQueue.poll() ?: break
+                batch.append(line).append('\n')
+            }
+            if (batch.isNotEmpty()) {
+                try { syncFragment.appendLogBatch(batch.toString()) } catch (_: Exception) {}
+            }
+        }, 200)
     }
 
     /** v8.3.5: 毫秒时间戳 → "MM-dd HH:mm"（游标日志显示） */
@@ -2061,6 +2086,13 @@ class MainActivity : AppCompatActivity() {
         refreshTaskUi()
         taskJob = lifecycleScope.launch(Dispatchers.IO) {
             var ok = 0; var skipped = 0; var failed = 0
+            // v8.4.7: 本次各平台明细统计（ConcurrentHashMap 线程安全，并行上传不崩）
+            val perPlatform = java.util.concurrent.ConcurrentHashMap<String, IntArray>()
+            fun bump(short: String, dl: Int = 0, up: Int = 0, fail: Int = 0) {
+                val arr = perPlatform.getOrPut(short) { IntArray(3) }
+                synchronized(arr) { arr[0] += dl; arr[1] += up; arr[2] += fail }
+            }
+            var totalScanned = 0  // 本次扫描了多少条活动
             try {
                 for (source in sources) {
                     if (!taskActive) break
@@ -2125,6 +2157,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     flushGarminDebugLogs()
                     val force = task.force || targets.size > 1
+                    totalScanned += list.size  // v8.4.7 本次扫描总数
                     // v8.2.3: P2 并发按平台风险分级——先收集待下载条目（含各目标记忆过滤），下载阶段并行，上传阶段串行
                     val pendingItems = mutableListOf<Pair<Int, Pair<com.jichi.ob.model.ActivityRecord, List<DataSource>>>>()
                     for ((i, act) in list.withIndex()) {
@@ -2216,12 +2249,12 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }.awaitAll()
                         }
-                        for ((dOk, dSkip, dFail) in deltas) { ok += dOk; skipped += dSkip; failed += dFail; srcFailed += dFail }
+                        for ((dOk, dSkip, dFail) in deltas) { ok += dOk; skipped += dSkip; failed += dFail; srcFailed += dFail; bump(source.shortName, dl = 1); pendingTargets.forEach { bump(it.shortName, up = dOk, fail = dFail) } }
                         // 佳明/Keep 串行上传
                         for (target in serialTargets) {
                             if (!taskActive) break
                             val (dOk, dSkip, dFail) = uploadOneToTarget(source, act, fileData, localFile, localName, target)
-                            ok += dOk; skipped += dSkip; failed += dFail; srcFailed += dFail
+                            ok += dOk; skipped += dSkip; failed += dFail; srcFailed += dFail; bump(target.shortName, up = dOk, fail = dFail)
                         }
                         kotlinx.coroutines.delay(150)
                     }
@@ -2260,7 +2293,16 @@ class MainActivity : AppCompatActivity() {
                 appendLog("❌ 任务异常: ${e.message}")
             } finally {
                 taskActive = false
-                prefs.upsertTask(task.copyRun(ok, skipped, failed))
+                // v8.4.7: 构造各平台明细 JSON（含扫描总数）
+                val detailJson = org.json.JSONObject().apply {
+                    put("scanned", totalScanned)
+                    perPlatform.forEach { (k, v) ->
+                        put(k, org.json.JSONObject().apply {
+                            put("dl", v[0]); put("up", v[1]); put("fail", v[2])
+                        })
+                    }
+                }.toString()
+                prefs.upsertTask(task.copyRun(ok, skipped, failed, detailJson))
                 appendLog("━━━━━━━━━━━━━━━━━━━━━━")
                 appendLog("📦 任务完成: 成功$ok / 跳过$skipped / 失败$failed")
                 runOnUiThread {
@@ -2731,16 +2773,22 @@ class MainActivity : AppCompatActivity() {
         mergeFragment = com.jichi.ob.ui.MergeFragment()
         labLoginFragment = com.jichi.ob.ui.LabLoginFragment()
         createTaskFragment = com.jichi.ob.ui.CreateTaskFragment()
-        supportFragmentManager.beginTransaction()
-            .add(R.id.fragmentContainer, loginFragment, "login")
-            .add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
-            .add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
-            .add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
-            .add(R.id.fragmentContainer, recordFragment, "records").hide(recordFragment)
-            .add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
-            .add(R.id.fragmentContainer, labLoginFragment, "lab").hide(labLoginFragment)
-            .add(R.id.fragmentContainer, createTaskFragment, "createtask").hide(createTaskFragment)
-            .commit()
+        try {
+            val tr = supportFragmentManager.beginTransaction()
+            tr.add(R.id.fragmentContainer, loginFragment, "login")
+            tr.add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
+            tr.add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
+            tr.add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
+            tr.add(R.id.fragmentContainer, recordFragment, "records").hide(recordFragment)
+            tr.add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
+            tr.add(R.id.fragmentContainer, labLoginFragment, "lab").hide(labLoginFragment)
+            tr.add(R.id.fragmentContainer, createTaskFragment, "createtask").hide(createTaskFragment)
+            tr.commitNowAllowingStateLoss()
+        } catch (e: IllegalStateException) {
+            // v8.5.6: 极端情况下FragmentManager已恢复同名Fragment，回退到restore
+            Log.w(TAG, "initFragments add 冲突，改用 restore: ${e.message}")
+            restoreFragments()
+        }
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
@@ -2752,6 +2800,28 @@ class MainActivity : AppCompatActivity() {
             true
         }
         bottomNav.selectedItemId = R.id.nav_login
+    }
+
+    /** v8.5.6: Activity重建恢复Fragment引用（不重新add，由FragmentManager自动恢复） */
+    private fun restoreFragments() {
+        loginFragment = supportFragmentManager.findFragmentByTag("login") as com.jichi.ob.ui.LoginFragment
+        settingsFragment = supportFragmentManager.findFragmentByTag("settings") as com.jichi.ob.ui.SyncSettingsFragment
+        syncFragment = supportFragmentManager.findFragmentByTag("sync") as com.jichi.ob.ui.SyncFragment
+        aboutFragment = supportFragmentManager.findFragmentByTag("about") as com.jichi.ob.ui.AboutFragment
+        recordFragment = supportFragmentManager.findFragmentByTag("records") as com.jichi.ob.ui.RecordCenterFragment
+        mergeFragment = supportFragmentManager.findFragmentByTag("merge") as com.jichi.ob.ui.MergeFragment
+        labLoginFragment = supportFragmentManager.findFragmentByTag("lab") as com.jichi.ob.ui.LabLoginFragment
+        createTaskFragment = supportFragmentManager.findFragmentByTag("createtask") as com.jichi.ob.ui.CreateTaskFragment
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_login -> showFragment(loginFragment)
+                R.id.nav_settings -> showFragment(settingsFragment)
+                R.id.nav_sync -> showFragment(syncFragment)
+                R.id.nav_about -> showFragment(aboutFragment)
+            }
+            true
+        }
     }
 
     // v8.2.3.5: 新建任务引导——切到设置页（设置页=任务配置页，调好来源/目标/参数后点「保存为任务」）
@@ -2850,7 +2920,14 @@ class MainActivity : AppCompatActivity() {
         val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment, createTaskFragment).filter { it !== target }
         val tr = supportFragmentManager.beginTransaction()
         for (o in others) tr.hide(o)
-        tr.show(target).commit()
+        // v8.5.6: 视图回收后show不重建→空白。包try-catch防止状态异常崩溃。
+        try {
+            when {
+                target.isDetached -> tr.attach(target)
+                target.view == null && target.isAdded -> tr.detach(target).attach(target)
+            }
+        } catch (_: Exception) {}
+        tr.show(target).commitNowAllowingStateLoss()
         // v7.7.7: 登录页隐藏顶部Toolbar，品牌横幅顶置，页面以登录为主（一屏放下）
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         toolbar?.visibility = if (target == loginFragment) android.view.View.GONE else android.view.View.VISIBLE

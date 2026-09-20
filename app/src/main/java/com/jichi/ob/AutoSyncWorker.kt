@@ -127,9 +127,11 @@ class AutoSyncWorker(
                     val tgts = task.targets.mapNotNull { DataSource.fromShortName(it) }.distinct()
                         .filter { it != DataSource.BRYTON && it != DataSource.KEEP }
                     var tSynced = 0; var tSkipped = 0; var tFailed = 0
+                    val perSource = mutableMapOf<String, IntArray>()  // source.shortName -> [dl, skip, fail]
                     for (s in srcs) {
                         val r = doSync(s, tgts)
                         tSynced += r.synced; tSkipped += r.skipped; tFailed += r.failed
+                        perSource[s.shortName] = intArrayOf(r.synced, r.skipped, r.failed)
                         successDetails += r.successDetails
                         failedDetails += r.failedDetails
                         skippedDetails += r.skippedDetails
@@ -156,6 +158,22 @@ class AutoSyncWorker(
                     totalSynced += tSynced; totalSkipped += tSkipped; totalFailed += tFailed
                     val tgtNames = tgts.joinToString("、") { it.displayName }
                     taskLines.add("${task.name}: ${srcs.joinToString("、") { it.displayName }}→$tgtNames · 新${tSynced} 跳${tSkipped} 败${tFailed}")
+                    // v8.4.7: 后台任务跑完更新 lastRun + 各平台明细 JSON
+                    val detailJson = org.json.JSONObject().apply {
+                        put("scanned", tSynced + tSkipped + tFailed)
+                        perSource.forEach { (k, v) ->
+                            put(k, org.json.JSONObject().apply {
+                                put("dl", v[0]); put("up", v[0]); put("fail", v[2])
+                            })
+                        }
+                        // 目标平台：上传数 = synced
+                        tgts.forEach { t ->
+                            val existing = optJSONObject(t.shortName)
+                            if (existing != null) existing.put("up", tSynced)
+                            else put(t.shortName, org.json.JSONObject().apply { put("up", tSynced) })
+                        }
+                    }.toString()
+                    prefs.upsertTask(task.copyRun(tSynced, tSkipped, tFailed, detailJson))
                 }
                 prefs.setLastAutoSyncTime(System.currentTimeMillis())
                 prefs.setLastAutoSyncResult("任务: 新上传$totalSynced 条")

@@ -157,6 +157,12 @@ class AutoSyncService : Service() {
                         prefs.addSyncedId(syncKey)
                         synced++
                         lastMsg = record.title.take(15)
+                        // v8.4.4: 自动同步也写平台统计，登录卡片才能刷新
+                        try {
+                            val cache = com.jichi.ob.util.ActivityCache.get(this@AutoSyncService)
+                            cache.addPlatformStat(source.shortName, okDelta = 1, lastSyncMs = System.currentTimeMillis())
+                            cache.addPlatformStat(target.shortName, skipDelta = 1, lastSyncMs = System.currentTimeMillis())
+                        } catch (_: Exception) {}
                     } else {
                         Log.w(TAG, "AutoSync upload failed: ${result.message}")
                     }
