@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.4.3-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.5.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.4.3 |
+| 当前版本 | v8.5.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -412,6 +412,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.5.7 (2026-09-20)
+- 修复Keep同步拉不到最新运动：`lastDate`改回0（实测当前时间戳会跳过最近运动）
+- GPX写入Garmin标准TrackStatsExtension汇总值（距离/时长/卡路里/平均最大心率），Outbase直接读取不从稀疏轨迹点重算
+- 修复Fragment already added闪退：initFragments用commitNowAllowingStateLoss+try-catch兜底
+- GPX全量数据写入：逐点心率(gpxtpx:hr)+逐点步频(gpxtpx:cad)+步数/爬升/平均配速/平均速度
 
 ### v8.4.3 (2026-09-19)
 - 修复迈金 GPX 转 FIT 后入库问题：改用自研完整消息流（file_id/session/lap/activity/record），官方 gpx2fit.js 缺汇总消息导致迈金异步入库丢弃
