@@ -30,6 +30,7 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_AUTO_SYNC_RESULT = "last_auto_sync_result"
         private const val KEY_LAST_DETECTED_DATE = "last_detected_date"
         private const val KEY_GCJ02_CONVERT = "gcj02_convert"
+        private const val KEY_GARMIN_WELLNESS = "garmin_wellness_sync"
         private const val KEY_SAVE_DIR = "save_dir"
         private const val KEY_FORCE_RETRANSMIT = "force_retransmit"
         private const val KEY_SYNC_COUNT = "sync_count"
@@ -510,6 +511,8 @@ class PrefsManager(context: Context) {
     fun setLastDetectedDate(s: String) = prefs.edit().putString(KEY_LAST_DETECTED_DATE, s).apply()
     fun isGcj02Convert(): Boolean = prefs.getBoolean(KEY_GCJ02_CONVERT, false)
     fun setGcj02Convert(b: Boolean) = prefs.edit().putBoolean(KEY_GCJ02_CONVERT, b).apply()
+    fun isGarminWellnessSync(): Boolean = prefs.getBoolean(KEY_GARMIN_WELLNESS, false)
+    fun setGarminWellnessSync(b: Boolean) = prefs.edit().putBoolean(KEY_GARMIN_WELLNESS, b).apply()
     fun getSaveDir(): String = prefs.getString(KEY_SAVE_DIR, "") ?: ""
     fun setSaveDir(d: String) = prefs.edit().putString(KEY_SAVE_DIR, d).apply()
     // v7.6.8: 忽略记忆，强制重传（1对1时用户自选；1对多时强制开启）

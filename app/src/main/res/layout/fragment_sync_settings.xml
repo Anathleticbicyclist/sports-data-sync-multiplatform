@@ -162,7 +162,9 @@
                 </LinearLayout>
                 
                 <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchGcj02" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="🗺 迈金坐标转换 (GCJ-02→WGS84)" android:textSize="12sp" />
-                
+
+                <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchGarminWellness" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="💓 佳明互传健康数据（步数/睡眠/HRV/压力）" android:textSize="12sp" />
+
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">
                 <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchForceRetransmit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔁 忽略记忆，强制重传" android:textSize="12sp" />
                 </LinearLayout>

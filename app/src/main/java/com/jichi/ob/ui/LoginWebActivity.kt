@@ -112,6 +112,11 @@ class LoginWebActivity : AppCompatActivity() {
             try {
                 val ws = android.webkit.WebStorage.getInstance()
                 origins.forEach { o -> try { ws.deleteOrigin(o) } catch (_: Exception) {} }
+                // v8.5.8: iGPSPORT注销后仍自动登录旧账号——deleteOrigin不够彻底，
+                // 额外清所有WebStorage数据（cookie按域名已单独清，不影响其他平台）
+                if (type == TYPE_IGPSPORT) {
+                    try { ws.deleteAllData() } catch (_: Exception) {}
+                }
             } catch (_: Exception) {}
             // 清除cookie（按域名）
             val cm = CookieManager.getInstance()
@@ -131,11 +136,18 @@ class LoginWebActivity : AppCompatActivity() {
             }
             // v7.7.4: 清空全部WebView cookie，确保 HttpOnly 登录态（如高驰 CPL-coros-token）也被清除，
             // 使注销后重新登录可切换账号（不再沿用旧账号自动登录）
-            if (wipeAllCookies) {
+            // v8.5.8: IGP额外强制全量清理（原生API登录+WebView登录双路径，必须清干净）
+            if (wipeAllCookies || type == TYPE_IGPSPORT) {
                 try {
                     val latch = java.util.concurrent.CountDownLatch(1)
                     cm.removeAllCookies { latch.countDown() }
-                    try { latch.await(2, java.util.concurrent.TimeUnit.SECONDS) } catch (_: Exception) {}
+                    try { latch.await(3, java.util.concurrent.TimeUnit.SECONDS) } catch (_: Exception) {}
+                } catch (_: Exception) {}
+            }
+            // v8.5.8: IGP额外清WebStorage所有数据
+            if (type == TYPE_IGPSPORT) {
+                try {
+                    android.webkit.WebStorage.getInstance().deleteAllData()
                 } catch (_: Exception) {}
             }
             cm.flush()
@@ -782,14 +794,19 @@ class LoginWebActivity : AppCompatActivity() {
             }
             findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.VISIBLE
             setupIgpWebView()
-            // 清理该平台残留登录态，确保弹出登录页而不是沿用旧账号自动登录
+            // v8.5.8: 无条件彻底清除IGP登录态（cookie+localStorage+cache），确保不自动登录旧账号
             try {
-                pendingClean = !PrefsManager(this).isLoggedIn(loginTypeToDataSource())
-                if (pendingClean) clearPlatformWebLogin(TYPE_IGPSPORT, wipeAllCookies = true)
-            } catch (_: Exception) { pendingClean = false }
+                clearPlatformWebLogin(TYPE_IGPSPORT, wipeAllCookies = true)
+                // 清WebView HTTP缓存
+                webView.clearCache(true)
+                webView.clearHistory()
+            } catch (_: Exception) {}
             checkCount = 0
             detected = false
-            webView.loadUrl(com.jichi.ob.api.IgpsportApi.LOGIN_URL)
+            // 等cookie清除完成再加载URL，避免旧cookie导致自动登录
+            webView.postDelayed({
+                try { webView.loadUrl(com.jichi.ob.api.IgpsportApi.LOGIN_URL) } catch (_: Exception) {}
+            }, 500)
             webView.post(checkRunnable)
         } catch (e: Exception) {
             Log.e(TAG, "switchToIgpWebLogin 失败", e)

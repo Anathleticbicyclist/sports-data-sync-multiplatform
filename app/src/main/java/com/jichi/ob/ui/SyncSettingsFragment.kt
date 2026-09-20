@@ -60,6 +60,7 @@ class SyncSettingsFragment : Fragment() {
         val sliderSkip = view.findViewById<Slider>(R.id.sliderSkip)
         val tvSkip = view.findViewById<TextView>(R.id.tvSkip)
         val switchGcj02 = view.findViewById<SwitchMaterial>(R.id.switchGcj02)
+        val switchWellness = view.findViewById<SwitchMaterial>(R.id.switchGarminWellness)
         val switchForce = view.findViewById<SwitchMaterial>(R.id.switchForceRetransmit)
 
         // v7.7.5: 同步数量/跳过条数变化即保存，重启后保留上次设置
@@ -69,6 +70,7 @@ class SyncSettingsFragment : Fragment() {
         tvCount.setOnClickListener { showInputDialog("同步数量", sliderCount, tvCount, 1, 1000) }
         tvSkip.setOnClickListener { showInputDialog("跳过前N条", sliderSkip, tvSkip, 0, 10000) }
         switchGcj02.setOnCheckedChangeListener { _, checked -> prefs.setGcj02Convert(checked) }
+        switchWellness.setOnCheckedChangeListener { _, checked -> prefs.setGarminWellnessSync(checked) }
         // v7.6.8: 忽略记忆，强制重传 —— 仅在单选(用户可控)时写偏好；多选时UI强制开但保留用户单选偏好
         switchForce.setOnCheckedChangeListener { _, checked ->
             if (switchForce.isEnabled) prefs.setForceRetransmit(checked)
@@ -483,6 +485,7 @@ class SyncSettingsFragment : Fragment() {
         updateTargetChips()
         updateForceRetransmitState()
         view.findViewById<SwitchMaterial>(R.id.switchGcj02).isChecked = prefs.isGcj02Convert()
+        view.findViewById<SwitchMaterial>(R.id.switchGarminWellness)?.isChecked = prefs.isGarminWellnessSync()
         // v7.7.5: 恢复同步数量/跳过条数/强制重传开关（保留上次设置）
         val sliderCount = view.findViewById<Slider>(R.id.sliderCount)
         val tvCount = view.findViewById<TextView>(R.id.tvCount)
