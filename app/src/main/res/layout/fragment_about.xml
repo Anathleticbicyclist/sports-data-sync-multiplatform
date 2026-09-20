@@ -246,7 +246,7 @@
                 app:strokeWidth="1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v8.5.8)" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.5.8 佳明FIT设备按运动类型伪装(骑行→Edge830/跑步→FR945)，训练负荷正常计算" android:textSize="12sp" android:textColor="@color/text_primary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📦 v8.5.8 佳明FIT设备按运动类型伪装；设置页支持佳明互传健康数据；修复doc栏消失；修复IGP注销后自动登录旧账号" android:textSize="12sp" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.5.7 修复Keep最新运动拉取；GPX标准汇总值写入" android:textSize="12sp" android:textColor="@color/text_primary" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="📦 v8.5.5 GPX全量数据写入(心率/步频/爬升/配速/步数)" android:textSize="12sp" android:textColor="@color/text_primary" />
             </LinearLayout>

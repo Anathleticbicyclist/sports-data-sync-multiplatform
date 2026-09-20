@@ -402,6 +402,20 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         try { loginFragment.refreshStats() } catch (_: Exception) {}
         try { syncFragment.refreshTaskState() } catch (_: Exception) {}
+        // v8.5.8: 底部导航栏消失兜底——onResume时恢复可见（除非全屏Fragment正在显示）
+        try {
+            val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+            val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+            // 检查所有全屏Fragment是否处于show状态（isHidden=false且isAdded）
+            val onFullScreen = (recordFragment != null && recordFragment.isAdded && !recordFragment.isHidden) ||
+                (labLoginFragment != null && labLoginFragment.isAdded && !labLoginFragment.isHidden) ||
+                (createTaskFragment != null && createTaskFragment.isAdded && !createTaskFragment.isHidden) ||
+                (mergeFragment != null && mergeFragment.isAdded && !mergeFragment.isHidden)
+            if (!onFullScreen) {
+                bottomNav?.visibility = android.view.View.VISIBLE
+                toolbar?.visibility = android.view.View.VISIBLE
+            }
+        } catch (_: Exception) {}
     }
 
     internal fun openLogin(type: String, url: String) {
@@ -2268,7 +2282,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 // v8.3.5: 阶段2 健康数据同步（任务开启 + 佳明来源与佳明目标 CN↔COM）
-                if (task.wellness && taskActive) {
+                // v8.5.8: 设置页全局开关控制
+                if (task.wellness && taskActive && prefs.isGarminWellnessSync()) {
                     val gSrc = sources.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
                     val gTgt = targets.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
                     if (gSrc != null && gTgt != null && gSrc != gTgt) {

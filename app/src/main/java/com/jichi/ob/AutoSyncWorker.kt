@@ -137,7 +137,8 @@ class AutoSyncWorker(
                         skippedDetails += r.skippedDetails
                     }
                     // v8.3.5: 后台健康数据同步（任务开启 + 佳明来源与佳明目标 CN↔COM）
-                    if (task.wellness) {
+                    // v8.5.8: 设置页全局开关控制
+                    if (task.wellness && prefs.isGarminWellnessSync()) {
                         val gSrc = srcs.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
                         val gTgt = tgts.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
                         if (gSrc != null && gTgt != null && gSrc != gTgt) {
