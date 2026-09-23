@@ -33,3 +33,10 @@ app/src/main/res/drawable/merge_chip_outline.xml
 app/src/main/res/drawable/merge_chip_red.xml
 app/src/main/res/drawable/merge_chip_white.xml
 app/src/main/res/drawable/merge_chip_white_on.xml
+
+# 历史APK不入库
+*.apk
+历史apk/*.apk
+# 不开源：新建任务板块
+app/src/main/java/com/jichi/ob/ui/CreateTaskFragment.kt
+app/src/main/res/layout/fragment_create_task.xml
