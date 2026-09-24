@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.6.2-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.6.3-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.6.2 |
+| 当前版本 | v8.6.3 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -413,10 +413,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v8.6.3 (2026-09-24)
+- **[新功能]** 佳明中国记住账号密码，token过期自动重新登录，无需每天手动登录
+- **[修复]** 全面修复登录弹窗内容过长导致按钮被挤出屏幕
+- 佳明FIT设备伪装改为可选开关，默认关闭
+
 ### v8.6.2 (2026-09-24)
-- **[新功能]** 佳明FIT设备伪装改为可选开关（设置页佳明互传健康数据下方），默认关闭；开启后上传佳明才伪装设备，关闭则直传原文件
-- **[修复]** 全面修复登录弹窗内容过长导致按钮被挤出屏幕：登录详情弹窗、佳明中国登录、所有平台账号密码登录弹窗均改为内容滚动+按钮固定底部
-- 修复底部导航栏偶尔消失的问题
+- 佳明FIT设备伪装改为用户开关（设置页），默认关闭
+- 修复登录弹窗按钮被挤出屏幕：内容滚动+按钮固定底部
+- 修复底部导航栏偶尔消失
 
 ### v8.6.1 (2026-09-23)
 - **[新功能]** 内测体验计划：新建任务/轨迹合并功能首次14天免费体验，之后每14天输入体验码续期
