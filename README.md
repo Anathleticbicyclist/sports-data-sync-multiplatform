@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.6.7-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.7.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT / 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / 高驰国际 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾保留为下载数据源，开发中；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 仅作上传目标；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,7 +22,7 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.6.7 |
+| 当前版本 | v8.7.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
@@ -413,29 +413,16 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
-### v8.6.7 (2026-09-26)
-- 更新体验计划功能：修复临时体验码激活后新建任务不可用、重复输入当前期码误报错误；激活即生效
+### v8.7.0 (2026-09-28)
+- 佳明伪装设备ID可自定义并纳入体验计划（需体验码）
+- 修复Keep导入时间错乱（epoch秒误判偏移20天），Keep半自动导入每轮仅1条防叠弹窗
+- 修复手动选择FIT合成轨迹选不上（SAF内容检测）
 
+### v8.6.9 (2026-09-27)
+- 修复运行任务白屏（佳明调试日志跨线程操作UI），修复体验码永久码降级/期数边界
 
-### v8.6.6 (2026-09-26)
-- 修复同步bug，UI优化响应，提升体验
-- 新建任务/运行任务纳入体验计划：未激活/过期不可新建、不可执行；取消15天免费体验，全新安装须申请体验码，覆盖安装有效期不受影响
-- 首页任务区新增体验状态横幅（未激活/过期显示，点击可申请/输入体验码）；自动同步任务受体验计划约束
-
-### v8.6.5 (2026-09-26)
-- 修复自动同步/增量同步漏最新运动：删除缓存误杀、游标仅实际同步后推进、取消take(5)截断
-- 修复Outbase"待处理"假成功：不写已同步记忆，自动重试确认，保证最终一致
-
-### v8.6.4 (2026-09-24)
-- 多平台自动重登：Keep/咕咚/MyWhoosh/Zwift/Zepp/Komoot记住账号密码，token过期自动重登
-- Outbase登录卡固定到自动检测卡片下方，修复卡片上传下载统计不刷新
-
-### v8.6.3 (2026-09-24)
-- 佳明中国记住账号密码，token过期自动重新登录
-- 修复登录弹窗内容过长导致按钮被挤出屏幕；佳明FIT设备伪装改为可选开关（默认关）
-
-### v8.6.2 (2026-09-24)
-- 佳明FIT设备伪装改为用户开关（设置页，默认关）；修复登录弹窗按钮被挤出屏幕、底部导航栏偶尔消失
+### v8.6.8 (2026-09-27)
+- 修复佳明设备伪装失效根因（FIT解析头判断+CRC重算），修复Keep心率/步频曲线匹配越界
 
 > 更早版本更新日志详见 [GitHub Releases](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases)
 
