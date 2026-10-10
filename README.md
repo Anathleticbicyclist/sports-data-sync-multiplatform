@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v8.8.4-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v8.8.5-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾** 十九平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,12 +22,12 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v8.8.4 |
+| 当前版本 | v8.8.5 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v8.8.4 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v8.8.4/鸡翅幸哲迈进Ob_8.8.4.apk) |
+| 体验版下载 | [v8.8.8 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v8.8.8/鸡翅幸哲迈进Ob_8.8.8.apk) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
 > 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
@@ -414,6 +414,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v8.8.5 (2026-10-10)
+- 修复Intervals.icu活动下载：正确路径 `/activity/{id}/file`（之前404导致全部失败）
+- 修复手动任务跑完后不教课表：任务完成后自动触发ICU课表同步
+- 修复课表功率目标字段名：`power`（之前读`_power`为空）
 
 ### v8.8.4 (2026-10-10)
 - 修复Zwift拉不到活动：分页偏移bug（第二页起越界返回空）
