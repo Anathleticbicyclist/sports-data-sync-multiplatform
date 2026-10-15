@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.1.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.1.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,12 +22,12 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.1.5 |
+| 当前版本 | v9.1.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.1.5 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.1.5/jichi-ob-dev-9.1.5.apk) |
+| 体验版下载 | [v9.1.7 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.1.7/jichi-ob-dev-9.1.7.apk) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
 > 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
@@ -415,34 +415,23 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
+### v9.1.7 (2026-10-15)
+- 所有账号密码登录的平台记住密码，token过期后自动重登（佳明国际/Keep/MyWhoosh/Zepp/捷安特/CyCity等）
+
+若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
+
+### v9.1.6 (2026-10-15)
+- 修复Keep→佳明国际运动类型识别错误（用Outbase官方gpx2fit+修正sport字段）
+- 支持Keep多种运动类型正确映射到佳明（骑行/跑步/徒步/游泳/瑜伽等）
+
+若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
+
 ### v9.1.5 (2026-10-15)
 - 修复平台详情弹窗按钮文案错误（非文件夹平台显示重新登录）
 
 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
 
-### v9.1.4 (2026-10-15)
-- 修复Keep当天多条运动记录只拉一条的bug（感谢抖音用户叻喔罗反馈）
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.1.3 (2026-10-15)
-- 同步目标新增"本地文件夹"，支持把活动导出到手机文件夹（GPX/FIT）
-- 修复手动同步本地文件夹报"文件数据无效"
-- 本地文件夹拉取上限从100条提升到2000条
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.1.2 (2026-10-14)
-- 新增本地文件夹数据源（扫描文件夹GPX/FIT同步到目标平台）
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-- 修复当天活动上传iGPSPORT时间错误（当天活动不做时间偏移，历史活动才+8小时）
-- 手动同步和自动同步增量均统一处理
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.0.1 (2026-10-12)
-- 修复Keep导出运动上传iGPSPORT后类型识别错误（徒步→骑行）
+> 更早版本更新日志详见 [GitHub Releases](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases)
 - 补全Keep徒步活动逐点心率数据
 - 修复所有来源→iGPSPORT时差8小时问题
 
