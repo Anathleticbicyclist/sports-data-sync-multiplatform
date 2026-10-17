@@ -1,7 +1,6 @@
 package com.jichi.ob.api
 
 import com.jichi.ob.model.DataSource
-import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
@@ -70,7 +69,7 @@ object GarminWellnessSync {
             onLog("📦 [健康] $date 解压出 ${fits.size} 个 FIT，开始上传 ${target.displayName}...")
             var dayOk = 0; var dayDup = 0; var dayFail = 0
             for ((name, data) in fits) {
-                delay(UPLOAD_INTERVAL_MS)
+                Thread.sleep(UPLOAD_INTERVAL_MS)
                 val fileName = if (name.endsWith(".fit", ignoreCase = true)) name else "$date-${name.hashCode()}.fit"
                 val r = try {
                     garminApi.uploadWellnessFit(target, targetCred, data, fileName)

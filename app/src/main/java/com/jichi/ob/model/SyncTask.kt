@@ -21,6 +21,7 @@ data class SyncTask(
     val autoSync: Boolean = false,  // 任务级自动同步
     val autoIntervalSec: Int = 900, // 自动间隔（秒，≥15min）
     val wellness: Boolean = false,  // v8.3.5: 同步健康数据（步数/睡眠/HRV/压力，需佳明↔佳明）
+    val wellnessDays: Int = 7,      // v9.2.3: 任务级健康同步天数（1-365），默认7天
     val enabled: Boolean = true,    // 启用
     val lastRunTime: Long = 0L,     // 上次运行时间
     val lastRunOk: Int = 0,
@@ -42,6 +43,7 @@ data class SyncTask(
         put("autoSync", autoSync)
         put("autoIntervalSec", autoIntervalSec)
         put("wellness", wellness)
+        put("wellnessDays", wellnessDays)
         put("enabled", enabled)
         put("lastRunTime", lastRunTime)
         put("lastRunOk", lastRunOk)
@@ -84,6 +86,7 @@ data class SyncTask(
                 autoSync = o.optBoolean("autoSync", false),
                 autoIntervalSec = o.optInt("autoIntervalSec", 900),
                 wellness = o.optBoolean("wellness", false),
+                wellnessDays = o.optInt("wellnessDays", 7),
                 enabled = o.optBoolean("enabled", true),
                 lastRunTime = o.optLong("lastRunTime", 0L),
                 lastRunOk = o.optInt("lastRunOk", 0),

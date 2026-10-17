@@ -2281,25 +2281,27 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
-                // v8.3.5: 阶段2 健康数据同步（任务开启 + 佳明来源与佳明目标 CN↔COM）
-                // v8.5.8: 设置页全局开关控制
-                if (task.wellness && taskActive && prefs.isGarminWellnessSync()) {
+                // v9.2.3: 阶段2 健康数据同步
+                // - 任务级 wellness=true：直接同步，不受全局开关影响，用任务设置的天数
+                // - 任务级 wellness=false（同步页直接点开始）：全局开关开了才同步，默认7天
+                if (taskActive && (task.wellness || prefs.isGarminWellnessSync())) {
                     val gSrc = sources.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
                     val gTgt = targets.firstOrNull { it == DataSource.GARMIN_COM || it == DataSource.GARMIN_CN }
                     if (gSrc != null && gTgt != null && gSrc != gTgt) {
-                        appendLog("📊 [健康数据] 开始同步 ${gSrc.displayName} → ${gTgt.displayName}（最近 ${com.jichi.ob.api.GarminWellnessSync.DEFAULT_DAYS} 天）...")
+                        val days = if (task.wellness && task.wellnessDays > 0) task.wellnessDays else com.jichi.ob.api.GarminWellnessSync.DEFAULT_DAYS
+                        appendLog("📊 [健康数据] 开始同步 ${gSrc.displayName} → ${gTgt.displayName}（最近 $days 天）...")
                         try {
                             val srcCred = prefs.getCredential(gSrc) ?: ""
                             val tgtCred = prefs.getCredential(gTgt) ?: ""
                             val w = com.jichi.ob.api.GarminWellnessSync.sync(
-                                garminApi, gSrc, srcCred, gTgt, tgtCred
+                                garminApi, gSrc, srcCred, gTgt, tgtCred, days
                             ) { appendLog(it) }
                             ok += w.ok; skipped += w.duplicate; failed += w.failed
                         } catch (e: Exception) {
                             appendLog("❌ [健康数据] 同步异常: ${e.message}")
                             failed++
                         }
-                    } else {
+                    } else if (task.wellness) {
                         appendLog("⚠️ [健康数据] 需佳明来源与佳明目标（CN↔COM）且不相同，当前任务不满足，已跳过")
                     }
                 }
