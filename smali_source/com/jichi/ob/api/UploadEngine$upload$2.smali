@@ -3224,7 +3224,27 @@
 
     iget-object v5, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$extra:Ljava/util/Map;
 
-    invoke-static {v0, v3, v2, v4, v5}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v6, 0x0
+
+    invoke-static/range {v0 .. v6}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+
+    move-result-object v0
+
+    goto :goto_1a
+
+    # v9.2.4: iGPSPORT国际版上传，走国际版端点 prod.en.igpsport.com
+    :pswitch_22
+    iget-object v0, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->this$0:Lcom/jichi/ob/api/UploadEngine;
+
+    iget-object v3, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$credential:Ljava/lang/String;
+
+    iget-object v4, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$record:Lcom/jichi/ob/model/ActivityRecord;
+
+    iget-object v5, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$extra:Ljava/util/Map;
+
+    const/4 v6, 0x1
+
+    invoke-static/range {v0 .. v6}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     move-result-object v0
 
@@ -3364,5 +3384,6 @@
         :pswitch_13
         :pswitch_12
         :pswitch_11
+        :pswitch_22
     .end packed-switch
 .end method

@@ -345,7 +345,7 @@
 
     .line 78
     :cond_2
-    const-string v0, "9.2.2"
+    const-string v0, "9.2.4"
 
     .line 79
     iget-object v1, v4, Lkotlin/jvm/internal/Ref$ObjectRef;->element:Ljava/lang/Object;
@@ -805,7 +805,7 @@
     invoke-virtual {v0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     .line 148
-    const-string/jumbo p2, "\u4f60\u7684\u5f53\u524d\u7248\u672c\u4e3a v9.2.2\n\n\u5f53\u524d\u5df2\u662f\u6700\u65b0\u7248\u672c\uff0c\u65e0\u9700\u66f4\u65b0\u3002"
+    const-string/jumbo p2, "\u4f60\u7684\u5f53\u524d\u7248\u672c\u4e3a v9.2.4\n\n\u5f53\u524d\u5df2\u662f\u6700\u65b0\u7248\u672c\uff0c\u65e0\u9700\u66f4\u65b0\u3002"
 
     invoke-virtual {v0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -869,7 +869,7 @@
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     .line 125
-    const-string/jumbo v1, "\u4f60\u7684\u5f53\u524d\u7248\u672c\u4e3a v9.2.2\n\n\u68c0\u6d4b\u5230\u65b0\u7248\u672c\uff0c\u5efa\u8bae\u66f4\u65b0"
+    const-string/jumbo v1, "\u4f60\u7684\u5f53\u524d\u7248\u672c\u4e3a v9.2.4\n\n\u68c0\u6d4b\u5230\u65b0\u7248\u672c\uff0c\u5efa\u8bae\u66f4\u65b0"
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 

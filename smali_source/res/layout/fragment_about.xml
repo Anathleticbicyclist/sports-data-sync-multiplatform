@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView android:background="@color/bg_light" android:layout_width="fill_parent" android:layout_height="fill_parent" android:fillViewport="true"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:background="@drawable/bg_note_card" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:layout_marginBottom="6.0dip">
+            <ImageView android:layout_width="52.0dip" android:layout_height="52.0dip" android:src="@mipmap/ic_launcher" android:contentDescription="logo" />
+            <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:layout_marginStart="12.0dip">
+                <TextView android:textSize="16.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="鸡翅幸哲迈进OB" />
+                <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1.0dip" android:text="让运动数据自由流动" />
+                <TextView android:textSize="11.0sp" android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3.0dip" android:text="开发体验版 v9.2.4" />
+            </LinearLayout>
+            <TextView android:textSize="11.0sp" android:textColor="@color/primary" android:id="@id/btnCheckUpdate" android:background="@drawable/bg_check_update" android:paddingTop="6.0dip" android:paddingBottom="6.0dip" android:focusable="true" android:clickable="true" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="检查更新" android:paddingStart="12.0dip" android:paddingEnd="12.0dip" android:layout_marginStart="8.0dip" />
+        </LinearLayout>
+        <com.google.android.material.card.MaterialCardView android:id="@id/cardRecordCenter" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" app:cardBackgroundColor="#ffeaf4ff" app:cardCornerRadius="16.0dip" app:cardElevation="0.0dip" app:strokeColor="@color/primary" app:strokeWidth="1.0dip">
+            <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="18.0sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📚" />
+                    <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="记录中心" android:layout_marginStart="6.0dip" />
+                    <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:gravity="end" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="跨平台按日期检索已同步记录 ›" android:layout_weight="1.0" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView android:id="@id/cardMerge" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" app:cardBackgroundColor="#ffeaf4ff" app:cardCornerRadius="16.0dip" app:cardElevation="0.0dip" app:strokeColor="@color/primary" app:strokeWidth="1.0dip">
+            <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="18.0sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🧩" />
+                    <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="轨迹合并&amp;透明贴纸" android:layout_marginStart="6.0dip" />
+                    <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:gravity="end" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="轨迹合并与透明贴纸 ›" android:layout_weight="1.0" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView android:id="@id/cardLabLogin" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" app:cardBackgroundColor="#fffff8e6" app:cardCornerRadius="16.0dip" app:cardElevation="0.0dip" app:strokeColor="#ffd97706" app:strokeWidth="1.0dip">
+            <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="18.0sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🧪" />
+                    <TextView android:textSize="15.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="实验室" android:layout_marginStart="6.0dip" />
+                    <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:gravity="end" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="实验性平台登录 ›" android:layout_weight="1.0" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <TextView android:textSize="12.0sp" android:textColor="@color/text_primary" android:gravity="center" android:background="@drawable/bg_note_card" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:text="本项目完全开源免费，如觉得项目对你有帮助，可赞赏支持作者后续功能迭代与问题修复。" />
+        <com.google.android.material.card.MaterialCardView android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:layout_marginBottom="6.0dip" app:cardCornerRadius="20.0dip" app:cardElevation="0.0dip" app:strokeColor="#ffe3eefa" app:strokeWidth="1.0dip">
+            <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 本次更新 (v9.2.4)" />
+                <TextView android:textSize="12.0sp" android:textColor="@color/text_primary" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:text="📦 v9.2.4 修复iGPSPORT国际版上传假成功（端点改prod.en.igpsport.com）；修复检测更新版本号显示9.2.2失效 📦 v9.2.3 新增健康同步诊断日志（定位佳明互传健康数据不同步根因） 📦 v9.2.2 新增上传iGP时区修正功能（按平台单独设置当天/历史±8h） 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <LinearLayout android:orientation="vertical" android:background="@drawable/bg_note_card" android:padding="6.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:layout_marginBottom="6.0dip">
+            <TextView android:textSize="11.0sp" android:textColor="@color/text_primary" android:gravity="center" android:id="@id/tvClubLink" android:padding="2.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="鸡翅幸哲迈进OB同步工具:开发者俱乐部" />
+            <TextView android:textSize="11.0sp" android:textColor="@color/text_primary" android:gravity="center" android:id="@id/tvUpdateLink" android:padding="2.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="➠更新地址鸡翅幸哲迈进OB（开发体验版） 开发版:Github项目" />
+        </LinearLayout>
+        <LinearLayout android:orientation="vertical" android:background="@drawable/bg_note_card" android:padding="8.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:layout_marginBottom="6.0dip">
+            <TextView android:textSize="12.0sp" android:textStyle="bold" android:textColor="@color/primary" android:gravity="center" android:padding="2.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="🙏 鸣谢" />
+            <TextView android:textSize="9.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:padding="1.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、捷安特、高驰、佳明、Wahoo、Outbase、Keep、咕咚、Zepp、Komoot、Suunto为运动用户提供的数据记录与存储服务" />
+            <TextView android:textSize="9.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:padding="1.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿、泽、无名氏、我有一个朋友、N1d、ongoing33、七诗君、赵烨龙、狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾" />
+            <TextView android:textSize="9.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:padding="1.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="4.0dip" android:text="鸣谢青岛AUV俱乐部" />
+            <TextView android:textSize="10.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:padding="2.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="8.0dip" android:text="如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口" />
+        </LinearLayout>
+        <com.google.android.material.card.MaterialCardView android:id="@id/cardLicense" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" app:cardBackgroundColor="#ffffffff" app:cardCornerRadius="16.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="16.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0">
+                    <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔑 内测体验许可证" />
+                    <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:id="@id/tvLicenseInfo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4.0dip" android:text="点击查看详情" />
+                </LinearLayout>
+                <TextView android:textSize="24.0sp" android:textColor="#ffcccccc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="›" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:gravity="center" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="4.0dip" android:text="💰 赞赏支持" />
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="4.0dip">
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:padding="4.0dip" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0">
+                <ImageView android:layout_width="150.0dip" android:layout_height="150.0dip" android:src="@drawable/reward_wechat" android:adjustViewBounds="true" android:contentDescription="微信赞赏码" />
+                <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:text="微信赞赏码" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:padding="4.0dip" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0">
+                <ImageView android:layout_width="130.0dip" android:layout_height="wrap_content" android:src="@drawable/reward_alipay" android:adjustViewBounds="true" android:contentDescription="支付宝收款码" />
+                <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:text="支付宝收款码" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:textSize="10.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:layout_marginBottom="12.0dip" android:text="本项目完全开源免费，您的赞赏将支持后续功能迭代与问题修复" />
+        <TextView android:textSize="9.0sp" android:textColor="@color/primary" android:gravity="center" android:id="@id/tvDisclaimerLink" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="-6.0dip" android:layout_marginBottom="4.0dip" android:text="📜 开源软件免责声明" />
+    </LinearLayout>
+</ScrollView>

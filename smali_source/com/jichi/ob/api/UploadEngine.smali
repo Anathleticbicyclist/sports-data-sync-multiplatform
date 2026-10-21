@@ -408,7 +408,7 @@
     return-object p0
 .end method
 
-.method public static final synthetic access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+.method public static final synthetic access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
     .locals 1
 
     # iGP时区修正：在调用 uploadToIgpsport 前调整 data（避免在巨型方法内插入代码导致VerifyError）
@@ -419,7 +419,7 @@
     move-result-object p2
 
     .line 29
-    invoke-direct {p0, p1, p2, p3, p4}, Lcom/jichi/ob/api/UploadEngine;->uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    invoke-direct/range {p0 .. p5}, Lcom/jichi/ob/api/UploadEngine;->uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     move-result-object p0
 
@@ -6230,7 +6230,7 @@
     return-object v0
 .end method
 
-.method private final uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+.method private final uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
     .locals 36
     .annotation system Ldalvik/annotation/Signature;
         value = {
@@ -6241,7 +6241,8 @@
             "Ljava/util/Map<",
             "Ljava/lang/String;",
             "Ljava/lang/String;",
-            ">;)",
+            ">;",
+            "Z)",
             "Lcom/jichi/ob/api/UploadEngine$UploadResult;"
         }
     .end annotation
@@ -6266,7 +6267,12 @@
     const-string v7, "UploadEngine"
 
     .line 0
+    if-eqz p5, :cond_igp_cn_signed
+    const-string v8, "https://prod.en.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=."
+    goto :goto_igp_signed_done
+    :cond_igp_cn_signed
     const-string v8, "https://prod.zh.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=."
+    :goto_igp_signed_done
 
     const-string v9, "Bearer "
 
@@ -6400,7 +6406,12 @@
     .line 343
     const-string v9, "Origin"
 
+    if-eqz p5, :cond_igp_cn_origin
+    const-string v12, "https://app.igpsport.com"
+    goto :goto_igp_origin_done
+    :cond_igp_cn_origin
     const-string v12, "https://app.igpsport.cn"
+    :goto_igp_origin_done
 
     invoke-static {v9, v12}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
@@ -6413,7 +6424,12 @@
     .line 344
     const-string v9, "Referer"
 
+    if-eqz p5, :cond_igp_cn_referer
+    const-string v12, "https://app.igpsport.com/"
+    goto :goto_igp_referer_done
+    :cond_igp_cn_referer
     const-string v12, "https://app.igpsport.cn/"
+    :goto_igp_referer_done
 
     invoke-static {v9, v12}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
@@ -7433,7 +7449,12 @@
     invoke-direct {v5}, Lokhttp3/Request$Builder;-><init>()V
 
     .line 420
+    if-eqz p5, :cond_igp_cn_oss
+    const-string v6, "https://prod.en.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss"
+    goto :goto_igp_oss_done
+    :cond_igp_cn_oss
     const-string v6, "https://prod.zh.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss"
+    :goto_igp_oss_done
 
     invoke-virtual {v5, v6}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
 
