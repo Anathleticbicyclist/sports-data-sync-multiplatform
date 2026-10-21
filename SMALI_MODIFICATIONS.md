@@ -62,3 +62,32 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 2. **invoke 调用必须核对参数数量**：`setChecked(Z)V` 需要2个寄存器（this + boolean），漏传会导致整个类被 Dalvik 拒绝
 3. **寄存器范围**：`.locals>15` 时，`move-object` 不支持 v16+ 源寄存器，必须用 `move-object/from16`
 4. **资源ID不能冲突**：新增 layout/id 必须检查 public.xml 中最大ID+1
+
+---
+
+## v9.2.4 Smali 修改说明（2026-10-21）
+
+### 修改文件
+
+1. **`api/UploadEngine.smali`**
+   - `uploadToIgpsport` 方法签名增加 `isIntl:Z` 参数
+   - 4处硬编码国内版URL改为按 `isIntl` 分支选择：
+     - getSignedUrl：国内版 `prod.zh.igpsport.com` / 国际版 `prod.en.igpsport.com`
+     - Origin：国内版 `app.igpsport.cn` / 国际版 `app.igpsport.com`
+     - Referer：国内版 `app.igpsport.cn/` / 国际版 `app.igpsport.com/`
+     - uploadByOss：国内版 `prod.zh.igpsport.com` / 国际版 `prod.en.igpsport.com`
+   - `access$uploadToIgpsport` 同步增加Z参数，改用 `invoke-direct/range`
+
+2. **`api/UploadEngine$upload$2.smali`**
+   - pswitch_20（iGPSPORT国内版）调用点传 `const/4 v6, 0x0`（isIntl=false）
+   - pswitch_22（iGPSPORT_INT国际版）调用点传 `const/4 v6, 0x1`（isIntl=true）
+
+3. **`util/UpdateChecker.smali`**
+   - 3处硬编码版本号 `9.2.2` → `9.2.4`（版本比较行、showUpToDate文案、showUpdateDialog文案）
+
+4. **`res/layout/fragment_about.xml`**（新增到smali_source）
+   - 更新日志改为 v9.2.4 / v9.2.3 / v9.2.2 三条简写
+
+### 根因说明
+- iGP国际版上传假成功：原代码4处URL全部硬编码国内版端点，国际版token调用国内版端点返回HTTP 200但数据静默丢弃（不进国际版账户）
+- 检测更新失效：UpdateChecker硬编码当前版本号，升版本后未同步修改
