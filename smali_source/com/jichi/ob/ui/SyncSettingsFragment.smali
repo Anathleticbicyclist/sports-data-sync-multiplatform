@@ -5471,7 +5471,7 @@
     if-eqz v7, :cond_10
 
     .line 763
-    new-instance v0, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda10;
+    new-instance v0, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda27;
     :try_end_0
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
@@ -5480,7 +5480,7 @@
     move-object v5, p1
 
     :try_start_1
-    invoke-direct/range {v0 .. v5}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda10;-><init>(Landroid/view/View;Lcom/jichi/ob/ui/SyncSettingsFragment;Lcom/jichi/ob/util/TrialLicense;Landroid/app/Dialog;Lkotlin/jvm/functions/Function0;)V
+    invoke-direct/range {v0 .. v5}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda27;-><init>(Landroid/view/View;Lcom/jichi/ob/ui/SyncSettingsFragment;Lcom/jichi/ob/util/TrialLicense;Landroid/app/Dialog;Lkotlin/jvm/functions/Function0;)V
 
     invoke-virtual {v7, v0}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 

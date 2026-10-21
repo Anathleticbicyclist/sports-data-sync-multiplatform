@@ -3224,9 +3224,19 @@
 
     iget-object v5, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$extra:Ljava/util/Map;
 
-    const/4 v6, 0x0
+    move-object/from16 v17, v0
 
-    invoke-static/range {v0 .. v6}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    move-object/from16 v18, v3
+
+    move-object/from16 v19, v2
+
+    move-object/from16 v20, v4
+
+    move-object/from16 v21, v5
+
+    const/16 v22, 0x0
+
+    invoke-static/range {v17 .. v22}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     move-result-object v0
 
@@ -3242,9 +3252,19 @@
 
     iget-object v5, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$extra:Ljava/util/Map;
 
-    const/4 v6, 0x1
+    move-object/from16 v17, v0
 
-    invoke-static/range {v0 .. v6}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    move-object/from16 v18, v3
+
+    move-object/from16 v19, v2
+
+    move-object/from16 v20, v4
+
+    move-object/from16 v21, v5
+
+    const/16 v22, 0x1
+
+    invoke-static/range {v17 .. v22}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     move-result-object v0
 

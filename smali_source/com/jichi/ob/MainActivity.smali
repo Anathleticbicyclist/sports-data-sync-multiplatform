@@ -1068,7 +1068,7 @@
     sput-object v0, Lcom/jichi/ob/MainActivity;->Companion:Lcom/jichi/ob/MainActivity$Companion;
 
     .line 97
-    const-string/jumbo v0, "v9.2.2"
+    const-string/jumbo v0, "v9.2.5"
 
     sput-object v0, Lcom/jichi/ob/MainActivity;->APP_VERSION:Ljava/lang/String;
 
@@ -29383,7 +29383,7 @@
     :pswitch_1b
     const-string p1, "igpsport_int"
 
-    const-string v0, "https://prod.en.igpsport.com/"
+    const-string v0, "https://app.igpsport.com/user/home"
 
     invoke-virtual {p0, p1, v0}, Lcom/jichi/ob/MainActivity;->openLogin$app_devRelease(Ljava/lang/String;Ljava/lang/String;)V
 
@@ -31657,15 +31657,7 @@
     invoke-virtual {v2}, Lcom/jichi/ob/MainActivity;->refreshTaskUi$app_devRelease()V
 
     .line 2450
-    move-object v0, v2
-
-    check-cast v0, Landroidx/lifecycle/LifecycleOwner;
-
-    invoke-static {v0}, Landroidx/lifecycle/LifecycleOwnerKt;->getLifecycleScope(Landroidx/lifecycle/LifecycleOwner;)Landroidx/lifecycle/LifecycleCoroutineScope;
-
-    move-result-object v0
-
-    move-object v7, v0
+    sget-object v7, Lkotlinx/coroutines/GlobalScope;->INSTANCE:Lkotlinx/coroutines/GlobalScope;
 
     check-cast v7, Lkotlinx/coroutines/CoroutineScope;
 
@@ -33596,6 +33588,75 @@
     const/4 v5, 0x0
 
     invoke-static/range {v3 .. v8}, Lkotlinx/coroutines/BuildersKt;->launch$default(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+
+    return-void
+.end method
+
+.method public static final logWellnessDiagnostic(Lcom/jichi/ob/model/SyncTask; Lcom/jichi/ob/MainActivity;)V
+    .locals 7
+    .param p0, "task"    # Lcom/jichi/ob/model/SyncTask;
+    .param p1, "activity"    # Lcom/jichi/ob/MainActivity;
+
+    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getWellness()Z
+    move-result v1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getWellnessDays()I
+    move-result v4
+
+    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getId()Ljava/lang/String;
+    move-result-object v5
+
+    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getTaskActive$p(Lcom/jichi/ob/MainActivity;)Z
+    move-result v2
+
+    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getPrefs$p(Lcom/jichi/ob/MainActivity;)Lcom/jichi/ob/util/PrefsManager;
+    move-result-object v0
+
+    invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->isGarminWellnessSync()Z
+    move-result v3
+
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v6, "\ud83d\udd0d [\u5065\u5eb7\u8bca\u65ad] task="
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    invoke-virtual {v0, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    const-string v6, " wellness="
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    const-string v6, " days="
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    const-string v6, " taskActive="
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    const-string v6, " globalSync="
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+
+    invoke-direct {p1, v0}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
 
     return-void
 .end method
