@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView android:background="@color/bg_light" android:layout_width="fill_parent" android:layout_height="fill_parent" android:fillViewport="true"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:background="@drawable/bg_login_banner" android:paddingTop="8.0dip" android:paddingBottom="8.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="6.0dip" android:paddingStart="18.0dip" android:paddingEnd="18.0dip">
+            <TextView android:textSize="16.0sp" android:textStyle="bold" android:textColor="@color/white" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="鸡翅幸哲迈进OB" android:letterSpacing="0.05" />
+            <TextView android:textSize="10.0sp" android:textColor="#e6ffffff" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:text="让运动数据自由流动" />
+            <TextView android:textSize="8.0sp" android:textColor="#bfffffff" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3.0dip" android:text="选择平台登录，即可跨平台同步骑行数据" />
+        </LinearLayout>
+        <com.google.android.material.card.MaterialCardView android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="3.0dip" app:cardCornerRadius="16.0dip" app:cardElevation="0.0dip" app:strokeColor="@color/stroke_blue" app:strokeWidth="1.0dip">
+            <LinearLayout android:orientation="vertical" android:paddingTop="6.0dip" android:paddingBottom="6.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingStart="8.0dip" android:paddingEnd="8.0dip">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="12.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="一键登录检测" android:layout_weight="1.0" />
+                    <com.google.android.material.button.MaterialButton android:textSize="11.0sp" android:id="@id/btnCheckAll" android:layout_width="wrap_content" android:layout_height="26.0dip" android:minWidth="0.0dip" android:text="检测" android:insetTop="0.0dip" android:insetBottom="0.0dip" android:paddingStart="14.0dip" android:paddingEnd="14.0dip" app:backgroundTint="@color/primary" app:cornerRadius="10.0dip" />
+                </LinearLayout>
+                <TextView android:textSize="9.0sp" android:textColor="@color/text_secondary" android:id="@id/tvCheckStatus" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:text="检测全部已登录平台的登录态（网络请求，约几秒）" />
+                <TextView android:textSize="10.0sp" android:textStyle="bold" android:textColor="@color/green" android:id="@id/tvCheckSummary" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="1.0dip" android:text="" />
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dip">
+                    <TextView android:textSize="9.0sp" android:textColor="@color/text_secondary" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="自动检查登录态（会话内一次，后台静默）" android:layout_weight="1.0" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@id/switchAutoCheck" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="0.0dip" android:minHeight="0.0dip" android:scaleX="0.7" android:scaleY="0.7" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <LinearLayout android:orientation="vertical" android:id="@id/containerOutbase" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="2.0dip" />
+        <TextView android:textSize="12.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:id="@id/tvGroupLogged" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:layout_marginBottom="2.0dip" android:text="已登录平台" android:paddingStart="4.0dip" />
+        <LinearLayout android:orientation="vertical" android:id="@id/containerLogged" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@id/llFoldToggle" android:background="@drawable/bg_check_update" android:paddingTop="10.0dip" android:paddingBottom="10.0dip" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:paddingStart="14.0dip" android:paddingEnd="12.0dip">
+            <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="@color/primary" android:id="@id/tvFoldToggle" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="未登录平台" android:layout_weight="1.0" />
+            <TextView android:textSize="13.0sp" android:textStyle="bold" android:textColor="@color/primary" android:id="@id/tvFoldArrow" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▾ 点击展开" />
+        </LinearLayout>
+        <LinearLayout android:orientation="vertical" android:id="@id/containerLoggedOut" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+</ScrollView>

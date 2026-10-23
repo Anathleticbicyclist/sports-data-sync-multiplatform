@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:background="@drawable/bg_dialog_rounded" android:paddingTop="18.0dip" android:paddingBottom="14.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingHorizontal="22.0dip"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="24.0sp" android:gravity="center" android:layout_gravity="center_horizontal" android:id="@id/tvIcon" android:background="@drawable/bg_dialog_icon" android:layout_width="48.0dip" android:layout_height="48.0dip" />
+    <TextView android:textSize="17.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:gravity="center" android:id="@id/tvTitle" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="10.0dip" />
+    <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:id="@id/tvSubtitle" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:lineSpacingExtra="2.0dip" />
+    <LinearLayout android:orientation="vertical" android:id="@id/layoutFeatures" android:background="@color/bg_light" android:padding="12.0dip" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="12.0dip">
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingVertical="3.0dip">
+            <View android:background="@drawable/dot_blue" android:layout_width="5.0dip" android:layout_height="5.0dip" android:layout_marginTop="6.0dip" />
+            <TextView android:textSize="12.0sp" android:textColor="@color/log_normal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="新建任务 — 配置多平台自动同步" android:layout_marginStart="8.0dip" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingVertical="3.0dip">
+            <View android:background="@drawable/dot_blue" android:layout_width="5.0dip" android:layout_height="5.0dip" android:layout_marginTop="6.0dip" />
+            <TextView android:textSize="12.0sp" android:textColor="@color/log_normal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="轨迹合并 · 贴纸 — 多条运动记录合并分享" android:layout_marginStart="8.0dip" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingVertical="3.0dip">
+            <View android:background="@drawable/dot_blue" android:layout_width="5.0dip" android:layout_height="5.0dip" android:layout_marginTop="6.0dip" />
+            <TextView android:textSize="12.0sp" android:textColor="@color/log_normal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="体验码到期后，加抖音群获取新验证码继续使用" android:layout_marginStart="8.0dip" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@id/layoutDevice" android:background="@color/bg_light" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="12.0dip">
+        <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0">
+            <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="你的设备ID" />
+            <TextView android:textSize="18.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:id="@id/tvDeviceId" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1.0dip" android:letterSpacing="0.1" />
+        </LinearLayout>
+        <TextView android:textSize="11.0sp" android:textColor="@color/log_normal" android:id="@id/btnCopy" android:background="@drawable/bg_copy_chip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="复制" android:paddingHorizontal="12.0dip" android:paddingVertical="5.0dip" />
+    </LinearLayout>
+    <TextView android:textSize="12.0sp" android:textColor="@color/log_normal" android:id="@id/tvInputLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12.0dip" android:text="输入体验码（复制上方设备ID，到抖音群中飞书问卷中填写体验码获取）" />
+    <EditText android:textSize="15.0sp" android:textColor="@color/text_primary" android:textColorHint="#ffcccccc" android:gravity="center" android:id="@id/etKey" android:background="@drawable/bg_input" android:layout_width="fill_parent" android:layout_height="44.0dip" android:layout_marginTop="5.0dip" android:hint="P008-XXXXXX 或 LIFE-XXXXXX" android:maxLines="1" android:singleLine="true" android:inputType="textCapCharacters" android:letterSpacing="0.1" android:paddingHorizontal="12.0dip" />
+    <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="#ffffffff" android:gravity="center" android:id="@id/btnPrimary" android:background="@drawable/bg_btn_primary" android:layout_width="fill_parent" android:layout_height="44.0dip" android:layout_marginTop="14.0dip" />
+    <TextView android:textSize="13.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:id="@id/btnSecondary" android:padding="5.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="4.0dip" android:text="暂不使用" />
+    <TextView android:textSize="10.0sp" android:textColor="@color/log_time" android:gravity="center" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:text="该功能不收费，感谢每一位内测用户的反馈与支持 关注抖音「多吃两口」，从主页抖音群获取验证码 赞赏用户可联系作者获取永久体验" />
+</LinearLayout>
