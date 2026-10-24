@@ -380,4 +380,21 @@
     <color name="xingzhe_blue">#ff1989fa</color>
     <color name="zepp_blue">#ff3457d5</color>
     <color name="zwift_purple">#ff6a2fa0</color>
+    <!-- v9.2.9 深色模式：硬编码hex资源化（浅色基准值） -->
+    <color name="login_tag_overlay">#e6ffffff</color>
+    <color name="login_tag_soft">#bfffffff</color>
+    <color name="log_scroll_bg">#fff8fafc</color>
+    <color name="sticker_text">#ffffffff</color>
+    <color name="web_login_fail_title">#ff333333</color>
+    <color name="web_login_fail_body">#ff888888</color>
+    <color name="web_login_link">#ff1989fa</color>
+    <color name="web_btn_stroke">#ff666666</color>
+    <color name="trial_hint">#ffcccccc</color>
+    <color name="trial_btn_text">#ffffffff</color>
+    <color name="about_card_blue">#ffeaf4ff</color>
+    <color name="about_card_amber">#fffff8e6</color>
+    <color name="about_card_white">#ffffffff</color>
+    <color name="about_chevron">#ffcccccc</color>
+    <color name="btn_text_on_primary">#ffffffff</color>
+    <color name="tag_bg_grey">#ffeeeeee</color>
 </resources>
