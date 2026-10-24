@@ -3070,19 +3070,15 @@
 
     invoke-virtual {v3, v6}, Lcom/google/android/material/card/MaterialCardView;->setStrokeColor(I)V
 
-    # v9.2.9 fix4: 任务卡背景资源化（浅#fff/深#1A2436），原硬编码-1=白底在深色下不反转
-    invoke-virtual {v0}, Lcom/jichi/ob/ui/SyncFragment;->requireContext()Landroid/content/Context;
+    # v9.2.9 fix5: 任务卡背景资源化（浅#fff/深#1A2436）；v6须保持int类型（后续LayoutParams复用），复用v2(context)
+    sget v6, Lcom/jichi/ob/R$color;->card_white:I
 
-    move-result-object v6
+    invoke-virtual {v2, v6}, Landroid/content/Context;->getColor(I)I
 
-    sget v4, Lcom/jichi/ob/R$color;->card_white:I
-
-    invoke-virtual {v6, v4}, Landroid/content/Context;->getColor(I)I
-
-    move-result v4
+    move-result v6
 
     .line 304
-    invoke-virtual {v3, v4}, Lcom/google/android/material/card/MaterialCardView;->setCardBackgroundColor(I)V
+    invoke-virtual {v3, v6}, Lcom/google/android/material/card/MaterialCardView;->setCardBackgroundColor(I)V
 
     .line 306
     new-instance v7, Landroid/widget/LinearLayout;
