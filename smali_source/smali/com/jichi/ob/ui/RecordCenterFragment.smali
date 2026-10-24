@@ -799,13 +799,9 @@
     invoke-virtual {p3, p1}, Ljava/util/HashSet;->remove(Ljava/lang/Object;)Z
 
     .line 251
-    sget p1, Lcom/jichi/ob/R$color;->tag_bg_grey:I
+    const-string p1, "#EEEEEE"
 
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/RecordCenterFragment;->requireContext()Landroid/content/Context;
-
-    move-result-object v0
-
-    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+    invoke-static {p1}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
 
     move-result p1
 
@@ -833,13 +829,9 @@
     invoke-virtual {p3, p1}, Ljava/util/HashSet;->add(Ljava/lang/Object;)Z
 
     .line 255
-    sget p1, Lcom/jichi/ob/R$color;->primary:I
+    const-string p1, "#2B8CFF"
 
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/RecordCenterFragment;->requireContext()Landroid/content/Context;
-
-    move-result-object v0
-
-    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+    invoke-static {p1}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
 
     move-result p1
 

@@ -611,19 +611,15 @@
 
     if-lez v7, :cond_8
 
-    sget v7, Lcom/jichi/ob/R$color;->primary:I
+    const-string v7, "#2B8CFF"
 
     goto :goto_5
 
     :cond_8
-    sget v7, Lcom/jichi/ob/R$color;->log_success:I
+    const-string v7, "#16A34A"
 
     :goto_5
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/RecordCenterFragment$RecordAdapter;->getContext()Landroid/content/Context;
-
-    move-result-object v8
-
-    invoke-virtual {v8, v7}, Landroid/content/Context;->getColor(I)I
+    invoke-static {v7}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
 
     move-result v7
 
@@ -684,13 +680,9 @@
     invoke-virtual {v9, v6}, Landroid/widget/TextView;->setTextColor(I)V
 
     .line 581
-    sget v6, Lcom/jichi/ob/R$color;->log_error:I
+    const-string v6, "#E04A4A"
 
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/RecordCenterFragment$RecordAdapter;->getContext()Landroid/content/Context;
-
-    move-result-object v8
-
-    invoke-virtual {v8, v6}, Landroid/content/Context;->getColor(I)I
+    invoke-static {v6}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
 
     move-result v6
 
@@ -752,13 +744,9 @@
     invoke-virtual {v6, v3}, Landroid/widget/TextView;->setTextColor(I)V
 
     .line 590
-    sget v3, Lcom/jichi/ob/R$color;->tag_bg_grey:I
+    const-string v3, "#EEEEEE"
 
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/RecordCenterFragment$RecordAdapter;->getContext()Landroid/content/Context;
-
-    move-result-object v8
-
-    invoke-virtual {v8, v3}, Landroid/content/Context;->getColor(I)I
+    invoke-static {v3}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
 
     move-result v3
 
@@ -1610,15 +1598,7 @@
     goto :goto_0
 
     :catch_0
-    sget v2, Lcom/jichi/ob/R$color;->primary:I
-
-    move-object/from16 v0, p0
-
-    invoke-virtual {v0}, Lcom/jichi/ob/ui/RecordCenterFragment$RecordAdapter;->getContext()Landroid/content/Context;
-
-    move-result-object v3
-
-    invoke-virtual {v3, v2}, Landroid/content/Context;->getColor(I)I
+    invoke-static {v2}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
 
     move-result v5
 
