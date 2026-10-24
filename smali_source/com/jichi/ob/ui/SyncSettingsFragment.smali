@@ -1245,6 +1245,15 @@
     return-void
 .end method
 
+.method private final settingsColor(I)I
+    .locals 1
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+    move-result-object v0
+    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+    move-result v0
+    return v0
+.end method
+
 .method private final platformColor(Ljava/lang/String;)I
     .locals 1
 
@@ -4687,7 +4696,7 @@
     .line 412
     invoke-virtual {v5, v3}, Lcom/jichi/ob/ui/PlatformButton;->setEmphasize(Z)V
 
-    const/high16 v7, 0x41300000    # 11.0f
+    const/high16 v7, 0x41200000    # 10.0f
 
     .line 413
     invoke-virtual {v5, v7}, Lcom/jichi/ob/ui/PlatformButton;->setTextSizeDp(F)V
@@ -6644,12 +6653,20 @@
     .line 586
     invoke-virtual {v6, v11}, Lcom/jichi/ob/ui/PlatformButton;->setMaxLines(I)V
 
-    const v3, -0x171718
+    sget v3, Lcom/jichi/ob/R$color;->platform_card_disabled:I
+
+    invoke-direct {v0, v3}, Lcom/jichi/ob/ui/SyncSettingsFragment;->settingsColor(I)I
+
+    move-result v3
 
     .line 587
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/PlatformButton;->setBackgroundColor(I)V
 
-    const v3, -0x4f4f50
+    sget v3, Lcom/jichi/ob/R$color;->platform_text_disabled:I
+
+    invoke-direct {v0, v3}, Lcom/jichi/ob/ui/SyncSettingsFragment;->settingsColor(I)I
+
+    move-result v3
 
     .line 588
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/PlatformButton;->setTextColor(I)V
@@ -7654,6 +7671,40 @@
     invoke-virtual {p2, v0}, Lcom/google/android/material/slider/Slider;->addOnChangeListener(Lcom/google/android/material/slider/BaseOnChangeListener;)V
 
     :cond_19
+    # v9.2.9 深色模式三态按钮绑定（修复：p1在onViewCreated中被Kotlin复用为tvUlConcurrency，必须用requireView()取root）
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v2
+
+    sget v0, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v0
+    if-eqz v0, :cond_dark_skip1
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
+    invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+    check-cast v1, Landroid/view/View$OnClickListener;
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    :cond_dark_skip1
+    sget v0, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v0
+    if-eqz v0, :cond_dark_skip2
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
+    invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+    check-cast v1, Landroid/view/View$OnClickListener;
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    :cond_dark_skip2
+    sget v0, Lcom/jichi/ob/R$id;->btnDarkModeDark:I
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v0
+    if-eqz v0, :cond_dark_skip3
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
+    invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+    check-cast v1, Landroid/view/View$OnClickListener;
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    :cond_dark_skip3
+    invoke-static {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
     return-void
 .end method
 
@@ -8199,5 +8250,248 @@
     invoke-virtual {v0, p1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
     :cond_0
+    return-void
+.end method
+
+.method public static synthetic $r8$lambda$darkMode$onClick(Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
+    .locals 1
+
+    invoke-static {p0, p1}, Lcom/jichi/ob/ui/SyncSettingsFragment;->selectDarkMode$impl(Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
+
+    return-void
+.end method
+
+.method private static final selectDarkMode$impl(Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
+    .locals 5
+
+    invoke-virtual {p1}, Landroid/view/View;->getId()I
+
+    move-result v0
+
+    sget v1, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
+
+    if-ne v0, v1, :cond_sys
+
+    const-string v0, "system"
+
+    goto :goto_save
+
+    :cond_sys
+    invoke-virtual {p1}, Landroid/view/View;->getId()I
+
+    move-result v0
+
+    sget v1, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
+
+    if-ne v0, v1, :cond_light
+
+    const-string v0, "light"
+
+    goto :goto_save
+
+    :cond_light
+    const-string v0, "dark"
+
+    :goto_save
+    iget-object v1, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    invoke-virtual {v1, v0}, Lcom/jichi/ob/util/PrefsManager;->setDarkMode(Ljava/lang/String;)V
+
+    const-string v1, "system"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_night_sys
+
+    const/4 v2, 0x0
+
+    goto :goto_apply
+
+    :cond_night_sys
+    const-string v1, "light"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_night_light
+
+    const/4 v2, 0x1
+
+    goto :goto_apply
+
+    :cond_night_light
+    const/4 v2, 0x2
+
+    :goto_apply
+    invoke-static {v2}, Landroidx/appcompat/app/AppCompatDelegate;->setDefaultNightMode(I)V
+
+    # v9.2.9 fix2: setDefaultNightMode只设全局默认，已创建Activity不会自动重建 -> 立即recreate应用新主题
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireActivity()Landroid/app/Activity;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Landroid/app/Activity;->recreate()V
+
+    invoke-static {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
+    return-void
+.end method
+
+.method private static final applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+    .locals 6
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->getDarkMode()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v1
+
+    sget v2, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
+
+    invoke-virtual {v1, v2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/widget/TextView;
+
+    const-string v2, "system"
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v2
+
+    if-eqz v2, :cond_b_sys
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    goto :goto_light_btn
+
+    :cond_b_sys
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->text_secondary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    :goto_light_btn
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v1
+
+    sget v2, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
+
+    invoke-virtual {v1, v2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/widget/TextView;
+
+    const-string v2, "light"
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v2
+
+    if-eqz v2, :cond_b_light
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    goto :goto_dark_btn
+
+    :cond_b_light
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->text_secondary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    :goto_dark_btn
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v1
+
+    sget v2, Lcom/jichi/ob/R$id;->btnDarkModeDark:I
+
+    invoke-virtual {v1, v2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/widget/TextView;
+
+    const-string v2, "dark"
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_b_dark
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v0
+
+    sget v2, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v0, v2}, Landroid/content/Context;->getColor(I)I
+
+    move-result v0
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setTextColor(I)V
+
+    goto :goto_done
+
+    :cond_b_dark
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v0
+
+    sget v2, Lcom/jichi/ob/R$color;->text_secondary:I
+
+    invoke-virtual {v0, v2}, Landroid/content/Context;->getColor(I)I
+
+    move-result v0
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setTextColor(I)V
+
+    :goto_done
     return-void
 .end method

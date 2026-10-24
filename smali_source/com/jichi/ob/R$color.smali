@@ -100,6 +100,70 @@
 
 .field public static zwift_purple:I = 0x7f05032c
 
+.field public static about_card_amber:I = 0x7f05032d
+
+.field public static about_card_blue:I = 0x7f05032e
+
+.field public static about_card_white:I = 0x7f05032f
+
+.field public static about_chevron:I = 0x7f050330
+
+.field public static amber_highlight:I = 0x7f050331
+
+.field public static btn_text_on_primary:I = 0x7f050332
+
+.field public static garmin_orange:I = 0x7f050333
+
+.field public static log_dark_bg:I = 0x7f050334
+
+.field public static log_scroll_bg:I = 0x7f050335
+
+.field public static login_tag_overlay:I = 0x7f05033a
+
+.field public static login_tag_soft:I = 0x7f05033b
+
+.field public static overlay_scrim:I = 0x7f05033c
+
+.field public static sticker_orange:I = 0x7f050342
+
+.field public static sticker_text:I = 0x7f050343
+
+.field public static stroke_blue:I = 0x7f050344
+
+.field public static stroke_blue_strong:I = 0x7f050345
+
+.field public static tag_bg_grey:I = 0x7f050346
+
+.field public static trial_btn_text:I = 0x7f050347
+
+.field public static trial_hint:I = 0x7f050348
+
+.field public static web_btn_stroke:I = 0x7f050349
+
+.field public static web_login_fail_body:I = 0x7f05034a
+
+.field public static web_login_fail_title:I = 0x7f05034b
+
+.field public static web_login_link:I = 0x7f05034c
+.field public static login_btn_bg:I = 0x7f050336
+
+.field public static login_btn_stroke:I = 0x7f050337
+
+.field public static login_card_error_bg:I = 0x7f050338
+
+.field public static login_card_error_stroke:I = 0x7f050339
+
+.field public static platform_card_bg:I = 0x7f05033d
+
+.field public static platform_card_disabled:I = 0x7f05033e
+
+.field public static platform_card_selected:I = 0x7f05033f
+
+.field public static platform_dot:I = 0x7f050340
+
+.field public static platform_text_disabled:I = 0x7f050341
+
+
 
 # direct methods
 .method private constructor <init>()V

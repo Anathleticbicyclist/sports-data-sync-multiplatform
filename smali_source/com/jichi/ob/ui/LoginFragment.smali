@@ -1688,6 +1688,15 @@
     .end packed-switch
 .end method
 
+.method private final loginColor(I)I
+    .locals 1
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/LoginFragment;->requireContext()Landroid/content/Context;
+    move-result-object v0
+    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+    move-result v0
+    return v0
+.end method
+
 .method private final dp(F)F
     .locals 1
 
@@ -2165,15 +2174,15 @@
     if-eqz v5, :cond_1
 
     .line 227
-    const-string v8, "#F5C2C4"
+    sget v8, Lcom/jichi/ob/R$color;->login_card_error_stroke:I
 
     goto :goto_1
 
     :cond_1
-    const-string v8, "#E3EEFA"
+    sget v8, Lcom/jichi/ob/R$color;->stroke_blue:I
 
     :goto_1
-    invoke-static {v8}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
+    invoke-direct {v0, v8}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
 
     move-result v8
 
@@ -2184,16 +2193,20 @@
     if-eqz v5, :cond_2
 
     .line 228
-    const-string v9, "#FFF8F8"
+    sget v9, Lcom/jichi/ob/R$color;->login_card_error_bg:I
 
-    invoke-static {v9}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
+    invoke-direct {v0, v9}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
 
     move-result v9
 
     goto :goto_2
 
     :cond_2
-    move v9, v8
+    sget v9, Lcom/jichi/ob/R$color;->card_white:I
+
+    invoke-direct {v0, v9}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
+
+    move-result v9
 
     :goto_2
     invoke-virtual {v6, v9}, Lcom/google/android/material/card/MaterialCardView;->setCardBackgroundColor(I)V
@@ -2305,7 +2318,7 @@
 
     invoke-virtual {v12, v13}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    const/high16 v13, 0x41400000    # 12.0f
+    const/high16 v13, 0x41280000    # 10.5f
 
     .line 244
     invoke-virtual {v12, v13}, Landroid/widget/TextView;->setTextSize(F)V
@@ -2407,9 +2420,9 @@
     invoke-virtual {v3, v8}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
 
     .line 258
-    const-string v8, "#2B8CFF"
+    sget v8, Lcom/jichi/ob/R$color;->primary:I
 
-    invoke-static {v8}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
+    invoke-direct {v0, v8}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
 
     move-result v8
 

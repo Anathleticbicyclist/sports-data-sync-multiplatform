@@ -143,12 +143,16 @@
 
     iput p2, p0, Lcom/jichi/ob/ui/PlatformButton;->dp:F
 
-    const v0, -0xa0806
+    sget v0, Lcom/jichi/ob/R$color;->platform_card_bg:I
+    invoke-direct {p0, v0}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result v0
 
     .line 32
     iput v0, p0, Lcom/jichi/ob/ui/PlatformButton;->fillColor:I
 
-    const v0, -0xd47301
+    sget v0, Lcom/jichi/ob/R$color;->primary:I
+    invoke-direct {p0, v0}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result v0
 
     .line 35
     iput v0, p0, Lcom/jichi/ob/ui/PlatformButton;->brandColor:I
@@ -178,7 +182,9 @@
     .line 54
     invoke-virtual {v1, v0}, Landroid/graphics/drawable/GradientDrawable;->setShape(I)V
 
-    const v0, -0x473f38
+    sget v0, Lcom/jichi/ob/R$color;->platform_dot:I
+    invoke-direct {p0, v0}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result v0
 
     .line 55
     invoke-virtual {v1, v0}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
@@ -250,12 +256,14 @@
     .line 67
     invoke-virtual {p2, p1}, Landroid/widget/TextView;->setGravity(I)V
 
-    const/high16 p1, 0x41300000    # 11.0f
+    const/high16 p1, 0x41200000    # 10.0f
 
     .line 68
     invoke-virtual {p2, p1}, Landroid/widget/TextView;->setTextSize(F)V
 
-    const p1, -0xe0d6c9
+    sget p1, Lcom/jichi/ob/R$color;->text_primary:I
+    invoke-direct {p0, p1}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p1
 
     .line 69
     invoke-virtual {p2, p1}, Landroid/widget/TextView;->setTextColor(I)V
@@ -351,6 +359,15 @@
 
 
 # virtual methods
+.method private final resColor(I)I
+    .locals 1
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/PlatformButton;->getResources()Landroid/content/res/Resources;
+    move-result-object v0
+    invoke-virtual {v0, p1}, Landroid/content/res/Resources;->getColor(I)I
+    move-result v0
+    return v0
+.end method
+
 .method public final bind(I)V
     .locals 0
 
@@ -519,7 +536,9 @@
     .line 115
     invoke-virtual {p0, p1}, Lcom/jichi/ob/ui/PlatformButton;->setAlpha(F)V
 
-    const p1, -0x171718
+    sget p1, Lcom/jichi/ob/R$color;->platform_card_disabled:I
+    invoke-direct {p0, p1}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p1
 
     .line 116
     iput p1, p0, Lcom/jichi/ob/ui/PlatformButton;->fillColor:I
@@ -532,7 +551,9 @@
     .line 118
     iget-object p1, p0, Lcom/jichi/ob/ui/PlatformButton;->tv:Landroid/widget/TextView;
 
-    const p2, -0x4f4f50
+    sget p2, Lcom/jichi/ob/R$color;->platform_text_disabled:I
+    invoke-direct {p0, p2}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p2
 
     invoke-virtual {p1, p2}, Landroid/widget/TextView;->setTextColor(I)V
 
@@ -560,7 +581,9 @@
 
     if-eqz p1, :cond_1
 
-    const p1, -0x100901
+    sget p1, Lcom/jichi/ob/R$color;->platform_card_selected:I
+    invoke-direct {p0, p1}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p1
 
     .line 124
     iput p1, p0, Lcom/jichi/ob/ui/PlatformButton;->fillColor:I
@@ -584,7 +607,9 @@
     .line 127
     iget-object p1, p0, Lcom/jichi/ob/ui/PlatformButton;->tv:Landroid/widget/TextView;
 
-    const p2, -0xd47301
+    sget p2, Lcom/jichi/ob/R$color;->primary:I
+    invoke-direct {p0, p2}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p2
 
     invoke-virtual {p1, p2}, Landroid/widget/TextView;->setTextColor(I)V
 
@@ -609,7 +634,9 @@
     goto :goto_0
 
     :cond_1
-    const p1, -0xa0806
+    sget p1, Lcom/jichi/ob/R$color;->platform_card_bg:I
+    invoke-direct {p0, p1}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p1
 
     .line 131
     iput p1, p0, Lcom/jichi/ob/ui/PlatformButton;->fillColor:I
@@ -622,7 +649,9 @@
     .line 133
     iget-object p1, p0, Lcom/jichi/ob/ui/PlatformButton;->tv:Landroid/widget/TextView;
 
-    const p2, -0xe0d6c9
+    sget p2, Lcom/jichi/ob/R$color;->text_primary:I
+    invoke-direct {p0, p2}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p2
 
     invoke-virtual {p1, p2}, Landroid/widget/TextView;->setTextColor(I)V
 
@@ -640,7 +669,9 @@
     .line 136
     iget-object p1, p0, Lcom/jichi/ob/ui/PlatformButton;->dotGd:Landroid/graphics/drawable/GradientDrawable;
 
-    const p2, -0x473f38
+    sget p2, Lcom/jichi/ob/R$color;->platform_dot:I
+    invoke-direct {p0, p2}, Lcom/jichi/ob/ui/PlatformButton;->resColor(I)I
+    move-result p2
 
     invoke-virtual {p1, p2}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
 

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色模式业务色板 v9.2.9（taste-skill规则：底不纯黑、卡片一档tone step、颜色用在数据上） -->
+    <color name="bg_light">#ff0f1524</color>
+    <color name="card_white">#ff1a2436</color>
+    <color name="text_primary">#ffe8edf5</color>
+    <color name="text_secondary">#ff8a97ad</color>
+    <color name="primary">#ff4d9fff</color>
+    <color name="primary_dark">#ff1a6fdb</color>
+    <color name="primary_light">#ff1e293b</color>
+    <color name="stroke_blue">#ff243049</color>
+    <color name="stroke_blue_strong">#ff33415f</color>
+    <color name="divider">#ff1e293b</color>
+    <color name="grey_light">#ff1a2436</color>
+    <color name="white">#ffe8edf5</color>
+    <color name="black">#ff0f1524</color>
+    <color name="overlay_scrim">#99000000</color>
+    <color name="log_dark_bg">#ff0b101c</color>
+    <color name="gradient_start">#ff2b5a8c</color>
+    <color name="gradient_end">#ff1a3f66</color>
+    <color name="splash_start">#ff122238</color>
+    <color name="splash_end">#ff0f1524</color>
+
+    <!-- 状态色（数据语义色，深色下提亮保持对比） -->
+    <color name="log_success">#ff3dbb63</color>
+    <color name="log_error">#ffef5350</color>
+    <color name="log_skip">#ff9ca3af</color>
+    <color name="log_normal">#ffb6c2d0</color>
+    <color name="log_info">#ff4d9fff</color>
+    <color name="log_time">#ff6b7a8f</color>
+    <color name="green">#ff3dbb63</color>
+    <color name="red">#ffef5350</color>
+    <color name="amber_highlight">#fff5a623</color>
+
+    <!-- 平台品牌色（深色下加深底、提亮前景） -->
+    <color name="blackbird_dark">#ff3a4f66</color>
+    <color name="blackbird_green">#ff58c96b</color>
+    <color name="bryton_red">#ff1fae63</color>
+    <color name="codoon_green">#ff20c4b0</color>
+    <color name="coros_red">#fff05546</color>
+    <color name="garmin_orange">#fff05a00</color>
+    <color name="garmin_blue">#ff2b6cb0</color>
+    <color name="giant_blue">#ff3f5fb8</color>
+    <color name="igp_green">#ffff6b1a</color>
+    <color name="intervals_icu_orange">#fff06a4a</color>
+    <color name="keep_yellow">#fff5c63d</color>
+    <color name="komoot_red">#fff2463a</color>
+    <color name="magene_blue">#ff3b80c4</color>
+    <color name="mywhoosh_orange">#fff06a1e</color>
+    <color name="outbase_orange">#ffff7b1a</color>
+    <color name="sticker_orange">#ffff7b1a</color>
+    <color name="suunto_blue">#ff3d99e8</color>
+    <color name="wahoo_red">#fff51528</color>
+    <color name="xingzhe_blue">#ff3d9bff</color>
+    <color name="zepp_blue">#ff4d6be0</color>
+    <color name="zwift_purple">#ff8452c8</color>
+
+    <!-- v9.2.9 深色模式：硬编码hex资源化（深色值） -->
+    <color name="login_tag_overlay">#e6e8edf5</color>
+    <color name="login_tag_soft">#bfe8edf5</color>
+    <color name="log_scroll_bg">#ff141c2b</color>
+    <color name="sticker_text">#ffffffff</color>
+    <color name="web_login_fail_title">#ffe8edf5</color>
+    <color name="web_login_fail_body">#ff8a97ad</color>
+    <color name="web_login_link">#ff4d9fff</color>
+    <color name="web_btn_stroke">#ff33415f</color>
+    <color name="trial_hint">#ff8a97ad</color>
+    <color name="trial_btn_text">#ffffffff</color>
+    <color name="about_card_blue">#ff16233a</color>
+    <color name="about_card_amber">#ff2a2413</color>
+    <color name="about_card_white">#ff1a2436</color>
+    <color name="about_chevron">#ff8a97ad</color>
+    <color name="btn_text_on_primary">#ff1e293b</color>
+    <color name="tag_bg_grey">#ff243049</color>
+    <color name="platform_card_bg">#ff1a2436</color>
+    <color name="platform_card_selected">#ff1e293b</color>
+    <color name="platform_card_disabled">#ff141b2a</color>
+    <color name="platform_text_disabled">#ff8a97ad</color>
+    <color name="platform_dot">#ff46536a</color>
+    <color name="login_card_error_bg">#ff2a2024</color>
+    <color name="login_card_error_stroke">#ff6b3a3e</color>
+    <color name="login_btn_bg">#ff141b2a</color>
+    <color name="login_btn_stroke">#ff33415f</color>
+</resources>
