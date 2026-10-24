@@ -1068,7 +1068,7 @@
     sput-object v0, Lcom/jichi/ob/MainActivity;->Companion:Lcom/jichi/ob/MainActivity$Companion;
 
     .line 97
-    const-string/jumbo v0, "v9.2.8"
+    const-string/jumbo v0, "v9.3.0"
 
     sput-object v0, Lcom/jichi/ob/MainActivity;->APP_VERSION:Ljava/lang/String;
 
@@ -2013,12 +2013,17 @@
 
     invoke-virtual {v4, v6}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
 
-    const v6, -0xd47301
+    sget v6, Lcom/jichi/ob/R$color;->primary:I
+    invoke-virtual {p0, v6}, Landroid/content/Context;->getColor(I)I
+    move-result v6
 
     .line 693
     invoke-virtual {v4, v6}, Landroid/widget/Button;->setBackgroundColor(I)V
 
     .line 694
+    sget p3, Lcom/jichi/ob/R$color;->btn_text_on_primary:I
+    invoke-virtual {p0, p3}, Landroid/content/Context;->getColor(I)I
+    move-result p3
     invoke-virtual {v4, p3}, Landroid/widget/Button;->setTextColor(I)V
 
     .line 696
@@ -26387,6 +26392,50 @@
     invoke-static {v10}, Ljava/lang/Thread;->setDefaultUncaughtExceptionHandler(Ljava/lang/Thread$UncaughtExceptionHandler;)V
 
     .line 333
+    # v9.2.9 深色模式：启动前应用 dark_mode 设置（system/light/dark）
+    new-instance v14, Lcom/jichi/ob/util/PrefsManager;
+
+    move-object v15, v1
+
+    check-cast v15, Landroid/content/Context;
+
+    invoke-direct {v14, v15}, Lcom/jichi/ob/util/PrefsManager;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v14}, Lcom/jichi/ob/util/PrefsManager;->getDarkMode()Ljava/lang/String;
+
+    move-result-object v14
+
+    const-string v15, "light"
+
+    invoke-virtual {v14, v15}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v15
+
+    if-eqz v15, :cond_dark_sys
+
+    const/4 v14, 0x1
+
+    goto :goto_dark_apply
+
+    :cond_dark_sys
+    const-string v15, "dark"
+
+    invoke-virtual {v14, v15}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v15
+
+    if-eqz v15, :cond_dark_sys_default
+
+    const/4 v14, 0x2
+
+    goto :goto_dark_apply
+
+    :cond_dark_sys_default
+    const/4 v14, 0x0
+
+    :goto_dark_apply
+    invoke-static {v14}, Landroidx/appcompat/app/AppCompatDelegate;->setDefaultNightMode(I)V
+
     invoke-super/range {p0 .. p1}, Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V
 
     .line 335
@@ -28068,12 +28117,17 @@
 
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
 
-    const v10, -0xd47301
+    sget v10, Lcom/jichi/ob/R$color;->primary:I
+    invoke-virtual {p0, v10}, Landroid/content/Context;->getColor(I)I
+    move-result v10
 
     .line 775
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setBackgroundColor(I)V
 
     .line 776
+    sget v6, Lcom/jichi/ob/R$color;->btn_text_on_primary:I
+    invoke-virtual {p0, v6}, Landroid/content/Context;->getColor(I)I
+    move-result v6
     invoke-virtual {v9, v6}, Landroid/widget/Button;->setTextColor(I)V
 
     .line 778

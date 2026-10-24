@@ -1161,6 +1161,221 @@
     return-object v0
 .end method
 
+.method public final existsDownloadedIds(Ljava/lang/String;Ljava/util/Collection;)Ljava/util/Set;
+    .locals 11
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "(",
+            "Ljava/lang/String;",
+            "Ljava/util/Collection<",
+            "Ljava/lang/String;",
+            ">;)",
+            "Ljava/util/Set<",
+            "Ljava/lang/String;",
+            ">;"
+        }
+    .end annotation
+
+    const-string v0, "platform"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    const-string v0, "ids"
+
+    invoke-static {p2, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    .line 330
+    invoke-interface {p2}, Ljava/util/Collection;->isEmpty()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    invoke-static {}, Lkotlin/collections/SetsKt;->emptySet()Ljava/util/Set;
+
+    move-result-object p1
+
+    return-object p1
+
+    .line 331
+    :cond_0
+    new-instance v0, Ljava/util/HashSet;
+
+    invoke-direct {v0}, Ljava/util/HashSet;-><init>()V
+
+    .line 332
+    check-cast p2, Ljava/lang/Iterable;
+
+    const/16 v1, 0x1f4
+
+    invoke-static {p2, v1}, Lkotlin/collections/CollectionsKt;->chunked(Ljava/lang/Iterable;I)Ljava/util/List;
+
+    move-result-object p2
+
+    .line 333
+    invoke-interface {p2}, Ljava/util/List;->iterator()Ljava/util/Iterator;
+
+    move-result-object p2
+
+    :goto_0
+    invoke-interface {p2}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v1
+
+    if-eqz v1, :cond_2
+
+    invoke-interface {p2}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v1
+
+    check-cast v1, Ljava/util/List;
+
+    .line 334
+    move-object v2, v1
+
+    check-cast v2, Ljava/lang/Iterable;
+
+    const-string v3, ","
+
+    check-cast v3, Ljava/lang/CharSequence;
+
+    new-instance v8, Lcom/jichi/ob/util/ActivityCache$$ExternalSyntheticLambda0;
+
+    invoke-direct {v8}, Lcom/jichi/ob/util/ActivityCache$$ExternalSyntheticLambda0;-><init>()V
+
+    const/16 v9, 0x1e
+
+    const/4 v10, 0x0
+
+    const/4 v4, 0x0
+
+    const/4 v5, 0x0
+
+    const/4 v6, 0x0
+
+    const/4 v7, 0x0
+
+    invoke-static/range {v2 .. v10}, Lkotlin/collections/CollectionsKt;->joinToString$default(Ljava/lang/Iterable;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;ILjava/lang/CharSequence;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+
+    move-result-object v2
+
+    .line 335
+    iget-object v3, p0, Lcom/jichi/ob/util/ActivityCache;->db:Landroid/database/sqlite/SQLiteDatabase;
+
+    .line 336
+    new-instance v4, Ljava/lang/StringBuilder;
+
+    const-string v5, "SELECT id FROM activity_cache WHERE platform = ? AND id IN ("
+
+    invoke-direct {v4, v5}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v4, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    const-string v4, ") AND filename != ''"
+
+    invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v2
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    const/4 v4, 0x1
+
+    .line 337
+    new-array v4, v4, [Ljava/lang/String;
+
+    const/4 v5, 0x0
+
+    aput-object p1, v4, v5
+
+    check-cast v1, Ljava/util/Collection;
+
+    .line 439
+    new-array v6, v5, [Ljava/lang/String;
+
+    invoke-interface {v1, v6}, Ljava/util/Collection;->toArray([Ljava/lang/Object;)[Ljava/lang/Object;
+
+    move-result-object v1
+
+    .line 337
+    invoke-static {v4, v1}, Lkotlin/collections/ArraysKt;->plus([Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;
+
+    move-result-object v1
+
+    check-cast v1, [Ljava/lang/String;
+
+    .line 335
+    invoke-virtual {v3, v2, v1}, Landroid/database/sqlite/SQLiteDatabase;->rawQuery(Ljava/lang/String;[Ljava/lang/String;)Landroid/database/Cursor;
+
+    move-result-object v1
+
+    check-cast v1, Ljava/io/Closeable;
+
+    .line 338
+    :try_start_0
+    move-object v2, v1
+
+    check-cast v2, Landroid/database/Cursor;
+
+    .line 339
+    :goto_1
+    invoke-interface {v2}, Landroid/database/Cursor;->moveToNext()Z
+
+    move-result v3
+
+    if-eqz v3, :cond_1
+
+    invoke-interface {v2, v5}, Landroid/database/Cursor;->getString(I)Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v0, v3}, Ljava/util/HashSet;->add(Ljava/lang/Object;)Z
+
+    goto :goto_1
+
+    .line 340
+    :cond_1
+    sget-object v2, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+    :try_end_0
+    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+
+    const/4 v2, 0x0
+
+    .line 338
+    invoke-static {v1, v2}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
+
+    goto :goto_0
+
+    :catchall_0
+    move-exception v0
+
+    move-object p1, v0
+
+    :try_start_1
+    throw p1
+    :try_end_1
+    .catchall {:try_start_1 .. :try_end_1} :catchall_1
+
+    :catchall_1
+    move-exception v0
+
+    move-object p2, v0
+
+    invoke-static {v1, p1}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
+
+    throw p2
+
+    .line 342
+    :cond_2
+    check-cast v0, Ljava/util/Set;
+
+    return-object v0
+.end method
+
 .method public final getLastStartTimeMs(Ljava/lang/String;)J
     .locals 3
 

@@ -391,6 +391,104 @@
 
     .line 2604
     :cond_2
+    # ===== v9.3.0 判重：已成功下载过的记录直接跳过（修复行者->iGPSPORT等重复记录不同步跳过） =====
+    # 强制重传(task.force=true)时不判重，全部重下
+    iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->$task:Lcom/jichi/ob/model/SyncTask;
+
+    invoke-virtual {v9}, Lcom/jichi/ob/model/SyncTask;->getForce()Z
+
+    move-result v9
+
+    if-nez v9, :cond_dedup
+
+    # ids = [record.id]（v9 保持为 ids 列表）
+    new-instance v9, Ljava/util/ArrayList;
+
+    invoke-direct {v9}, Ljava/util/ArrayList;-><init>()V
+
+    invoke-virtual {v7}, Lcom/jichi/ob/model/ActivityRecord;->getId()Ljava/lang/String;
+
+    move-result-object v10
+
+    invoke-interface {v9, v10}, Ljava/util/Collection;->add(Ljava/lang/Object;)Z
+
+    # cache = ActivityCache.get(context)
+    sget-object v16, Lcom/jichi/ob/util/ActivityCache;->Companion:Lcom/jichi/ob/util/ActivityCache$Companion;
+
+    move-object/from16 v10, v16
+
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->this$0:Lcom/jichi/ob/MainActivity;
+
+    check-cast v0, Landroid/content/Context;
+
+    invoke-virtual {v10, v0}, Lcom/jichi/ob/util/ActivityCache$Companion;->get(Landroid/content/Context;)Lcom/jichi/ob/util/ActivityCache;
+
+    move-result-object v16
+
+    # platform = source.shortName
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->$source:Lcom/jichi/ob/model/DataSource;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/model/DataSource;->getShortName()Ljava/lang/String;
+
+    move-result-object v17
+
+    # set = cache.existsDownloadedIds(platform, ids)
+    move-object/from16 v10, v16
+
+    move-object/from16 v0, v17
+
+    invoke-virtual {v10, v0, v9}, Lcom/jichi/ob/util/ActivityCache;->existsDownloadedIds(Ljava/lang/String;Ljava/util/Collection;)Ljava/util/Set;
+
+    move-result-object v16
+
+    # 已下载过 -> 日志"已存: title" + 返回空 Downloaded（跳过，不占信号量）
+    invoke-virtual {v7}, Lcom/jichi/ob/model/ActivityRecord;->getId()Ljava/lang/String;
+
+    move-result-object v0
+
+    move-object/from16 v10, v16
+
+    invoke-interface {v10, v0}, Ljava/util/Set;->contains(Ljava/lang/Object;)Z
+
+    move-result v10
+
+    if-eqz v10, :cond_dedup
+
+    iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->this$0:Lcom/jichi/ob/MainActivity;
+
+    new-instance v10, Ljava/lang/StringBuilder;
+
+    const-string v16, "\ud83d\udcbe \u5df2\u5b58: "
+
+    move-object/from16 v0, v16
+
+    invoke-direct {v10, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v7}, Lcom/jichi/ob/model/ActivityRecord;->getTitle()Ljava/lang/String;
+
+    move-result-object v16
+
+    move-object/from16 v0, v16
+
+    invoke-virtual {v10, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    invoke-virtual {v10}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v16
+
+    move-object/from16 v0, v16
+
+    invoke-static {v9, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    new-instance v0, Lcom/jichi/ob/MainActivity$runTask$6$Downloaded;
+
+    invoke-direct {v0, v7, v15, v15}, Lcom/jichi/ob/MainActivity$runTask$6$Downloaded;-><init>(Lcom/jichi/ob/model/ActivityRecord;[BLjava/io/File;)V
+
+    return-object v0
+
+    :cond_dedup
     iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->$dlSem:Ljava/util/concurrent/Semaphore;
 
     invoke-virtual {v9}, Ljava/util/concurrent/Semaphore;->acquire()V
