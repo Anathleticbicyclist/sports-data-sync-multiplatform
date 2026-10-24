@@ -8328,12 +8328,17 @@
     :goto_apply
     invoke-static {v2}, Landroidx/appcompat/app/AppCompatDelegate;->setDefaultNightMode(I)V
 
-    # v9.2.9 fix2: setDefaultNightMode只设全局默认，已创建Activity不会自动重建 -> 立即recreate应用新主题
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireActivity()Landroid/app/Activity;
+    # v9.2.9 fix3: 点击后立即重建应用新主题（setDefaultNightMode不重建已存在Activity）
+    # requireActivity返回类型为FragmentActivity且依赖新版fragment，改用getActivity+判空（工程通用写法）
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->getActivity()Landroidx/fragment/app/FragmentActivity;
 
     move-result-object v3
 
+    if-eqz v3, :cond_skip_recreate
+
     invoke-virtual {v3}, Landroid/app/Activity;->recreate()V
+
+    :cond_skip_recreate
 
     invoke-static {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
 
