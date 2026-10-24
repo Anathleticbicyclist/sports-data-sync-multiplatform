@@ -2,7 +2,7 @@
 
 <p align="center"><img src="app_icon/app_icon_512.png" width="128" alt="App图标"/></p>
 
-**让运动数据自由流动 — 十七平台运动数据互传工具**
+**让运动数据自由流动 — 二十平台运动数据互传工具**
 
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
