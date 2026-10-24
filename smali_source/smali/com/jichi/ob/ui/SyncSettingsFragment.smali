@@ -7654,31 +7654,38 @@
     invoke-virtual {p2, v0}, Lcom/google/android/material/slider/Slider;->addOnChangeListener(Lcom/google/android/material/slider/BaseOnChangeListener;)V
 
     :cond_19
-    # v9.2.9 深色模式三态按钮绑定
+    # v9.2.9 深色模式三态按钮绑定（修复：p1在onViewCreated中被Kotlin复用为tvUlConcurrency，必须用requireView()取root）
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v2
+
     sget v0, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
-    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
     move-result-object v0
+    if-eqz v0, :cond_dark_skip1
     new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
     invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
     check-cast v1, Landroid/view/View$OnClickListener;
     invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
+    :cond_dark_skip1
     sget v0, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
-    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
     move-result-object v0
+    if-eqz v0, :cond_dark_skip2
     new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
     invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
     check-cast v1, Landroid/view/View$OnClickListener;
     invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
+    :cond_dark_skip2
     sget v0, Lcom/jichi/ob/R$id;->btnDarkModeDark:I
-    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
     move-result-object v0
+    if-eqz v0, :cond_dark_skip3
     new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
     invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
     check-cast v1, Landroid/view/View$OnClickListener;
     invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
+    :cond_dark_skip3
     invoke-static {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
 
     return-void
