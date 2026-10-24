@@ -1245,6 +1245,15 @@
     return-void
 .end method
 
+.method private final settingsColor(I)I
+    .locals 1
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+    move-result-object v0
+    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+    move-result v0
+    return v0
+.end method
+
 .method private final platformColor(Ljava/lang/String;)I
     .locals 1
 
@@ -6644,12 +6653,20 @@
     .line 586
     invoke-virtual {v6, v11}, Lcom/jichi/ob/ui/PlatformButton;->setMaxLines(I)V
 
-    const v3, -0x171718
+    sget v3, Lcom/jichi/ob/R$color;->platform_card_disabled:I
+
+    invoke-direct {v0, v3}, Lcom/jichi/ob/ui/SyncSettingsFragment;->settingsColor(I)I
+
+    move-result v3
 
     .line 587
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/PlatformButton;->setBackgroundColor(I)V
 
-    const v3, -0x4f4f50
+    sget v3, Lcom/jichi/ob/R$color;->platform_text_disabled:I
+
+    invoke-direct {v0, v3}, Lcom/jichi/ob/ui/SyncSettingsFragment;->settingsColor(I)I
+
+    move-result v3
 
     .line 588
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/PlatformButton;->setTextColor(I)V

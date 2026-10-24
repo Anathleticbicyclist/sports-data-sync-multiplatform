@@ -72,4 +72,11 @@
     <color name="about_chevron">#ff8a97ad</color>
     <color name="btn_text_on_primary">#ff1e293b</color>
     <color name="tag_bg_grey">#ff243049</color>
+    <color name="platform_card_bg">#ff1a2436</color>
+    <color name="platform_card_selected">#ff1e293b</color>
+    <color name="platform_card_disabled">#ff141b2a</color>
+    <color name="platform_text_disabled">#ff8a97ad</color>
+    <color name="platform_dot">#ff46536a</color>
+    <color name="login_card_error_bg">#ff2a2024</color>
+    <color name="login_card_error_stroke">#ff6b3a3e</color>
 </resources>
