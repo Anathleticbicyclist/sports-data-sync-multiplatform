@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.3.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.3.1-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,12 +22,12 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.3.0 |
+| 当前版本 | v9.3.1 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.3.0 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.3.0/jichi-ob-dev-9.3.0.apk) |
+| 体验版下载 | [v9.3.1 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.3.1/jichi-ob-dev-9.3.1.apk) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
 > 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
@@ -414,6 +414,15 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v9.3.1 (2026-10-25)
+- 新增热力图：扫描本地缓存轨迹（fit/gpx/tcx）叠加路线热度，支持平台下载补充与瓦片底图（开发体验功能，需体验码激活）
+- 修复热力图入口点击无效（资源ID对齐）、深色模式跟随系统优化
+- logo 白边修复、瓦片异步加载（防主线程联网卡顿）
+
+因缓存机制导致无法获取最新数据，迈金用户建议卸载本软件重新安装
+
+若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
 
 ### v9.3.0 (2026-10-24)
 - 修复行者→iGPSPORT重复记录不跳过：已同步过的记录自动跳过，不再重复下载上传（强制重传不受影响）

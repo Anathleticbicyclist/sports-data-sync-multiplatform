@@ -91,3 +91,28 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 ### 根因说明
 - iGP国际版上传假成功：原代码4处URL全部硬编码国内版端点，国际版token调用国内版端点返回HTTP 200但数据静默丢弃（不进国际版账户）
 - 检测更新失效：UpdateChecker硬编码当前版本号，升版本后未同步修改
+
+---
+
+## v9.3.1 热力图功能与修复说明（2026-10-25）
+
+### 新增功能（开发体验，需体验码激活）
+
+1. **热力图**：扫描本地缓存目录 `/storage/emulated/0/Download/鸡翅幸哲迈进OB` 下 .fit/.gpx/.tcx 全量叠加路线热度（Web Mercator 投影 + 密度累加 + 高斯KDE + hot 色带），支持平台选数量下载补充与开源瓦片底图（按轨迹包围盒取 zoom，本地缓存，失败降级深色纯底）
+   - 新增 6 个 Java 类 → smali_classes2/com/jichi/ob/heatmap/（31 个 smali）：HeatmapActivity / HeatmapView（Canvas 自研渲染）/ HeatmapEngine / TrackFileParser / HeatmapTileLoader（瓦片异步加载）/ HeatmapEntryClick（入口点击+体验码校验）
+   - AboutFragment.smali onViewCreated 增加 cardHeatmap 绑定块（if-eqz 判空后 new HeatmapEntryClick + setOnClickListener）
+   - AndroidManifest.xml 注册 HeatmapActivity（exported=true, Theme.JichiOB）
+
+2. **体验码校验**：HeatmapEntryClick.onClick 先 `TrialLicense.isAllowed()`，无体验码/过期弹 AlertDialog「开发体验功能，请先激活体验码」不进入；有码 startActivity
+
+### 关键修复
+
+1. **资源 ID 对齐（本次根因）**：`R$id.cardHeatmap` 原手动写 0x7f0800ce，apktool 回编译实际分配 0x7f08032a → findViewById 永远 null → 绑定跳过 → 点击无任何反应。修正 R$id.cardHeatmap = 0x7f08032a，aapt dump 验证与 arsc 一致
+2. **瓦片异步化**：HeatmapView.onDraw 只读缓存（getCachedTile），缺瓦片入队后台线程下载（requestTile）+ postInvalidate，杜绝主线程联网 ANR
+3. **深色跟随系统**：MainActivity/SplashActivity/设置页三处「system」映射 MODE_NIGHT_AUTO(0) → MODE_NIGHT_FOLLOW_SYSTEM(-1)
+4. **崩溃诊断**：入口/初始化/扫描/生成线程 catch(Throwable)，异常 Toast 显示真实原因（D8 编为 catchall，覆盖 VerifyError 等 Error）
+5. **logo 白边**：bg_logo_round.xml 圆角 + clipToOutline + centerCrop
+
+### 铁律提醒（沉淀）
+
+- **新增 layout/id 必须验证最终 id**：无 public.xml 时 apktool 自动分配 id，R$id 常量必须与 aapt dump 实际值一致，否则 findViewById 静默失败（本轮血泪教训）
