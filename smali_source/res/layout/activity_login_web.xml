@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:fitsSystemWindows="true" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@id/toolbar" android:background="@color/primary" android:layout_width="fill_parent" android:layout_height="?actionBarSize" app:navigationIcon="@drawable/ic_back" app:titleTextColor="@color/white" />
+    <ProgressBar android:id="@id/progressBar" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" style="?android:progressBarStyleHorizontal" />
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="4.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <TextView android:textSize="11.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="登录完成后点击右侧按钮确认" android:layout_weight="1.0" />
+        <com.google.android.material.button.MaterialButton android:textSize="12.0sp" android:id="@id/btnConfirmLogin" android:layout_width="wrap_content" android:layout_height="36.0dip" android:text="✅ 确认已登录" app:backgroundTint="@color/green" app:cornerRadius="14.0dip" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:id="@id/mobileLoginLayout" android:padding="24.0dip" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent">
+        <TextView android:textSize="20.0sp" android:textStyle="bold" android:id="@id/tvMobileLoginTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8.0dip" android:text="佳明国际版登录" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="32.0dip" android:text="使用mobile SSO方式（不经过Cloudflare）" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:hint="邮箱" app:boxBackgroundMode="outline">
+            <com.google.android.material.textfield.TextInputEditText android:id="@id/etEmail" android:layout_width="fill_parent" android:layout_height="wrap_content" android:inputType="textEmailAddress" android:autofillHints="email" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="16.0dip" android:hint="密码" app:boxBackgroundMode="outline" app:passwordToggleEnabled="true">
+            <com.google.android.material.textfield.TextInputEditText android:id="@id/etPassword" android:layout_width="fill_parent" android:layout_height="wrap_content" android:inputType="textPassword" android:autofillHints="password" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:textSize="16.0sp" android:id="@id/btnMobileLogin" android:layout_width="fill_parent" android:layout_height="48.0dip" android:layout_marginTop="24.0dip" android:text="登录" app:cornerRadius="12.0dip" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:id="@id/tvMobileLoginStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16.0dip" android:text="" />
+        <View android:background="@color/card_white" android:layout_width="fill_parent" android:layout_height="1.0dip" android:layout_marginTop="24.0dip" android:layout_marginBottom="16.0dip" />
+        <TextView android:textSize="13.0sp" android:textStyle="bold" android:textColor="#ff333333" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="8.0dip" android:text="⚠️ 登录失败常见原因" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="12.0dip" android:text="1. 邮箱或密码错误（注意区分大小写）\n2. 开启了两步验证(MFA)，需先关闭\n3. 触发人机验证，改用软件内浏览器登录" android:lineSpacingExtra="4.0dip" />
+        <TextView android:textSize="12.0sp" android:textStyle="bold" android:textColor="#ff333333" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="4.0dip" android:text="【关闭两步验证步骤】" />
+        <TextView android:textSize="11.0sp" android:textColor="#ff888888" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="8.0dip" android:text="① 打开佳明Connect App或访问佳明官网登录\n② 进入「设置」→「账户」→「安全设置」\n③ 找到「两步验证」选项，点击关闭\n④ 确认关闭后，返回本App重新登录" android:lineSpacingExtra="3.0dip" />
+        <TextView android:textSize="12.0sp" android:textColor="#ff1989fa" android:autoLink="none" android:id="@id/tvMfaGuide" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="12.0dip" android:text="→ 前往佳明账号安全设置（手动关闭）" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/sticker_orange" android:id="@id/tvFallbackLogin" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="→ 遇到人机验证？用软件内浏览器登录" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/garmin_orange" android:id="@id/tvClearCooldown" android:focusable="true" android:clickable="true" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="12.0dip" android:text="→ 清空风控冷却（登录被限流/24小时后提示时点此）" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:id="@id/igpSmsLoginLayout" android:padding="24.0dip" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent">
+        <TextView android:textSize="20.0sp" android:textStyle="bold" android:id="@id/tvIgpTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8.0dip" android:text="登录 iGPSPORT" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="32.0dip" android:text="使用手机号验证码登录，无需浏览器（适配旧机型）" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:hint="手机号" app:boxBackgroundMode="outline">
+            <com.google.android.material.textfield.TextInputEditText android:id="@id/etIgpPhone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:maxLength="11" android:inputType="phone" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="16.0dip">
+            <com.google.android.material.textfield.TextInputLayout android:layout_width="0.0dip" android:layout_height="wrap_content" android:hint="验证码" android:layout_weight="1.0" app:boxBackgroundMode="outline">
+                <com.google.android.material.textfield.TextInputEditText android:id="@id/etIgpCode" android:layout_width="fill_parent" android:layout_height="wrap_content" android:maxLength="6" android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.button.MaterialButton android:textSize="13.0sp" android:id="@id/btnIgpSendCode" android:layout_width="110.0dip" android:layout_height="wrap_content" android:text="发送验证码" android:layout_marginStart="12.0dip" app:cornerRadius="14.0dip" />
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton android:textSize="16.0sp" android:id="@id/btnIgpLogin" android:layout_width="fill_parent" android:layout_height="48.0dip" android:layout_marginTop="24.0dip" android:text="登录" app:cornerRadius="12.0dip" />
+        <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:gravity="center" android:id="@id/tvIgpStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16.0dip" android:text="" />
+        <com.google.android.material.button.MaterialButton android:textSize="14.0sp" android:textColor="@color/sticker_orange" android:id="@id/btnIgpWebFallback" android:layout_width="fill_parent" android:layout_height="48.0dip" android:layout_marginTop="24.0dip" android:text="使用网页登录" app:cornerRadius="12.0dip" app:strokeColor="@color/sticker_orange" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:id="@id/webLoginContainer" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent">
+        <WebView android:id="@id/webView" android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <com.google.android.material.button.MaterialButton android:textSize="14.0sp" android:textColor="@color/text_secondary" android:id="@id/btnIgpBackToSms" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="48.0dip" android:text="切换回验证码登录" app:cornerRadius="12.0dip" app:strokeColor="#ff666666" style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+    </LinearLayout>
+</LinearLayout>

@@ -409,7 +409,7 @@
 .end method
 
 .method public static final synthetic access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
-    .locals 1
+    .locals 2
 
     # iGP时区修正：在调用 uploadToIgpsport 前调整 data（避免在巨型方法内插入代码导致VerifyError）
     iget-object v0, p0, Lcom/jichi/ob/api/UploadEngine;->context:Landroid/content/Context;
@@ -418,6 +418,7 @@
 
     move-result-object p2
 
+    # v9.2.8: 撤销v9.2.6/v9.2.7 Wahoo→iGP FIT净化——回归v9.2.5直传行为（FitSanitizer保留但不再调用）
     .line 29
     invoke-direct/range {p0 .. p5}, Lcom/jichi/ob/api/UploadEngine;->uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
