@@ -114,3 +114,8 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 ### 体验码门禁
 - 新增功能（临时码表/热力图）点击需体验码：未通过 → 弹体验弹窗（5 功能行：新建任务/轨迹合并·贴纸/临时码表/热力图/体验码到期后），暂不使用可关闭
 - 身体传感器（BODY_SENSORS）未授权不阻塞进入：Dialog「去系统设置/继续」，仅心率/步频不可用
+
+### round9 修复：体验弹窗确认按钮 IllegalAccessError（v9.4.0 不变）
+- `SyncSettingsFragment.smali`：`showTrialDialogForFeature$lambda$36` 由 **private** static final 改 **public** static final
+- 崩溃：`SyncSettingsFragment$$ExternalSyntheticLambda27.onClick` 跨类 invoke-static 调用 private 方法 → IllegalAccessError（点体验弹窗确认按钮闪退）
+- 全库扫描 3 个 dex 全部 lambda 类对宿主类 private 方法调用：仅此 1 处隐患，其余 0

@@ -256,6 +256,14 @@
     return p0
 .end method
 
+.method public static synthetic $r8$lambda$darkMode$onClick(Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
+    .locals 1
+
+    invoke-static {p0, p1}, Lcom/jichi/ob/ui/SyncSettingsFragment;->selectDarkMode$impl(Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
+
+    return-void
+.end method
+
 .method public static synthetic $r8$lambda$h8brxldMrnZYiiybxVzF2tCVpwc(Landroid/view/View;Lcom/jichi/ob/ui/SyncSettingsFragment;Lcom/jichi/ob/util/TrialLicense;Landroid/app/Dialog;Lkotlin/jvm/functions/Function0;Landroid/view/View;)V
     .locals 0
 
@@ -404,6 +412,162 @@
     iget-object p0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
     return-object p0
+.end method
+
+.method private static final applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+    .locals 6
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->getDarkMode()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v1
+
+    sget v2, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
+
+    invoke-virtual {v1, v2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/widget/TextView;
+
+    const-string/jumbo v2, "system"
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v2
+
+    if-eqz v2, :cond_0
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    goto :goto_0
+
+    :cond_0
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->text_secondary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    :goto_0
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v1
+
+    sget v2, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
+
+    invoke-virtual {v1, v2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/widget/TextView;
+
+    const-string v2, "light"
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v2
+
+    if-eqz v2, :cond_1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    goto :goto_1
+
+    :cond_1
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    sget v3, Lcom/jichi/ob/R$color;->text_secondary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v2
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+
+    :goto_1
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v1
+
+    sget v2, Lcom/jichi/ob/R$id;->btnDarkModeDark:I
+
+    invoke-virtual {v1, v2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v1
+
+    check-cast v1, Landroid/widget/TextView;
+
+    const-string v2, "dark"
+
+    invoke-virtual {v0, v2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_2
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v0
+
+    sget v2, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v0, v2}, Landroid/content/Context;->getColor(I)I
+
+    move-result v0
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setTextColor(I)V
+
+    goto :goto_2
+
+    :cond_2
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v0
+
+    sget v2, Lcom/jichi/ob/R$color;->text_secondary:I
+
+    invoke-virtual {v0, v2}, Landroid/content/Context;->getColor(I)I
+
+    move-result v0
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setTextColor(I)V
+
+    :goto_2
+    return-void
 .end method
 
 .method private final applyTaskModeUI(Landroid/view/View;)V
@@ -2988,48 +3152,6 @@
 
     check-cast v0, Lcom/google/android/material/switchmaterial/SwitchMaterial;
 
-    if-eqz v0, :cond_21b
-
-    iget-object v1, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
-
-    if-nez v1, :cond_21a
-
-    invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
-
-    move-object v1, v5
-
-    :cond_21a
-    invoke-virtual {v1}, Lcom/jichi/ob/util/PrefsManager;->isGcj02LocalFolder()Z
-
-    move-result v1
-
-    invoke-virtual {v0, v1}, Lcom/google/android/material/switchmaterial/SwitchMaterial;->setChecked(Z)V
-
-    :cond_21b
-    # 上传iGP时区修正入口点击跳转
-    sget v0, Lcom/jichi/ob/R$id;->btnTimeZoneEntry:I
-
-    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
-
-    move-result-object v0
-
-    if-eqz v0, :cond_tz_entry_done
-
-    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda10;
-
-    invoke-direct {v1}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda10;-><init>()V
-
-    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
-    :cond_tz_entry_done
-    sget v0, Lcom/jichi/ob/R$id;->switchGarminWellness:I
-
-    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
-
-    move-result-object v0
-
-    check-cast v0, Lcom/google/android/material/switchmaterial/SwitchMaterial;
-
     if-eqz v0, :cond_23
 
     iget-object v1, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
@@ -3041,6 +3163,47 @@
     move-object v1, v5
 
     :cond_22
+    invoke-virtual {v1}, Lcom/jichi/ob/util/PrefsManager;->isGcj02LocalFolder()Z
+
+    move-result v1
+
+    invoke-virtual {v0, v1}, Lcom/google/android/material/switchmaterial/SwitchMaterial;->setChecked(Z)V
+
+    :cond_23
+    sget v0, Lcom/jichi/ob/R$id;->btnTimeZoneEntry:I
+
+    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_24
+
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda10;
+
+    invoke-direct {v1}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda10;-><init>()V
+
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    :cond_24
+    sget v0, Lcom/jichi/ob/R$id;->switchGarminWellness:I
+
+    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v0
+
+    check-cast v0, Lcom/google/android/material/switchmaterial/SwitchMaterial;
+
+    if-eqz v0, :cond_26
+
+    iget-object v1, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez v1, :cond_25
+
+    invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object v1, v5
+
+    :cond_25
     invoke-virtual {v1}, Lcom/jichi/ob/util/PrefsManager;->isGarminWellnessSync()Z
 
     move-result v1
@@ -3048,7 +3211,7 @@
     invoke-virtual {v0, v1}, Lcom/google/android/material/switchmaterial/SwitchMaterial;->setChecked(Z)V
 
     .line 535
-    :cond_23
+    :cond_26
     sget v0, Lcom/jichi/ob/R$id;->switchGarminMasquerade:I
 
     invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
@@ -3059,62 +3222,9 @@
 
     const-string v1, "requireContext(...)"
 
-    if-eqz v0, :cond_26
-
-    .line 536
-    iget-object v6, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
-
-    if-nez v6, :cond_24
-
-    invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
-
-    move-object v6, v5
-
-    :cond_24
-    invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->isGarminMasquerade()Z
-
-    move-result v6
-
-    if-eqz v6, :cond_25
-
-    new-instance v6, Lcom/jichi/ob/util/TrialLicense;
-
-    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
-
-    move-result-object v7
-
-    invoke-static {v7, v1}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullExpressionValue(Ljava/lang/Object;Ljava/lang/String;)V
-
-    invoke-direct {v6, v7}, Lcom/jichi/ob/util/TrialLicense;-><init>(Landroid/content/Context;)V
-
-    invoke-virtual {v6}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
-
-    move-result v6
-
-    if-eqz v6, :cond_25
-
-    move v6, v3
-
-    goto :goto_b
-
-    :cond_25
-    move v6, v2
-
-    .line 535
-    :goto_b
-    invoke-virtual {v0, v6}, Lcom/google/android/material/switchmaterial/SwitchMaterial;->setChecked(Z)V
-
-    .line 537
-    :cond_26
-    sget v0, Lcom/jichi/ob/R$id;->layoutMasqueradeDevice:I
-
-    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
-
-    move-result-object v0
-
     if-eqz v0, :cond_29
 
-    .line 538
+    .line 536
     iget-object v6, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
     if-nez v6, :cond_27
@@ -3142,15 +3252,68 @@
 
     invoke-virtual {v6}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
 
+    move-result v6
+
+    if-eqz v6, :cond_28
+
+    move v6, v3
+
+    goto :goto_b
+
+    :cond_28
+    move v6, v2
+
+    .line 535
+    :goto_b
+    invoke-virtual {v0, v6}, Lcom/google/android/material/switchmaterial/SwitchMaterial;->setChecked(Z)V
+
+    .line 537
+    :cond_29
+    sget v0, Lcom/jichi/ob/R$id;->layoutMasqueradeDevice:I
+
+    invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_2c
+
+    .line 538
+    iget-object v6, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez v6, :cond_2a
+
+    invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object v6, v5
+
+    :cond_2a
+    invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->isGarminMasquerade()Z
+
+    move-result v6
+
+    if-eqz v6, :cond_2b
+
+    new-instance v6, Lcom/jichi/ob/util/TrialLicense;
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v7
+
+    invoke-static {v7, v1}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullExpressionValue(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-direct {v6, v7}, Lcom/jichi/ob/util/TrialLicense;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v6}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
+
     move-result v1
 
-    if-eqz v1, :cond_28
+    if-eqz v1, :cond_2b
 
     move v1, v2
 
     goto :goto_c
 
-    :cond_28
+    :cond_2b
     const/16 v1, 0x8
 
     .line 537
@@ -3158,7 +3321,7 @@
     invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
 
     .line 541
-    :cond_29
+    :cond_2c
     sget v0, Lcom/jichi/ob/R$id;->sliderCount:I
 
     invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
@@ -3197,13 +3360,13 @@
     .line 545
     iget-object v8, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v8, :cond_2a
+    if-nez v8, :cond_2d
 
     invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v8, v5
 
-    :cond_2a
+    :cond_2d
     invoke-virtual {v8}, Lcom/jichi/ob/util/PrefsManager;->getSyncCount()I
 
     move-result v8
@@ -3236,13 +3399,13 @@
     .line 547
     iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v0, :cond_2b
+    if-nez v0, :cond_2e
 
     invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v0, v5
 
-    :cond_2b
+    :cond_2e
     invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->getSkipCount()I
 
     move-result v0
@@ -3281,17 +3444,17 @@
 
     check-cast v0, Lcom/google/android/material/switchmaterial/SwitchMaterial;
 
-    if-eqz v0, :cond_2d
+    if-eqz v0, :cond_30
 
     iget-object v1, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v1, :cond_2c
+    if-nez v1, :cond_2f
 
     invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v5
 
-    :cond_2c
+    :cond_2f
     invoke-virtual {v1}, Lcom/jichi/ob/util/PrefsManager;->isForceRetransmit()Z
 
     move-result v1
@@ -3299,7 +3462,7 @@
     invoke-virtual {v0, v1}, Lcom/google/android/material/switchmaterial/SwitchMaterial;->setChecked(Z)V
 
     .line 550
-    :cond_2d
+    :cond_30
     sget v0, Lcom/jichi/ob/R$id;->tvSaveDir:I
 
     invoke-virtual {p1, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
@@ -3348,13 +3511,13 @@
 
     iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v0, :cond_2e
+    if-nez v0, :cond_31
 
     invoke-static {v4}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     goto :goto_e
 
-    :cond_2e
+    :cond_31
     move-object v5, v0
 
     :goto_e
@@ -3994,6 +4157,87 @@
     return-object p0
 .end method
 
+.method private static final selectDarkMode$impl(Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
+    .locals 5
+
+    invoke-virtual {p1}, Landroid/view/View;->getId()I
+
+    move-result v0
+
+    sget v1, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
+
+    if-ne v0, v1, :cond_0
+
+    const-string/jumbo v0, "system"
+
+    goto :goto_0
+
+    :cond_0
+    invoke-virtual {p1}, Landroid/view/View;->getId()I
+
+    move-result v0
+
+    sget v1, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
+
+    if-ne v0, v1, :cond_1
+
+    const-string v0, "light"
+
+    goto :goto_0
+
+    :cond_1
+    const-string v0, "dark"
+
+    :goto_0
+    iget-object v1, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    invoke-virtual {v1, v0}, Lcom/jichi/ob/util/PrefsManager;->setDarkMode(Ljava/lang/String;)V
+
+    const-string/jumbo v1, "system"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_2
+
+    const/4 v2, 0x0
+
+    goto :goto_1
+
+    :cond_2
+    const-string v1, "light"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v1
+
+    if-eqz v1, :cond_3
+
+    const/4 v2, 0x1
+
+    goto :goto_1
+
+    :cond_3
+    const/4 v2, 0x2
+
+    :goto_1
+    invoke-static {v2}, Landroidx/appcompat/app/AppCompatDelegate;->setDefaultNightMode(I)V
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->getActivity()Landroidx/fragment/app/FragmentActivity;
+
+    move-result-object v3
+
+    if-eqz v3, :cond_4
+
+    invoke-virtual {v3}, Landroid/app/Activity;->recreate()V
+
+    :cond_4
+    invoke-static {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
+    return-void
+.end method
+
 .method private final setButtonSelected(Lcom/jichi/ob/ui/PlatformButton;ZLjava/lang/String;)V
     .locals 0
 
@@ -4141,6 +4385,20 @@
     invoke-direct {p0, p1}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyTaskModeUI(Landroid/view/View;)V
 
     return-void
+.end method
+
+.method private final settingsColor(I)I
+    .locals 1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v0
+
+    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+
+    move-result v0
+
+    return v0
 .end method
 
 .method private final setupSourceButtons()V
@@ -4687,7 +4945,7 @@
     .line 412
     invoke-virtual {v5, v3}, Lcom/jichi/ob/ui/PlatformButton;->setEmphasize(Z)V
 
-    const/high16 v7, 0x41300000    # 11.0f
+    const/high16 v7, 0x41200000    # 10.0f
 
     .line 413
     invoke-virtual {v5, v7}, Lcom/jichi/ob/ui/PlatformButton;->setTextSizeDp(F)V
@@ -5542,7 +5800,7 @@
     return-void
 .end method
 
-.method private static final showTrialDialogForFeature$lambda$36(Landroid/view/View;Lcom/jichi/ob/ui/SyncSettingsFragment;Lcom/jichi/ob/util/TrialLicense;Landroid/app/Dialog;Lkotlin/jvm/functions/Function0;Landroid/view/View;)V
+.method public static final showTrialDialogForFeature$lambda$36(Landroid/view/View;Lcom/jichi/ob/ui/SyncSettingsFragment;Lcom/jichi/ob/util/TrialLicense;Landroid/app/Dialog;Lkotlin/jvm/functions/Function0;Landroid/view/View;)V
     .locals 1
 
     .line 764
@@ -6644,12 +6902,20 @@
     .line 586
     invoke-virtual {v6, v11}, Lcom/jichi/ob/ui/PlatformButton;->setMaxLines(I)V
 
-    const v3, -0x171718
+    sget v3, Lcom/jichi/ob/R$color;->platform_card_disabled:I
+
+    invoke-direct {v0, v3}, Lcom/jichi/ob/ui/SyncSettingsFragment;->settingsColor(I)I
+
+    move-result v3
 
     .line 587
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/PlatformButton;->setBackgroundColor(I)V
 
-    const v3, -0x4f4f50
+    sget v3, Lcom/jichi/ob/R$color;->platform_text_disabled:I
+
+    invoke-direct {v0, v3}, Lcom/jichi/ob/ui/SyncSettingsFragment;->settingsColor(I)I
+
+    move-result v3
 
     .line 588
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/PlatformButton;->setTextColor(I)V
@@ -7654,6 +7920,63 @@
     invoke-virtual {p2, v0}, Lcom/google/android/material/slider/Slider;->addOnChangeListener(Lcom/google/android/material/slider/BaseOnChangeListener;)V
 
     :cond_19
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireView()Landroid/view/View;
+
+    move-result-object v2
+
+    sget v0, Lcom/jichi/ob/R$id;->btnDarkModeSystem:I
+
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_1a
+
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
+
+    invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
+    check-cast v1, Landroid/view/View$OnClickListener;
+
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    :cond_1a
+    sget v0, Lcom/jichi/ob/R$id;->btnDarkModeLight:I
+
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_1b
+
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
+
+    invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
+    check-cast v1, Landroid/view/View$OnClickListener;
+
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    :cond_1b
+    sget v0, Lcom/jichi/ob/R$id;->btnDarkModeDark:I
+
+    invoke-virtual {v2, v0}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_1c
+
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;
+
+    invoke-direct {v1, p0}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda35;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
+    check-cast v1, Landroid/view/View$OnClickListener;
+
+    invoke-virtual {v0, v1}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    :cond_1c
+    invoke-static {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->applyDarkModeSelection(Lcom/jichi/ob/ui/SyncSettingsFragment;)V
+
     return-void
 .end method
 
