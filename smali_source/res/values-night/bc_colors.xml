@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bc_bg">#12161C</color>
+    <color name="bc_card">#1B2129</color>
+    <color name="bc_text_primary">#E7ECF3</color>
+    <color name="bc_text_secondary">#9AA3AF</color>
+    <color name="bc_accent">#4CAF50</color>
+    <color name="bc_accent_dark">#2E7D32</color>
+    <color name="bc_speed_color">#4DABFF</color>
+    <color name="bc_danger">#EF5350</color>
+    <color name="bc_divider">#2A3040</color>
+    <color name="bc_white">#FFFFFF</color>
+    <color name="bc_cream">#FFF0E2</color>
+    <color name="bc_warning">#F59E0B</color>
+    <color name="bc_orange">#FB8C38</color>
+</resources>

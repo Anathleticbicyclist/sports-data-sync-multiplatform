@@ -1068,7 +1068,7 @@
     sput-object v0, Lcom/jichi/ob/MainActivity;->Companion:Lcom/jichi/ob/MainActivity$Companion;
 
     .line 97
-    const-string/jumbo v0, "v9.2.5"
+    const-string/jumbo v0, "v9.4.0"
 
     sput-object v0, Lcom/jichi/ob/MainActivity;->APP_VERSION:Ljava/lang/String;
 
@@ -2013,12 +2013,22 @@
 
     invoke-virtual {v4, v6}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
 
-    const v6, -0xd47301
+    sget v6, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {p0, v6}, Landroid/content/Context;->getColor(I)I
+
+    move-result v6
 
     .line 693
     invoke-virtual {v4, v6}, Landroid/widget/Button;->setBackgroundColor(I)V
 
     .line 694
+    sget p3, Lcom/jichi/ob/R$color;->btn_text_on_primary:I
+
+    invoke-virtual {p0, p3}, Landroid/content/Context;->getColor(I)I
+
+    move-result p3
+
     invoke-virtual {v4, p3}, Landroid/widget/Button;->setTextColor(I)V
 
     .line 696
@@ -2164,7 +2174,7 @@
     return-void
 .end method
 
-.method private final checkTrialFeature()Z
+.method public final checkTrialFeature()Z
     .locals 4
 
     .line 3461
@@ -9730,6 +9740,98 @@
     const-string/jumbo v0, "suunto"
 
     invoke-virtual {p0, v0, p1}, Lcom/jichi/ob/MainActivity;->openLogin$app_devRelease(Ljava/lang/String;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method public static final logWellnessDiagnostic(Lcom/jichi/ob/model/SyncTask;Lcom/jichi/ob/MainActivity;)V
+    .locals 7
+    .param p0, "task"    # Lcom/jichi/ob/model/SyncTask;
+    .param p1, "activity"    # Lcom/jichi/ob/MainActivity;
+
+    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getWellness()Z
+
+    move-result v1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getWellnessDays()I
+
+    move-result v4
+
+    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getId()Ljava/lang/String;
+
+    move-result-object v5
+
+    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getTaskActive$p(Lcom/jichi/ob/MainActivity;)Z
+
+    move-result v2
+
+    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getPrefs$p(Lcom/jichi/ob/MainActivity;)Lcom/jichi/ob/util/PrefsManager;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->isGarminWellnessSync()Z
+
+    move-result v3
+
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string/jumbo v6, "\ud83d\udd0d [\u5065\u5eb7\u8bca\u65ad] task="
+
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v6, " wellness="
+
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v6, " days="
+
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v6, " taskActive="
+
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    const-string v6, " globalSync="
+
+    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-direct {p1, v0}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
 
     return-void
 .end method
@@ -26387,6 +26489,49 @@
     invoke-static {v10}, Ljava/lang/Thread;->setDefaultUncaughtExceptionHandler(Ljava/lang/Thread$UncaughtExceptionHandler;)V
 
     .line 333
+    new-instance v14, Lcom/jichi/ob/util/PrefsManager;
+
+    move-object v15, v1
+
+    check-cast v15, Landroid/content/Context;
+
+    invoke-direct {v14, v15}, Lcom/jichi/ob/util/PrefsManager;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v14}, Lcom/jichi/ob/util/PrefsManager;->getDarkMode()Ljava/lang/String;
+
+    move-result-object v14
+
+    const-string v15, "light"
+
+    invoke-virtual {v14, v15}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v15
+
+    if-eqz v15, :cond_1
+
+    const/4 v14, 0x1
+
+    goto :goto_1
+
+    :cond_1
+    const-string v15, "dark"
+
+    invoke-virtual {v14, v15}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v15
+
+    if-eqz v15, :cond_2
+
+    const/4 v14, 0x2
+
+    goto :goto_1
+
+    :cond_2
+    const/4 v14, 0x0
+
+    :goto_1
+    invoke-static {v14}, Landroidx/appcompat/app/AppCompatDelegate;->setDefaultNightMode(I)V
+
     invoke-super/range {p0 .. p1}, Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V
 
     .line 335
@@ -26417,12 +26562,12 @@
 
     move-result-object v8
 
-    if-eqz v8, :cond_1
+    if-eqz v8, :cond_3
 
     invoke-virtual {v8}, Landroidx/appcompat/app/ActionBar;->hide()V
 
     .line 345
-    :cond_1
+    :cond_3
     new-instance v8, Lcom/jichi/ob/util/PrefsManager;
 
     move-object v9, v1
@@ -26541,7 +26686,7 @@
     .line 362
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->keepApi:Lcom/jichi/ob/api/KeepApi;
 
-    if-nez v8, :cond_2
+    if-nez v8, :cond_4
 
     const-string v8, "keepApi"
 
@@ -26549,34 +26694,34 @@
 
     move-object v8, v7
 
-    :cond_2
+    :cond_4
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
     :try_end_1
     .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_1
 
     const-string v10, "prefs"
 
-    if-nez v9, :cond_3
+    if-nez v9, :cond_5
 
     :try_start_2
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_3
+    :cond_5
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->getKeepAccount()Ljava/lang/String;
 
     move-result-object v9
 
     iget-object v11, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v11, :cond_4
+    if-nez v11, :cond_6
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v11, v7
 
-    :cond_4
+    :cond_6
     invoke-virtual {v11}, Lcom/jichi/ob/util/PrefsManager;->getKeepPassword()Ljava/lang/String;
 
     move-result-object v11
@@ -26586,7 +26731,7 @@
     .line 363
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->mywhooshApi:Lcom/jichi/ob/api/MyWhooshApi;
 
-    if-nez v8, :cond_5
+    if-nez v8, :cond_7
 
     const-string v8, "mywhooshApi"
 
@@ -26594,29 +26739,29 @@
 
     move-object v8, v7
 
-    :cond_5
+    :cond_7
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_6
+    if-nez v9, :cond_8
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_6
+    :cond_8
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->getMywhooshAccount()Ljava/lang/String;
 
     move-result-object v9
 
     iget-object v11, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v11, :cond_7
+    if-nez v11, :cond_9
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v11, v7
 
-    :cond_7
+    :cond_9
     invoke-virtual {v11}, Lcom/jichi/ob/util/PrefsManager;->getMywhooshPassword()Ljava/lang/String;
 
     move-result-object v11
@@ -26626,7 +26771,7 @@
     .line 364
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->zwiftApi:Lcom/jichi/ob/api/ZwiftApi;
 
-    if-nez v8, :cond_8
+    if-nez v8, :cond_a
 
     const-string/jumbo v8, "zwiftApi"
 
@@ -26634,29 +26779,29 @@
 
     move-object v8, v7
 
-    :cond_8
+    :cond_a
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_9
+    if-nez v9, :cond_b
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_9
+    :cond_b
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->getZwiftAccount()Ljava/lang/String;
 
     move-result-object v9
 
     iget-object v11, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v11, :cond_a
+    if-nez v11, :cond_c
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v11, v7
 
-    :cond_a
+    :cond_c
     invoke-virtual {v11}, Lcom/jichi/ob/util/PrefsManager;->getZwiftPassword()Ljava/lang/String;
 
     move-result-object v11
@@ -26666,7 +26811,7 @@
     .line 365
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->codoonApi:Lcom/jichi/ob/api/CodoonApi;
 
-    if-nez v8, :cond_b
+    if-nez v8, :cond_d
 
     const-string v8, "codoonApi"
 
@@ -26674,29 +26819,29 @@
 
     move-object v8, v7
 
-    :cond_b
+    :cond_d
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_c
+    if-nez v9, :cond_e
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_c
+    :cond_e
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->getCodoonAccount()Ljava/lang/String;
 
     move-result-object v9
 
     iget-object v11, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v11, :cond_d
+    if-nez v11, :cond_f
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v11, v7
 
-    :cond_d
+    :cond_f
     invoke-virtual {v11}, Lcom/jichi/ob/util/PrefsManager;->getCodoonPassword()Ljava/lang/String;
 
     move-result-object v11
@@ -26706,7 +26851,7 @@
     .line 366
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->zeppApi:Lcom/jichi/ob/api/ZeppApi;
 
-    if-nez v8, :cond_e
+    if-nez v8, :cond_10
 
     const-string/jumbo v8, "zeppApi"
 
@@ -26714,29 +26859,29 @@
 
     move-object v8, v7
 
-    :cond_e
+    :cond_10
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_f
+    if-nez v9, :cond_11
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_f
+    :cond_11
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->getZeppAccount()Ljava/lang/String;
 
     move-result-object v9
 
     iget-object v11, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v11, :cond_10
+    if-nez v11, :cond_12
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v11, v7
 
-    :cond_10
+    :cond_12
     invoke-virtual {v11}, Lcom/jichi/ob/util/PrefsManager;->getZeppPassword()Ljava/lang/String;
 
     move-result-object v11
@@ -26746,7 +26891,7 @@
     .line 367
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->komootApi:Lcom/jichi/ob/api/KomootApi;
 
-    if-nez v8, :cond_11
+    if-nez v8, :cond_13
 
     const-string v8, "komootApi"
 
@@ -26754,29 +26899,29 @@
 
     move-object v8, v7
 
-    :cond_11
+    :cond_13
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_12
+    if-nez v9, :cond_14
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_12
+    :cond_14
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->getKomootAccount()Ljava/lang/String;
 
     move-result-object v9
 
     iget-object v11, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v11, :cond_13
+    if-nez v11, :cond_15
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v11, v7
 
-    :cond_13
+    :cond_15
     invoke-virtual {v11}, Lcom/jichi/ob/util/PrefsManager;->getKomootPassword()Ljava/lang/String;
 
     move-result-object v11
@@ -26795,13 +26940,13 @@
 
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_14
+    if-nez v9, :cond_16
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_14
+    :cond_16
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->isCodoonGcjConvertEnabled()Z
 
     move-result v9
@@ -26813,13 +26958,13 @@
 
     iget-object v9, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v9, :cond_15
+    if-nez v9, :cond_17
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v9, v7
 
-    :cond_15
+    :cond_17
     invoke-virtual {v9}, Lcom/jichi/ob/util/PrefsManager;->isZeppGcjConvertEnabled()Z
 
     move-result v9
@@ -26852,7 +26997,7 @@
     .line 375
     iget-object v8, v1, Lcom/jichi/ob/MainActivity;->garminApi:Lcom/jichi/ob/api/GarminApi;
 
-    if-nez v8, :cond_16
+    if-nez v8, :cond_18
 
     const-string v8, "garminApi"
 
@@ -26860,7 +27005,7 @@
 
     move-object v8, v7
 
-    :cond_16
+    :cond_18
     move-object v11, v1
 
     check-cast v11, Landroid/content/Context;
@@ -26925,7 +27070,7 @@
 
     move-result v11
 
-    if-nez v11, :cond_17
+    if-nez v11, :cond_19
 
     invoke-virtual {v8}, Lcom/jichi/ob/MainActivity$Companion;->getSAVE_DIR()Ljava/io/File;
 
@@ -26933,20 +27078,20 @@
 
     invoke-virtual {v11}, Ljava/io/File;->mkdirs()Z
 
-    :cond_17
-    if-nez p1, :cond_18
+    :cond_19
+    if-nez p1, :cond_1a
 
     .line 383
     invoke-direct {v1}, Lcom/jichi/ob/MainActivity;->initFragments()V
 
-    goto :goto_1
+    goto :goto_2
 
     .line 385
-    :cond_18
+    :cond_1a
     invoke-direct {v1}, Lcom/jichi/ob/MainActivity;->restoreFragments()V
 
     .line 387
-    :goto_1
+    :goto_2
     invoke-direct {v1}, Lcom/jichi/ob/MainActivity;->initFixWebView()V
 
     .line 388
@@ -27041,13 +27186,13 @@
     .line 393
     iget-object v3, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v3, :cond_19
+    if-nez v3, :cond_1b
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v3, v7
 
-    :cond_19
+    :cond_1b
     invoke-virtual {v3}, Lcom/jichi/ob/util/PrefsManager;->getSyncedCount()I
 
     move-result v3
@@ -27078,22 +27223,22 @@
     .line 398
     iget-object v2, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v2, :cond_1a
+    if-nez v2, :cond_1c
 
     invoke-static {v10}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v2, v7
 
-    :cond_1a
+    :cond_1c
     invoke-virtual {v2}, Lcom/jichi/ob/util/PrefsManager;->isAutoCheckLogin()Z
 
     move-result v2
 
-    if-eqz v2, :cond_1b
+    if-eqz v2, :cond_1d
 
     iget-boolean v2, v1, Lcom/jichi/ob/MainActivity;->autoCheckDone:Z
 
-    if-nez v2, :cond_1b
+    if-nez v2, :cond_1d
 
     .line 399
     move-object v2, v1
@@ -27133,7 +27278,7 @@
     invoke-static/range {v10 .. v15}, Lkotlinx/coroutines/BuildersKt;->launch$default(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 
     .line 410
-    :cond_1b
+    :cond_1d
     sget-object v2, Lcom/jichi/ob/util/UpdateChecker;->INSTANCE:Lcom/jichi/ob/util/UpdateChecker;
 
     move-object v3, v1
@@ -27151,7 +27296,7 @@
     :try_end_2
     .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_1
 
-    if-eqz v2, :cond_1c
+    if-eqz v2, :cond_1e
 
     .line 414
     :try_start_3
@@ -27179,7 +27324,7 @@
     :try_end_3
     .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_2
 
-    goto :goto_2
+    goto :goto_3
 
     :catch_1
     move-exception v0
@@ -27194,8 +27339,8 @@
     invoke-static {v3, v2, v0}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
 
     :catch_2
-    :cond_1c
-    :goto_2
+    :cond_1e
+    :goto_3
     return-void
 .end method
 
@@ -27672,7 +27817,7 @@
     iput-object v0, p0, Lcom/jichi/ob/MainActivity;->pendingOpenAfterTrial:Lkotlin/jvm/functions/Function0;
 
     .line 3619
-    invoke-direct {p0}, Lcom/jichi/ob/MainActivity;->checkTrialFeature()Z
+    invoke-virtual {p0}, Lcom/jichi/ob/MainActivity;->checkTrialFeature()Z
 
     move-result v0
 
@@ -28068,12 +28213,22 @@
 
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
 
-    const v10, -0xd47301
+    sget v10, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {p0, v10}, Landroid/content/Context;->getColor(I)I
+
+    move-result v10
 
     .line 775
     invoke-virtual {v9, v10}, Landroid/widget/Button;->setBackgroundColor(I)V
 
     .line 776
+    sget v6, Lcom/jichi/ob/R$color;->btn_text_on_primary:I
+
+    invoke-virtual {p0, v6}, Landroid/content/Context;->getColor(I)I
+
+    move-result v6
+
     invoke-virtual {v9, v6}, Landroid/widget/Button;->setTextColor(I)V
 
     .line 778
@@ -28949,7 +29104,7 @@
     iput-object v0, p0, Lcom/jichi/ob/MainActivity;->pendingOpenAfterTrial:Lkotlin/jvm/functions/Function0;
 
     .line 3673
-    invoke-direct {p0}, Lcom/jichi/ob/MainActivity;->checkTrialFeature()Z
+    invoke-virtual {p0}, Lcom/jichi/ob/MainActivity;->checkTrialFeature()Z
 
     move-result v0
 
@@ -30911,7 +31066,7 @@
     iput-object v0, v2, Lcom/jichi/ob/MainActivity;->pendingOpenAfterTrial:Lkotlin/jvm/functions/Function0;
 
     .line 2422
-    invoke-direct {v2}, Lcom/jichi/ob/MainActivity;->checkTrialFeature()Z
+    invoke-virtual {v2}, Lcom/jichi/ob/MainActivity;->checkTrialFeature()Z
 
     move-result v0
 
@@ -33588,75 +33743,6 @@
     const/4 v5, 0x0
 
     invoke-static/range {v3 .. v8}, Lkotlinx/coroutines/BuildersKt;->launch$default(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
-
-    return-void
-.end method
-
-.method public static final logWellnessDiagnostic(Lcom/jichi/ob/model/SyncTask; Lcom/jichi/ob/MainActivity;)V
-    .locals 7
-    .param p0, "task"    # Lcom/jichi/ob/model/SyncTask;
-    .param p1, "activity"    # Lcom/jichi/ob/MainActivity;
-
-    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getWellness()Z
-    move-result v1
-
-    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getWellnessDays()I
-    move-result v4
-
-    invoke-virtual {p0}, Lcom/jichi/ob/model/SyncTask;->getId()Ljava/lang/String;
-    move-result-object v5
-
-    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getTaskActive$p(Lcom/jichi/ob/MainActivity;)Z
-    move-result v2
-
-    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getPrefs$p(Lcom/jichi/ob/MainActivity;)Lcom/jichi/ob/util/PrefsManager;
-    move-result-object v0
-
-    invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->isGarminWellnessSync()Z
-    move-result v3
-
-    new-instance v0, Ljava/lang/StringBuilder;
-    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v6, "\ud83d\udd0d [\u5065\u5eb7\u8bca\u65ad] task="
-    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    invoke-virtual {v0, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    const-string v6, " wellness="
-    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    const-string v6, " days="
-    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    const-string v6, " taskActive="
-    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    const-string v6, " globalSync="
-    invoke-virtual {v0, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
-    move-result-object v0
-
-    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v0
-
-    invoke-direct {p1, v0}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
 
     return-void
 .end method

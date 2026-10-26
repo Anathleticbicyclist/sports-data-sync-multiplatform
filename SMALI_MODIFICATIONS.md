@@ -91,3 +91,26 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 ### 根因说明
 - iGP国际版上传假成功：原代码4处URL全部硬编码国内版端点，国际版token调用国内版端点返回HTTP 200但数据静默丢弃（不进国际版账户）
 - 检测更新失效：UpdateChecker硬编码当前版本号，升版本后未同步修改
+
+## v9.4.0 临时码表全量并入（2026-10-26）
+
+### 修改清单
+- **`com/jichi/ob/MainActivity.smali`**：`checkTrialFeature` 由 private 改 public（`invoke-direct`→`invoke-virtual` 3 处），供码表/热力图入口门禁调用
+- **新增 `com/jichi/bikecomputer/BikeComputerEntryClick.smali`**（码表入口门禁）：点击「临时码表」卡片 → checkTrialFeature 校验体验码 → false 弹体验弹窗返回，true 启动 com.jichi.bikecomputer.MainActivity
+- **新增 `com/jichi/ob/heatmap/HeatmapEntryClick.smali`**（热力图入口门禁）：同上逻辑校验体验码后进入热力图
+- **`res/layout/fragment_about.xml`**：热力图与实验室卡片之间新增 cardBikeComputer「临时码表」入口（背景 about_card_green）
+- **新增 `res/layout/dialog_trial.xml`**：体验码弹窗 5 个独立功能行（新建任务/轨迹合并·贴纸/临时码表/热力图/体验码到期后）
+- **新增 `res/values/bc_colors.xml` + `res/values-night/bc_colors.xml`**：码表 13 色（bc_accent/bc_bg/bc_danger/bc_white 等）深浅双版
+- **`res/values-night/colors.xml`**：补 `about_card_green=#1E2F25`（深色下入口卡片深绿，文字可读）
+
+### 码表并入方式
+- 码表 5 个 Activity（Main/Bike/Sensor/Display/History）+ BikeService + 数据层（GpsTracker/BaroAltimeter/BleSensors/TrackStore）+ 导出（FIT/GPX）编译为独立 `classes4.dex` 追加进 APK（多 dex，桩类运行时解析到 OB 真实类）
+- 码表 5 Activity 挂 `NightContext`（读 OB PrefsManager.getDarkMode 三态，createConfigurationContext 强制 uimode），深色模式跟随 OB
+- 码表布局/资源全部 `bc_` 前缀并入 OB 资源树；R 映射 **bc_ 前缀优先**（修复 btnStop 与 OB 同名 id 冲突导致的记录页空指针闪退）
+- 记录结束一键上传：已登录平台过滤 + 本地文件夹恒显（17 平台）
+- 版本号三处对齐：build.gradle defaultConfig+dev flavor versionCode/versionName=94000/9.4.0 + 关于页 v9.4.0
+- 独立码表 App（com.jichi.bikecomputer）停止维护
+
+### 体验码门禁
+- 新增功能（临时码表/热力图）点击需体验码：未通过 → 弹体验弹窗（5 功能行：新建任务/轨迹合并·贴纸/临时码表/热力图/体验码到期后），暂不使用可关闭
+- 身体传感器（BODY_SENSORS）未授权不阻塞进入：Dialog「去系统设置/继续」，仅心率/步频不可用

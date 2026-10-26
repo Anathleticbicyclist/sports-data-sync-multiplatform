@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.2.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.4.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -22,12 +22,12 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.2.5 |
+| 当前版本 | v9.4.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.2.5 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.2.5/jichi-ob-dev-9.2.5.apk) |
+| 体验版下载 | [v9.4.0 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.4.0/jichi-ob-dev-9.4.0.apk) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
 > 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
@@ -315,6 +315,7 @@ A: 这是高驰分页逻辑的 bug——活动列表接口每页最多返回200�
 
 ### 核心功能
 
+- **临时码表（v9.4.0 新增）**：首页「热力图」与「实验室」之间入口，支持骑行/跑步/徒步三种运动类型记录；GPS 定位 + 心率/功率/踏频/速度计/步频（身体传感器）蓝牙多设备连接；码表大屏显示可自定义（速度/功率/心率/踏频/海拔/坡度/气压/时间/距离/爬升等）；历史记录本地留存，支持 FIT/GPX 导出，记录结束一键上传已登录平台
 - **数据来源记忆**：自动记住上次选择，重启恢复
 - **文件本地存储**：下载文件保存到 `Download/鸡翅幸哲迈进OB/`
 - **迈金坐标转换**：GCJ-02→WGS84自动纠偏（青岛实测偏移约450米），保证上传其他平台后坐标无偏移、可匹配赛段
@@ -415,103 +416,12 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ## 📋 更新日志
 
-### v9.2.5 (2026-10-21)
-- 修复Keep→iGPSPORT国内版/国际版同步闪退（VerifyError：v9.2.4增加isIntl参数后调用点寄存器类型不匹配，改用invoke-static/range {v17..v22}与其他6参数平台一致）
-- 修复无体验码点击"佳明设备伪装"开关闪退（NoSuchMethodError：反编译后lambda10被时区设置和体验码确认按钮复用，新建lambda27给体验码确认按钮用）
-- 修复启动日志版本号一直显示v9.2.3的遗漏（MainActivity.APP_VERSION和BuildConfig两处硬编码未随版本更新）
+### v9.4.0 (2026-10-26)
+- 新增临时码表：骑行/跑步/徒步记录，GPS+传感器（心率/功率/踏频/速度/步频）+显示自定义+历史+FIT/GPX导出，结束一键上传已登录平台
 
+因缓存机制导致无法获取最新数据，迈金用户建议卸载本软件重新安装
 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
 
-### v9.2.4 (2026-10-21)
-- 修复iGPSPORT国际版上传假成功：4处URL硬编码国内版端点改为按isIntl分支选择国际版端点（prod.en.igpsport.com / app.igpsport.com），此前国际版上传全部返回HTTP200但数据未进国际版账户
-- 修复检测更新显示当前版本9.2.2失效：UpdateChecker 3处硬编码版本号改为9.2.4
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.2.3 (2026-10-18)
-- 修复佳明健康数据同步闪退
-- 恢复globalSync开关控制健康同步
-- 新增wellnessDays健康同步天数字段
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.2.2 (2026-10-17)
-- 新增「上传iGP时区修正」功能：设置页→按平台单独设置上传iGPSPORT时的时区调整（11个下载来源平台，每个平台分当天/历史两组，每组+8小时/-8小时/不调整，默认不调整）
-- 将旧版迈金/佳明上传iGP时非当天活动硬编码+8h的逻辑整合到设置中，用户可自主控制
-- GPX上传iGP也纳入时区修正设置
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.1.5 (2026-10-15)
-- 修复平台详情弹窗按钮文案错误（非文件夹平台显示重新登录）
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.1.4 (2026-10-15)
-- 修复Keep当天多条运动记录只拉一条的bug（感谢抖音用户叻喔罗反馈）
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.1.3 (2026-10-15)
-- 同步目标新增"本地文件夹"，支持把活动导出到手机文件夹（GPX/FIT）
-- 修复手动同步本地文件夹报"文件数据无效"
-- 本地文件夹拉取上限从100条提升到2000条
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.1.2 (2026-10-14)
-- 新增本地文件夹数据源（扫描文件夹GPX/FIT同步到目标平台）
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-- 修复当天活动上传iGPSPORT时间错误（当天活动不做时间偏移，历史活动才+8小时）
-- 手动同步和自动同步增量均统一处理
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v9.0.1 (2026-10-12)
-- 修复Keep导出运动上传iGPSPORT后类型识别错误（徒步→骑行）
-- 补全Keep徒步活动逐点心率数据
-- 修复所有来源→iGPSPORT时差8小时问题
-
-若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
-
-### v8.9.1 (2026-10-11)
-- 新增CyCity骑行平台接入（http://app.cycity.cc），支持双向同步：手机号密码登录、活动列表拉取、FIT下载、FIT两步上传
-- 登录页新增CyCity卡片，设置页数据来源/目标可选CyCity
-- 修复首次启动登录页顶部标题栏残留
-
-### v8.8.10 (2026-10-10)
-- 修复首次启动登录页顶部标题栏残留（默认隐藏，切Tab自动恢复）
-
-### v8.8.9 (2026-10-10)
-- 隐藏启动时顶部ActionBar标题文字
-
-### v8.8.4 (2026-10-10)
-- 修复Zwift拉不到活动：分页偏移bug（第二页起越界返回空）
-- 修复Zwift无S3直链活动被全部跳过：改为走API详情接口下载
-
-### v8.8.3 (2026-10-10)
-- 修复从任意平台弹窗点"查看全部记录"后，记录中心显示登录页、底部导航不恢复的bug
-- 记录卡片UI优化（统一边距/间距/字号）
-- 任务级佳明设备伪装配置（新建任务时可选是否伪装、自定义产品号）
-
-### v8.8.1 (2026-10-09)
-- 新增ICU课表自动推送到iGPSPORT国内/国际和百锐顿（任务中自动同步未来7天训练，自动去重）
-
-### v8.8.0 (2026-10-08)
-- 新增iGPSPORT国际版登录（国内国际互联）
-- 百锐腾从实验室移到登录页，支持DDP协议下载FIT
-
-### v8.7.3 (2026-10-05)
-- 修复高驰上传失败：STS端点已下线，改走训练中心BFF代理（Cookie鉴权）；小文件(<20KB)友好跳过
-
-### v8.7.2 (2026-10-01)
-- 修复Wahoo登录无响应：按钮登录中状态/防重复点击/失败明确弹窗/登录成功自动关闭
-
-### v8.7.1 (2026-09-30)
-- 修复迈金→iGPSPORT地图仍偏移：坐标转换结果未生效的严重bug，双通道开关判定重构
-
-> 更早版本更新日志详见 [GitHub Releases](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases)
 
 
 ## 📌 说明
