@@ -6242,6 +6242,62 @@
         }
     .end annotation
 
+    # === v9.4.1: 第三方FIT传佳明前自动伪装为Garmin设备，修复HTTP 412 ===
+    :try_start_fake
+    sget-object v0, Lcom/jichi/ob/api/FitDeviceFaker;->INSTANCE:Lcom/jichi/ob/api/FitDeviceFaker;
+
+    invoke-virtual {v0, p3}, Lcom/jichi/ob/api/FitDeviceFaker;->isAlreadyGarmin([B)Z
+
+    move-result v1
+
+    if-nez v1, :cond_fake_skip
+
+    sget-object v0, Lcom/jichi/ob/api/FitDeviceFaker;->INSTANCE:Lcom/jichi/ob/api/FitDeviceFaker;
+
+    const/4 v1, 0x1
+
+    const/4 v2, 0x0
+
+    invoke-virtual {v0, p3, v1, v2}, Lcom/jichi/ob/api/FitDeviceFaker;->fake([BZI)[B
+
+    move-result-object p3
+
+    :cond_fake_skip
+    :try_end_fake
+    .catch Ljava/lang/Exception; {:try_start_fake .. :try_end_fake} :catch_fake
+
+    goto :goto_fake_done
+
+    :catch_fake
+    move-exception v0
+
+    const-string v1, "JichiOB"
+
+    new-instance v2, Ljava/lang/StringBuilder;
+
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v3, "v9.4.1 FIT伪装异常,用原文件上传: "
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v0}, Ljava/lang/Exception;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {v2, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
+
+    :goto_fake_done
+    # === end v9.4.1 ===
+
     .line 1533
     invoke-static {}, Lkotlinx/coroutines/Dispatchers;->getIO()Lkotlinx/coroutines/CoroutineDispatcher;
 

@@ -119,3 +119,9 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 - `SyncSettingsFragment.smali`：`showTrialDialogForFeature$lambda$36` 由 **private** static final 改 **public** static final
 - 崩溃：`SyncSettingsFragment$$ExternalSyntheticLambda27.onClick` 跨类 invoke-static 调用 private 方法 → IllegalAccessError（点体验弹窗确认按钮闪退）
 - 全库扫描 3 个 dex 全部 lambda 类对宿主类 private 方法调用：仅此 1 处隐患，其余 0
+
+### round10 修复：第三方FIT传佳明国际 HTTP 412（v9.4.1）
+- 根因：迈金/iGPSPORT/行者等第三方原生 FIT 的 file_id manufacturer 非 Garmin，佳明国际 upload-service 校验拒绝（登录 owner 正常返回但 uploadId 空 → HTTP 412）；`FitDeviceFaker.fake()` 早已实现但全工程无业务调用点（死代码），设置里"伪装为佳明设备"开关只接了 UI 没接上传链路
+- 改动：`GarminApi.smali` 的 `uploadActivity` 入口、fitData 参数处理前，先 `isAlreadyGarmin(fit)` 判断；非 Garmin 则 `fake(fit, true, 0)` 伪装为 Edge 830（manufacturer=1, product=0xc32），再上传；try/catch 兜底，伪装异常打日志「v9.4.1 FIT伪装异常」后用原文件上传，不阻断流程
+- 已是 Garmin 的文件（GPX→FIT 转换器产物）自动跳过不重复处理
+- 版本号对齐：apktool.yml 94001/9.4.1 + BuildConfig.VERSION_NAME + MainActivity.APP_VERSION + UpdateChecker + 关于页 fragment_about.xml（开发体验版v9.4.1/本次更新v9.4.1/更新日志三条简写）
