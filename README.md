@@ -44,6 +44,11 @@
   <img src="screenshots/page4_about.png" width="170" alt="关于页"/>
 </p>
 
+<p align="center">
+  <img src="screenshots/page5_darkmode.png" width="430" alt="深色模式全面适配"/>
+</p>
+<p align="center">v9.2.9 起深色模式全面适配：跟随系统 / 浅色 / 深色三态，登录、设置、同步、关于全页面深色化</p>
+
 | 页面 | 功能 |
 |------|------|
 | 开屏动画 | 1秒浅蓝开屏，软件名"鸡翅幸哲迈进OB · 让运动数据自由流动" |
