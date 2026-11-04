@@ -589,15 +589,9 @@
     .line 1298
     iget-object v2, v1, Lcom/jichi/ob/api/GarminApi$getActivities$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
-    invoke-static {v2}, Lcom/jichi/ob/api/GarminApi;->access$getClient$p(Lcom/jichi/ob/api/GarminApi;)Lokhttp3/OkHttpClient;
+    iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$getActivities$2;->$ds:Lcom/jichi/ob/model/DataSource;
 
-    move-result-object v2
-
-    invoke-virtual {v2, v0}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
-
-    move-result-object v0
-
-    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
+    invoke-virtual {v2, v0, v3}, Lcom/jichi/ob/api/GarminApi;->executeActivitiesWithCsrfRetry(Lokhttp3/Request;Lcom/jichi/ob/model/DataSource;)Lokhttp3/Response;
 
     move-result-object v0
 
@@ -1375,15 +1369,9 @@
     .line 1361
     iget-object v2, v1, Lcom/jichi/ob/api/GarminApi$getActivities$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
-    invoke-static {v2}, Lcom/jichi/ob/api/GarminApi;->access$getClient$p(Lcom/jichi/ob/api/GarminApi;)Lokhttp3/OkHttpClient;
+    iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$getActivities$2;->$ds:Lcom/jichi/ob/model/DataSource;
 
-    move-result-object v2
-
-    invoke-virtual {v2, v0}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
-
-    move-result-object v0
-
-    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
+    invoke-virtual {v2, v0, v3}, Lcom/jichi/ob/api/GarminApi;->executeActivitiesWithCsrfRetry(Lokhttp3/Request;Lcom/jichi/ob/model/DataSource;)Lokhttp3/Response;
 
     move-result-object v0
 
