@@ -21,7 +21,7 @@
 .method public onClick(Landroid/view/View;)V
     .locals 4
 
-    const-string v0, "\u6253\u5f00\u4e34\u65f6\u7801\u8868\u5931\u8d25: "
+    const-string/jumbo v0, "\u6253\u5f00\u4e34\u65f6\u7801\u8868\u5931\u8d25: "
 
     .line 18
     :try_start_0
