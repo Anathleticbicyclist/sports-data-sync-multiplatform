@@ -121,6 +121,13 @@
 .field public static reward_alipay:I = 0x7f070114
 
 .field public static reward_wechat:I = 0x7f070115
+.field public static bc_ic_launcher_fg:I = 0x7f070120
+.field public static bc_bg_stop_button:I = 0x7f07011f
+.field public static bc_bg_sport_selected:I = 0x7f07011e
+.field public static bc_bg_sport_normal:I = 0x7f07011d
+.field public static bc_bg_primary_button:I = 0x7f07011c
+.field public static bc_bg_pause_button:I = 0x7f07011b
+.field public static bc_bg_card:I = 0x7f07011a
 
 
 # direct methods

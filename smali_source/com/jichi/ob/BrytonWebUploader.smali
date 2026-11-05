@@ -957,7 +957,7 @@
 
     invoke-direct {v0}, Lcom/jichi/ob/BrytonWebUploader$$ExternalSyntheticLambda2;-><init>()V
 
-    const-string v1, "(async function(){\n  try{\n    // 1. \u8bb0\u5f55\u4e0a\u4f20\u524d\u6700\u65b0\u8bb0\u5f55id\uff08collection userActivities \u9700\u8ba2\u9605\u5b8c\u6210\uff09\n    try {\n      const c = Meteor.connection._mongo_livedata_collections[\'userActivities\'];\n      if (c){ const all=c.find().fetch(); window.__baseId = all.length?all[0]._id:\'\'; }\n      else window.__baseId = \'\';\n    } catch(e){ window.__baseId = \'\'; }\n    window.__bbUpload = \'pending\';\n    // 2. \u70b9\u53f3\u4e0a\u89d2 + \u56fe\u6807\n    setTimeout(function(){\n      var imgs = document.querySelectorAll(\'img\');\n      var add = null;\n      for (var i=0;i<imgs.length;i++){\n        if ((imgs[i].src||\'\').indexOf(\'0_add\')>=0){ add=imgs[i]; break; }\n      }\n      if (!add){ window.__bbUpload=\'fail:\u672a\u627e\u5230+\u6309\u94ae\'; return; }\n      add.click();\n      // 3. \u7b49\u5f39\u7a97\u6e32\u67d3\u540e\u70b9\u51fb\u6587\u4ef6input\n      setTimeout(function(){\n        var input = document.querySelector(\'#fileInput\') || document.querySelector(\'input[type=file]\');\n        if (input){ input.click(); }\n        else { window.__bbUpload=\'fail:\u672a\u627e\u5230\u6587\u4ef6\u9009\u62e9\u6846\'; }\n      }, 1500);\n    }, 1200);\n  }catch(e){ window.__bbUpload=\'error:\'+String(e); }\n})();"
+    const-string v1, "(async function(){\n  try{\n    // 1. \u8bb0\u5f55\u4e0a\u4f20\u524d\u6700\u65b0\u8bb0\u5f55id\uff08collection userActivities \u9700\u8ba2\u9605\u5b8c\u6210\uff09\n    try {\n      const c = Meteor.connection._mongo_livedata_collections[\'userActivities\'];\n      if (c){ const all=c.find().fetch(); window.__baseId = all.length?all[0]._id:\'\'; }\n      else window.__baseId = \'\';\n    } catch(e){ window.__baseId = \'\'; }\n    window.__bbUpload = \'pending\';\n    // 2. \u70b9\u53f3\u4e0a\u89d2 + \u56fe\u6807\n    setTimeout(function(){\n      var imgs = document.querySelectorAll(\'img\');\n      var add = null;\n      for (var i=0;i<imgs.length;i++){\n        if ((imgs[i].src||\'\').indexOf(\'0_add\')>=0){ add=imgs[i]; break; }\n      }\n      if (!add){ window.__bbUpload=\'fail:\u672a\u627e\u5230+\u6309\u94ae\'; return; }\n      add.click();\n      // 3. \u7b49\u5f39\u7a97\u6e32\u67d3\u540e\u70b9\u51fb\u6587\u4ef6input\n      setTimeout(function(){\n        var input = document.querySelector(\'#fileInput\') || document.querySelector(\'input[type=file]\');\n        if (input){ input.click(); }\n        else { window.__bbUpload=\'fail:\u672a\u627e\u5230\u6587\u4ef6\u9009\u62e9\u6846\'; }\n      }, 1500);\n    }, 8000);\n  }catch(e){ window.__bbUpload=\'error:\'+String(e); }\n})();"
 
     invoke-virtual {p1, v1, v0}, Landroid/webkit/WebView;->evaluateJavascript(Ljava/lang/String;Landroid/webkit/ValueCallback;)V
 
@@ -1118,7 +1118,9 @@
 
     if-eqz p1, :cond_2
 
-    const-string p2, "https://active.brytonsport.com/activities"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->activitiesUrl()Ljava/lang/String;
+
+    move-result-object p2
 
     invoke-virtual {p1, p2}, Landroid/webkit/WebView;->loadUrl(Ljava/lang/String;)V
 

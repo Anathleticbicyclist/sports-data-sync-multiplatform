@@ -1834,6 +1834,20 @@
     return-object v0
 .end method
 
+.method private final loginColor(I)I
+    .locals 1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/LoginFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v0
+
+    invoke-virtual {v0, p1}, Landroid/content/Context;->getColor(I)I
+
+    move-result v0
+
+    return v0
+.end method
+
 .method private final logout(Lcom/jichi/ob/model/DataSource;)V
     .locals 4
 
@@ -2165,15 +2179,15 @@
     if-eqz v5, :cond_1
 
     .line 227
-    const-string v8, "#F5C2C4"
+    sget v8, Lcom/jichi/ob/R$color;->login_card_error_stroke:I
 
     goto :goto_1
 
     :cond_1
-    const-string v8, "#E3EEFA"
+    sget v8, Lcom/jichi/ob/R$color;->stroke_blue:I
 
     :goto_1
-    invoke-static {v8}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
+    invoke-direct {v0, v8}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
 
     move-result v8
 
@@ -2184,16 +2198,20 @@
     if-eqz v5, :cond_2
 
     .line 228
-    const-string v9, "#FFF8F8"
+    sget v9, Lcom/jichi/ob/R$color;->login_card_error_bg:I
 
-    invoke-static {v9}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
+    invoke-direct {v0, v9}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
 
     move-result v9
 
     goto :goto_2
 
     :cond_2
-    move v9, v8
+    sget v9, Lcom/jichi/ob/R$color;->card_white:I
+
+    invoke-direct {v0, v9}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
+
+    move-result v9
 
     :goto_2
     invoke-virtual {v6, v9}, Lcom/google/android/material/card/MaterialCardView;->setCardBackgroundColor(I)V
@@ -2301,11 +2319,16 @@
 
     move-result-object v13
 
+    # v9.5.4: 百锐腾卡片标题追加当前站点
+    invoke-static {v1, v13}, Lcom/jichi/ob/util/BrytonSite;->decorateTitle(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v13
+
     check-cast v13, Ljava/lang/CharSequence;
 
     invoke-virtual {v12, v13}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    const/high16 v13, 0x41400000    # 12.0f
+    const/high16 v13, 0x41280000    # 10.5f
 
     .line 244
     invoke-virtual {v12, v13}, Landroid/widget/TextView;->setTextSize(F)V
@@ -2407,9 +2430,9 @@
     invoke-virtual {v3, v8}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
 
     .line 258
-    const-string v8, "#2B8CFF"
+    sget v8, Lcom/jichi/ob/R$color;->primary:I
 
-    invoke-static {v8}, Landroid/graphics/Color;->parseColor(Ljava/lang/String;)I
+    invoke-direct {v0, v8}, Lcom/jichi/ob/ui/LoginFragment;->loginColor(I)I
 
     move-result v8
 
@@ -4177,6 +4200,20 @@
 
     .line 570
     :cond_11
+    # v9.5.4: 百锐腾详情弹窗增加「国内站/国际站」切换入口
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
+
+    if-ne v6, v2, :cond_bryton_site_done
+
+    invoke-static {v0, v1}, Lcom/jichi/ob/ui/LoginFragment;->siteRow(Landroid/content/Context;Lcom/jichi/ob/ui/LoginFragment;)Landroid/widget/TextView;
+
+    move-result-object v2
+
+    check-cast v2, Landroid/view/View;
+
+    invoke-virtual {v15, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    :cond_bryton_site_done
     new-instance v2, Landroidx/appcompat/app/AlertDialog$Builder;
 
     invoke-direct {v2, v0}, Landroidx/appcompat/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
@@ -6237,4 +6274,83 @@
     :catch_0
     :goto_0
     return-void
+.end method
+
+.method private static final siteRow(Landroid/content/Context;Lcom/jichi/ob/ui/LoginFragment;)Landroid/widget/TextView;
+    .locals 5
+
+    # v9.5.4: 百锐腾站点切换行（详情弹窗内，点击弹出国内站/国际站选择）
+    new-instance v0, Landroid/widget/TextView;
+
+    invoke-direct {v0, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+
+    const/high16 v1, 0x41400000    # 12.0f
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setTextSize(F)V
+
+    sget v1, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {p0, v1}, Landroid/content/Context;->getColor(I)I
+
+    move-result v1
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setTextColor(I)V
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setClickable(Z)V
+
+    const/4 v2, 0x0
+
+    const/high16 v3, 0x41000000    # 8.0f
+
+    invoke-direct {p1, v3}, Lcom/jichi/ob/ui/LoginFragment;->dp(F)F
+
+    move-result v3
+
+    float-to-int v3, v3
+
+    const/high16 v4, 0x40c00000    # 6.0f
+
+    invoke-direct {p1, v4}, Lcom/jichi/ob/ui/LoginFragment;->dp(F)F
+
+    move-result v4
+
+    float-to-int v4, v4
+
+    invoke-virtual {v0, v2, v3, v2, v4}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    new-instance v2, Ljava/lang/StringBuilder;
+
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v3, "\u767e\u9510\u817e\u7ad9\u70b9\uff1a"
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->label()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    const-string v3, "  \u70b9\u51fb\u5207\u6362"
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    check-cast v2, Ljava/lang/CharSequence;
+
+    invoke-virtual {v0, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    new-instance v2, Lcom/jichi/ob/ui/BrytonSiteRowClick;
+
+    invoke-direct {v2, p1}, Lcom/jichi/ob/ui/BrytonSiteRowClick;-><init>(Lcom/jichi/ob/ui/LoginFragment;)V
+
+    invoke-virtual {v0, v2}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    return-object v0
 .end method

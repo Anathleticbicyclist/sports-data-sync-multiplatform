@@ -271,7 +271,9 @@
 
     iget-object v2, p0, Lcom/jichi/ob/api/IgpsportApi$downloadFitFile$2;->$token:Ljava/lang/String;
 
-    invoke-static {v1, v2}, Lcom/jichi/ob/api/IgpsportApi;->access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;)Ljava/util/Map;
+    iget-boolean v3, p0, Lcom/jichi/ob/api/IgpsportApi$downloadFitFile$2;->$intl:Z
+
+    invoke-static {v1, v2, v3}, Lcom/jichi/ob/api/IgpsportApi;->access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;Z)Ljava/util/Map;
 
     move-result-object v1
 
@@ -456,8 +458,18 @@
     .line 306
     const-string v1, "Referer"
 
+    iget-boolean v4, p0, Lcom/jichi/ob/api/IgpsportApi$downloadFitFile$2;->$intl:Z
+
+    if-eqz v4, :cond_ref_cn
+
+    const-string v2, "https://app.igpsport.com/"
+
+    goto :goto_ref
+
+    :cond_ref_cn
     const-string v2, "https://app.igpsport.cn/"
 
+    :goto_ref
     invoke-virtual {p1, v1, v2}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
     move-result-object p1

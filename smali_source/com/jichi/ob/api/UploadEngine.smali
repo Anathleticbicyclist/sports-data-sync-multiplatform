@@ -129,8 +129,6 @@
 
 .field private final context:Landroid/content/Context;
 
-.field public igpTimeDiag:Ljava/lang/String;
-
 .field private final corosApi:Lcom/jichi/ob/api/CorosApi;
 
 .field private final cycityApi:Lcom/jichi/ob/api/CyCityApi;
@@ -138,6 +136,8 @@
 .field private final garminApi:Lcom/jichi/ob/api/GarminApi;
 
 .field private final giantApi:Lcom/jichi/ob/api/GiantApi;
+
+.field public igpTimeDiag:Ljava/lang/String;
 
 .field private final intervalsIcuApi:Lcom/jichi/ob/api/IntervalsIcuApi;
 
@@ -411,14 +411,12 @@
 .method public static final synthetic access$uploadToIgpsport(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
     .locals 2
 
-    # iGP时区修正：在调用 uploadToIgpsport 前调整 data（避免在巨型方法内插入代码导致VerifyError）
     iget-object v0, p0, Lcom/jichi/ob/api/UploadEngine;->context:Landroid/content/Context;
 
     invoke-static {v0, p2, p3}, Lcom/jichi/ob/api/UploadEngine;->applyIgpTimezoneShift(Landroid/content/Context;[BLcom/jichi/ob/model/ActivityRecord;)[B
 
     move-result-object p2
 
-    # v9.2.8: 撤销v9.2.6/v9.2.7 Wahoo→iGP FIT净化——回归v9.2.5直传行为（FitSanitizer保留但不再调用）
     .line 29
     invoke-direct/range {p0 .. p5}, Lcom/jichi/ob/api/UploadEngine;->uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
@@ -513,6 +511,297 @@
     move-result-object p0
 
     return-object p0
+.end method
+
+.method public static applyIgpTimezoneShift(Landroid/content/Context;[BLcom/jichi/ob/model/ActivityRecord;)[B
+    .locals 16
+
+    move-object/from16 v0, p0
+
+    move-object/from16 v1, p1
+
+    move-object/from16 v2, p2
+
+    invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
+
+    move-result-object v3
+
+    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
+
+    move-result-wide v4
+
+    invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
+
+    move-result-object v6
+
+    invoke-virtual {v6, v4, v5}, Ljava/util/Calendar;->setTimeInMillis(J)V
+
+    const/16 v4, 0x1
+
+    invoke-virtual {v3, v4}, Ljava/util/Calendar;->get(I)I
+
+    move-result v7
+
+    invoke-virtual {v6, v4}, Ljava/util/Calendar;->get(I)I
+
+    move-result v8
+
+    if-ne v7, v8, :cond_0
+
+    const/16 v4, 0x2
+
+    invoke-virtual {v3, v4}, Ljava/util/Calendar;->get(I)I
+
+    move-result v7
+
+    invoke-virtual {v6, v4}, Ljava/util/Calendar;->get(I)I
+
+    move-result v8
+
+    if-ne v7, v8, :cond_0
+
+    const/16 v4, 0x5
+
+    invoke-virtual {v3, v4}, Ljava/util/Calendar;->get(I)I
+
+    move-result v7
+
+    invoke-virtual {v6, v4}, Ljava/util/Calendar;->get(I)I
+
+    move-result v8
+
+    if-ne v7, v8, :cond_0
+
+    const/4 v12, 0x1
+
+    goto :goto_0
+
+    :cond_0
+    const/4 v12, 0x0
+
+    :goto_0
+    array-length v3, v1
+
+    const/16 v4, 0xc
+
+    if-lt v3, v4, :cond_1
+
+    const/16 v3, 0x8
+
+    aget-byte v3, v1, v3
+
+    const/16 v4, 0x46
+
+    if-ne v3, v4, :cond_1
+
+    const/16 v3, 0x9
+
+    aget-byte v3, v1, v3
+
+    const/16 v4, 0x49
+
+    if-ne v3, v4, :cond_1
+
+    const/16 v3, 0xa
+
+    aget-byte v3, v1, v3
+
+    const/16 v4, 0x54
+
+    if-ne v3, v4, :cond_1
+
+    const/4 v13, 0x1
+
+    goto :goto_1
+
+    :cond_1
+    const/4 v13, 0x0
+
+    :goto_1
+    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getSource()Lcom/jichi/ob/model/DataSource;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
+
+    move-result-object v3
+
+    if-eqz v12, :cond_2
+
+    const-string v4, "_same_day"
+
+    goto :goto_2
+
+    :cond_2
+    const-string v4, "_history"
+
+    :goto_2
+    new-instance v5, Ljava/lang/StringBuilder;
+
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {v5, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v5
+
+    const-string v3, "jichi_ob_prefs"
+
+    const/4 v4, 0x0
+
+    invoke-virtual {v0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+
+    move-result-object v3
+
+    const/4 v4, 0x0
+
+    invoke-interface {v3, v5, v4}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
+
+    move-result v14
+
+    const/4 v3, 0x1
+
+    if-ne v14, v3, :cond_4
+
+    if-eqz v13, :cond_3
+
+    const-string v3, "UploadEngine"
+
+    const-string v4, "iGP\u65f6\u533a\u4fee\u6b63+8h\uff08\u6309\u5e73\u53f0\u8bbe\u7f6e\uff09"
+
+    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+
+    sget-object v3, Lcom/jichi/ob/util/FitTimeShift;->INSTANCE:Lcom/jichi/ob/util/FitTimeShift;
+
+    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
+
+    move-result-wide v4
+
+    invoke-virtual {v3, v1, v4, v5}, Lcom/jichi/ob/util/FitTimeShift;->shiftForIgpsport([BJ)[B
+
+    move-result-object v0
+
+    return-object v0
+
+    :cond_3
+    sget-object v3, Lcom/jichi/ob/util/GpxTimeFixer;->INSTANCE:Lcom/jichi/ob/util/GpxTimeFixer;
+
+    const/4 v4, -0x8
+
+    invoke-virtual {v3, v1, v4}, Lcom/jichi/ob/util/GpxTimeFixer;->fixGpxTime([BI)[B
+
+    move-result-object v0
+
+    return-object v0
+
+    :cond_4
+    const/4 v3, 0x2
+
+    if-ne v14, v3, :cond_6
+
+    if-eqz v13, :cond_5
+
+    const-string v3, "UploadEngine"
+
+    const-string v4, "iGP\u65f6\u533a\u4fee\u6b63-8h\uff08\u6309\u5e73\u53f0\u8bbe\u7f6e\uff09"
+
+    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+
+    sget-object v3, Lcom/jichi/ob/util/FitTimeShift;->INSTANCE:Lcom/jichi/ob/util/FitTimeShift;
+
+    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
+
+    move-result-wide v4
+
+    invoke-virtual {v3, v1, v4, v5}, Lcom/jichi/ob/util/FitTimeShift;->shiftForIgpsportMinus([BJ)[B
+
+    move-result-object v0
+
+    return-object v0
+
+    :cond_5
+    sget-object v3, Lcom/jichi/ob/util/GpxTimeFixer;->INSTANCE:Lcom/jichi/ob/util/GpxTimeFixer;
+
+    const/16 v4, 0x8
+
+    invoke-virtual {v3, v1, v4}, Lcom/jichi/ob/util/GpxTimeFixer;->fixGpxTime([BI)[B
+
+    move-result-object v0
+
+    return-object v0
+
+    :cond_6
+    return-object v1
+.end method
+
+.method private final buildIgpTimeDiag(ZJZI)Ljava/lang/String;
+    .locals 3
+
+    if-nez p1, :cond_0
+
+    const-string/jumbo v0, "[\u65f6\u95f4\u8bca\u65ad] GPX/\u975eFIT\u6587\u4ef6\uff0c\u4e0d\u505a\u65f6\u95f4\u504f\u79fb"
+
+    return-object v0
+
+    :cond_0
+    new-instance v0, Ljava/text/SimpleDateFormat;
+
+    const-string/jumbo v1, "MM-dd HH:mm"
+
+    invoke-direct {v0, v1}, Ljava/text/SimpleDateFormat;-><init>(Ljava/lang/String;)V
+
+    const-string/jumbo v1, "Asia/Shanghai"
+
+    invoke-static {v1}, Ljava/util/TimeZone;->getTimeZone(Ljava/lang/String;)Ljava/util/TimeZone;
+
+    move-result-object v1
+
+    invoke-virtual {v0, v1}, Ljava/text/SimpleDateFormat;->setTimeZone(Ljava/util/TimeZone;)V
+
+    new-instance v1, Ljava/util/Date;
+
+    invoke-direct {v1, p2, p3}, Ljava/util/Date;-><init>(J)V
+
+    invoke-virtual {v0, v1}, Ljava/text/DateFormat;->format(Ljava/util/Date;)Ljava/lang/String;
+
+    move-result-object v0
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    const-string/jumbo v2, "[\u65f6\u95f4\u8bca\u65ad] FIT \u5f00\u59cb "
+
+    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    if-eqz p4, :cond_1
+
+    const-string/jumbo v0, " \u5224\u5b9a\u5f53\u5929\uff0c\u4e0d\u504f\u79fb"
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    goto :goto_0
+
+    :cond_1
+    const-string/jumbo v0, " \u5224\u5b9a\u5386\u53f2\uff0c\u5df2+8h\uff0c\u66ff\u6362"
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1, p5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    const-string/jumbo v0, "\u5904\u65f6\u95f4\u6233"
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    :goto_0
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
 .end method
 
 .method private final getOutbaseBridge()Lcom/jichi/ob/util/WebBridge;
@@ -6164,73 +6453,6 @@
     return-object v7
 .end method
 
-.method private final buildIgpTimeDiag(ZJZI)Ljava/lang/String;
-    .locals 3
-
-    if-nez p1, :cond_fit
-
-    const-string/jumbo v0, "[\u65f6\u95f4\u8bca\u65ad] GPX/\u975eFIT\u6587\u4ef6\uff0c\u4e0d\u505a\u65f6\u95f4\u504f\u79fb"
-
-    return-object v0
-
-    :cond_fit
-    new-instance v0, Ljava/text/SimpleDateFormat;
-
-    const-string/jumbo v1, "MM-dd HH:mm"
-
-    invoke-direct {v0, v1}, Ljava/text/SimpleDateFormat;-><init>(Ljava/lang/String;)V
-
-    const-string/jumbo v1, "Asia/Shanghai"
-
-    invoke-static {v1}, Ljava/util/TimeZone;->getTimeZone(Ljava/lang/String;)Ljava/util/TimeZone;
-
-    move-result-object v1
-
-    invoke-virtual {v0, v1}, Ljava/text/SimpleDateFormat;->setTimeZone(Ljava/util/TimeZone;)V
-
-    new-instance v1, Ljava/util/Date;
-
-    invoke-direct {v1, p2, p3}, Ljava/util/Date;-><init>(J)V
-
-    invoke-virtual {v0, v1}, Ljava/text/DateFormat;->format(Ljava/util/Date;)Ljava/lang/String;
-
-    move-result-object v0
-
-    new-instance v1, Ljava/lang/StringBuilder;
-
-    const-string/jumbo v2, "[\u65f6\u95f4\u8bca\u65ad] FIT \u5f00\u59cb "
-
-    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    if-eqz p4, :cond_history
-
-    const-string/jumbo v0, " \u5224\u5b9a\u5f53\u5929\uff0c\u4e0d\u504f\u79fb"
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    goto :goto_end
-
-    :cond_history
-    const-string/jumbo v0, " \u5224\u5b9a\u5386\u53f2\uff0c\u5df2+8h\uff0c\u66ff\u6362"
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1, p5}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-
-    const-string/jumbo v0, "\u5904\u65f6\u95f4\u6233"
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    :goto_end
-    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    return-object v0
-.end method
-
 .method private final uploadToIgpsport(Ljava/lang/String;[BLcom/jichi/ob/model/ActivityRecord;Ljava/util/Map;Z)Lcom/jichi/ob/api/UploadEngine$UploadResult;
     .locals 36
     .annotation system Ldalvik/annotation/Signature;
@@ -6268,13 +6490,16 @@
     const-string v7, "UploadEngine"
 
     .line 0
-    if-eqz p5, :cond_igp_cn_signed
-    const-string v8, "https://prod.en.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=."
-    goto :goto_igp_signed_done
-    :cond_igp_cn_signed
-    const-string v8, "https://prod.zh.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=."
-    :goto_igp_signed_done
+    if-eqz p5, :cond_0
 
+    const-string v8, "https://prod.en.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=."
+
+    goto :goto_0
+
+    :cond_0
+    const-string v8, "https://prod.zh.igpsport.com/service/sportg/third-party-server/oss/getSignedUrl?fileExtension=."
+
+    :goto_0
     const-string v9, "Bearer "
 
     const-string v10, "FIT\u65f6\u95f4\u5904\u7406\u5931\u8d25(\u8df3\u8fc7): "
@@ -6290,7 +6515,7 @@
 
     const/16 v13, 0xe
 
-    if-lt v0, v13, :cond_0
+    if-lt v0, v13, :cond_1
 
     const/16 v0, 0x8
 
@@ -6299,7 +6524,7 @@
 
     const/16 v13, 0x2e
 
-    if-ne v0, v13, :cond_0
+    if-ne v0, v13, :cond_1
 
     const/16 v0, 0x9
 
@@ -6307,16 +6532,16 @@
 
     const/16 v13, 0x46
 
-    if-ne v0, v13, :cond_0
+    if-ne v0, v13, :cond_1
 
     const/4 v13, 0x1
 
-    goto :goto_0
+    goto :goto_1
 
-    :cond_0
+    :cond_1
     const/4 v13, 0x0
 
-    :goto_0
+    :goto_1
     const/16 p4, 0x1
 
     const/16 v16, 0x0
@@ -6336,22 +6561,21 @@
 
     move-result v0
     :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_4
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_3
 
-    # 时区修正已移至 access$uploadToIgpsport 处理
     move-object v0, v2
 
     goto :goto_2
 
     :goto_2
-    if-eqz v13, :cond_3
+    if-eqz v13, :cond_2
 
     .line 338
     const-string v2, "fit"
 
     goto :goto_3
 
-    :cond_3
+    :cond_2
     const-string v2, "gpx"
 
     .line 339
@@ -6407,13 +6631,16 @@
     .line 343
     const-string v9, "Origin"
 
-    if-eqz p5, :cond_igp_cn_origin
-    const-string v12, "https://app.igpsport.com"
-    goto :goto_igp_origin_done
-    :cond_igp_cn_origin
-    const-string v12, "https://app.igpsport.cn"
-    :goto_igp_origin_done
+    if-eqz p5, :cond_3
 
+    const-string v12, "https://app.igpsport.com"
+
+    goto :goto_4
+
+    :cond_3
+    const-string v12, "https://app.igpsport.cn"
+
+    :goto_4
     invoke-static {v9, v12}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
     move-result-object v9
@@ -6425,13 +6652,16 @@
     .line 344
     const-string v9, "Referer"
 
-    if-eqz p5, :cond_igp_cn_referer
-    const-string v12, "https://app.igpsport.com/"
-    goto :goto_igp_referer_done
-    :cond_igp_cn_referer
-    const-string v12, "https://app.igpsport.cn/"
-    :goto_igp_referer_done
+    if-eqz p5, :cond_4
 
+    const-string v12, "https://app.igpsport.com/"
+
+    goto :goto_5
+
+    :cond_4
+    const-string v12, "https://app.igpsport.cn/"
+
+    :goto_5
     invoke-static {v9, v12}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
     move-result-object v9
@@ -6468,12 +6698,12 @@
 
     move-result-object v8
 
-    :goto_4
+    :goto_6
     invoke-interface {v8}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v9
 
-    if-eqz v9, :cond_4
+    if-eqz v9, :cond_5
 
     invoke-interface {v8}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -6496,10 +6726,10 @@
     .line 350
     invoke-virtual {v2, v11, v9}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
-    goto :goto_4
+    goto :goto_6
 
     .line 351
-    :cond_4
+    :cond_5
     invoke-virtual {v2}, Lokhttp3/Request$Builder;->get()Lokhttp3/Request$Builder;
 
     move-result-object v2
@@ -6509,7 +6739,7 @@
     move-result-object v2
 
     .line 352
-    :try_start_2
+    :try_start_1
     iget-object v8, v1, Lcom/jichi/ob/api/UploadEngine;->client:Lokhttp3/OkHttpClient;
 
     invoke-virtual {v8, v2}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
@@ -6521,10 +6751,10 @@
     move-result-object v2
 
     check-cast v2, Ljava/io/Closeable;
-    :try_end_2
-    .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_4
+    :try_end_1
+    .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :catch_3
 
-    :try_start_3
+    :try_start_2
     move-object v8, v2
 
     check-cast v8, Lokhttp3/Response;
@@ -6533,19 +6763,19 @@
     invoke-virtual {v8}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
 
     move-result-object v9
-    :try_end_3
-    .catchall {:try_start_3 .. :try_end_3} :catchall_d
+    :try_end_2
+    .catchall {:try_start_2 .. :try_end_2} :catchall_d
 
     const-string v11, ""
 
-    if-eqz v9, :cond_5
+    if-eqz v9, :cond_6
 
-    :try_start_4
+    :try_start_3
     invoke-virtual {v9}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
 
     move-result-object v9
 
-    if-eqz v9, :cond_5
+    if-eqz v9, :cond_6
 
     check-cast v9, Ljava/lang/CharSequence;
 
@@ -6556,12 +6786,12 @@
     invoke-virtual {v9}, Ljava/lang/Object;->toString()Ljava/lang/String;
 
     move-result-object v9
-    :try_end_4
-    .catchall {:try_start_4 .. :try_end_4} :catchall_0
+    :try_end_3
+    .catchall {:try_start_3 .. :try_end_3} :catchall_0
 
-    if-nez v9, :cond_6
+    if-nez v9, :cond_7
 
-    goto :goto_5
+    goto :goto_7
 
     :catchall_0
     move-exception v0
@@ -6570,15 +6800,15 @@
 
     move-object v6, v5
 
-    goto/16 :goto_1d
+    goto/16 :goto_20
 
-    :cond_5
-    :goto_5
+    :cond_6
+    :goto_7
     move-object v9, v11
 
     .line 354
-    :cond_6
-    :try_start_5
+    :cond_7
+    :try_start_4
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
     move-result v12
@@ -6623,8 +6853,8 @@
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
     move-result v0
-    :try_end_5
-    .catchall {:try_start_5 .. :try_end_5} :catchall_d
+    :try_end_4
+    .catchall {:try_start_4 .. :try_end_4} :catchall_d
 
     const-string v12, "iGPSPORT\u4e0a\u4f20\u5931\u8d25: \u767b\u5f55\u5df2\u8fc7\u671f(HTTP "
 
@@ -6632,9 +6862,9 @@
 
     const/4 v14, 0x0
 
-    if-eq v0, v13, :cond_2a
+    if-eq v0, v13, :cond_2d
 
-    :try_start_6
+    :try_start_5
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
     move-result v0
@@ -6643,7 +6873,7 @@
 
     const/16 v10, 0x193
 
-    if-ne v0, v10, :cond_7
+    if-ne v0, v10, :cond_8
 
     move-object v6, v5
 
@@ -6651,22 +6881,22 @@
 
     move-object v5, v12
 
-    goto/16 :goto_1b
+    goto/16 :goto_1e
 
     .line 358
-    :cond_7
+    :cond_8
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
     move-result v0
-    :try_end_6
-    .catchall {:try_start_6 .. :try_end_6} :catchall_d
+    :try_end_5
+    .catchall {:try_start_5 .. :try_end_5} :catchall_d
 
     const/16 v10, 0xc8
 
-    if-eq v0, v10, :cond_8
+    if-eq v0, v10, :cond_9
 
     .line 359
-    :try_start_7
+    :try_start_6
     new-instance v20, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
@@ -6704,49 +6934,49 @@
     const/16 v25, 0x0
 
     invoke-direct/range {v20 .. v27}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-    :try_end_7
-    .catchall {:try_start_7 .. :try_end_7} :catchall_0
+    :try_end_6
+    .catchall {:try_start_6 .. :try_end_6} :catchall_0
 
-    :try_start_8
+    :try_start_7
     invoke-static {v2, v14}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
-    :try_end_8
-    .catch Ljava/lang/Exception; {:try_start_8 .. :try_end_8} :catch_4
+    :try_end_7
+    .catch Ljava/lang/Exception; {:try_start_7 .. :try_end_7} :catch_3
 
     return-object v20
 
     .line 361
-    :cond_8
-    :try_start_9
+    :cond_9
+    :try_start_8
     new-instance v0, Lorg/json/JSONObject;
 
     invoke-direct {v0, v9}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
-    :try_end_9
-    .catch Ljava/lang/Exception; {:try_start_9 .. :try_end_9} :catch_1
-    .catchall {:try_start_9 .. :try_end_9} :catchall_0
+    :try_end_8
+    .catch Ljava/lang/Exception; {:try_start_8 .. :try_end_8} :catch_0
+    .catchall {:try_start_8 .. :try_end_8} :catchall_0
 
-    goto :goto_6
+    goto :goto_8
 
-    :catch_1
+    :catch_0
     move-object v0, v14
 
     .line 363
-    :goto_6
+    :goto_8
     const-string v8, "data"
 
-    if-eqz v0, :cond_9
+    if-eqz v0, :cond_a
 
-    :try_start_a
+    :try_start_9
     invoke-virtual {v0, v8}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
 
     move-result-object v0
 
-    goto :goto_7
+    goto :goto_9
 
-    :cond_9
+    :cond_a
     move-object v0, v14
 
-    :goto_7
-    if-eqz v0, :cond_a
+    :goto_9
+    if-eqz v0, :cond_b
 
     .line 364
     const-string/jumbo v10, "signedUrl"
@@ -6755,13 +6985,13 @@
 
     move-result-object v10
 
-    if-nez v10, :cond_b
-
-    :cond_a
-    move-object v10, v11
+    if-nez v10, :cond_c
 
     :cond_b
-    if-eqz v0, :cond_c
+    move-object v10, v11
+
+    :cond_c
+    if-eqz v0, :cond_d
 
     .line 365
     const-string v13, "ossId"
@@ -6769,17 +6999,17 @@
     invoke-virtual {v0, v13, v11}, Lorg/json/JSONObject;->optString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
-    :try_end_a
-    .catchall {:try_start_a .. :try_end_a} :catchall_0
+    :try_end_9
+    .catchall {:try_start_9 .. :try_end_9} :catchall_0
 
-    if-nez v0, :cond_d
+    if-nez v0, :cond_e
 
-    :cond_c
+    :cond_d
     move-object v0, v11
 
     .line 366
-    :cond_d
-    :try_start_b
+    :cond_e
+    :try_start_a
     move-object v13, v10
 
     check-cast v13, Ljava/lang/CharSequence;
@@ -6787,17 +7017,17 @@
     invoke-interface {v13}, Ljava/lang/CharSequence;->length()I
 
     move-result v13
-    :try_end_b
-    .catchall {:try_start_b .. :try_end_b} :catchall_d
+    :try_end_a
+    .catchall {:try_start_a .. :try_end_a} :catchall_d
 
     move-object/from16 v21, v11
 
     const/16 v11, 0x64
 
-    if-nez v13, :cond_e
+    if-nez v13, :cond_f
 
     .line 367
-    :try_start_c
+    :try_start_b
     new-instance v22, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     invoke-static {v9, v11}, Lkotlin/text/StringsKt;->take(Ljava/lang/String;I)Ljava/lang/String;
@@ -6835,19 +7065,19 @@
     const/16 v27, 0x0
 
     invoke-direct/range {v22 .. v29}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-    :try_end_c
-    .catchall {:try_start_c .. :try_end_c} :catchall_0
+    :try_end_b
+    .catchall {:try_start_b .. :try_end_b} :catchall_0
 
-    :try_start_d
+    :try_start_c
     invoke-static {v2, v14}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
-    :try_end_d
-    .catch Ljava/lang/Exception; {:try_start_d .. :try_end_d} :catch_4
+    :try_end_c
+    .catch Ljava/lang/Exception; {:try_start_c .. :try_end_c} :catch_3
 
     return-object v22
 
     .line 372
-    :cond_e
-    :try_start_e
+    :cond_f
+    :try_start_d
     new-instance v9, Ljava/lang/StringBuilder;
 
     invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
@@ -6871,8 +7101,8 @@
 
     .line 377
     sget-object v8, Lokhttp3/RequestBody;->Companion:Lokhttp3/RequestBody$Companion;
-    :try_end_e
-    .catchall {:try_start_e .. :try_end_e} :catchall_d
+    :try_end_d
+    .catchall {:try_start_d .. :try_end_d} :catchall_d
 
     move-object/from16 v24, v13
 
@@ -6920,7 +7150,7 @@
 
     move-object/from16 v9, p2
 
-    :try_start_f
+    :try_start_e
     invoke-static/range {v8 .. v14}, Lokhttp3/RequestBody$Companion;->create$default(Lokhttp3/RequestBody$Companion;[BLokhttp3/MediaType;IIILjava/lang/Object;)Lokhttp3/RequestBody;
 
     move-result-object v8
@@ -6946,10 +7176,10 @@
     move-result-object v3
 
     check-cast v3, Ljava/io/Closeable;
-    :try_end_f
-    .catchall {:try_start_f .. :try_end_f} :catchall_b
+    :try_end_e
+    .catchall {:try_start_e .. :try_end_e} :catchall_b
 
-    :try_start_10
+    :try_start_f
     move-object v8, v3
 
     check-cast v8, Lokhttp3/Response;
@@ -6969,8 +7199,8 @@
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
     move-result v10
-    :try_end_10
-    .catchall {:try_start_10 .. :try_end_10} :catchall_9
+    :try_end_f
+    .catchall {:try_start_f .. :try_end_f} :catchall_9
 
     const-string v11, "Content-Type"
 
@@ -6978,9 +7208,9 @@
 
     const-string v13, " "
 
-    if-gt v0, v10, :cond_f
+    if-gt v0, v10, :cond_10
 
-    if-ge v10, v12, :cond_f
+    if-ge v10, v12, :cond_10
 
     move-object v4, v11
 
@@ -6990,22 +7220,22 @@
 
     const/4 v0, 0x0
 
-    goto/16 :goto_a
+    goto/16 :goto_c
 
     .line 384
-    :cond_f
-    :try_start_11
+    :cond_10
+    :try_start_10
     invoke-virtual {v8}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
 
     move-result-object v10
 
-    if-eqz v10, :cond_10
+    if-eqz v10, :cond_11
 
     invoke-virtual {v10}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
 
     move-result-object v10
 
-    if-eqz v10, :cond_10
+    if-eqz v10, :cond_11
 
     check-cast v10, Ljava/lang/CharSequence;
 
@@ -7017,13 +7247,13 @@
 
     move-result-object v10
 
-    if-nez v10, :cond_11
+    if-nez v10, :cond_12
 
-    :cond_10
+    :cond_11
     move-object/from16 v10, v21
 
     .line 385
-    :cond_11
+    :cond_12
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
     move-result v14
@@ -7094,7 +7324,7 @@
 
     const/16 v10, 0x193
 
-    if-eq v0, v10, :cond_13
+    if-eq v0, v10, :cond_14
 
     invoke-virtual {v8}, Lokhttp3/Response;->code()I
 
@@ -7102,11 +7332,11 @@
 
     const/16 v8, 0x190
 
-    if-ne v0, v8, :cond_12
+    if-ne v0, v8, :cond_13
 
-    goto :goto_8
+    goto :goto_a
 
-    :cond_12
+    :cond_13
     move-object v4, v11
 
     move-object v9, v13
@@ -7115,11 +7345,11 @@
 
     const/16 v2, 0x12c
 
-    goto/16 :goto_a
+    goto/16 :goto_c
 
     .line 389
-    :cond_13
-    :goto_8
+    :cond_14
+    :goto_a
     new-instance v0, Lokhttp3/Request$Builder;
 
     invoke-direct {v0}, Lokhttp3/Request$Builder;-><init>()V
@@ -7186,10 +7416,10 @@
     move-object v8, v0
 
     check-cast v8, Ljava/io/Closeable;
-    :try_end_11
-    .catchall {:try_start_11 .. :try_end_11} :catchall_9
+    :try_end_10
+    .catchall {:try_start_10 .. :try_end_10} :catchall_9
 
-    :try_start_12
+    :try_start_11
     move-object v0, v8
 
     check-cast v0, Lokhttp3/Response;
@@ -7201,9 +7431,9 @@
 
     const/16 v10, 0xc8
 
-    if-gt v10, v9, :cond_14
+    if-gt v10, v9, :cond_15
 
-    if-ge v9, v2, :cond_14
+    if-ge v9, v2, :cond_15
 
     .line 396
     invoke-static {v10}, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
@@ -7214,21 +7444,21 @@
 
     move-object/from16 v9, v35
 
-    goto :goto_9
+    goto :goto_b
 
     .line 398
-    :cond_14
+    :cond_15
     invoke-virtual {v0}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
 
     move-result-object v9
 
-    if-eqz v9, :cond_15
+    if-eqz v9, :cond_16
 
     invoke-virtual {v9}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
 
     move-result-object v9
 
-    if-eqz v9, :cond_15
+    if-eqz v9, :cond_16
 
     check-cast v9, Ljava/lang/CharSequence;
 
@@ -7240,13 +7470,13 @@
 
     move-result-object v11
 
-    if-nez v11, :cond_16
+    if-nez v11, :cond_17
 
-    :cond_15
+    :cond_16
     move-object/from16 v11, v21
 
     .line 399
-    :cond_16
+    :cond_17
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
     move-result v9
@@ -7326,37 +7556,37 @@
     iput-object v0, v5, Lkotlin/jvm/internal/Ref$ObjectRef;->element:Ljava/lang/Object;
 
     .line 403
-    :goto_9
+    :goto_b
     sget-object v0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-    :try_end_12
-    .catchall {:try_start_12 .. :try_end_12} :catchall_6
+    :try_end_11
+    .catchall {:try_start_11 .. :try_end_11} :catchall_6
 
     const/4 v0, 0x0
 
     .line 394
-    :try_start_13
+    :try_start_12
     invoke-static {v8, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
 
     .line 406
-    :goto_a
+    :goto_c
     sget-object v6, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-    :try_end_13
-    .catchall {:try_start_13 .. :try_end_13} :catchall_9
+    :try_end_12
+    .catchall {:try_start_12 .. :try_end_12} :catchall_9
 
     .line 379
-    :try_start_14
+    :try_start_13
     invoke-static {v3, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
 
     .line 407
     iget-object v0, v5, Lkotlin/jvm/internal/Ref$ObjectRef;->element:Ljava/lang/Object;
-    :try_end_14
-    .catchall {:try_start_14 .. :try_end_14} :catchall_b
+    :try_end_13
+    .catchall {:try_start_13 .. :try_end_13} :catchall_b
 
     const-string/jumbo v3, "toString(...)"
 
-    if-eqz v0, :cond_29
+    if-eqz v0, :cond_2c
 
-    :try_start_15
+    :try_start_14
     new-instance v0, Lkotlin/ranges/IntRange;
 
     const/16 v6, 0x12b
@@ -7377,12 +7607,12 @@
 
     move-result v0
 
-    if-nez v0, :cond_17
+    if-nez v0, :cond_18
 
-    goto/16 :goto_19
+    goto/16 :goto_1c
 
     .line 412
-    :cond_17
+    :cond_18
     invoke-virtual/range {p3 .. p3}, Lcom/jichi/ob/model/ActivityRecord;->getTitle()Ljava/lang/String;
 
     move-result-object v0
@@ -7393,11 +7623,11 @@
 
     move-result v5
 
-    if-eqz v5, :cond_18
+    if-eqz v5, :cond_19
 
     const-string/jumbo v0, "\u9a91\u884c"
 
-    :cond_18
+    :cond_19
     check-cast v0, Ljava/lang/String;
 
     .line 413
@@ -7450,13 +7680,16 @@
     invoke-direct {v5}, Lokhttp3/Request$Builder;-><init>()V
 
     .line 420
-    if-eqz p5, :cond_igp_cn_oss
-    const-string v6, "https://prod.en.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss"
-    goto :goto_igp_oss_done
-    :cond_igp_cn_oss
-    const-string v6, "https://prod.zh.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss"
-    :goto_igp_oss_done
+    if-eqz p5, :cond_1a
 
+    const-string v6, "https://prod.en.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss"
+
+    goto :goto_d
+
+    :cond_1a
+    const-string v6, "https://prod.zh.igpsport.com/service/web-gateway/web-analyze/activity/uploadByOss"
+
+    :goto_d
     invoke-virtual {v5, v6}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
 
     move-result-object v5
@@ -7470,12 +7703,12 @@
 
     move-result-object v6
 
-    :goto_b
+    :goto_e
     invoke-interface {v6}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v8
 
-    if-eqz v8, :cond_19
+    if-eqz v8, :cond_1b
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -7498,9 +7731,9 @@
     .line 421
     invoke-virtual {v5, v10, v8}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
-    goto :goto_b
+    goto :goto_e
 
-    :cond_19
+    :cond_1b
     move-object/from16 v6, v19
 
     .line 422
@@ -7550,10 +7783,10 @@
     move-object v3, v0
 
     check-cast v3, Ljava/io/Closeable;
-    :try_end_15
-    .catchall {:try_start_15 .. :try_end_15} :catchall_b
+    :try_end_14
+    .catchall {:try_start_14 .. :try_end_14} :catchall_b
 
-    :try_start_16
+    :try_start_15
     move-object v0, v3
 
     check-cast v0, Lokhttp3/Response;
@@ -7563,13 +7796,13 @@
 
     move-result-object v4
 
-    if-eqz v4, :cond_1a
+    if-eqz v4, :cond_1c
 
     invoke-virtual {v4}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
 
     move-result-object v4
 
-    if-eqz v4, :cond_1a
+    if-eqz v4, :cond_1c
 
     check-cast v4, Ljava/lang/CharSequence;
 
@@ -7581,13 +7814,13 @@
 
     move-result-object v11
 
-    if-nez v11, :cond_1b
+    if-nez v11, :cond_1d
 
-    :cond_1a
+    :cond_1c
     move-object/from16 v11, v21
 
     .line 427
-    :cond_1b
+    :cond_1d
     invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
 
     move-result-wide v4
@@ -7647,53 +7880,53 @@
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
     move-result v2
-    :try_end_16
-    .catchall {:try_start_16 .. :try_end_16} :catchall_4
+    :try_end_15
+    .catchall {:try_start_15 .. :try_end_15} :catchall_4
 
     const-string v4, ")"
 
     const/16 v10, 0xc8
 
-    if-ne v2, v10, :cond_26
+    if-ne v2, v10, :cond_29
 
     .line 430
-    :try_start_17
+    :try_start_16
     new-instance v14, Lorg/json/JSONObject;
 
     invoke-direct {v14, v11}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
-    :try_end_17
-    .catch Ljava/lang/Exception; {:try_start_17 .. :try_end_17} :catch_2
-    .catchall {:try_start_17 .. :try_end_17} :catchall_4
+    :try_end_16
+    .catch Ljava/lang/Exception; {:try_start_16 .. :try_end_16} :catch_1
+    .catchall {:try_start_16 .. :try_end_16} :catchall_4
 
-    goto :goto_c
+    goto :goto_f
 
-    :catch_2
+    :catch_1
     const/4 v14, 0x0
 
-    :goto_c
+    :goto_f
     const/4 v0, -0x1
 
-    if-eqz v14, :cond_1c
+    if-eqz v14, :cond_1e
 
     .line 431
-    :try_start_18
+    :try_start_17
     const-string v2, "code"
 
     invoke-virtual {v14, v2, v0}, Lorg/json/JSONObject;->optInt(Ljava/lang/String;I)I
 
     move-result v0
-    :try_end_18
-    .catchall {:try_start_18 .. :try_end_18} :catchall_4
+    :try_end_17
+    .catchall {:try_start_17 .. :try_end_17} :catchall_4
 
-    :cond_1c
-    if-eqz v0, :cond_1d
+    :cond_1e
+    if-eqz v0, :cond_1f
 
     const/16 v10, 0xc8
 
-    if-eq v0, v10, :cond_1d
+    if-eq v0, v10, :cond_1f
 
     .line 448
-    :try_start_19
+    :try_start_18
     new-instance v26, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     const/16 v0, 0x96
@@ -7705,12 +7938,12 @@
     new-instance v2, Ljava/lang/StringBuilder;
 
     invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
-    :try_end_19
-    .catchall {:try_start_19 .. :try_end_19} :catchall_1
+    :try_end_18
+    .catchall {:try_start_18 .. :try_end_18} :catchall_1
 
     move-object/from16 v6, p4
 
-    :try_start_1a
+    :try_start_19
     invoke-virtual {v2, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v2
@@ -7737,19 +7970,19 @@
 
     invoke-direct/range {v26 .. v33}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 
-    goto/16 :goto_16
+    goto/16 :goto_19
 
     :catchall_1
     move-exception v0
 
     move-object/from16 v6, p4
 
-    goto/16 :goto_17
+    goto/16 :goto_1a
 
-    :cond_1d
+    :cond_1f
     move-object/from16 v6, p4
 
-    if-eqz v14, :cond_1e
+    if-eqz v14, :cond_20
 
     move-object/from16 v2, v21
 
@@ -7760,20 +7993,20 @@
 
     move-result-object v11
 
-    if-nez v11, :cond_1f
+    if-nez v11, :cond_21
 
-    goto :goto_d
+    goto :goto_10
 
-    :cond_1e
+    :cond_20
     move-object/from16 v2, v21
 
     move-object/from16 v0, v34
 
-    :goto_d
+    :goto_10
     move-object v11, v2
 
     .line 438
-    :cond_1f
+    :cond_21
     move-object v5, v11
 
     check-cast v5, Ljava/lang/CharSequence;
@@ -7781,44 +8014,44 @@
     invoke-static {v5}, Lkotlin/text/StringsKt;->isBlank(Ljava/lang/CharSequence;)Z
 
     move-result v5
-    :try_end_1a
-    .catchall {:try_start_1a .. :try_end_1a} :catchall_3
+    :try_end_19
+    .catchall {:try_start_19 .. :try_end_19} :catchall_3
 
     const-string v8, "null"
 
-    if-nez v5, :cond_21
+    if-nez v5, :cond_23
 
-    :try_start_1b
+    :try_start_1a
     invoke-static {v11, v8}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v5
 
-    if-eqz v5, :cond_20
+    if-eqz v5, :cond_22
 
-    goto :goto_f
+    goto :goto_12
 
-    :cond_20
-    :goto_e
+    :cond_22
+    :goto_11
     move-object v14, v11
 
-    goto :goto_11
+    goto :goto_14
 
-    :cond_21
-    :goto_f
-    if-eqz v14, :cond_22
+    :cond_23
+    :goto_12
+    if-eqz v14, :cond_24
 
     .line 439
     invoke-virtual {v14, v0}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
 
     move-result-object v14
 
-    goto :goto_10
+    goto :goto_13
 
-    :cond_22
+    :cond_24
     const/4 v14, 0x0
 
-    :goto_10
-    if-eqz v14, :cond_23
+    :goto_13
+    if-eqz v14, :cond_25
 
     .line 440
     const-string v0, "id"
@@ -7827,15 +8060,15 @@
 
     move-result-object v11
 
-    if-nez v11, :cond_20
+    if-nez v11, :cond_22
 
-    :cond_23
+    :cond_25
     move-object v11, v2
 
-    goto :goto_e
+    goto :goto_11
 
     .line 442
-    :goto_11
+    :goto_14
     move-object v0, v14
 
     check-cast v0, Ljava/lang/CharSequence;
@@ -7844,18 +8077,18 @@
 
     move-result v0
 
-    if-nez v0, :cond_25
+    if-nez v0, :cond_27
 
     invoke-static {v14, v8}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v0
 
-    if-eqz v0, :cond_24
+    if-eqz v0, :cond_26
 
-    goto :goto_12
+    goto :goto_15
 
     .line 445
-    :cond_24
+    :cond_26
     new-instance v12, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     new-instance v0, Ljava/lang/StringBuilder;
@@ -7892,18 +8125,18 @@
 
     invoke-direct/range {v12 .. v19}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 
-    goto :goto_13
+    goto :goto_16
 
     .line 443
-    :cond_25
-    :goto_12
+    :cond_27
+    :goto_15
     new-instance v8, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     const-string v11, "iGPSPORT\u5df2\u63a5\u6536\uff0c\u5f02\u6b65\u89e3\u6790\u4e2d\uff0c\u7a0d\u540e\u53ef\u5728iGPSPORT\u67e5\u770b"
 
     iget-object v0, v1, Lcom/jichi/ob/api/UploadEngine;->igpTimeDiag:Ljava/lang/String;
 
-    if-eqz v0, :cond_igpdiag
+    if-eqz v0, :cond_28
 
     new-instance v2, Ljava/lang/StringBuilder;
 
@@ -7919,7 +8152,7 @@
 
     move-result-object v11
 
-    :cond_igpdiag
+    :cond_28
     const/16 v14, 0x1a
 
     const/4 v15, 0x0
@@ -7934,9 +8167,9 @@
 
     invoke-direct/range {v8 .. v15}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 
-    goto :goto_15
+    goto :goto_18
 
-    :cond_26
+    :cond_29
     move-object/from16 v6, p4
 
     .line 450
@@ -7946,7 +8179,7 @@
 
     const/16 v5, 0x191
 
-    if-eq v2, v5, :cond_28
+    if-eq v2, v5, :cond_2b
 
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
@@ -7954,12 +8187,12 @@
 
     const/16 v10, 0x193
 
-    if-ne v2, v10, :cond_27
+    if-ne v2, v10, :cond_2a
 
-    goto :goto_14
+    goto :goto_17
 
     .line 453
-    :cond_27
+    :cond_2a
     new-instance v12, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
@@ -8012,14 +8245,14 @@
 
     invoke-direct/range {v12 .. v19}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 
-    :goto_13
+    :goto_16
     move-object/from16 v26, v12
 
-    goto :goto_16
+    goto :goto_19
 
     .line 451
-    :cond_28
-    :goto_14
+    :cond_2b
+    :goto_17
     new-instance v8, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
@@ -8061,45 +8294,45 @@
     const/4 v13, 0x0
 
     invoke-direct/range {v8 .. v15}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-    :try_end_1b
-    .catchall {:try_start_1b .. :try_end_1b} :catchall_3
+    :try_end_1a
+    .catchall {:try_start_1a .. :try_end_1a} :catchall_3
 
-    :goto_15
+    :goto_18
     move-object/from16 v26, v8
 
-    :goto_16
+    :goto_19
     const/4 v0, 0x0
 
     .line 425
-    :try_start_1c
+    :try_start_1b
     invoke-static {v3, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
-    :try_end_1c
-    .catchall {:try_start_1c .. :try_end_1c} :catchall_2
+    :try_end_1b
+    .catchall {:try_start_1b .. :try_end_1b} :catchall_2
 
     move-object/from16 v2, p1
 
     .line 352
-    :try_start_1d
+    :try_start_1c
     invoke-static {v2, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
-    :try_end_1d
-    .catch Ljava/lang/Exception; {:try_start_1d .. :try_end_1d} :catch_3
+    :try_end_1c
+    .catch Ljava/lang/Exception; {:try_start_1c .. :try_end_1c} :catch_2
 
-    goto/16 :goto_1f
+    goto/16 :goto_22
 
     :catchall_2
     move-exception v0
 
     move-object/from16 v2, p1
 
-    goto/16 :goto_1c
+    goto/16 :goto_1f
 
     :catchall_3
     move-exception v0
 
-    :goto_17
+    :goto_1a
     move-object/from16 v2, p1
 
-    goto :goto_18
+    goto :goto_1b
 
     :catchall_4
     move-exception v0
@@ -8108,25 +8341,25 @@
 
     move-object/from16 v6, p4
 
-    :goto_18
+    :goto_1b
     move-object v4, v0
 
     .line 425
-    :try_start_1e
+    :try_start_1d
     throw v4
-    :try_end_1e
-    .catchall {:try_start_1e .. :try_end_1e} :catchall_5
+    :try_end_1d
+    .catchall {:try_start_1d .. :try_end_1d} :catchall_5
 
     :catchall_5
     move-exception v0
 
-    :try_start_1f
+    :try_start_1e
     invoke-static {v3, v4}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
 
     throw v0
 
-    :cond_29
-    :goto_19
+    :cond_2c
+    :goto_1c
     move-object/from16 v2, p1
 
     move-object/from16 v6, p4
@@ -8187,15 +8420,15 @@
     const/4 v13, 0x0
 
     invoke-direct/range {v8 .. v15}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-    :try_end_1f
-    .catchall {:try_start_1f .. :try_end_1f} :catchall_c
+    :try_end_1e
+    .catchall {:try_start_1e .. :try_end_1e} :catchall_c
 
     const/4 v0, 0x0
 
-    :try_start_20
+    :try_start_1f
     invoke-static {v2, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
-    :try_end_20
-    .catch Ljava/lang/Exception; {:try_start_20 .. :try_end_20} :catch_3
+    :try_end_1f
+    .catch Ljava/lang/Exception; {:try_start_1f .. :try_end_1f} :catch_2
 
     return-object v8
 
@@ -8209,25 +8442,25 @@
     move-object v4, v0
 
     .line 394
-    :try_start_21
+    :try_start_20
     throw v4
-    :try_end_21
-    .catchall {:try_start_21 .. :try_end_21} :catchall_7
+    :try_end_20
+    .catchall {:try_start_20 .. :try_end_20} :catchall_7
 
     :catchall_7
     move-exception v0
 
-    :try_start_22
+    :try_start_21
     invoke-static {v8, v4}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
 
     throw v0
-    :try_end_22
-    .catchall {:try_start_22 .. :try_end_22} :catchall_8
+    :try_end_21
+    .catchall {:try_start_21 .. :try_end_21} :catchall_8
 
     :catchall_8
     move-exception v0
 
-    goto :goto_1a
+    goto :goto_1d
 
     :catchall_9
     move-exception v0
@@ -8236,19 +8469,19 @@
 
     move-object/from16 v6, p4
 
-    :goto_1a
+    :goto_1d
     move-object v4, v0
 
     .line 379
-    :try_start_23
+    :try_start_22
     throw v4
-    :try_end_23
-    .catchall {:try_start_23 .. :try_end_23} :catchall_a
+    :try_end_22
+    .catchall {:try_start_22 .. :try_end_22} :catchall_a
 
     :catchall_a
     move-exception v0
 
-    :try_start_24
+    :try_start_23
     invoke-static {v3, v4}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
 
     throw v0
@@ -8260,9 +8493,9 @@
 
     move-object/from16 v6, p4
 
-    goto :goto_1c
+    goto :goto_1f
 
-    :cond_2a
+    :cond_2d
     move-object v6, v5
 
     move-object v5, v12
@@ -8270,7 +8503,7 @@
     move-object v0, v8
 
     .line 356
-    :goto_1b
+    :goto_1e
     new-instance v8, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
@@ -8312,60 +8545,60 @@
     const/4 v13, 0x0
 
     invoke-direct/range {v8 .. v15}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-    :try_end_24
-    .catchall {:try_start_24 .. :try_end_24} :catchall_c
+    :try_end_23
+    .catchall {:try_start_23 .. :try_end_23} :catchall_c
 
     const/4 v0, 0x0
 
-    :try_start_25
+    :try_start_24
     invoke-static {v2, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
-    :try_end_25
-    .catch Ljava/lang/Exception; {:try_start_25 .. :try_end_25} :catch_3
+    :try_end_24
+    .catch Ljava/lang/Exception; {:try_start_24 .. :try_end_24} :catch_2
 
     return-object v8
 
     :catchall_c
     move-exception v0
 
-    goto :goto_1c
+    goto :goto_1f
 
     :catchall_d
     move-exception v0
 
     move-object v6, v5
 
-    :goto_1c
+    :goto_1f
     move-object v3, v0
 
     .line 352
-    :goto_1d
-    :try_start_26
+    :goto_20
+    :try_start_25
     throw v3
-    :try_end_26
-    .catchall {:try_start_26 .. :try_end_26} :catchall_e
+    :try_end_25
+    .catchall {:try_start_25 .. :try_end_25} :catchall_e
 
     :catchall_e
     move-exception v0
 
-    :try_start_27
+    :try_start_26
     invoke-static {v2, v3}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
 
     throw v0
-    :try_end_27
-    .catch Ljava/lang/Exception; {:try_start_27 .. :try_end_27} :catch_3
+    :try_end_26
+    .catch Ljava/lang/Exception; {:try_start_26 .. :try_end_26} :catch_2
 
-    :catch_3
+    :catch_2
     move-exception v0
 
-    goto :goto_1e
+    goto :goto_21
 
-    :catch_4
+    :catch_3
     move-exception v0
 
     move-object v6, v5
 
     .line 458
-    :goto_1e
+    :goto_21
     const-string v2, "iGPSPORT upload error"
 
     move-object v3, v0
@@ -8409,7 +8642,7 @@
 
     move-object/from16 v26, v8
 
-    :goto_1f
+    :goto_22
     return-object v26
 .end method
 
@@ -12496,239 +12729,4 @@
     move-result-object p1
 
     return-object p1
-.end method
-
-.method public static applyIgpTimezoneShift(Landroid/content/Context;[BLcom/jichi/ob/model/ActivityRecord;)[B
-    .locals 16
-
-    # 参数移到低寄存器（p0=v16,p1=v17,p2=v18 超出invoke范围）
-    move-object/from16 v0, p0
-
-    move-object/from16 v1, p1
-
-    move-object/from16 v2, p2
-
-    # v0=context, v1=data, v2=record, v12=isSameDay, v13=isFit, v14=setting
-
-    # === 计算 isSameDay (v12) ===
-    invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
-
-    move-result-object v3
-
-    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
-
-    move-result-wide v4
-
-    invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
-
-    move-result-object v6
-
-    invoke-virtual {v6, v4, v5}, Ljava/util/Calendar;->setTimeInMillis(J)V
-
-    const/16 v4, 0x1
-
-    invoke-virtual {v3, v4}, Ljava/util/Calendar;->get(I)I
-
-    move-result v7
-
-    invoke-virtual {v6, v4}, Ljava/util/Calendar;->get(I)I
-
-    move-result v8
-
-    if-ne v7, v8, :cond_not_same_day
-
-    const/16 v4, 0x2
-
-    invoke-virtual {v3, v4}, Ljava/util/Calendar;->get(I)I
-
-    move-result v7
-
-    invoke-virtual {v6, v4}, Ljava/util/Calendar;->get(I)I
-
-    move-result v8
-
-    if-ne v7, v8, :cond_not_same_day
-
-    const/16 v4, 0x5
-
-    invoke-virtual {v3, v4}, Ljava/util/Calendar;->get(I)I
-
-    move-result v7
-
-    invoke-virtual {v6, v4}, Ljava/util/Calendar;->get(I)I
-
-    move-result v8
-
-    if-ne v7, v8, :cond_not_same_day
-
-    const/4 v12, 0x1
-
-    goto :cond_day_done
-
-    :cond_not_same_day
-    const/4 v12, 0x0
-
-    :cond_day_done
-
-    # === 计算 isFit (v13) ===
-    array-length v3, v1
-
-    const/16 v4, 0xc
-
-    if-lt v3, v4, :cond_not_fit
-
-    const/16 v3, 0x8
-
-    aget-byte v3, v1, v3
-
-    const/16 v4, 0x46
-
-    if-ne v3, v4, :cond_not_fit
-
-    const/16 v3, 0x9
-
-    aget-byte v3, v1, v3
-
-    const/16 v4, 0x49
-
-    if-ne v3, v4, :cond_not_fit
-
-    const/16 v3, 0xa
-
-    aget-byte v3, v1, v3
-
-    const/16 v4, 0x54
-
-    if-ne v3, v4, :cond_not_fit
-
-    const/4 v13, 0x1
-
-    goto :cond_fit_done
-
-    :cond_not_fit
-    const/4 v13, 0x0
-
-    :cond_fit_done
-
-    # === 获取平台名并构建 key ===
-    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getSource()Lcom/jichi/ob/model/DataSource;
-
-    move-result-object v3
-
-    invoke-virtual {v3}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
-
-    move-result-object v3
-
-    if-eqz v12, :cond_tz_history
-
-    const-string v4, "_same_day"
-
-    goto :cond_tz_key_done
-
-    :cond_tz_history
-    const-string v4, "_history"
-
-    :cond_tz_key_done
-    new-instance v5, Ljava/lang/StringBuilder;
-
-    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
-
-    invoke-virtual {v5, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v5
-
-    # === 读取设置 (v14) ===
-    const-string v3, "jichi_ob_prefs"
-
-    const/4 v4, 0x0
-
-    invoke-virtual {v0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-
-    move-result-object v3
-
-    const/4 v4, 0x0
-
-    invoke-interface {v3, v5, v4}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
-
-    move-result v14
-
-    # === setting == 1 → +8h ===
-    const/4 v3, 0x1
-
-    if-ne v14, v3, :cond_tz_minus
-
-    if-eqz v13, :cond_tz_gpx_plus
-
-    const-string v3, "UploadEngine"
-
-    const-string v4, "iGP\u65f6\u533a\u4fee\u6b63+8h\uff08\u6309\u5e73\u53f0\u8bbe\u7f6e\uff09"
-
-    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
-
-    sget-object v3, Lcom/jichi/ob/util/FitTimeShift;->INSTANCE:Lcom/jichi/ob/util/FitTimeShift;
-
-    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
-
-    move-result-wide v4
-
-    invoke-virtual {v3, v1, v4, v5}, Lcom/jichi/ob/util/FitTimeShift;->shiftForIgpsport([BJ)[B
-
-    move-result-object v0
-
-    return-object v0
-
-    :cond_tz_gpx_plus
-    sget-object v3, Lcom/jichi/ob/util/GpxTimeFixer;->INSTANCE:Lcom/jichi/ob/util/GpxTimeFixer;
-
-    const/4 v4, -0x8
-
-    invoke-virtual {v3, v1, v4}, Lcom/jichi/ob/util/GpxTimeFixer;->fixGpxTime([BI)[B
-
-    move-result-object v0
-
-    return-object v0
-
-    :cond_tz_minus
-    # === setting == 2 → -8h ===
-    const/4 v3, 0x2
-
-    if-ne v14, v3, :cond_tz_none
-
-    if-eqz v13, :cond_tz_gpx_minus
-
-    const-string v3, "UploadEngine"
-
-    const-string v4, "iGP\u65f6\u533a\u4fee\u6b63-8h\uff08\u6309\u5e73\u53f0\u8bbe\u7f6e\uff09"
-
-    invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
-
-    sget-object v3, Lcom/jichi/ob/util/FitTimeShift;->INSTANCE:Lcom/jichi/ob/util/FitTimeShift;
-
-    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
-
-    move-result-wide v4
-
-    invoke-virtual {v3, v1, v4, v5}, Lcom/jichi/ob/util/FitTimeShift;->shiftForIgpsportMinus([BJ)[B
-
-    move-result-object v0
-
-    return-object v0
-
-    :cond_tz_gpx_minus
-    sget-object v3, Lcom/jichi/ob/util/GpxTimeFixer;->INSTANCE:Lcom/jichi/ob/util/GpxTimeFixer;
-
-    const/16 v4, 0x8
-
-    invoke-virtual {v3, v1, v4}, Lcom/jichi/ob/util/GpxTimeFixer;->fixGpxTime([BI)[B
-
-    move-result-object v0
-
-    return-object v0
-
-    :cond_tz_none
-    return-object v1
 .end method

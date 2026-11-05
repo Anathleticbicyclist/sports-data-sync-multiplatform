@@ -861,9 +861,11 @@
 
     .line 100
     :cond_10
-    new-array v1, v8, [Ljava/lang/String;
+    const/4 v6, 0x3
 
-    const-string v2, "https://active.brytonsport.com"
+    new-array v1, v6, [Ljava/lang/String;
+
+    const-string v2, "http://www.brytonsports.cn"
 
     aput-object v2, v1, v7
 
@@ -871,13 +873,20 @@
 
     aput-object v2, v1, v9
 
+    # v9.5.4: 国际站实际站点 origin，切换站点时一并清 cookie/localStorage
+    const-string v2, "https://active.brytonsport.com"
+
+    const/4 v4, 0x2
+
+    aput-object v2, v1, v4
+
     invoke-static {v1}, Lkotlin/collections/CollectionsKt;->listOf([Ljava/lang/Object;)Ljava/util/List;
 
     move-result-object v1
 
     new-array v2, v8, [Ljava/lang/String;
 
-    const-string v4, "active.brytonsport.com"
+    const-string v4, "www.brytonsports.cn"
 
     aput-object v4, v2, v7
 

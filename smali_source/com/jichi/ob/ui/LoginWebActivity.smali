@@ -1746,7 +1746,7 @@
     :cond_10
     new-array v3, v8, [Ljava/lang/String;
 
-    const-string v4, "https://active.brytonsport.com"
+    const-string v4, "http://www.brytonsports.cn"
 
     invoke-virtual {v2, v4}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
@@ -1754,7 +1754,7 @@
 
     aput-object v4, v3, v15
 
-    const-string v4, "active.brytonsport.com"
+    const-string v4, "www.brytonsports.cn"
 
     invoke-virtual {v2, v4}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
@@ -1803,6 +1803,11 @@
     const/16 v21, 0x0
 
     invoke-static/range {v15 .. v23}, Lkotlin/collections/CollectionsKt;->joinToString$default(Ljava/lang/Iterable;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;ILjava/lang/CharSequence;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+
+    move-result-object v1
+
+    # v9.5.4: 国际站补采 active.brytonsport.com 的登录 cookie
+    invoke-static {v1}, Lcom/jichi/ob/util/BrytonSite;->appendSiteCookie(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v1
 
@@ -3141,7 +3146,7 @@
     .line 1040
     new-array v1, v1, [Ljava/lang/String;
 
-    const-string v2, "https://active.brytonsport.com"
+    const-string v2, "http://www.brytonsports.cn"
 
     invoke-virtual {v0, v2}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
@@ -3152,7 +3157,7 @@
     aput-object v2, v1, v3
 
     .line 1041
-    const-string v2, "active.brytonsport.com"
+    const-string v2, "www.brytonsports.cn"
 
     invoke-virtual {v0, v2}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
@@ -3232,6 +3237,11 @@
     const/4 v7, 0x0
 
     invoke-static/range {v1 .. v9}, Lkotlin/collections/CollectionsKt;->joinToString$default(Ljava/lang/Iterable;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;ILjava/lang/CharSequence;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+
+    move-result-object v0
+
+    # v9.5.4: 国际站补采 active.brytonsport.com 的登录 cookie
+    invoke-static {v0}, Lcom/jichi/ob/util/BrytonSite;->appendSiteCookie(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
 
@@ -4988,7 +4998,7 @@
 
     invoke-direct {v2, p0, v0}, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda30;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;Z)V
 
-    const-string v0, "(function() {\n    try {\n        var raw = localStorage.getItem(\'persist:app-store\');\n        if (!raw) return \'NO_PERSIST\';\n        var obj = JSON.parse(raw);\n        var global = JSON.parse(obj.global || \'{}\');\n        return global.token || \'NO_TOKEN\';\n    } catch(e) { return \'ERR:\' + e.message; }\n})()"
+    const-string v0, "(function() { try { var t = null; var raw = localStorage.getItem(\'IGS--TOKEN\'); if (raw) { try { var o = JSON.parse(raw); t = o.access_token || o.token; } catch(e) { if (raw.length > 20) t = raw; } } if (!t) { var p = localStorage.getItem(\'persist:app-store\'); if (p) { try { var obj = JSON.parse(p); var g = JSON.parse(obj.global || \'{}\'); t = g.token; } catch(e2) {} } } if (!t) { var h = location.href; var i = h.indexOf(\'token=\'); if (i >= 0) { var s = h.substring(i + 6); var j = s.indexOf(\'&\'); if (j >= 0) s = s.substring(0, j); if (s.length > 20) t = decodeURIComponent(s); } } if (!t) { try { for (var n = 0; n < localStorage.length; n++) { var k = localStorage.key(n) || \'\'; if (k.indexOf(\'IGS\') >= 0 || k.indexOf(\'token\') >= 0) { var v = localStorage.getItem(k) || \'\'; try { var oo = JSON.parse(v); t = oo.access_token || oo.token; } catch(e4) { if (v.length > 20) t = v; } if (t) break; } } } catch(e5) {} } if (!t) { var cs = (document.cookie || \'\').split(\';\'); for (var q = 0; q < cs.length; q++) { var c = cs[q].trim(); if (c.indexOf(\'IGS\') === 0 || c.indexOf(\'token\') >= 0) { var eq = c.indexOf(\'=\'); if (eq > 0) { t = decodeURIComponent(c.substring(eq + 1)); if (t) break; } } } } if (!t || typeof t !== \'string\' || t.length < 20 || t.indexOf(\'.\') < 0) return \'NO_TOKEN\'; if (t.indexOf(\'Bearer \') === 0) return t; return \'Bearer \' + t; } catch(e) { return \'ERR:\' + e.message; } })()"
 
     invoke-virtual {v1, v0, v2}, Landroid/webkit/WebView;->evaluateJavascript(Ljava/lang/String;Landroid/webkit/ValueCallback;)V
 
@@ -10999,6 +11009,22 @@
 
     .line 238
     :cond_3
+    # v9.5.4: 百锐腾登录入口按「国内站/国际站」开关改写为当前站点首页
+    iget-object v4, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
+
+    const-string v5, "bryton"
+
+    invoke-static {v4, v5}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
+
+    move-result v4
+
+    if-eqz v4, :cond_bryton_url_done
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->loginHomeUrl()Ljava/lang/String;
+
+    move-result-object v2
+
+    :cond_bryton_url_done
     iget-object v4, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
     invoke-static {v4, v0}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
@@ -11860,7 +11886,7 @@
 
     if-eqz v0, :cond_25
 
-    const/4 v5, 0x1
+    const/4 v5, 0x0
 
     .line 517
     invoke-virtual {v3, v5}, Landroid/webkit/WebSettings;->setUseWideViewPort(Z)V

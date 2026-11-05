@@ -370,6 +370,10 @@
 
 .field private static final KEY_AUTO_SYNC:Ljava/lang/String; = "auto_sync"
 
+.field private static final KEY_BRYTON_SITE:Ljava/lang/String; = "bryton_site"
+
+.field private static final KEY_DARK_MODE:Ljava/lang/String; = "dark_mode"
+
 .field private static final KEY_DL_CONCURRENCY:Ljava/lang/String; = "dl_concurrency"
 
 .field private static final KEY_FORCE_RETRANSMIT:Ljava/lang/String; = "force_retransmit"
@@ -467,6 +471,9 @@
 
     .line 16
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    # v9.5.4: 缓存百锐腾站点（cn/int），供无 Context 的 api 层读取
+    invoke-static {p1}, Lcom/jichi/ob/util/BrytonSite;->init(Landroid/content/Context;)V
 
     .line 55
     const-string v0, "jichi_ob"
@@ -1758,6 +1765,27 @@
     return-object v0
 .end method
 
+.method public final getBrytonSite()Ljava/lang/String;
+    .locals 3
+
+    # v9.5.4: 百锐腾站点，cn=国内站 / int=国际站，默认 cn
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    sget-object v1, Lcom/jichi/ob/util/PrefsManager;->KEY_BRYTON_SITE:Ljava/lang/String;
+
+    const-string v2, "cn"
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-static {v0}, Lcom/jichi/ob/util/BrytonSite;->normalize(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
 .method public final getBrytonToken()Ljava/lang/String;
     .locals 3
 
@@ -2283,6 +2311,22 @@
     return-object v0
 .end method
 
+.method public final getDarkMode()Ljava/lang/String;
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    const-string v1, "dark_mode"
+
+    const-string/jumbo p0, "system"
+
+    invoke-interface {v0, v1, p0}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
+.end method
+
 .method public final getDownloadConcurrency()I
     .locals 3
 
@@ -2519,6 +2563,38 @@
     move-result-object v0
 
     return-object v0
+.end method
+
+.method public final getIgpTzHistory()I
+    .locals 3
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    const-string v1, "igp_tz_history"
+
+    const/4 v2, 0x0
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
+
+    move-result v0
+
+    return v0
+.end method
+
+.method public final getIgpTzSameDay()I
+    .locals 3
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    const-string v1, "igp_tz_same_day"
+
+    const/4 v2, 0x0
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
+
+    move-result v0
+
+    return v0
 .end method
 
 .method public final getIgpsportIntToken()Ljava/lang/String;
@@ -5009,23 +5085,6 @@
     return v0
 .end method
 
-.method public final isGcj02Qiniu()Z
-    .locals 3
-
-    .line 623
-    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    const-string v1, "gcj02_qiniu_durl"
-
-    const/4 v2, 0x0
-
-    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-
-    move-result v0
-
-    return v0
-.end method
-
 .method public final isGcj02LocalFolder()Z
     .locals 3
 
@@ -5042,32 +5101,17 @@
     return v0
 .end method
 
-.method public final getIgpTzSameDay()I
+.method public final isGcj02Qiniu()Z
     .locals 3
 
+    .line 623
     iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
 
-    const-string v1, "igp_tz_same_day"
+    const-string v1, "gcj02_qiniu_durl"
 
     const/4 v2, 0x0
 
-    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
-
-    move-result v0
-
-    return v0
-.end method
-
-.method public final getIgpTzHistory()I
-    .locals 3
-
-    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    const-string v1, "igp_tz_history"
-
-    const/4 v2, 0x0
-
-    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
 
     move-result v0
 
@@ -6350,6 +6394,37 @@
     const-string v1, "bryton_cookie"
 
     invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object p1
+
+    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    return-void
+.end method
+
+.method public final setBrytonSite(Ljava/lang/String;)V
+    .locals 3
+
+    const-string v0, "site"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    # v9.5.4: 站点写入 pref 的同时刷新 api 层静态缓存
+    invoke-static {p1}, Lcom/jichi/ob/util/BrytonSite;->normalize(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v2
+
+    invoke-static {v2}, Lcom/jichi/ob/util/BrytonSite;->set(Ljava/lang/String;)V
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    sget-object v1, Lcom/jichi/ob/util/PrefsManager;->KEY_BRYTON_SITE:Ljava/lang/String;
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
 
     move-result-object p1
 
@@ -8872,6 +8947,26 @@
     return-void
 .end method
 
+.method public final setDarkMode(Ljava/lang/String;)V
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    const-string v1, "dark_mode"
+
+    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object p1
+
+    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    return-void
+.end method
+
 .method public final setDownloadConcurrency(I)V
     .locals 2
 
@@ -9019,6 +9114,26 @@
     return-void
 .end method
 
+.method public final setGcj02LocalFolder(Z)V
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    const-string v1, "gcj02_local_folder"
+
+    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object p1
+
+    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    return-void
+.end method
+
 .method public final setGcj02Qiniu(Z)V
     .locals 2
 
@@ -9040,7 +9155,7 @@
     return-void
 .end method
 
-.method public final setGcj02LocalFolder(Z)V
+.method public final setIgpTzHistory(I)V
     .locals 2
 
     iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
@@ -9049,9 +9164,9 @@
 
     move-result-object v0
 
-    const-string v1, "gcj02_local_folder"
+    const-string v1, "igp_tz_history"
 
-    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
 
     move-result-object p1
 
@@ -9070,26 +9185,6 @@
     move-result-object v0
 
     const-string v1, "igp_tz_same_day"
-
-    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
-
-    move-result-object p1
-
-    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
-
-    return-void
-.end method
-
-.method public final setIgpTzHistory(I)V
-    .locals 2
-
-    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-
-    move-result-object v0
-
-    const-string v1, "igp_tz_history"
 
     invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
 

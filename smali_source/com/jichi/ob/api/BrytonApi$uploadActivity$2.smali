@@ -266,7 +266,9 @@
     invoke-direct {v9}, Lokhttp3/Request$Builder;-><init>()V
 
     .line 180
-    const-string v10, "https://active.brytonsport.com/api/activity/upload"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiActivityUploadUrl()Ljava/lang/String;
+
+    move-result-object v10
 
     invoke-virtual {v9, v10}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
 

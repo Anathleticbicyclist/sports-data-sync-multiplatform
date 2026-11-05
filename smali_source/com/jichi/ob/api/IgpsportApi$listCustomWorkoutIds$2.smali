@@ -252,7 +252,9 @@
 
     iget-object v3, p0, Lcom/jichi/ob/api/IgpsportApi$listCustomWorkoutIds$2;->$token:Ljava/lang/String;
 
-    invoke-static {v2, v3}, Lcom/jichi/ob/api/IgpsportApi;->access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;)Ljava/util/Map;
+    iget-boolean v5, p0, Lcom/jichi/ob/api/IgpsportApi$listCustomWorkoutIds$2;->$intl:Z
+
+    invoke-static {v2, v3, v5}, Lcom/jichi/ob/api/IgpsportApi;->access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;Z)Ljava/util/Map;
 
     move-result-object v2
 

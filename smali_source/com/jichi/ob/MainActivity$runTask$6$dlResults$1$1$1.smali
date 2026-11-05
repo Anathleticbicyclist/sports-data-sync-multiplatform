@@ -391,6 +391,97 @@
 
     .line 2604
     :cond_2
+    iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->$task:Lcom/jichi/ob/model/SyncTask;
+
+    invoke-virtual {v9}, Lcom/jichi/ob/model/SyncTask;->getForce()Z
+
+    move-result v9
+
+    if-nez v9, :cond_3
+
+    new-instance v9, Ljava/util/ArrayList;
+
+    invoke-direct {v9}, Ljava/util/ArrayList;-><init>()V
+
+    invoke-virtual {v7}, Lcom/jichi/ob/model/ActivityRecord;->getId()Ljava/lang/String;
+
+    move-result-object v10
+
+    invoke-interface {v9, v10}, Ljava/util/Collection;->add(Ljava/lang/Object;)Z
+
+    sget-object v16, Lcom/jichi/ob/util/ActivityCache;->Companion:Lcom/jichi/ob/util/ActivityCache$Companion;
+
+    move-object/from16 v10, v16
+
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->this$0:Lcom/jichi/ob/MainActivity;
+
+    check-cast v0, Landroid/content/Context;
+
+    invoke-virtual {v10, v0}, Lcom/jichi/ob/util/ActivityCache$Companion;->get(Landroid/content/Context;)Lcom/jichi/ob/util/ActivityCache;
+
+    move-result-object v16
+
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->$source:Lcom/jichi/ob/model/DataSource;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/model/DataSource;->getShortName()Ljava/lang/String;
+
+    move-result-object v17
+
+    move-object/from16 v10, v16
+
+    move-object/from16 v0, v17
+
+    invoke-virtual {v10, v0, v9}, Lcom/jichi/ob/util/ActivityCache;->existsDownloadedIds(Ljava/lang/String;Ljava/util/Collection;)Ljava/util/Set;
+
+    move-result-object v16
+
+    invoke-virtual {v7}, Lcom/jichi/ob/model/ActivityRecord;->getId()Ljava/lang/String;
+
+    move-result-object v0
+
+    move-object/from16 v10, v16
+
+    invoke-interface {v10, v0}, Ljava/util/Set;->contains(Ljava/lang/Object;)Z
+
+    move-result v10
+
+    if-eqz v10, :cond_3
+
+    iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->this$0:Lcom/jichi/ob/MainActivity;
+
+    new-instance v10, Ljava/lang/StringBuilder;
+
+    const-string/jumbo v16, "\ud83d\udcbe \u5df2\u5b58: "
+
+    move-object/from16 v0, v16
+
+    invoke-direct {v10, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v7}, Lcom/jichi/ob/model/ActivityRecord;->getTitle()Ljava/lang/String;
+
+    move-result-object v16
+
+    move-object/from16 v0, v16
+
+    invoke-virtual {v10, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v10
+
+    invoke-virtual {v10}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v16
+
+    move-object/from16 v0, v16
+
+    invoke-static {v9, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    new-instance v0, Lcom/jichi/ob/MainActivity$runTask$6$Downloaded;
+
+    invoke-direct {v0, v7, v15, v15}, Lcom/jichi/ob/MainActivity$runTask$6$Downloaded;-><init>(Lcom/jichi/ob/model/ActivityRecord;[BLjava/io/File;)V
+
+    return-object v0
+
+    :cond_3
     iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->$dlSem:Ljava/util/concurrent/Semaphore;
 
     invoke-virtual {v9}, Ljava/util/concurrent/Semaphore;->acquire()V
@@ -572,11 +663,11 @@
     .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_3
     .catchall {:try_start_3 .. :try_end_3} :catchall_0
 
-    if-ne v3, v6, :cond_3
+    if-ne v3, v6, :cond_4
 
     return-object v6
 
-    :cond_3
+    :cond_4
     move-object/from16 v4, v19
 
     :goto_0
@@ -586,7 +677,7 @@
     .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_2
     .catchall {:try_start_4 .. :try_end_4} :catchall_0
 
-    if-eqz v3, :cond_7
+    if-eqz v3, :cond_8
 
     .line 2613
     :try_start_5
@@ -594,25 +685,25 @@
 
     const/16 v6, 0x64
 
-    if-ge v5, v6, :cond_4
+    if-ge v5, v6, :cond_5
 
     goto/16 :goto_3
 
     .line 2619
-    :cond_4
+    :cond_5
     iget-object v5, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->this$0:Lcom/jichi/ob/MainActivity;
 
     invoke-static {v5, v3}, Lcom/jichi/ob/MainActivity;->access$isFit(Lcom/jichi/ob/MainActivity;[B)Z
 
     move-result v5
 
-    if-eqz v5, :cond_5
+    if-eqz v5, :cond_6
 
     const-string v5, "fit"
 
     goto :goto_1
 
-    :cond_5
+    :cond_6
     const-string v5, "gpx"
 
     .line 2620
@@ -785,11 +876,11 @@
 
     move-result-object v7
 
-    if-nez v5, :cond_6
+    if-nez v5, :cond_7
 
     const-string v5, ""
 
-    :cond_6
+    :cond_7
     invoke-virtual {v0, v2, v7, v5}, Lcom/jichi/ob/util/ActivityCache;->setFilename(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
     :try_end_8
     .catch Ljava/lang/Exception; {:try_start_8 .. :try_end_8} :catch_1
@@ -837,7 +928,7 @@
     return-object v0
 
     .line 2614
-    :cond_7
+    :cond_8
     :goto_3
     :try_start_c
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6$dlResults$1$1$1;->this$0:Lcom/jichi/ob/MainActivity;
@@ -892,13 +983,13 @@
 
     move-result-object v0
 
-    if-nez v0, :cond_8
+    if-nez v0, :cond_9
 
     invoke-static/range {v23 .. v23}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v0, 0x0
 
-    :cond_8
+    :cond_9
     const/4 v2, 0x2
 
     const/4 v3, 0x0
@@ -1028,13 +1119,13 @@
 
     move-result-object v9
 
-    if-nez v9, :cond_9
+    if-nez v9, :cond_a
 
     invoke-static/range {v23 .. v23}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v9, 0x0
 
-    :cond_9
+    :cond_a
     const/4 v2, 0x2
 
     const/4 v4, 0x0

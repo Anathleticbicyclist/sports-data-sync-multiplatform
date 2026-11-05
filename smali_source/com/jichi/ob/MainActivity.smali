@@ -1068,7 +1068,7 @@
     sput-object v0, Lcom/jichi/ob/MainActivity;->Companion:Lcom/jichi/ob/MainActivity$Companion;
 
     .line 97
-    const-string/jumbo v0, "v9.4.0"
+    const-string/jumbo v0, "v9.5.5"
 
     sput-object v0, Lcom/jichi/ob/MainActivity;->APP_VERSION:Ljava/lang/String;
 
@@ -28157,6 +28157,46 @@
 
     invoke-virtual {v6, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
+    # v9.5.0: 涓ゆ楠岃瘉鐢ㄦ埛寮曞鎻愮ず锛堜匠鏄庝腑鍥界洿鎺ョ櫥褰曞脊绐楋級
+    new-instance v9, Landroid/widget/TextView;
+
+    invoke-direct {v9, v1}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+
+    const-string/jumbo v10, "\u2192 \u82e5\u4e24\u6b65\u9a8c\u8bc1\u65e0\u6cd5\u5173\u95ed\uff0c\u70b9\u6b64\u7528\u6d4f\u89c8\u5668\u767b\u5f55\uff08\u9a8c\u8bc1\u7801\u9875\u8bb0\u5f97\u52fe\u201c\u8bb0\u4f4f\u6b64\u6d4f\u89c8\u5668\u201d\uff09"
+
+    check-cast v10, Ljava/lang/CharSequence;
+
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    const v10, 0x41300000
+
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setTextSize(F)V
+
+    const v10, -0x19af00
+
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setTextColor(I)V
+
+    const/16 v10, 0x14
+
+    invoke-virtual {v9, v5, v10, v5, v5}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    const/4 v10, 0x1
+
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setClickable(Z)V
+
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setFocusable(Z)V
+
+    new-instance v10, Lcom/jichi/ob/MainActivity$$ExternalSyntheticLambdaGarminCnWeb;
+
+    invoke-direct {v10, p0}, Lcom/jichi/ob/MainActivity$$ExternalSyntheticLambdaGarminCnWeb;-><init>(Lcom/jichi/ob/MainActivity;)V
+
+    invoke-virtual {v9, v10}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    check-cast v9, Landroid/view/View;
+
+    invoke-virtual {v6, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+    # v9.5.0 end
+
     .line 764
     check-cast v6, Landroid/view/View;
 
@@ -29326,7 +29366,7 @@
     :pswitch_1
     const-string p1, "bryton"
 
-    const-string v0, "https://active.brytonsport.com"
+    const-string v0, "http://www.brytonsports.cn/home"
 
     invoke-virtual {p0, p1, v0}, Lcom/jichi/ob/MainActivity;->openLogin$app_devRelease(Ljava/lang/String;Ljava/lang/String;)V
 
@@ -29538,7 +29578,7 @@
     :pswitch_1b
     const-string p1, "igpsport_int"
 
-    const-string v0, "https://app.igpsport.com/user/home"
+    const-string v0, "https://login.passport.igpsport.com/login"
 
     invoke-virtual {p0, p1, v0}, Lcom/jichi/ob/MainActivity;->openLogin$app_devRelease(Ljava/lang/String;Ljava/lang/String;)V
 

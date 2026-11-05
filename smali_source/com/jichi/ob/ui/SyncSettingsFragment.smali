@@ -2745,6 +2745,10 @@
 
     if-eq v6, v7, :cond_6
 
+    sget-object v7, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v6, v7, :cond_7
+
     iget-object v7, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
     if-nez v7, :cond_5
@@ -2960,6 +2964,10 @@
     sget-object v10, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
 
     if-eq v9, v10, :cond_15
+
+    sget-object v10, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v9, v10, :cond_13
 
     iget-object v10, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
@@ -6827,12 +6835,17 @@
 
     .line 579
     :cond_9
+    sget-object v3, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v3, :cond_9b
+
     invoke-virtual {v8}, Lcom/jichi/ob/model/UploadSupport;->getAvailable()Z
 
     move-result v3
 
     if-nez v3, :cond_a
 
+    :cond_9b
     .line 580
     invoke-virtual {v6, v4}, Lcom/jichi/ob/ui/PlatformButton;->setEnabled(Z)V
 

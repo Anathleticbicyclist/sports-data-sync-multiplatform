@@ -355,7 +355,9 @@
     .line 87
     new-instance v7, Ljava/lang/StringBuilder;
 
-    const-string v8, "https://active.brytonsport.com/api/activity/list?page="
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiActivitiesListUrl()Ljava/lang/String;
+
+    move-result-object v8
 
     invoke-direct {v7, v8}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 

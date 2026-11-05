@@ -172,6 +172,11 @@
 .method public final invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
     .locals 13
 
+
+    # v9.5.4: 新站无 /api/users/me（Meteor/DDP），有 token 即视为已登录
+    const-string v0, "bryton"
+
+    return-object v0
     invoke-static {}, Lkotlin/coroutines/intrinsics/IntrinsicsKt;->getCOROUTINE_SUSPENDED()Ljava/lang/Object;
 
     .line 44
@@ -412,7 +417,9 @@
 
     invoke-direct {p1}, Lokhttp3/Request$Builder;-><init>()V
 
-    const-string v0, "https://active.brytonsport.com/api/users/me"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiUsersMeUrl()Ljava/lang/String;
+
+    move-result-object v0
 
     invoke-virtual {p1, v0}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
 

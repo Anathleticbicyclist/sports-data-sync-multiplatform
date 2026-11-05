@@ -124,8 +124,6 @@
 
 .field private coordinateConvert:Z
 
-.field private wellness:Z
-
 .field private count:I
 
 .field private force:Z
@@ -170,9 +168,11 @@
 
 .field private tvTitle:Landroid/widget/TextView;
 
-.field private workoutFutureDays:I
+.field private wellness:Z
 
 .field private wellnessDays:I
+
+.field private workoutFutureDays:I
 
 .field private workoutHistoryDays:I
 
@@ -352,24 +352,6 @@
     return-object p0
 .end method
 
-.method public static synthetic $r8$lambda$wellnessToggle(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
-    .locals 0
-
-    invoke-static {p0, p1, p2}, Lcom/jichi/ob/ui/CreateTaskFragment;->renderStep2$lambda$wellnessToggle(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
-
-    return-void
-.end method
-
-.method public static synthetic $r8$lambda$wellnessDays(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-    .locals 0
-
-    invoke-static {p0, p1}, Lcom/jichi/ob/ui/CreateTaskFragment;->renderStep2$lambda$wellnessDays(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-
-    move-result-object p0
-
-    return-object p0
-.end method
-
 .method public static synthetic $r8$lambda$kLsldSLYgYGtNN7BNfV06yQXg0A(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
     .locals 0
 
@@ -406,6 +388,24 @@
     move-result p0
 
     return p0
+.end method
+
+.method public static synthetic $r8$lambda$wellnessDays(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+    .locals 0
+
+    invoke-static {p0, p1}, Lcom/jichi/ob/ui/CreateTaskFragment;->renderStep2$lambda$wellnessDays(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+
+    move-result-object p0
+
+    return-object p0
+.end method
+
+.method public static synthetic $r8$lambda$wellnessToggle(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
+    .locals 0
+
+    invoke-static {p0, p1, p2}, Lcom/jichi/ob/ui/CreateTaskFragment;->renderStep2$lambda$wellnessToggle(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
+
+    return-void
 .end method
 
 .method public static synthetic $r8$lambda$wz3SB21Qc91hc3cWeATiYHBYCRw(ZLkotlin/jvm/functions/Function1;Lcom/jichi/ob/model/DataSource;Landroid/view/View;)V
@@ -2478,6 +2478,10 @@
 
     if-eq v7, v8, :cond_12
 
+    sget-object v8, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v8, :cond_f
+
     iget-object v8, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
     if-nez v8, :cond_11
@@ -3733,8 +3737,6 @@
 
     .line 405
     :cond_d
-
-    # ===== 佳明中国↔国际互传：任务级健康数据同步 =====
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->selectedSources:Ljava/util/LinkedHashSet;
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_COM:Lcom/jichi/ob/model/DataSource;
@@ -3773,17 +3775,17 @@
 
     or-int v3, v3, v1
 
-    if-eqz v3, :cond_1a
+    if-eqz v3, :cond_10
 
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_1b
+    if-nez v1, :cond_e
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v6
 
-    :cond_1b
+    :cond_e
     new-instance v2, Lcom/google/android/material/switchmaterial/SwitchMaterial;
 
     invoke-virtual {v0}, Lcom/jichi/ob/ui/CreateTaskFragment;->requireContext()Landroid/content/Context;
@@ -3816,13 +3818,13 @@
 
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_1d
+    if-nez v1, :cond_f
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v6
 
-    :cond_1d
+    :cond_f
     const-string/jumbo v2, "\u5065\u5eb7\u6570\u636e\u540c\u6b65\u9700\u4f73\u660e\u6765\u6e90\u4e0e\u4f73\u660e\u76ee\u6807\uff08\u5982\u4f73\u660e\u4e2d\u56fd\u2194\u4f73\u660e\u56fd\u9645\uff09\uff1b\u76ee\u6807\u8d26\u53f7\u9700\u5df2\u7ed1\u5b9a\u5065\u5eb7\u8bbe\u5907\uff08\u624b\u8868/\u624b\u73af\uff09"
 
     invoke-direct {v0, v2}, Lcom/jichi/ob/ui/CreateTaskFragment;->sectionHint(Ljava/lang/String;)Landroid/widget/TextView;
@@ -3833,10 +3835,10 @@
 
     invoke-virtual {v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    :cond_1a
+    :cond_10
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_e
+    if-nez v1, :cond_11
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
@@ -3844,7 +3846,7 @@
 
     goto :goto_6
 
-    :cond_e
+    :cond_11
     move-object v10, v1
 
     :goto_6
@@ -3871,7 +3873,7 @@
     .line 406
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_f
+    if-nez v1, :cond_12
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
@@ -3879,7 +3881,7 @@
 
     goto :goto_7
 
-    :cond_f
+    :cond_12
     move-object v10, v1
 
     :goto_7
@@ -3906,13 +3908,13 @@
     .line 408
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_10
+    if-nez v1, :cond_13
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v6
 
-    :cond_10
+    :cond_13
     new-instance v2, Lcom/google/android/material/switchmaterial/SwitchMaterial;
 
     invoke-virtual {v0}, Lcom/jichi/ob/ui/CreateTaskFragment;->requireContext()Landroid/content/Context;
@@ -3951,13 +3953,13 @@
     .line 414
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_11
+    if-nez v1, :cond_14
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v6
 
-    :cond_11
+    :cond_14
     const-string/jumbo v2, "\ud83d\udca1 \u589e\u91cf\u6a21\u5f0f\uff1a\u4f9d\u636e\u8bb0\u5f55\u4e2d\u5fc3\u7f13\u5b58\u5e93\uff0c\u81ea\u52a8\u8df3\u8fc7\u5df2\u7f13\u5b58\u7684\u65e7\u8bb0\u5f55\uff0c\u53ea\u540c\u6b65\u6700\u65b0\u6570\u636e"
 
     invoke-direct {v0, v2}, Lcom/jichi/ob/ui/CreateTaskFragment;->sectionHint(Ljava/lang/String;)Landroid/widget/TextView;
@@ -3976,7 +3978,7 @@
     .line 512
     instance-of v2, v1, Ljava/util/Collection;
 
-    if-eqz v2, :cond_12
+    if-eqz v2, :cond_15
 
     move-object v2, v1
 
@@ -3986,22 +3988,22 @@
 
     move-result v2
 
-    if-eqz v2, :cond_12
+    if-eqz v2, :cond_15
 
     goto/16 :goto_a
 
     .line 513
-    :cond_12
+    :cond_15
     invoke-interface {v1}, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;
 
     move-result-object v1
 
-    :cond_13
+    :cond_16
     invoke-interface {v1}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v2
 
-    if-eqz v2, :cond_18
+    if-eqz v2, :cond_1b
 
     invoke-interface {v1}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -4012,18 +4014,18 @@
     .line 416
     sget-object v3, Lcom/jichi/ob/model/DataSource;->INTERVALS_ICU:Lcom/jichi/ob/model/DataSource;
 
-    if-ne v2, v3, :cond_13
+    if-ne v2, v3, :cond_16
 
     .line 417
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_14
+    if-nez v1, :cond_17
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v6
 
-    :cond_14
+    :cond_17
     new-instance v2, Landroid/view/View;
 
     invoke-virtual {v0}, Lcom/jichi/ob/ui/CreateTaskFragment;->requireContext()Landroid/content/Context;
@@ -4075,13 +4077,13 @@
     .line 422
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_15
+    if-nez v1, :cond_18
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v1, v6
 
-    :cond_15
+    :cond_18
     const-string/jumbo v2, "\ud83d\udcc5 \u9644\u5e26\u540c\u6b65ICU\u8bfe\u8868\uff08\u9009\u4e86\u8bfe\u8868\u76ee\u6807\u7684\u5e73\u53f0\u624d\u63a8\u8bfe\u8868\uff09"
 
     invoke-direct {v0, v2}, Lcom/jichi/ob/ui/CreateTaskFragment;->sectionHint(Ljava/lang/String;)Landroid/widget/TextView;
@@ -4095,7 +4097,7 @@
     .line 423
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_16
+    if-nez v1, :cond_19
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
@@ -4103,7 +4105,7 @@
 
     goto :goto_8
 
-    :cond_16
+    :cond_19
     move-object v8, v1
 
     :goto_8
@@ -4130,7 +4132,7 @@
     .line 424
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_17
+    if-nez v1, :cond_1a
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
@@ -4138,7 +4140,7 @@
 
     goto :goto_9
 
-    :cond_17
+    :cond_1a
     move-object v8, v1
 
     :goto_9
@@ -4163,17 +4165,17 @@
     invoke-virtual {v8, v1}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     .line 428
-    :cond_18
+    :cond_1b
     :goto_a
     iget-object v1, v0, Lcom/jichi/ob/ui/CreateTaskFragment;->containerStep:Landroid/widget/LinearLayout;
 
-    if-nez v1, :cond_19
+    if-nez v1, :cond_1c
 
     invoke-static {v7}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     goto :goto_b
 
-    :cond_19
+    :cond_1c
     move-object v6, v1
 
     :goto_b
@@ -4263,6 +4265,86 @@
     return-void
 .end method
 
+.method private static final renderStep2$lambda$50(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+    .locals 0
+
+    .line 405
+    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->count:I
+
+    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+
+    return-object p0
+.end method
+
+.method private static final renderStep2$lambda$51(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+    .locals 0
+
+    .line 406
+    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->skip:I
+
+    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+
+    return-object p0
+.end method
+
+.method private static final renderStep2$lambda$53$lambda$52(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
+    .locals 1
+
+    const-string v0, "<unused var>"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    .line 412
+    iput-boolean p2, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->force:Z
+
+    return-void
+.end method
+
+.method private static final renderStep2$lambda$56(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+    .locals 0
+
+    .line 423
+    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->workoutHistoryDays:I
+
+    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+
+    return-object p0
+.end method
+
+.method private static final renderStep2$lambda$57(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+    .locals 0
+
+    .line 424
+    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->workoutFutureDays:I
+
+    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+
+    return-object p0
+.end method
+
+.method private static final renderStep2$lambda$59$lambda$58(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
+    .locals 1
+
+    const-string v0, "<unused var>"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    .line 432
+    iput-boolean p2, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->autoSync:Z
+
+    return-void
+.end method
+
+.method private static final renderStep2$lambda$wellnessDays(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
+    .locals 0
+
+    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->wellnessDays:I
+
+    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+
+    return-object p0
+.end method
+
 .method private static final renderStep2$lambda$wellnessToggle(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
     .locals 4
 
@@ -4272,7 +4354,7 @@
 
     iput-boolean p2, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->wellness:Z
 
-    if-eqz p2, :cond_off
+    if-eqz p2, :cond_0
 
     new-instance v0, Landroid/widget/EditText;
 
@@ -4362,176 +4444,12 @@
 
     return-void
 
-    :cond_off
+    :cond_0
     const-string/jumbo v0, "\ud83d\udc93 \u540c\u6b65\u5065\u5eb7\u6570\u636e\uff08\u6b65\u6570/\u7761\u7720/HRV/\u538b\u529b\uff09"
 
     check-cast v0, Ljava/lang/CharSequence;
 
     invoke-virtual {p1, v0}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-
-    return-void
-.end method
-
-.method public static synthetic wellnessDaysConfirm(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/EditText;Landroid/widget/CompoundButton;Landroid/content/DialogInterface;I)V
-    .locals 3
-
-    invoke-virtual {p1}, Landroid/widget/EditText;->getText()Landroid/text/Editable;
-
-    move-result-object v0
-
-    invoke-virtual {v0}, Ljava/lang/Object;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    invoke-static {v0}, Lkotlin/text/StringsKt;->toIntOrNull(Ljava/lang/String;)Ljava/lang/Integer;
-
-    move-result-object v0
-
-    if-eqz v0, :cond_null
-
-    invoke-virtual {v0}, Ljava/lang/Integer;->intValue()I
-
-    move-result v0
-
-    goto :goto_num
-
-    :cond_null
-    const/4 v0, 0x7
-
-    :goto_num
-    const/4 v1, 0x1
-
-    const/16 v2, 0x16d
-
-    invoke-static {v0, v1, v2}, Lkotlin/ranges/RangesKt;->coerceIn(III)I
-
-    move-result v0
-
-    iput v0, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->wellnessDays:I
-
-    new-instance v1, Ljava/lang/StringBuilder;
-
-    const-string/jumbo v2, "\u540c\u6b65\u5065\u5eb7\u6570\u636e\uff08\u6700\u8fd1 "
-
-    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-
-    move-result-object v1
-
-    const-string v0, " \u5929\uff09"
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v1
-
-    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    check-cast v0, Ljava/lang/CharSequence;
-
-    invoke-virtual {p2, v0}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-
-    return-void
-.end method
-
-.method public static synthetic wellnessDaysCancel(Landroid/widget/CompoundButton;Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/content/DialogInterface;I)V
-    .locals 1
-
-    const/4 v0, 0x0
-
-    invoke-virtual {p0, v0}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
-
-    invoke-virtual {p0, v0}, Landroid/widget/CompoundButton;->setChecked(Z)V
-
-    iput-boolean v0, p1, Lcom/jichi/ob/ui/CreateTaskFragment;->wellness:Z
-
-    new-instance v0, Lcom/jichi/ob/ui/CreateTaskFragment$$ExternalSyntheticLambda25;
-
-    invoke-direct {v0, p1}, Lcom/jichi/ob/ui/CreateTaskFragment$$ExternalSyntheticLambda25;-><init>(Lcom/jichi/ob/ui/CreateTaskFragment;)V
-
-    invoke-virtual {p0, v0}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
-
-    return-void
-.end method
-
-.method private static final renderStep2$lambda$50(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-    .locals 0
-
-    .line 405
-    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->count:I
-
-    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-
-    return-object p0
-.end method
-
-.method private static final renderStep2$lambda$wellnessDays(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-    .locals 0
-
-    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->wellnessDays:I
-
-    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-
-    return-object p0
-.end method
-
-.method private static final renderStep2$lambda$51(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-    .locals 0
-
-    .line 406
-    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->skip:I
-
-    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-
-    return-object p0
-.end method
-
-.method private static final renderStep2$lambda$53$lambda$52(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
-    .locals 1
-
-    const-string v0, "<unused var>"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    .line 412
-    iput-boolean p2, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->force:Z
-
-    return-void
-.end method
-
-.method private static final renderStep2$lambda$56(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-    .locals 0
-
-    .line 423
-    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->workoutHistoryDays:I
-
-    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-
-    return-object p0
-.end method
-
-.method private static final renderStep2$lambda$57(Lcom/jichi/ob/ui/CreateTaskFragment;I)Lkotlin/Unit;
-    .locals 0
-
-    .line 424
-    iput p1, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->workoutFutureDays:I
-
-    sget-object p0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
-
-    return-object p0
-.end method
-
-.method private static final renderStep2$lambda$59$lambda$58(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/CompoundButton;Z)V
-    .locals 1
-
-    const-string v0, "<unused var>"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    .line 432
-    iput-boolean p2, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->autoSync:Z
 
     return-void
 .end method
@@ -4945,7 +4863,7 @@
 
     const/16 v28, 0x0
 
-    const v29, 0x1f87800
+    const v29, 0x1f86000
 
     const/16 v30, 0x0
 
@@ -5175,6 +5093,90 @@
 
     .line 260
     invoke-direct {p0}, Lcom/jichi/ob/ui/CreateTaskFragment;->render()V
+
+    return-void
+.end method
+
+.method public static synthetic wellnessDaysCancel(Landroid/widget/CompoundButton;Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/content/DialogInterface;I)V
+    .locals 1
+
+    const/4 v0, 0x0
+
+    invoke-virtual {p0, v0}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
+
+    invoke-virtual {p0, v0}, Landroid/widget/CompoundButton;->setChecked(Z)V
+
+    iput-boolean v0, p1, Lcom/jichi/ob/ui/CreateTaskFragment;->wellness:Z
+
+    new-instance v0, Lcom/jichi/ob/ui/CreateTaskFragment$$ExternalSyntheticLambda25;
+
+    invoke-direct {v0, p1}, Lcom/jichi/ob/ui/CreateTaskFragment$$ExternalSyntheticLambda25;-><init>(Lcom/jichi/ob/ui/CreateTaskFragment;)V
+
+    invoke-virtual {p0, v0}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
+
+    return-void
+.end method
+
+.method public static synthetic wellnessDaysConfirm(Lcom/jichi/ob/ui/CreateTaskFragment;Landroid/widget/EditText;Landroid/widget/CompoundButton;Landroid/content/DialogInterface;I)V
+    .locals 3
+
+    invoke-virtual {p1}, Landroid/widget/EditText;->getText()Landroid/text/Editable;
+
+    move-result-object v0
+
+    invoke-virtual {v0}, Ljava/lang/Object;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-static {v0}, Lkotlin/text/StringsKt;->toIntOrNull(Ljava/lang/String;)Ljava/lang/Integer;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_0
+
+    invoke-virtual {v0}, Ljava/lang/Integer;->intValue()I
+
+    move-result v0
+
+    goto :goto_0
+
+    :cond_0
+    const/4 v0, 0x7
+
+    :goto_0
+    const/4 v1, 0x1
+
+    const/16 v2, 0x16d
+
+    invoke-static {v0, v1, v2}, Lkotlin/ranges/RangesKt;->coerceIn(III)I
+
+    move-result v0
+
+    iput v0, p0, Lcom/jichi/ob/ui/CreateTaskFragment;->wellnessDays:I
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    const-string/jumbo v2, "\u540c\u6b65\u5065\u5eb7\u6570\u636e\uff08\u6700\u8fd1 "
+
+    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    const-string v0, " \u5929\uff09"
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    check-cast v0, Ljava/lang/CharSequence;
+
+    invoke-virtual {p2, v0}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
     return-void
 .end method

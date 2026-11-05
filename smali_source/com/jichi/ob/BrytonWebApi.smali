@@ -334,7 +334,9 @@
 
     .line 132
     :cond_1
-    const-string p1, "https://active.brytonsport.com/activities"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->activitiesUrl()Ljava/lang/String;
+
+    move-result-object p1
 
     invoke-virtual {v11, p1}, Landroid/webkit/WebView;->loadUrl(Ljava/lang/String;)V
 

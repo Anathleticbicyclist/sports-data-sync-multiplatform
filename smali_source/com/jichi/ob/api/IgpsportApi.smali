@@ -171,11 +171,11 @@
     return-void
 .end method
 
-.method public static final synthetic access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;)Ljava/util/Map;
+.method public static final synthetic access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;Z)Ljava/util/Map;
     .locals 0
 
     .line 19
-    invoke-direct {p0, p1}, Lcom/jichi/ob/api/IgpsportApi;->authHeaders(Ljava/lang/String;)Ljava/util/Map;
+    invoke-direct {p0, p1, p2}, Lcom/jichi/ob/api/IgpsportApi;->authHeaders(Ljava/lang/String;Z)Ljava/util/Map;
 
     move-result-object p0
 
@@ -202,12 +202,13 @@
     return-object p0
 .end method
 
-.method private final authHeaders(Ljava/lang/String;)Ljava/util/Map;
+.method private final authHeaders(Ljava/lang/String;Z)Ljava/util/Map;
     .locals 3
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
             "Ljava/lang/String;",
+            "Z",
             ")",
             "Ljava/util/Map<",
             "Ljava/lang/String;",
@@ -287,8 +288,16 @@
     .line 128
     const-string p1, "Origin"
 
+    if-eqz p2, :cond_origin_cn
+
+    const-string v1, "https://app.igpsport.com"
+
+    goto :goto_origin
+
+    :cond_origin_cn
     const-string v1, "https://app.igpsport.cn"
 
+    :goto_origin
     invoke-static {p1, v1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
     move-result-object p1
@@ -300,8 +309,16 @@
     .line 129
     const-string p1, "Referer"
 
+    if-eqz p2, :cond_referer_cn
+
+    const-string v1, "https://app.igpsport.com/"
+
+    goto :goto_referer
+
+    :cond_referer_cn
     const-string v1, "https://app.igpsport.cn/"
 
+    :goto_referer
     invoke-static {p1, v1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
     move-result-object p1

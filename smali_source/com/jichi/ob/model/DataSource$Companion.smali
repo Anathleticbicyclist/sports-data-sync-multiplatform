@@ -296,7 +296,7 @@
         }
     .end annotation
 
-    const/16 v0, 0x1b
+    const/16 v0, 0x1a
 
     .line 65
     new-array v0, v0, [Lcom/jichi/ob/model/DataSource;
@@ -345,119 +345,113 @@
 
     const/4 v1, 0x7
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_COM:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x8
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_COM:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x9
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->COROS_CN:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0xa
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->COROS_CN:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->COROS_INT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0xb
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->COROS_INT:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->WAHOO:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0xc
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->WAHOO:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0xd
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->ZWIFT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0xe
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->ZWIFT:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0xf
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->CODOON:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x10
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->CODOON:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x11
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x12
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->SUUNTO:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x13
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->SUUNTO:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->TWO_BULU:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x14
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->TWO_BULU:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x15
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x16
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x17
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x18
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
-
-    aput-object v2, v0, v1
-
-    const/16 v1, 0x19
-
     sget-object v2, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
-    const/16 v1, 0x1a
+    const/16 v1, 0x19
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->CYCITY:Lcom/jichi/ob/model/DataSource;
 

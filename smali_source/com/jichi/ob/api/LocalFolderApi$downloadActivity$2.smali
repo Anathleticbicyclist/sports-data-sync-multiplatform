@@ -173,7 +173,7 @@
     .line 86
     iget v0, p0, Lcom/jichi/ob/api/LocalFolderApi$downloadActivity$2;->label:I
 
-    if-nez v0, :cond_1
+    if-nez v0, :cond_2
 
     invoke-static {p1}, Lkotlin/ResultKt;->throwOnFailure(Ljava/lang/Object;)V
 
@@ -202,7 +202,7 @@
 
     move-result-object v0
 
-    if-eqz v0, :cond_0
+    if-eqz v0, :cond_1
 
     check-cast v0, Ljava/io/Closeable;
     :try_end_0
@@ -238,7 +238,7 @@
 
     move-result v0
 
-    if-eqz v0, :skip_gcj_fix
+    if-eqz v0, :cond_0
 
     sget-object v0, Lcom/jichi/ob/util/FitGcj02Fixer;->INSTANCE:Lcom/jichi/ob/util/FitGcj02Fixer;
 
@@ -246,7 +246,7 @@
 
     move-result-object v1
 
-    :skip_gcj_fix
+    :cond_0
     return-object v1
 
     :catchall_0
@@ -267,7 +267,7 @@
     :try_end_4
     .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_0
 
-    :cond_0
+    :cond_1
     return-object p1
 
     :catch_0
@@ -279,7 +279,7 @@
     return-object p1
 
     .line 86
-    :cond_1
+    :cond_2
     new-instance p1, Ljava/lang/IllegalStateException;
 
     const-string v0, "call to \'resume\' before \'invoke\' with coroutine"

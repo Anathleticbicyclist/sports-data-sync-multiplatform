@@ -417,7 +417,9 @@
 
     iget-object v12, v0, Lcom/jichi/ob/api/IgpsportApi$getActivities$2;->$token:Ljava/lang/String;
 
-    invoke-static {v11, v12}, Lcom/jichi/ob/api/IgpsportApi;->access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;)Ljava/util/Map;
+    iget-boolean v13, v0, Lcom/jichi/ob/api/IgpsportApi$getActivities$2;->$intl:Z
+
+    invoke-static {v11, v12, v13}, Lcom/jichi/ob/api/IgpsportApi;->access$authHeaders(Lcom/jichi/ob/api/IgpsportApi;Ljava/lang/String;Z)Ljava/util/Map;
 
     move-result-object v11
 

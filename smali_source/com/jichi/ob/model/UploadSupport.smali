@@ -299,11 +299,11 @@
 
     const/4 v1, 0x6
 
-    const-string/jumbo v2, "\u5f00\u53d1\u4e2d"
+    const-string/jumbo v2, "WebView\u6a21\u62df\u4e0a\u4f20"
 
     const-string v6, "BRYTON"
 
-    invoke-direct {v0, v6, v1, v3, v2}, Lcom/jichi/ob/model/UploadSupport;-><init>(Ljava/lang/String;IZLjava/lang/String;)V
+    invoke-direct {v0, v6, v1, v4, v2}, Lcom/jichi/ob/model/UploadSupport;-><init>(Ljava/lang/String;IZLjava/lang/String;)V
 
     sput-object v0, Lcom/jichi/ob/model/UploadSupport;->BRYTON:Lcom/jichi/ob/model/UploadSupport;
 

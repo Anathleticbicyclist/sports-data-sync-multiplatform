@@ -160,8 +160,21 @@
     move-object p1, v2
 
     :cond_1
+    invoke-static {}, Landroid/webkit/CookieManager;->getInstance()Landroid/webkit/CookieManager;
+
+    move-result-object v0
+
+    const-string v1, "https://connect.garmin.cn"
+
+    invoke-virtual {v0, v1}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    if-nez v0, :have_cookie
+
     const-string v0, ""
 
+    :have_cookie
     invoke-virtual {p1, v0}, Lcom/jichi/ob/util/PrefsManager;->saveGarminCnCookie(Ljava/lang/String;)V
 
     .line 816

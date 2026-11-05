@@ -177,7 +177,9 @@
 
     const-string v0, "BrytonApi"
 
-    const-string v1, "https://active.brytonsport.com/api/activity/"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiActivityUrl()Ljava/lang/String;
+
+    move-result-object v1
 
     invoke-static {}, Lkotlin/coroutines/intrinsics/IntrinsicsKt;->getCOROUTINE_SUSPENDED()Ljava/lang/Object;
 

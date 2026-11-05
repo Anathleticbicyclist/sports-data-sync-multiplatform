@@ -110,20 +110,6 @@
     .catch Ljava/lang/NoSuchFieldError; {:try_start_4 .. :try_end_4} :catch_4
 
     :catch_4
-    :try_start_5
-    sget-object v1, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
-
-    invoke-virtual {v1}, Lcom/jichi/ob/model/DataSource;->ordinal()I
-
-    move-result v1
-
-    const/4 v2, 0x6
-
-    aput v2, v0, v1
-    :try_end_5
-    .catch Ljava/lang/NoSuchFieldError; {:try_start_5 .. :try_end_5} :catch_5
-
-    :catch_5
     :try_start_6
     sget-object v1, Lcom/jichi/ob/model/DataSource;->GIANT:Lcom/jichi/ob/model/DataSource;
 
@@ -278,6 +264,20 @@
     .catch Ljava/lang/NoSuchFieldError; {:try_start_10 .. :try_end_10} :catch_10
 
     :catch_10
+    :try_start_11
+    sget-object v1, Lcom/jichi/ob/model/DataSource;->IGPSPORT_INT:Lcom/jichi/ob/model/DataSource;
+
+    invoke-virtual {v1}, Lcom/jichi/ob/model/DataSource;->ordinal()I
+
+    move-result v1
+
+    const/16 v2, 0x12
+
+    aput v2, v0, v1
+    :try_end_11
+    .catch Ljava/lang/NoSuchFieldError; {:try_start_11 .. :try_end_11} :catch_11
+
+    :catch_11
     sput-object v0, Lcom/jichi/ob/api/UploadEngine$upload$2$WhenMappings;->$EnumSwitchMapping$0:[I
 
     return-void

@@ -733,7 +733,7 @@
 
     .line 88
     :cond_3
-    sget p2, Lcom/jichi/ob/R$id;->cardLabLogin:I
+    sget p2, Lcom/jichi/ob/R$id;->cardHeatmap:I
 
     invoke-virtual {p1, p2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
 
@@ -743,15 +743,31 @@
 
     if-eqz p2, :cond_4
 
-    new-instance v0, Lcom/jichi/ob/ui/AboutFragment$$ExternalSyntheticLambda4;
+    new-instance v0, Lcom/jichi/ob/heatmap/HeatmapEntryClick;
 
-    invoke-direct {v0, p0}, Lcom/jichi/ob/ui/AboutFragment$$ExternalSyntheticLambda4;-><init>(Lcom/jichi/ob/ui/AboutFragment;)V
+    invoke-direct {v0}, Lcom/jichi/ob/heatmap/HeatmapEntryClick;-><init>()V
 
     invoke-virtual {p2, v0}, Lcom/google/android/material/card/MaterialCardView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
-    .line 94
     :cond_4
-    sget p2, Lcom/jichi/ob/R$id;->cardLicense:I
+    sget p2, Lcom/jichi/ob/R$id;->cardBikeComputer:I
+
+    invoke-virtual {p1, p2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object p2
+
+    check-cast p2, Lcom/google/android/material/card/MaterialCardView;
+
+    if-eqz p2, :cond_bc
+
+    new-instance v0, Lcom/jichi/bikecomputer/BikeComputerEntryClick;
+
+    invoke-direct {v0}, Lcom/jichi/bikecomputer/BikeComputerEntryClick;-><init>()V
+
+    invoke-virtual {p2, v0}, Lcom/google/android/material/card/MaterialCardView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    :cond_bc
+    sget p2, Lcom/jichi/ob/R$id;->cardLabLogin:I
 
     invoke-virtual {p1, p2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
 
@@ -761,6 +777,24 @@
 
     if-eqz p2, :cond_5
 
+    new-instance v0, Lcom/jichi/ob/ui/AboutFragment$$ExternalSyntheticLambda4;
+
+    invoke-direct {v0, p0}, Lcom/jichi/ob/ui/AboutFragment$$ExternalSyntheticLambda4;-><init>(Lcom/jichi/ob/ui/AboutFragment;)V
+
+    invoke-virtual {p2, v0}, Lcom/google/android/material/card/MaterialCardView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    .line 94
+    :cond_5
+    sget p2, Lcom/jichi/ob/R$id;->cardLicense:I
+
+    invoke-virtual {p1, p2}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+
+    move-result-object p2
+
+    check-cast p2, Lcom/google/android/material/card/MaterialCardView;
+
+    if-eqz p2, :cond_6
+
     new-instance v0, Lcom/jichi/ob/ui/AboutFragment$$ExternalSyntheticLambda5;
 
     invoke-direct {v0, p0}, Lcom/jichi/ob/ui/AboutFragment$$ExternalSyntheticLambda5;-><init>(Lcom/jichi/ob/ui/AboutFragment;)V
@@ -768,7 +802,7 @@
     invoke-virtual {p2, v0}, Lcom/google/android/material/card/MaterialCardView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     .line 99
-    :cond_5
+    :cond_6
     :try_start_0
     new-instance p2, Lcom/jichi/ob/util/TrialLicense;
 
@@ -791,7 +825,7 @@
 
     check-cast p1, Landroid/widget/TextView;
 
-    if-eqz p1, :cond_6
+    if-eqz p1, :cond_7
 
     .line 101
     invoke-virtual {p2}, Lcom/jichi/ob/util/TrialLicense;->getLicenseType()Ljava/lang/String;
@@ -832,6 +866,6 @@
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
     :catch_0
-    :cond_6
+    :cond_7
     return-void
 .end method

@@ -112,6 +112,49 @@
     .locals 10
 
     .line 25
+    new-instance v8, Lcom/jichi/ob/util/PrefsManager;
+
+    move-object v9, p0
+
+    check-cast v9, Landroid/content/Context;
+
+    invoke-direct {v8, v9}, Lcom/jichi/ob/util/PrefsManager;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v8}, Lcom/jichi/ob/util/PrefsManager;->getDarkMode()Ljava/lang/String;
+
+    move-result-object v8
+
+    const-string v9, "light"
+
+    invoke-virtual {v8, v9}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v9
+
+    if-eqz v9, :cond_0
+
+    const/4 v8, 0x1
+
+    goto :goto_0
+
+    :cond_0
+    const-string v9, "dark"
+
+    invoke-virtual {v8, v9}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v9
+
+    if-eqz v9, :cond_1
+
+    const/4 v8, 0x2
+
+    goto :goto_0
+
+    :cond_1
+    const/4 v8, 0x0
+
+    :goto_0
+    invoke-static {v8}, Landroidx/appcompat/app/AppCompatDelegate;->setDefaultNightMode(I)V
+
     invoke-super {p0, p1}, Landroidx/activity/ComponentActivity;->onCreate(Landroid/os/Bundle;)V
 
     .line 26

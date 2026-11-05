@@ -1717,7 +1717,6 @@
 
     if-eqz v0, :cond_5
 
-    # iGPSPORT目标的GPX调整改由uploadToIgpsport按平台设置处理
     iget-object v0, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$target:Lcom/jichi/ob/model/DataSource;
 
     sget-object v15, Lcom/jichi/ob/model/DataSource;->IGPSPORT:Lcom/jichi/ob/model/DataSource;
@@ -3206,13 +3205,13 @@
 
     if-ne v0, v4, :cond_15
 
-    goto :goto_18
+    goto/16 :goto_18
 
     :cond_15
     :goto_17
     check-cast v0, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
-    goto :goto_1a
+    goto/16 :goto_1a
 
     .line 147
     :pswitch_20
@@ -3242,8 +3241,7 @@
 
     goto :goto_1a
 
-    # v9.2.4: iGPSPORT国际版上传，走国际版端点 prod.en.igpsport.com
-    :pswitch_22
+    :pswitch_21
     iget-object v0, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->this$0:Lcom/jichi/ob/api/UploadEngine;
 
     iget-object v3, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$credential:Ljava/lang/String;
@@ -3271,7 +3269,7 @@
     goto :goto_1a
 
     .line 146
-    :pswitch_21
+    :pswitch_22
     iget-object v6, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->this$0:Lcom/jichi/ob/api/UploadEngine;
 
     iget-object v9, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$credential:Ljava/lang/String;
@@ -3362,8 +3360,6 @@
     :goto_1a
     return-object v0
 
-    nop
-
     :pswitch_data_0
     .packed-switch 0x0
         :pswitch_10
@@ -3387,7 +3383,7 @@
 
     :pswitch_data_1
     .packed-switch 0x1
-        :pswitch_21
+        :pswitch_22
         :pswitch_20
         :pswitch_1f
         :pswitch_1e
@@ -3404,6 +3400,6 @@
         :pswitch_13
         :pswitch_12
         :pswitch_11
-        :pswitch_22
+        :pswitch_21
     .end packed-switch
 .end method

@@ -177,7 +177,9 @@
     :cond_1
     check-cast p2, Ljava/lang/CharSequence;
 
-    const-string v0, "active.brytonsport.com"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->host()Ljava/lang/String;
+
+    move-result-object v0
 
     check-cast v0, Ljava/lang/CharSequence;
 

@@ -193,17 +193,13 @@
 
     new-instance v1, Ljava/lang/StringBuilder;
 
-    const-string v2, "https://active.brytonsport.com/api/activity/"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiActivityByIdUrl()Ljava/lang/String;
+
+    move-result-object v2
 
     invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
     invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v0
-
-    const-string v1, "/fit"
-
-    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
     move-result-object v0
 

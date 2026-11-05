@@ -3070,7 +3070,11 @@
 
     invoke-virtual {v3, v6}, Lcom/google/android/material/card/MaterialCardView;->setStrokeColor(I)V
 
-    const/4 v6, -0x1
+    sget v6, Lcom/jichi/ob/R$color;->card_white:I
+
+    invoke-virtual {v2, v6}, Landroid/content/Context;->getColor(I)I
+
+    move-result v6
 
     .line 304
     invoke-virtual {v3, v6}, Lcom/google/android/material/card/MaterialCardView;->setCardBackgroundColor(I)V

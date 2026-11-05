@@ -61,11 +61,12 @@
 
 
 # static fields
-.field private static final BASE:Ljava/lang/String; = "https://active.brytonsport.com/api"
+# v9.5.4: BASE/LOGIN_URL 改为在 <clinit> 中按当前站点（国内站/国际站）动态初始化
+.field private static final BASE:Ljava/lang/String;
 
 .field public static final Companion:Lcom/jichi/ob/api/BrytonApi$Companion;
 
-.field public static final LOGIN_URL:Ljava/lang/String; = "https://active.brytonsport.com"
+.field public static final LOGIN_URL:Ljava/lang/String;
 
 .field private static final PER_PAGE:I = 0x14
 
@@ -87,6 +88,18 @@
     invoke-direct {v0, v1}, Lcom/jichi/ob/api/BrytonApi$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 
     sput-object v0, Lcom/jichi/ob/api/BrytonApi;->Companion:Lcom/jichi/ob/api/BrytonApi$Companion;
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiBaseUrl()Ljava/lang/String;
+
+    move-result-object v0
+
+    sput-object v0, Lcom/jichi/ob/api/BrytonApi;->BASE:Ljava/lang/String;
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->base()Ljava/lang/String;
+
+    move-result-object v0
+
+    sput-object v0, Lcom/jichi/ob/api/BrytonApi;->LOGIN_URL:Ljava/lang/String;
 
     return-void
 .end method
@@ -171,7 +184,7 @@
         }
     .end annotation
 
-    const/4 v0, 0x4
+    const/4 v0, 0x7
 
     .line 38
     new-array v0, v0, [Lkotlin/Pair;
@@ -189,7 +202,7 @@
     .line 39
     const-string p1, "User-Agent"
 
-    const-string v1, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    const-string v1, "okhttp/4.12.0"
 
     invoke-static {p1, v1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
@@ -202,7 +215,9 @@
     .line 40
     const-string p1, "Referer"
 
-    const-string v1, "https://active.brytonsport.com/"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->refererUrl()Ljava/lang/String;
+
+    move-result-object v1
 
     invoke-static {p1, v1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
@@ -222,6 +237,47 @@
     move-result-object p1
 
     const/4 v1, 0x3
+
+    aput-object p1, v0, v1
+
+    # v9.5.4: 新站 API 鉴权走 Meteor 三件套（X-User-Id / X-Auth-Token / x-api-key），Cookie 保留
+    const-string v1, "X-User-Id"
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->getUserId()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-static {v1, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
+
+    move-result-object p1
+
+    const/4 v1, 0x4
+
+    aput-object p1, v0, v1
+
+    const-string v1, "X-Auth-Token"
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->getToken()Ljava/lang/String;
+
+    move-result-object p1
+
+    invoke-static {v1, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
+
+    move-result-object p1
+
+    const/4 v1, 0x5
+
+    aput-object p1, v0, v1
+
+    const-string v1, "x-api-key"
+
+    const-string p1, "UHIJdntFZFkZaVJsInRHfRcYES08Fwp0Bwkf"
+
+    invoke-static {v1, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
+
+    move-result-object p1
+
+    const/4 v1, 0x6
 
     aput-object p1, v0, v1
 

@@ -20,6 +20,8 @@
 
 .field public static activity_splash:I = 0x7f0b001e
 
+.field public static activity_timezone_settings:I = 0x7f0b007a
+
 .field public static dialog_disclaimer:I = 0x7f0b002f
 
 .field public static dialog_garmin_confirm:I = 0x7f0b0030
@@ -43,8 +45,12 @@
 .field public static fragment_sync:I = 0x7f0b0039
 
 .field public static fragment_sync_settings:I = 0x7f0b003a
-
-.field public static activity_timezone_settings:I = 0x7f0b007a
+.field public static bc_item_scanned_device:I = 0x7f0b0080
+.field public static bc_activity_sensor:I = 0x7f0b007f
+.field public static bc_activity_main:I = 0x7f0b007e
+.field public static bc_activity_history:I = 0x7f0b007d
+.field public static bc_activity_display:I = 0x7f0b007c
+.field public static bc_activity_bike:I = 0x7f0b007b
 
 
 # direct methods

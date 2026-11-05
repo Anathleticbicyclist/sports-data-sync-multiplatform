@@ -3730,7 +3730,7 @@
     .catch Ljava/lang/Exception; {:try_start_c .. :try_end_c} :catch_82
     .catchall {:try_start_c .. :try_end_c} :catchall_72
 
-    if-eqz v0, :cond_6d
+    if-eqz v0, :cond_6e
 
     :try_start_d
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
@@ -10842,14 +10842,18 @@
     :try_start_74
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
+    iget-object v2, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
+
+    invoke-static {v0, v2}, Lcom/jichi/ob/MainActivity;->logWellnessDiagnostic(Lcom/jichi/ob/model/SyncTask;Lcom/jichi/ob/MainActivity;)V
+
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
+
     invoke-virtual {v0}, Lcom/jichi/ob/model/SyncTask;->getWellness()Z
 
     move-result v0
     :try_end_74
     .catch Ljava/lang/Exception; {:try_start_74 .. :try_end_74} :catch_63
     .catchall {:try_start_74 .. :try_end_74} :catchall_54
-
-    if-eqz v0, :cond_4f
 
     :try_start_75
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -10858,7 +10862,15 @@
 
     move-result v0
 
-    if-eqz v0, :cond_4f
+    if-eqz v0, :cond_50
+
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/model/SyncTask;->getWellness()Z
+
+    move-result v0
+
+    if-nez v0, :cond_41
 
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
@@ -10866,20 +10878,14 @@
 
     move-result-object v0
 
-    if-nez v0, :cond_41
-
-    invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
-
-    const/4 v0, 0x0
-
-    :cond_41
     invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->isGarminWellnessSync()Z
 
     move-result v0
 
-    if-eqz v0, :cond_4f
+    if-eqz v0, :cond_50
 
     .line 2689
+    :cond_41
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$sources:Ljava/util/List;
 
     check-cast v0, Ljava/lang/Iterable;
@@ -10967,11 +10973,11 @@
     :goto_9c
     check-cast v5, Lcom/jichi/ob/model/DataSource;
 
-    if-eqz v4, :cond_4e
+    if-eqz v4, :cond_4f
 
-    if-eqz v5, :cond_4e
+    if-eqz v5, :cond_4f
 
-    if-eq v4, v5, :cond_4e
+    if-eq v4, v5, :cond_4f
 
     .line 2692
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -11197,11 +11203,11 @@
 
     move-result v44
 
-    if-gtz v44, :cond_e0
+    if-gtz v44, :cond_4d
 
     const/16 v44, 0x7
 
-    :cond_e0
+    :cond_4d
     const/16 v47, 0x0
 
     const/16 v48, 0x0
@@ -11219,11 +11225,11 @@
     .catch Ljava/lang/Exception; {:try_start_76 .. :try_end_76} :catch_61
     .catchall {:try_start_76 .. :try_end_76} :catchall_49
 
-    if-ne v0, v2, :cond_4d
+    if-ne v0, v2, :cond_4e
 
     goto/16 :goto_16
 
-    :cond_4d
+    :cond_4e
     move-object/from16 v17, v9
 
     move v9, v11
@@ -11474,7 +11480,15 @@
     goto/16 :goto_7a
 
     .line 2705
-    :cond_4e
+    :cond_4f
+    iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/model/SyncTask;->getWellness()Z
+
+    move-result v0
+
+    if-eqz v0, :cond_50
+
     :try_start_7b
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
@@ -11488,7 +11502,7 @@
     .catchall {:try_start_7b .. :try_end_7b} :catchall_49
 
     .line 2712
-    :cond_4f
+    :cond_50
     :goto_a6
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
@@ -11527,7 +11541,7 @@
 
     move-result v5
 
-    if-eqz v5, :cond_50
+    if-eqz v5, :cond_51
 
     invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -11586,7 +11600,7 @@
     goto :goto_a7
 
     .line 2721
-    :cond_50
+    :cond_51
     invoke-virtual {v0}, Lorg/json/JSONObject;->toString()Ljava/lang/String;
 
     move-result-object v0
@@ -11602,13 +11616,13 @@
 
     move-result-object v4
 
-    if-nez v4, :cond_51
+    if-nez v4, :cond_52
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v4, 0x0
 
-    :cond_51
+    :cond_52
     iget-object v5, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     iget v6, v3, Lkotlin/jvm/internal/Ref$IntRef;->element:I
@@ -11680,7 +11694,7 @@
     .line 4130
     instance-of v5, v4, Ljava/util/Collection;
 
-    if-eqz v5, :cond_53
+    if-eqz v5, :cond_54
 
     move-object v5, v4
 
@@ -11690,25 +11704,25 @@
 
     move-result v5
 
-    if-eqz v5, :cond_53
+    if-eqz v5, :cond_54
 
-    :cond_52
+    :cond_53
     const/4 v4, 0x0
 
     goto :goto_a8
 
     .line 4131
-    :cond_53
+    :cond_54
     invoke-interface {v4}, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;
 
     move-result-object v4
 
-    :cond_54
+    :cond_55
     invoke-interface {v4}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v5
 
-    if-eqz v5, :cond_52
+    if-eqz v5, :cond_53
 
     invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -11725,12 +11739,12 @@
 
     sget-object v6, Lcom/jichi/ob/model/DataSource;->INTERVALS_ICU:Lcom/jichi/ob/model/DataSource;
 
-    if-ne v5, v6, :cond_54
+    if-ne v5, v6, :cond_55
 
     const/4 v4, 0x1
 
     :goto_a8
-    if-eqz v4, :cond_6c
+    if-eqz v4, :cond_6d
 
     .line 2730
     iget-object v5, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -11739,24 +11753,24 @@
 
     move-result-object v5
 
-    if-nez v5, :cond_55
+    if-nez v5, :cond_56
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v5, 0x0
 
-    :cond_55
+    :cond_56
     invoke-virtual {v5}, Lcom/jichi/ob/util/PrefsManager;->getIntervalsIcuKey()Ljava/lang/String;
 
     move-result-object v5
 
-    if-nez v5, :cond_56
+    if-nez v5, :cond_57
 
     move-object/from16 v42, v20
 
     goto :goto_a9
 
-    :cond_56
+    :cond_57
     move-object/from16 v42, v5
 
     .line 2731
@@ -11773,7 +11787,7 @@
 
     move-result v5
 
-    if-nez v5, :cond_57
+    if-nez v5, :cond_58
 
     iget-object v5, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
@@ -11783,7 +11797,7 @@
 
     goto :goto_aa
 
-    :cond_57
+    :cond_58
     iget-object v5, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     invoke-virtual {v5}, Lcom/jichi/ob/model/SyncTask;->getTargets()Ljava/util/List;
@@ -11806,7 +11820,7 @@
 
     move-result v7
 
-    if-eqz v7, :cond_5a
+    if-eqz v7, :cond_5b
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -11823,7 +11837,7 @@
 
     move-result v14
 
-    if-nez v14, :cond_59
+    if-nez v14, :cond_5a
 
     move-object/from16 v14, v36
 
@@ -11831,23 +11845,23 @@
 
     move-result v8
 
-    if-eqz v8, :cond_58
+    if-eqz v8, :cond_59
 
     goto :goto_ac
 
-    :cond_58
+    :cond_59
     move-object/from16 v37, v10
 
     move-object/from16 v36, v14
 
     goto :goto_ab
 
-    :cond_59
+    :cond_5a
     move-object/from16 v14, v36
 
     goto :goto_ac
 
-    :cond_5a
+    :cond_5b
     move-object/from16 v14, v36
 
     move-object/from16 v10, v37
@@ -11872,7 +11886,7 @@
 
     move-result v8
 
-    if-eqz v8, :cond_5c
+    if-eqz v8, :cond_5d
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -11891,18 +11905,18 @@
 
     move-result v15
 
-    if-eqz v15, :cond_5b
+    if-eqz v15, :cond_5c
 
     goto :goto_ae
 
-    :cond_5b
+    :cond_5c
     move-object/from16 v35, v3
 
     move-object/from16 v3, v16
 
     goto :goto_ad
 
-    :cond_5c
+    :cond_5d
     move-object/from16 v16, v3
 
     const/4 v8, 0x0
@@ -11917,14 +11931,14 @@
 
     const/4 v6, 0x5
 
-    if-le v3, v6, :cond_6c
+    if-le v3, v6, :cond_6d
 
-    if-nez v7, :cond_5d
+    if-nez v7, :cond_5e
 
-    if-eqz v8, :cond_6c
+    if-eqz v8, :cond_6d
 
     .line 2735
-    :cond_5d
+    :cond_5e
     new-instance v3, Ljava/util/ArrayList;
 
     invoke-direct {v3}, Ljava/util/ArrayList;-><init>()V
@@ -11936,26 +11950,26 @@
 
     move-result v6
 
-    if-eqz v6, :cond_5e
+    if-eqz v6, :cond_5f
 
     move-object/from16 v6, v34
 
     invoke-interface {v3, v6}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 2737
-    :cond_5e
+    :cond_5f
     invoke-static {v7, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v6
 
-    if-eqz v6, :cond_5f
+    if-eqz v6, :cond_60
 
     move-object/from16 v15, v33
 
     invoke-interface {v3, v15}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    :cond_5f
-    if-eqz v8, :cond_60
+    :cond_60
+    if-eqz v8, :cond_61
 
     move-object/from16 v6, v32
 
@@ -11963,7 +11977,7 @@
     invoke-interface {v3, v6}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 2739
-    :cond_60
+    :cond_61
     iget-object v6, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
     move-object/from16 v32, v3
@@ -12056,20 +12070,20 @@
 
     invoke-static {v6, v3}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
-    if-eqz v7, :cond_64
+    if-eqz v7, :cond_65
 
     .line 2741
     invoke-static {v7, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v3
 
-    if-eqz v3, :cond_61
+    if-eqz v3, :cond_62
 
     sget-object v3, Lcom/jichi/ob/model/DataSource;->IGPSPORT_INT:Lcom/jichi/ob/model/DataSource;
 
     goto :goto_af
 
-    :cond_61
+    :cond_62
     sget-object v3, Lcom/jichi/ob/model/DataSource;->IGPSPORT:Lcom/jichi/ob/model/DataSource;
 
     .line 2742
@@ -12080,32 +12094,32 @@
 
     move-result-object v5
 
-    if-nez v5, :cond_62
+    if-nez v5, :cond_63
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v5, 0x0
 
-    :cond_62
+    :cond_63
     invoke-virtual {v5, v3}, Lcom/jichi/ob/util/PrefsManager;->getCredential(Lcom/jichi/ob/model/DataSource;)Ljava/lang/String;
 
     move-result-object v3
 
-    if-nez v3, :cond_63
+    if-nez v3, :cond_64
 
     goto :goto_b0
 
-    :cond_63
+    :cond_64
     move-object/from16 v20, v3
 
     .line 2744
-    :cond_64
+    :cond_65
     :goto_b0
     invoke-static {v7, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v3
 
-    if-eqz v18, :cond_66
+    if-eqz v18, :cond_67
 
     .line 2745
     iget-object v5, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -12114,13 +12128,13 @@
 
     move-result-object v5
 
-    if-nez v5, :cond_65
+    if-nez v5, :cond_66
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v5, 0x0
 
-    :cond_65
+    :cond_66
     invoke-virtual {v5}, Lcom/jichi/ob/util/PrefsManager;->getBrytonCookie()Ljava/lang/String;
 
     move-result-object v5
@@ -12129,7 +12143,7 @@
 
     goto :goto_b1
 
-    :cond_66
+    :cond_67
     const/16 v41, 0x0
 
     .line 2746
@@ -12145,11 +12159,11 @@
 
     move-result v6
 
-    if-eqz v6, :cond_67
+    if-eqz v6, :cond_68
 
     const/4 v5, 0x0
 
-    :cond_67
+    :cond_68
     move-object/from16 v39, v5
 
     check-cast v39, Ljava/lang/String;
@@ -12175,13 +12189,13 @@
 
     move-result-object v5
 
-    if-nez v5, :cond_68
+    if-nez v5, :cond_69
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v5, 0x0
 
-    :cond_68
+    :cond_69
     invoke-virtual {v5}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutSyncedIds()Ljava/util/Set;
 
     move-result-object v46
@@ -12193,13 +12207,13 @@
 
     move-result-object v5
 
-    if-nez v5, :cond_69
+    if-nez v5, :cond_6a
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v5, 0x0
 
-    :cond_69
+    :cond_6a
     invoke-virtual {v5}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutHashes()Ljava/util/Map;
 
     move-result-object v47
@@ -12349,12 +12363,12 @@
 
     move-result-object v0
 
-    if-ne v0, v2, :cond_6a
+    if-ne v0, v2, :cond_6b
 
     goto/16 :goto_16
 
     .line 2450
-    :cond_6a
+    :cond_6b
     :goto_b2
     check-cast v0, Lcom/jichi/ob/api/WorkoutSyncEngine$Result;
 
@@ -12439,7 +12453,7 @@
 
     move-result-object v0
 
-    if-eqz v0, :cond_6b
+    if-eqz v0, :cond_6c
 
     const/16 v3, 0x3c
 
@@ -12449,7 +12463,7 @@
 
     goto :goto_b4
 
-    :cond_6b
+    :cond_6c
     const/4 v9, 0x0
 
     :goto_b4
@@ -12470,7 +12484,7 @@
     invoke-static {v2, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
     .line 2765
-    :cond_6c
+    :cond_6d
     :goto_b5
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
@@ -12914,7 +12928,7 @@
 
     goto/16 :goto_fd
 
-    :cond_6d
+    :cond_6e
     move-object/from16 v27, v8
 
     move-object v8, v3
@@ -12959,7 +12973,7 @@
     .catch Ljava/lang/Exception; {:try_start_7d .. :try_end_7d} :catch_81
     .catchall {:try_start_7d .. :try_end_7d} :catchall_71
 
-    if-nez v0, :cond_6e
+    if-nez v0, :cond_6f
 
     :try_start_7e
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
@@ -12991,7 +13005,7 @@
 
     goto :goto_bd
 
-    :cond_6e
+    :cond_6f
     :try_start_7f
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
@@ -13026,7 +13040,7 @@
 
     xor-int/lit8 v5, v16, 0x1
 
-    if-nez v16, :cond_6f
+    if-nez v16, :cond_70
 
     move-object/from16 v52, v4
 
@@ -13129,7 +13143,7 @@
 
     goto/16 :goto_fd
 
-    :cond_6f
+    :cond_70
     move-object/from16 v52, v4
 
     move-object/from16 v22, v11
@@ -13146,7 +13160,7 @@
     .catch Ljava/lang/Exception; {:try_start_83 .. :try_end_83} :catch_7f
     .catchall {:try_start_83 .. :try_end_83} :catchall_6f
 
-    if-nez v4, :cond_70
+    if-nez v4, :cond_71
 
     :try_start_84
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -13156,19 +13170,19 @@
 
     const/4 v4, 0x0
 
-    :cond_70
+    :cond_71
     :try_start_85
     invoke-virtual {v4}, Lcom/jichi/ob/util/PrefsManager;->getIntervalsIcuKey()Ljava/lang/String;
 
     move-result-object v4
 
-    if-nez v4, :cond_71
+    if-nez v4, :cond_72
 
     move-object/from16 v32, v20
 
     goto :goto_c5
 
-    :cond_71
+    :cond_72
     move-object/from16 v32, v4
 
     .line 2469
@@ -13182,7 +13196,7 @@
 
     const/4 v11, 0x5
 
-    if-le v4, v11, :cond_86
+    if-le v4, v11, :cond_87
 
     .line 2470
     :try_start_86
@@ -13203,7 +13217,7 @@
     .catch Ljava/lang/Exception; {:try_start_86 .. :try_end_86} :catch_7a
     .catchall {:try_start_86 .. :try_end_86} :catchall_6b
 
-    if-eqz v11, :cond_73
+    if-eqz v11, :cond_74
 
     :try_start_87
     invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
@@ -13221,7 +13235,7 @@
 
     move-result v17
 
-    if-nez v17, :cond_74
+    if-nez v17, :cond_75
 
     invoke-static {v4, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
@@ -13230,19 +13244,19 @@
     .catch Ljava/lang/Exception; {:try_start_87 .. :try_end_87} :catch_69
     .catchall {:try_start_87 .. :try_end_87} :catchall_5a
 
-    if-eqz v4, :cond_72
+    if-eqz v4, :cond_73
 
     goto :goto_c7
 
-    :cond_72
+    :cond_73
     move-object/from16 v4, v16
 
     goto :goto_c6
 
-    :cond_73
+    :cond_74
     const/4 v11, 0x0
 
-    :cond_74
+    :cond_75
     :goto_c7
     :try_start_88
     check-cast v11, Ljava/lang/String;
@@ -13265,7 +13279,7 @@
     .catch Ljava/lang/Exception; {:try_start_88 .. :try_end_88} :catch_7a
     .catchall {:try_start_88 .. :try_end_88} :catchall_6b
 
-    if-eqz v16, :cond_76
+    if-eqz v16, :cond_77
 
     :try_start_89
     invoke-interface {v4}, Ljava/util/Iterator;->next()Ljava/lang/Object;
@@ -13286,28 +13300,28 @@
     .catch Ljava/lang/Exception; {:try_start_89 .. :try_end_89} :catch_69
     .catchall {:try_start_89 .. :try_end_89} :catchall_5a
 
-    if-eqz v4, :cond_75
+    if-eqz v4, :cond_76
 
     goto :goto_c9
 
-    :cond_75
+    :cond_76
     move-object/from16 v4, v17
 
     goto :goto_c8
 
-    :cond_76
+    :cond_77
     const/16 v16, 0x0
 
     :goto_c9
     :try_start_8a
     check-cast v16, Ljava/lang/String;
 
-    if-nez v11, :cond_77
+    if-nez v11, :cond_78
 
-    if-eqz v16, :cond_86
+    if-eqz v16, :cond_87
 
     .line 2473
-    :cond_77
+    :cond_78
     new-instance v4, Ljava/util/ArrayList;
 
     invoke-direct {v4}, Ljava/util/ArrayList;-><init>()V
@@ -13322,7 +13336,7 @@
     .catch Ljava/lang/Exception; {:try_start_8a .. :try_end_8a} :catch_7a
     .catchall {:try_start_8a .. :try_end_8a} :catchall_6b
 
-    if-eqz v17, :cond_78
+    if-eqz v17, :cond_79
 
     :try_start_8b
     invoke-interface {v4, v6}, Ljava/util/List;->add(Ljava/lang/Object;)Z
@@ -13331,7 +13345,7 @@
     .catchall {:try_start_8b .. :try_end_8b} :catchall_5a
 
     .line 2475
-    :cond_78
+    :cond_79
     :try_start_8c
     invoke-static {v11, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
@@ -13340,13 +13354,13 @@
     .catch Ljava/lang/Exception; {:try_start_8c .. :try_end_8c} :catch_7a
     .catchall {:try_start_8c .. :try_end_8c} :catchall_6b
 
-    if-eqz v17, :cond_79
+    if-eqz v17, :cond_7a
 
     :try_start_8d
     invoke-interface {v4, v15}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    :cond_79
-    if-eqz v16, :cond_7a
+    :cond_7a
+    if-eqz v16, :cond_7b
 
     .line 2476
     invoke-interface {v4, v9}, Ljava/util/List;->add(Ljava/lang/Object;)Z
@@ -13354,7 +13368,7 @@
     .catch Ljava/lang/Exception; {:try_start_8d .. :try_end_8d} :catch_69
     .catchall {:try_start_8d .. :try_end_8d} :catchall_5a
 
-    :cond_7a
+    :cond_7b
     move-object/from16 v17, v4
 
     .line 2477
@@ -13470,7 +13484,7 @@
     .catch Ljava/lang/Exception; {:try_start_92 .. :try_end_92} :catch_76
     .catchall {:try_start_92 .. :try_end_92} :catchall_67
 
-    if-eqz v11, :cond_7d
+    if-eqz v11, :cond_7e
 
     .line 2479
     :try_start_93
@@ -13478,13 +13492,13 @@
 
     move-result v3
 
-    if-eqz v3, :cond_7b
+    if-eqz v3, :cond_7c
 
     sget-object v3, Lcom/jichi/ob/model/DataSource;->IGPSPORT_INT:Lcom/jichi/ob/model/DataSource;
 
     goto :goto_ca
 
-    :cond_7b
+    :cond_7c
     sget-object v3, Lcom/jichi/ob/model/DataSource;->IGPSPORT:Lcom/jichi/ob/model/DataSource;
 
     .line 2480
@@ -13495,18 +13509,18 @@
 
     move-result-object v4
 
-    if-nez v4, :cond_7c
+    if-nez v4, :cond_7d
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v4, 0x0
 
-    :cond_7c
+    :cond_7d
     invoke-virtual {v4, v3}, Lcom/jichi/ob/util/PrefsManager;->getCredential(Lcom/jichi/ob/model/DataSource;)Ljava/lang/String;
 
     move-result-object v3
 
-    if-nez v3, :cond_7e
+    if-nez v3, :cond_7f
 
     goto :goto_cb
 
@@ -13576,12 +13590,12 @@
 
     goto/16 :goto_fc
 
-    :cond_7d
+    :cond_7e
     :goto_cb
     move-object/from16 v3, v20
 
-    :cond_7e
-    if-eqz v16, :cond_80
+    :cond_7f
+    if-eqz v16, :cond_81
 
     .line 2482
     iget-object v4, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -13590,13 +13604,13 @@
 
     move-result-object v4
 
-    if-nez v4, :cond_7f
+    if-nez v4, :cond_80
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v4, 0x0
 
-    :cond_7f
+    :cond_80
     invoke-virtual {v4}, Lcom/jichi/ob/util/PrefsManager;->getBrytonCookie()Ljava/lang/String;
 
     move-result-object v4
@@ -13608,7 +13622,7 @@
 
     goto :goto_cc
 
-    :cond_80
+    :cond_81
     const/16 v31, 0x0
 
     .line 2483
@@ -13625,11 +13639,11 @@
 
     move-result v6
 
-    if-eqz v6, :cond_81
+    if-eqz v6, :cond_82
 
     const/4 v4, 0x0
 
-    :cond_81
+    :cond_82
     move-object/from16 v29, v4
 
     check-cast v29, Ljava/lang/String;
@@ -13663,7 +13677,7 @@
     .catch Ljava/lang/Exception; {:try_start_94 .. :try_end_94} :catch_76
     .catchall {:try_start_94 .. :try_end_94} :catchall_67
 
-    if-nez v4, :cond_82
+    if-nez v4, :cond_83
 
     :try_start_95
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -13673,7 +13687,7 @@
 
     const/4 v4, 0x0
 
-    :cond_82
+    :cond_83
     :try_start_96
     invoke-virtual {v4}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutSyncedIds()Ljava/util/Set;
 
@@ -13689,7 +13703,7 @@
     .catch Ljava/lang/Exception; {:try_start_96 .. :try_end_96} :catch_76
     .catchall {:try_start_96 .. :try_end_96} :catchall_67
 
-    if-nez v4, :cond_83
+    if-nez v4, :cond_84
 
     :try_start_97
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -13699,7 +13713,7 @@
 
     const/4 v4, 0x0
 
-    :cond_83
+    :cond_84
     :try_start_98
     invoke-virtual {v4}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutHashes()Ljava/util/Map;
 
@@ -13835,11 +13849,11 @@
     .catch Ljava/lang/Exception; {:try_start_9c .. :try_end_9c} :catch_75
     .catchall {:try_start_9c .. :try_end_9c} :catchall_66
 
-    if-ne v3, v2, :cond_84
+    if-ne v3, v2, :cond_85
 
     goto/16 :goto_16
 
-    :cond_84
+    :cond_85
     move-object v9, v0
 
     move v0, v5
@@ -13942,7 +13956,7 @@
     .catch Ljava/lang/Exception; {:try_start_9f .. :try_end_9f} :catch_70
     .catchall {:try_start_9f .. :try_end_9f} :catchall_61
 
-    if-nez v3, :cond_85
+    if-nez v3, :cond_86
 
     :try_start_a0
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -14020,7 +14034,7 @@
 
     goto/16 :goto_fe
 
-    :cond_85
+    :cond_86
     :goto_ce
     :try_start_a1
     iget-object v4, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
@@ -14566,7 +14580,7 @@
 
     goto/16 :goto_fe
 
-    :cond_86
+    :cond_87
     move-object/from16 v4, p1
 
     move-object/from16 v45, v3
@@ -14703,7 +14717,7 @@
 
     move-result v13
 
-    if-eqz v13, :cond_87
+    if-eqz v13, :cond_88
 
     invoke-interface {v8}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -14777,7 +14791,7 @@
 
     goto :goto_e4
 
-    :cond_87
+    :cond_88
     move-object/from16 v27, v3
 
     move/from16 v33, v6
@@ -14796,13 +14810,13 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_88
+    if-nez v6, :cond_89
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_88
+    :cond_89
     iget-object v7, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     iget v8, v15, Lkotlin/jvm/internal/Ref$IntRef;->element:I
@@ -14872,7 +14886,7 @@
     .line 4084
     instance-of v6, v2, Ljava/util/Collection;
 
-    if-eqz v6, :cond_8a
+    if-eqz v6, :cond_8b
 
     move-object v6, v2
 
@@ -14882,25 +14896,25 @@
 
     move-result v6
 
-    if-eqz v6, :cond_8a
+    if-eqz v6, :cond_8b
 
-    :cond_89
+    :cond_8a
     const/4 v2, 0x0
 
     goto :goto_e5
 
     .line 4085
-    :cond_8a
+    :cond_8b
     invoke-interface {v2}, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;
 
     move-result-object v2
 
-    :cond_8b
+    :cond_8c
     invoke-interface {v2}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v6
 
-    if-eqz v6, :cond_89
+    if-eqz v6, :cond_8a
 
     invoke-interface {v2}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -14917,12 +14931,12 @@
 
     sget-object v7, Lcom/jichi/ob/model/DataSource;->INTERVALS_ICU:Lcom/jichi/ob/model/DataSource;
 
-    if-ne v6, v7, :cond_8b
+    if-ne v6, v7, :cond_8c
 
     const/4 v2, 0x1
 
     :goto_e5
-    if-eqz v2, :cond_a3
+    if-eqz v2, :cond_a4
 
     .line 2730
     iget-object v6, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -14931,24 +14945,24 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_8c
+    if-nez v6, :cond_8d
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_8c
+    :cond_8d
     invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->getIntervalsIcuKey()Ljava/lang/String;
 
     move-result-object v6
 
-    if-nez v6, :cond_8d
+    if-nez v6, :cond_8e
 
     move-object/from16 v58, v20
 
     goto :goto_e6
 
-    :cond_8d
+    :cond_8e
     move-object/from16 v58, v6
 
     .line 2731
@@ -14965,7 +14979,7 @@
 
     move-result v6
 
-    if-nez v6, :cond_8e
+    if-nez v6, :cond_8f
 
     iget-object v6, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
@@ -14975,7 +14989,7 @@
 
     goto :goto_e7
 
-    :cond_8e
+    :cond_8f
     iget-object v6, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     invoke-virtual {v6}, Lcom/jichi/ob/model/SyncTask;->getTargets()Ljava/util/List;
@@ -14993,12 +15007,12 @@
 
     move-result-object v7
 
-    :cond_8f
+    :cond_90
     invoke-interface {v7}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v8
 
-    if-eqz v8, :cond_90
+    if-eqz v8, :cond_91
 
     invoke-interface {v7}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -15013,20 +15027,20 @@
 
     move-result v13
 
-    if-nez v13, :cond_91
+    if-nez v13, :cond_92
 
     invoke-static {v11, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v11
 
-    if-eqz v11, :cond_8f
+    if-eqz v11, :cond_90
 
     goto :goto_e8
 
-    :cond_90
+    :cond_91
     const/4 v8, 0x0
 
-    :cond_91
+    :cond_92
     :goto_e8
     check-cast v8, Ljava/lang/String;
 
@@ -15045,7 +15059,7 @@
 
     move-result v11
 
-    if-eqz v11, :cond_93
+    if-eqz v11, :cond_94
 
     invoke-interface {v7}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -15064,18 +15078,18 @@
 
     move-result v13
 
-    if-eqz v13, :cond_92
+    if-eqz v13, :cond_93
 
     goto :goto_ea
 
-    :cond_92
+    :cond_93
     move-object/from16 v45, v3
 
     move-object/from16 v3, p1
 
     goto :goto_e9
 
-    :cond_93
+    :cond_94
     move-object/from16 p1, v3
 
     const/4 v11, 0x0
@@ -15090,14 +15104,14 @@
 
     const/4 v7, 0x5
 
-    if-le v3, v7, :cond_a3
+    if-le v3, v7, :cond_a4
 
-    if-nez v8, :cond_94
+    if-nez v8, :cond_95
 
-    if-eqz v11, :cond_a3
+    if-eqz v11, :cond_a4
 
     .line 2735
-    :cond_94
+    :cond_95
     new-instance v3, Ljava/util/ArrayList;
 
     invoke-direct {v3}, Ljava/util/ArrayList;-><init>()V
@@ -15109,26 +15123,26 @@
 
     move-result v7
 
-    if-eqz v7, :cond_95
+    if-eqz v7, :cond_96
 
     move-object/from16 v7, v44
 
     invoke-interface {v3, v7}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 2737
-    :cond_95
+    :cond_96
     invoke-static {v8, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v7
 
-    if-eqz v7, :cond_96
+    if-eqz v7, :cond_97
 
     move-object/from16 v13, v43
 
     invoke-interface {v3, v13}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    :cond_96
-    if-eqz v11, :cond_97
+    :cond_97
+    if-eqz v11, :cond_98
 
     move-object/from16 v7, v42
 
@@ -15136,7 +15150,7 @@
     invoke-interface {v3, v7}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 2739
-    :cond_97
+    :cond_98
     iget-object v7, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
     move-object/from16 v34, v3
@@ -15229,20 +15243,20 @@
 
     invoke-static {v7, v3}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
-    if-eqz v8, :cond_9b
+    if-eqz v8, :cond_9c
 
     .line 2741
     invoke-static {v8, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v3
 
-    if-eqz v3, :cond_98
+    if-eqz v3, :cond_99
 
     sget-object v3, Lcom/jichi/ob/model/DataSource;->IGPSPORT_INT:Lcom/jichi/ob/model/DataSource;
 
     goto :goto_eb
 
-    :cond_98
+    :cond_99
     sget-object v3, Lcom/jichi/ob/model/DataSource;->IGPSPORT:Lcom/jichi/ob/model/DataSource;
 
     .line 2742
@@ -15253,32 +15267,32 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_99
+    if-nez v6, :cond_9a
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_99
+    :cond_9a
     invoke-virtual {v6, v3}, Lcom/jichi/ob/util/PrefsManager;->getCredential(Lcom/jichi/ob/model/DataSource;)Ljava/lang/String;
 
     move-result-object v3
 
-    if-nez v3, :cond_9a
+    if-nez v3, :cond_9b
 
     goto :goto_ec
 
-    :cond_9a
+    :cond_9b
     move-object/from16 v20, v3
 
     .line 2744
-    :cond_9b
+    :cond_9c
     :goto_ec
     invoke-static {v8, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v3
 
-    if-eqz v11, :cond_9d
+    if-eqz v11, :cond_9e
 
     .line 2745
     iget-object v6, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -15287,13 +15301,13 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_9c
+    if-nez v6, :cond_9d
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_9c
+    :cond_9d
     invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->getBrytonCookie()Ljava/lang/String;
 
     move-result-object v6
@@ -15302,7 +15316,7 @@
 
     goto :goto_ed
 
-    :cond_9d
+    :cond_9e
     const/16 v57, 0x0
 
     .line 2746
@@ -15318,11 +15332,11 @@
 
     move-result v7
 
-    if-eqz v7, :cond_9e
+    if-eqz v7, :cond_9f
 
     const/4 v6, 0x0
 
-    :cond_9e
+    :cond_9f
     move-object/from16 v55, v6
 
     check-cast v55, Ljava/lang/String;
@@ -15348,13 +15362,13 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_9f
+    if-nez v6, :cond_a0
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_9f
+    :cond_a0
     invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutSyncedIds()Ljava/util/Set;
 
     move-result-object v62
@@ -15366,13 +15380,13 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_a0
+    if-nez v6, :cond_a1
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_a0
+    :cond_a1
     invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutHashes()Ljava/util/Map;
 
     move-result-object v63
@@ -15520,13 +15534,13 @@
 
     move-object/from16 v6, v53
 
-    if-ne v0, v6, :cond_a1
+    if-ne v0, v6, :cond_a2
 
     move-object v3, v6
 
     goto/16 :goto_118
 
-    :cond_a1
+    :cond_a2
     move-object v2, v5
 
     .line 2450
@@ -15620,7 +15634,7 @@
 
     move-result-object v0
 
-    if-eqz v0, :cond_a2
+    if-eqz v0, :cond_a3
 
     const/16 v4, 0x3c
 
@@ -15630,7 +15644,7 @@
 
     goto :goto_f0
 
-    :cond_a2
+    :cond_a3
     const/4 v9, 0x0
 
     :goto_f0
@@ -15654,7 +15668,7 @@
     move-object v5, v2
 
     .line 2765
-    :cond_a3
+    :cond_a4
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
     new-instance v2, Lcom/jichi/ob/MainActivity$runTask$6$$ExternalSyntheticLambda2;
@@ -16247,7 +16261,7 @@
 
     move-result v9
 
-    if-eqz v9, :cond_a4
+    if-eqz v9, :cond_a5
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -16315,7 +16329,7 @@
 
     goto :goto_ff
 
-    :cond_a4
+    :cond_a5
     move-object/from16 v17, v12
 
     .line 2721
@@ -16332,13 +16346,13 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_a5
+    if-nez v6, :cond_a6
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_a5
+    :cond_a6
     iget-object v9, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     iget v11, v8, Lkotlin/jvm/internal/Ref$IntRef;->element:I
@@ -16408,7 +16422,7 @@
     .line 4137
     instance-of v6, v2, Ljava/util/Collection;
 
-    if-eqz v6, :cond_a7
+    if-eqz v6, :cond_a8
 
     move-object v6, v2
 
@@ -16418,25 +16432,25 @@
 
     move-result v6
 
-    if-eqz v6, :cond_a7
+    if-eqz v6, :cond_a8
 
-    :cond_a6
+    :cond_a7
     const/4 v9, 0x0
 
     goto :goto_100
 
     .line 4138
-    :cond_a7
+    :cond_a8
     invoke-interface {v2}, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;
 
     move-result-object v2
 
-    :cond_a8
+    :cond_a9
     invoke-interface {v2}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v6
 
-    if-eqz v6, :cond_a6
+    if-eqz v6, :cond_a7
 
     invoke-interface {v2}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -16453,12 +16467,12 @@
 
     sget-object v9, Lcom/jichi/ob/model/DataSource;->INTERVALS_ICU:Lcom/jichi/ob/model/DataSource;
 
-    if-ne v6, v9, :cond_a8
+    if-ne v6, v9, :cond_a9
 
     const/4 v9, 0x1
 
     :goto_100
-    if-eqz v9, :cond_c0
+    if-eqz v9, :cond_c1
 
     .line 2730
     iget-object v2, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -16467,24 +16481,24 @@
 
     move-result-object v2
 
-    if-nez v2, :cond_a9
+    if-nez v2, :cond_aa
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v2, 0x0
 
-    :cond_a9
+    :cond_aa
     invoke-virtual {v2}, Lcom/jichi/ob/util/PrefsManager;->getIntervalsIcuKey()Ljava/lang/String;
 
     move-result-object v2
 
-    if-nez v2, :cond_aa
+    if-nez v2, :cond_ab
 
     move-object/from16 v37, v20
 
     goto :goto_101
 
-    :cond_aa
+    :cond_ab
     move-object/from16 v37, v2
 
     .line 2731
@@ -16501,7 +16515,7 @@
 
     move-result v2
 
-    if-nez v2, :cond_ab
+    if-nez v2, :cond_ac
 
     iget-object v2, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
@@ -16511,7 +16525,7 @@
 
     goto :goto_102
 
-    :cond_ab
+    :cond_ac
     iget-object v2, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     invoke-virtual {v2}, Lcom/jichi/ob/model/SyncTask;->getTargets()Ljava/util/List;
@@ -16529,12 +16543,12 @@
 
     move-result-object v6
 
-    :cond_ac
+    :cond_ad
     invoke-interface {v6}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v11
 
-    if-eqz v11, :cond_ad
+    if-eqz v11, :cond_ae
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -16549,20 +16563,20 @@
 
     move-result v15
 
-    if-nez v15, :cond_ae
+    if-nez v15, :cond_af
 
     invoke-static {v12, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v12
 
-    if-eqz v12, :cond_ac
+    if-eqz v12, :cond_ad
 
     goto :goto_103
 
-    :cond_ad
+    :cond_ae
     const/4 v11, 0x0
 
-    :cond_ae
+    :cond_af
     :goto_103
     check-cast v11, Ljava/lang/String;
 
@@ -16576,12 +16590,12 @@
 
     move-result-object v6
 
-    :cond_af
+    :cond_b0
     invoke-interface {v6}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v12
 
-    if-eqz v12, :cond_b0
+    if-eqz v12, :cond_b1
 
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -16596,11 +16610,11 @@
 
     move-result v15
 
-    if-eqz v15, :cond_af
+    if-eqz v15, :cond_b0
 
     goto :goto_104
 
-    :cond_b0
+    :cond_b1
     const/4 v12, 0x0
 
     :goto_104
@@ -16613,14 +16627,14 @@
 
     const/4 v6, 0x5
 
-    if-le v3, v6, :cond_c0
+    if-le v3, v6, :cond_c1
 
-    if-nez v11, :cond_b1
+    if-nez v11, :cond_b2
 
-    if-eqz v12, :cond_c0
+    if-eqz v12, :cond_c1
 
     .line 2735
-    :cond_b1
+    :cond_b2
     new-instance v3, Ljava/util/ArrayList;
 
     invoke-direct {v3}, Ljava/util/ArrayList;-><init>()V
@@ -16632,22 +16646,22 @@
 
     move-result v6
 
-    if-eqz v6, :cond_b2
+    if-eqz v6, :cond_b3
 
     invoke-interface {v3, v7}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 2737
-    :cond_b2
+    :cond_b3
     invoke-static {v11, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v6
 
-    if-eqz v6, :cond_b3
+    if-eqz v6, :cond_b4
 
     invoke-interface {v3, v13}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    :cond_b3
-    if-eqz v12, :cond_b4
+    :cond_b4
+    if-eqz v12, :cond_b5
 
     move-object/from16 v6, v32
 
@@ -16655,7 +16669,7 @@
     invoke-interface {v3, v6}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 2739
-    :cond_b4
+    :cond_b5
     iget-object v6, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
     move-object/from16 v38, v3
@@ -16744,20 +16758,20 @@
 
     invoke-static {v6, v7}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
-    if-eqz v11, :cond_b8
+    if-eqz v11, :cond_b9
 
     .line 2741
     invoke-static {v11, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v6
 
-    if-eqz v6, :cond_b5
+    if-eqz v6, :cond_b6
 
     sget-object v6, Lcom/jichi/ob/model/DataSource;->IGPSPORT_INT:Lcom/jichi/ob/model/DataSource;
 
     goto :goto_105
 
-    :cond_b5
+    :cond_b6
     sget-object v6, Lcom/jichi/ob/model/DataSource;->IGPSPORT:Lcom/jichi/ob/model/DataSource;
 
     .line 2742
@@ -16768,32 +16782,32 @@
 
     move-result-object v7
 
-    if-nez v7, :cond_b6
+    if-nez v7, :cond_b7
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v7, 0x0
 
-    :cond_b6
+    :cond_b7
     invoke-virtual {v7, v6}, Lcom/jichi/ob/util/PrefsManager;->getCredential(Lcom/jichi/ob/model/DataSource;)Ljava/lang/String;
 
     move-result-object v6
 
-    if-nez v6, :cond_b7
+    if-nez v6, :cond_b8
 
     goto :goto_106
 
-    :cond_b7
+    :cond_b8
     move-object/from16 v20, v6
 
     .line 2744
-    :cond_b8
+    :cond_b9
     :goto_106
     invoke-static {v11, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v6
 
-    if-eqz v12, :cond_ba
+    if-eqz v12, :cond_bb
 
     .line 2745
     iget-object v7, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
@@ -16802,13 +16816,13 @@
 
     move-result-object v7
 
-    if-nez v7, :cond_b9
+    if-nez v7, :cond_ba
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v7, 0x0
 
-    :cond_b9
+    :cond_ba
     invoke-virtual {v7}, Lcom/jichi/ob/util/PrefsManager;->getBrytonCookie()Ljava/lang/String;
 
     move-result-object v7
@@ -16817,7 +16831,7 @@
 
     goto :goto_107
 
-    :cond_ba
+    :cond_bb
     const/16 v36, 0x0
 
     .line 2746
@@ -16833,11 +16847,11 @@
 
     move-result v8
 
-    if-eqz v8, :cond_bb
+    if-eqz v8, :cond_bc
 
     const/4 v7, 0x0
 
-    :cond_bb
+    :cond_bc
     move-object/from16 v34, v7
 
     check-cast v34, Ljava/lang/String;
@@ -16863,13 +16877,13 @@
 
     move-result-object v7
 
-    if-nez v7, :cond_bc
+    if-nez v7, :cond_bd
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v7, 0x0
 
-    :cond_bc
+    :cond_bd
     invoke-virtual {v7}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutSyncedIds()Ljava/util/Set;
 
     move-result-object v41
@@ -16881,13 +16895,13 @@
 
     move-result-object v7
 
-    if-nez v7, :cond_bd
+    if-nez v7, :cond_be
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v7, 0x0
 
-    :cond_bd
+    :cond_be
     invoke-virtual {v7}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutHashes()Ljava/util/Map;
 
     move-result-object v42
@@ -17043,14 +17057,14 @@
 
     move-object/from16 v9, v53
 
-    if-ne v0, v9, :cond_be
+    if-ne v0, v9, :cond_bf
 
     move-object v3, v9
 
     goto/16 :goto_118
 
     .line 2450
-    :cond_be
+    :cond_bf
     :goto_108
     check-cast v0, Lcom/jichi/ob/api/WorkoutSyncEngine$Result;
 
@@ -17135,7 +17149,7 @@
 
     move-result-object v0
 
-    if-eqz v0, :cond_bf
+    if-eqz v0, :cond_c0
 
     const/16 v3, 0x3c
 
@@ -17145,7 +17159,7 @@
 
     goto :goto_10a
 
-    :cond_bf
+    :cond_c0
     const/4 v9, 0x0
 
     :goto_10a
@@ -17166,7 +17180,7 @@
     invoke-static {v2, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
     .line 2765
-    :cond_c0
+    :cond_c1
     :goto_10b
     iget-object v0, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
@@ -17327,7 +17341,7 @@
 
     move-result v9
 
-    if-eqz v9, :cond_c1
+    if-eqz v9, :cond_c2
 
     invoke-interface {v8}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -17401,7 +17415,7 @@
 
     goto :goto_10f
 
-    :cond_c1
+    :cond_c2
     move-object/from16 v32, v6
 
     move-object/from16 v27, v15
@@ -17424,13 +17438,13 @@
 
     move-result-object v6
 
-    if-nez v6, :cond_c2
+    if-nez v6, :cond_c3
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v6, 0x0
 
-    :cond_c2
+    :cond_c3
     iget-object v8, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
     iget v9, v12, Lkotlin/jvm/internal/Ref$IntRef;->element:I
@@ -17502,7 +17516,7 @@
     :try_end_ae
     .catch Ljava/lang/Exception; {:try_start_ae .. :try_end_ae} :catch_87
 
-    if-eqz v6, :cond_c4
+    if-eqz v6, :cond_c5
 
     :try_start_af
     move-object v6, v2
@@ -17515,9 +17529,9 @@
     :try_end_af
     .catch Ljava/lang/Exception; {:try_start_af .. :try_end_af} :catch_83
 
-    if-eqz v6, :cond_c4
+    if-eqz v6, :cond_c5
 
-    :cond_c3
+    :cond_c4
     move/from16 v9, v25
 
     goto :goto_110
@@ -17530,20 +17544,20 @@
     goto/16 :goto_0
 
     .line 4145
-    :cond_c4
+    :cond_c5
     :try_start_b0
     invoke-interface {v2}, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;
 
     move-result-object v2
 
-    :cond_c5
+    :cond_c6
     invoke-interface {v2}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v6
     :try_end_b0
     .catch Ljava/lang/Exception; {:try_start_b0 .. :try_end_b0} :catch_87
 
-    if-eqz v6, :cond_c3
+    if-eqz v6, :cond_c4
 
     :try_start_b1
     invoke-interface {v2}, Ljava/util/Iterator;->next()Ljava/lang/Object;
@@ -17563,12 +17577,12 @@
     :try_end_b1
     .catch Ljava/lang/Exception; {:try_start_b1 .. :try_end_b1} :catch_83
 
-    if-ne v6, v8, :cond_c5
+    if-ne v6, v8, :cond_c6
 
     move/from16 v9, v23
 
     :goto_110
-    if-eqz v9, :cond_dc
+    if-eqz v9, :cond_dd
 
     .line 2730
     :try_start_b2
@@ -17580,7 +17594,7 @@
     :try_end_b2
     .catch Ljava/lang/Exception; {:try_start_b2 .. :try_end_b2} :catch_87
 
-    if-nez v6, :cond_c6
+    if-nez v6, :cond_c7
 
     :try_start_b3
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -17589,19 +17603,19 @@
 
     const/4 v6, 0x0
 
-    :cond_c6
+    :cond_c7
     :try_start_b4
     invoke-virtual {v6}, Lcom/jichi/ob/util/PrefsManager;->getIntervalsIcuKey()Ljava/lang/String;
 
     move-result-object v2
 
-    if-nez v2, :cond_c7
+    if-nez v2, :cond_c8
 
     move-object/from16 v37, v20
 
     goto :goto_111
 
-    :cond_c7
+    :cond_c8
     move-object/from16 v37, v2
 
     .line 2731
@@ -17620,7 +17634,7 @@
     :try_end_b4
     .catch Ljava/lang/Exception; {:try_start_b4 .. :try_end_b4} :catch_87
 
-    if-nez v2, :cond_c8
+    if-nez v2, :cond_c9
 
     :try_start_b5
     iget-object v2, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
@@ -17633,7 +17647,7 @@
 
     goto :goto_112
 
-    :cond_c8
+    :cond_c9
     :try_start_b6
     iget-object v2, v1, Lcom/jichi/ob/MainActivity$runTask$6;->$task:Lcom/jichi/ob/model/SyncTask;
 
@@ -17652,14 +17666,14 @@
 
     move-result-object v6
 
-    :cond_c9
+    :cond_ca
     invoke-interface {v6}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v8
     :try_end_b6
     .catch Ljava/lang/Exception; {:try_start_b6 .. :try_end_b6} :catch_87
 
-    if-eqz v8, :cond_cb
+    if-eqz v8, :cond_cc
 
     :try_start_b7
     invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
@@ -17675,7 +17689,7 @@
 
     move-result v15
 
-    if-nez v15, :cond_ca
+    if-nez v15, :cond_cb
 
     invoke-static {v11, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
@@ -17683,14 +17697,14 @@
     :try_end_b7
     .catch Ljava/lang/Exception; {:try_start_b7 .. :try_end_b7} :catch_83
 
-    if-eqz v11, :cond_c9
+    if-eqz v11, :cond_ca
 
-    :cond_ca
+    :cond_cb
     move-object v6, v8
 
     goto :goto_113
 
-    :cond_cb
+    :cond_cc
     const/4 v6, 0x0
 
     :goto_113
@@ -17707,14 +17721,14 @@
 
     move-result-object v8
 
-    :cond_cc
+    :cond_cd
     invoke-interface {v8}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v11
     :try_end_b8
     .catch Ljava/lang/Exception; {:try_start_b8 .. :try_end_b8} :catch_87
 
-    if-eqz v11, :cond_cd
+    if-eqz v11, :cond_ce
 
     :try_start_b9
     invoke-interface {v8}, Ljava/util/Iterator;->next()Ljava/lang/Object;
@@ -17732,11 +17746,11 @@
     :try_end_b9
     .catch Ljava/lang/Exception; {:try_start_b9 .. :try_end_b9} :catch_83
 
-    if-eqz v15, :cond_cc
+    if-eqz v15, :cond_cd
 
     goto :goto_114
 
-    :cond_cd
+    :cond_ce
     const/4 v11, 0x0
 
     :goto_114
@@ -17750,14 +17764,14 @@
 
     const/4 v8, 0x5
 
-    if-le v3, v8, :cond_dc
+    if-le v3, v8, :cond_dd
 
-    if-nez v6, :cond_ce
+    if-nez v6, :cond_cf
 
-    if-eqz v11, :cond_dc
+    if-eqz v11, :cond_dd
 
     .line 2735
-    :cond_ce
+    :cond_cf
     new-instance v3, Ljava/util/ArrayList;
 
     invoke-direct {v3}, Ljava/util/ArrayList;-><init>()V
@@ -17771,7 +17785,7 @@
     :try_end_ba
     .catch Ljava/lang/Exception; {:try_start_ba .. :try_end_ba} :catch_87
 
-    if-eqz v8, :cond_cf
+    if-eqz v8, :cond_d0
 
     :try_start_bb
     invoke-interface {v3, v7}, Ljava/util/List;->add(Ljava/lang/Object;)Z
@@ -17779,7 +17793,7 @@
     .catch Ljava/lang/Exception; {:try_start_bb .. :try_end_bb} :catch_83
 
     .line 2737
-    :cond_cf
+    :cond_d0
     :try_start_bc
     invoke-static {v6, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
@@ -17787,13 +17801,13 @@
     :try_end_bc
     .catch Ljava/lang/Exception; {:try_start_bc .. :try_end_bc} :catch_87
 
-    if-eqz v7, :cond_d0
+    if-eqz v7, :cond_d1
 
     :try_start_bd
     invoke-interface {v3, v13}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    :cond_d0
-    if-eqz v11, :cond_d1
+    :cond_d1
+    if-eqz v11, :cond_d2
 
     move-object/from16 v7, v32
 
@@ -17803,7 +17817,7 @@
     .catch Ljava/lang/Exception; {:try_start_bd .. :try_end_bd} :catch_83
 
     .line 2739
-    :cond_d1
+    :cond_d2
     :try_start_be
     iget-object v7, v1, Lcom/jichi/ob/MainActivity$runTask$6;->this$0:Lcom/jichi/ob/MainActivity;
 
@@ -17895,7 +17909,7 @@
     :try_end_be
     .catch Ljava/lang/Exception; {:try_start_be .. :try_end_be} :catch_87
 
-    if-eqz v6, :cond_d5
+    if-eqz v6, :cond_d6
 
     .line 2741
     :try_start_bf
@@ -17903,13 +17917,13 @@
 
     move-result v2
 
-    if-eqz v2, :cond_d2
+    if-eqz v2, :cond_d3
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->IGPSPORT_INT:Lcom/jichi/ob/model/DataSource;
 
     goto :goto_115
 
-    :cond_d2
+    :cond_d3
     sget-object v2, Lcom/jichi/ob/model/DataSource;->IGPSPORT:Lcom/jichi/ob/model/DataSource;
 
     .line 2742
@@ -17920,28 +17934,28 @@
 
     move-result-object v7
 
-    if-nez v7, :cond_d3
+    if-nez v7, :cond_d4
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v7, 0x0
 
-    :cond_d3
+    :cond_d4
     invoke-virtual {v7, v2}, Lcom/jichi/ob/util/PrefsManager;->getCredential(Lcom/jichi/ob/model/DataSource;)Ljava/lang/String;
 
     move-result-object v2
     :try_end_bf
     .catch Ljava/lang/Exception; {:try_start_bf .. :try_end_bf} :catch_83
 
-    if-nez v2, :cond_d4
+    if-nez v2, :cond_d5
 
     goto :goto_116
 
-    :cond_d4
+    :cond_d5
     move-object/from16 v20, v2
 
     .line 2744
-    :cond_d5
+    :cond_d6
     :goto_116
     :try_start_c0
     invoke-static {v6, v14}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
@@ -17950,7 +17964,7 @@
     :try_end_c0
     .catch Ljava/lang/Exception; {:try_start_c0 .. :try_end_c0} :catch_87
 
-    if-eqz v11, :cond_d7
+    if-eqz v11, :cond_d8
 
     .line 2745
     :try_start_c1
@@ -17960,13 +17974,13 @@
 
     move-result-object v7
 
-    if-nez v7, :cond_d6
+    if-nez v7, :cond_d7
 
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     const/4 v7, 0x0
 
-    :cond_d6
+    :cond_d7
     invoke-virtual {v7}, Lcom/jichi/ob/util/PrefsManager;->getBrytonCookie()Ljava/lang/String;
 
     move-result-object v7
@@ -17977,7 +17991,7 @@
 
     goto :goto_117
 
-    :cond_d7
+    :cond_d8
     const/16 v36, 0x0
 
     .line 2746
@@ -17994,11 +18008,11 @@
 
     move-result v8
 
-    if-eqz v8, :cond_d8
+    if-eqz v8, :cond_d9
 
     const/4 v7, 0x0
 
-    :cond_d8
+    :cond_d9
     move-object/from16 v34, v7
 
     check-cast v34, Ljava/lang/String;
@@ -18026,7 +18040,7 @@
     :try_end_c2
     .catch Ljava/lang/Exception; {:try_start_c2 .. :try_end_c2} :catch_87
 
-    if-nez v7, :cond_d9
+    if-nez v7, :cond_da
 
     :try_start_c3
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -18035,7 +18049,7 @@
 
     const/4 v7, 0x0
 
-    :cond_d9
+    :cond_da
     :try_start_c4
     invoke-virtual {v7}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutSyncedIds()Ljava/util/Set;
 
@@ -18050,7 +18064,7 @@
     :try_end_c4
     .catch Ljava/lang/Exception; {:try_start_c4 .. :try_end_c4} :catch_87
 
-    if-nez v7, :cond_da
+    if-nez v7, :cond_db
 
     :try_start_c5
     invoke-static/range {v24 .. v24}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
@@ -18059,7 +18073,7 @@
 
     const/4 v7, 0x0
 
-    :cond_da
+    :cond_db
     :try_start_c6
     invoke-virtual {v7}, Lcom/jichi/ob/util/PrefsManager;->getWorkoutHashes()Ljava/util/Map;
 
@@ -18226,12 +18240,12 @@
 
     move-object/from16 v3, v53
 
-    if-ne v0, v3, :cond_db
+    if-ne v0, v3, :cond_dc
 
     :goto_118
     return-object v3
 
-    :cond_db
+    :cond_dc
     move-object v2, v7
 
     .line 2450
@@ -18327,7 +18341,7 @@
 
     goto :goto_11a
 
-    :cond_dc
+    :cond_dd
     move-object/from16 v7, v17
 
     move-object v4, v7
@@ -18353,7 +18367,7 @@
 
     move-result-object v0
 
-    if-eqz v0, :cond_dd
+    if-eqz v0, :cond_de
 
     const/16 v4, 0x3c
 
@@ -18363,7 +18377,7 @@
 
     goto :goto_11d
 
-    :cond_dd
+    :cond_de
     move-object v9, v6
 
     :goto_11d
@@ -18397,6 +18411,8 @@
     invoke-virtual {v0, v2}, Lcom/jichi/ob/MainActivity;->runOnUiThread(Ljava/lang/Runnable;)V
 
     throw v4
+
+    nop
 
     :pswitch_data_0
     .packed-switch 0x0

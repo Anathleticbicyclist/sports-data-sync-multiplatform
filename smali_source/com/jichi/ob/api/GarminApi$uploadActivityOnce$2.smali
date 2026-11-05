@@ -31,7 +31,7 @@
 .end annotation
 
 .annotation system Ldalvik/annotation/SourceDebugExtension;
-    value = "SMAP\nGarminApi.kt\nKotlin\n*S Kotlin\n*F\n+ 1 GarminApi.kt\ncom/jichi/ob/api/GarminApi$uploadActivityOnce$2\n+ 2 _Maps.kt\nkotlin/collections/MapsKt___MapsKt\n*L\n1#1,1768:1\n216#2,2:1769\n216#2,2:1771\n*S KotlinDebug\n*F\n+ 1 GarminApi.kt\ncom/jichi/ob/api/GarminApi$uploadActivityOnce$2\n*L\n1564#1:1769,2\n1603#1:1771,2\n*E\n"
+    value = "SMAP\nGarminApi.kt\nKotlin\n*S Kotlin\n*F\n+ 1 GarminApi.kt\ncom/jichi/ob/api/GarminApi$uploadActivityOnce$2\n+ 2 _Maps.kt\nkotlin/collections/MapsKt___MapsKt\n*L\n1#1,1690:1\n216#2,2:1691\n216#2,2:1693\n*S KotlinDebug\n*F\n+ 1 GarminApi.kt\ncom/jichi/ob/api/GarminApi$uploadActivityOnce$2\n*L\n1528#1:1691,2\n1567#1:1693,2\n*E\n"
 .end annotation
 
 .annotation runtime Lkotlin/Metadata;
@@ -63,8 +63,8 @@
         0x1
     }
     l = {
-        0x62e,
-        0x631
+        0x60a,
+        0x60d
     }
     m = "invokeSuspend"
     n = {
@@ -232,7 +232,7 @@
 
     move-result-object v3
 
-    .line 1551
+    .line 1515
     iget v4, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->label:I
 
     const-string/jumbo v5, "\u4f73\u660e\u4e0a\u4f20\u51b2\u7a81 HTTP 409: "
@@ -328,7 +328,7 @@
     :cond_2
     invoke-static/range {p1 .. p1}, Lkotlin/ResultKt;->throwOnFailure(Ljava/lang/Object;)V
 
-    .line 1553
+    .line 1517
     :try_start_2
     iget-object v4, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
@@ -338,7 +338,7 @@
 
     move-result-object v4
 
-    .line 1554
+    .line 1518
     sget-object v13, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
     iget-object v14, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
@@ -415,7 +415,7 @@
 
     invoke-virtual {v13, v0}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    .line 1557
+    .line 1521
     iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_COM:Lcom/jichi/ob/model/DataSource;
@@ -472,7 +472,7 @@
 
     if-lez v0, :cond_4
 
-    .line 1558
+    .line 1522
     :goto_2
     iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
@@ -500,7 +500,7 @@
 
     move-result-object v0
 
-    .line 1559
+    .line 1523
     new-instance v2, Lokhttp3/MultipartBody$Builder;
 
     const/4 v3, 0x1
@@ -509,14 +509,14 @@
 
     invoke-direct {v2, v6, v3, v6}, Lokhttp3/MultipartBody$Builder;-><init>(Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 
-    .line 1560
+    .line 1524
     sget-object v3, Lokhttp3/MultipartBody;->FORM:Lokhttp3/MediaType;
 
     invoke-virtual {v2, v3}, Lokhttp3/MultipartBody$Builder;->setType(Lokhttp3/MediaType;)Lokhttp3/MultipartBody$Builder;
 
     move-result-object v2
 
-    .line 1561
+    .line 1525
     iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$fileName:Ljava/lang/String;
 
     sget-object v23, Lokhttp3/RequestBody;->Companion:Lokhttp3/RequestBody$Companion;
@@ -547,12 +547,12 @@
 
     move-result-object v2
 
-    .line 1562
+    .line 1526
     invoke-virtual {v2}, Lokhttp3/MultipartBody$Builder;->build()Lokhttp3/MultipartBody;
 
     move-result-object v2
 
-    .line 1563
+    .line 1527
     new-instance v3, Lokhttp3/Request$Builder;
 
     invoke-direct {v3}, Lokhttp3/Request$Builder;-><init>()V
@@ -565,14 +565,14 @@
 
     iget-object v9, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
 
-    .line 1564
+    .line 1528
     const-string v13, "POST"
 
     invoke-static {v6, v4, v9, v0, v13}, Lcom/jichi/ob/api/GarminApi;->access$connectHeaders(Lcom/jichi/ob/api/GarminApi;Lcom/jichi/ob/api/GarminApi$GarminSession;Lcom/jichi/ob/model/DataSource;Ljava/lang/String;Ljava/lang/String;)Ljava/util/Map;
 
     move-result-object v0
 
-    .line 1769
+    .line 1691
     invoke-interface {v0}, Ljava/util/Map;->entrySet()Ljava/util/Set;
 
     move-result-object v0
@@ -606,16 +606,16 @@
 
     check-cast v4, Ljava/lang/String;
 
-    .line 1564
+    .line 1528
     invoke-virtual {v3, v6, v4}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
     goto :goto_3
 
-    .line 1565
+    .line 1529
     :cond_7
     invoke-virtual {v3, v12, v11}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
-    .line 1566
+    .line 1530
     check-cast v2, Lokhttp3/RequestBody;
 
     invoke-virtual {v3, v2}, Lokhttp3/Request$Builder;->post(Lokhttp3/RequestBody;)Lokhttp3/Request$Builder;
@@ -626,7 +626,7 @@
 
     move-result-object v0
 
-    .line 1567
+    .line 1531
     iget-object v2, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     invoke-static {v2}, Lcom/jichi/ob/api/GarminApi;->access$getClient$p(Lcom/jichi/ob/api/GarminApi;)Lokhttp3/OkHttpClient;
@@ -653,7 +653,7 @@
 
     check-cast v0, Lokhttp3/Response;
 
-    .line 1568
+    .line 1532
     invoke-virtual {v0}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
 
     move-result-object v3
@@ -677,7 +677,7 @@
     :goto_4
     move-object/from16 v14, v18
 
-    .line 1569
+    .line 1533
     :goto_5
     sget-object v3, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
@@ -721,7 +721,7 @@
 
     invoke-virtual {v3, v4}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    .line 1570
+    .line 1534
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
     move-result v3
@@ -740,7 +740,7 @@
 
     packed-switch v3, :pswitch_data_0
 
-    .line 1575
+    .line 1539
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
     move-result v0
@@ -784,7 +784,7 @@
 
     goto :goto_7
 
-    .line 1572
+    .line 1536
     :cond_a
     move-object v0, v14
 
@@ -810,7 +810,7 @@
     :cond_b
     const/16 v3, 0x64
 
-    .line 1573
+    .line 1537
     invoke-static {v14, v3}, Lkotlin/text/StringsKt;->take(Ljava/lang/String;I)Ljava/lang/String;
 
     move-result-object v0
@@ -833,7 +833,7 @@
 
     goto :goto_6
 
-    .line 1574
+    .line 1538
     :cond_c
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
@@ -875,7 +875,7 @@
 
     goto :goto_6
 
-    .line 1570
+    .line 1534
     :goto_7
     :try_start_4
     invoke-static {v2, v6}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
@@ -903,7 +903,7 @@
 
     throw v0
 
-    .line 1580
+    .line 1544
     :goto_8
     iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
@@ -931,14 +931,14 @@
 
     move-result-object v2
 
-    .line 1581
+    .line 1545
     invoke-static {}, Lcom/jichi/ob/api/GarminApi;->access$getSharedWebView$cp()Landroid/webkit/WebView;
 
     move-result-object v0
 
     if-eqz v0, :cond_13
 
-    .line 1582
+    .line 1546
     iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$cred:Ljava/lang/String;
@@ -985,7 +985,7 @@
 
     if-eqz v0, :cond_12
 
-    .line 1583
+    .line 1547
     iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     iget-object v13, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
@@ -1000,10 +1000,10 @@
 
     move-result-object v0
 
-    .line 1584
+    .line 1548
     invoke-interface {v0, v12, v11}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 1585
+    .line 1549
     iget-object v13, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     iget-object v14, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$fileName:Ljava/lang/String;
@@ -1054,13 +1054,13 @@
     :cond_e
     move-object/from16 v2, v22
 
-    .line 1551
+    .line 1515
     :goto_b
     check-cast v0, Ljava/lang/String;
 
     if-eqz v0, :cond_13
 
-    .line 1588
+    .line 1552
     move-object v2, v0
 
     check-cast v2, Ljava/lang/CharSequence;
@@ -1079,7 +1079,7 @@
 
     return-object v16
 
-    .line 1589
+    .line 1553
     :cond_f
     move-object v2, v0
 
@@ -1136,7 +1136,7 @@
     :cond_10
     const/16 v3, 0x64
 
-    .line 1590
+    .line 1554
     invoke-static {v0, v3}, Lkotlin/text/StringsKt;->take(Ljava/lang/String;I)Ljava/lang/String;
 
     move-result-object v0
@@ -1166,7 +1166,7 @@
     :cond_12
     move-object/from16 v22, v2
 
-    .line 1595
+    .line 1559
     :cond_13
     sget-object v0, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
@@ -1174,7 +1174,7 @@
 
     invoke-virtual {v0, v3}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    .line 1596
+    .line 1560
     new-instance v0, Lokhttp3/MultipartBody$Builder;
 
     const/4 v3, 0x0
@@ -1183,14 +1183,14 @@
 
     invoke-direct {v0, v3, v4, v3}, Lokhttp3/MultipartBody$Builder;-><init>(Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 
-    .line 1597
+    .line 1561
     sget-object v3, Lokhttp3/MultipartBody;->FORM:Lokhttp3/MediaType;
 
     invoke-virtual {v0, v3}, Lokhttp3/MultipartBody$Builder;->setType(Lokhttp3/MediaType;)Lokhttp3/MultipartBody$Builder;
 
     move-result-object v0
 
-    .line 1598
+    .line 1562
     iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$fileName:Ljava/lang/String;
 
     sget-object v20, Lokhttp3/RequestBody;->Companion:Lokhttp3/RequestBody$Companion;
@@ -1221,12 +1221,12 @@
 
     move-result-object v0
 
-    .line 1599
+    .line 1563
     invoke-virtual {v0}, Lokhttp3/MultipartBody$Builder;->build()Lokhttp3/MultipartBody;
 
     move-result-object v0
 
-    .line 1600
+    .line 1564
     iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     iget-object v4, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
@@ -1241,10 +1241,10 @@
 
     move-result-object v3
 
-    .line 1601
+    .line 1565
     invoke-interface {v3, v12, v11}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 
-    .line 1602
+    .line 1566
     new-instance v4, Lokhttp3/Request$Builder;
 
     invoke-direct {v4}, Lokhttp3/Request$Builder;-><init>()V
@@ -1253,7 +1253,7 @@
 
     move-result-object v2
 
-    .line 1771
+    .line 1693
     invoke-interface {v3}, Ljava/util/Map;->entrySet()Ljava/util/Set;
 
     move-result-object v3
@@ -1287,12 +1287,12 @@
 
     check-cast v4, Ljava/lang/String;
 
-    .line 1603
+    .line 1567
     invoke-virtual {v2, v9, v4}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
     goto :goto_d
 
-    .line 1604
+    .line 1568
     :cond_14
     check-cast v0, Lokhttp3/RequestBody;
 
@@ -1304,7 +1304,7 @@
 
     move-result-object v0
 
-    .line 1605
+    .line 1569
     iget-object v2, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     invoke-static {v2}, Lcom/jichi/ob/api/GarminApi;->access$getClient$p(Lcom/jichi/ob/api/GarminApi;)Lokhttp3/OkHttpClient;
@@ -1331,7 +1331,7 @@
 
     check-cast v0, Lokhttp3/Response;
 
-    .line 1606
+    .line 1570
     invoke-virtual {v0}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
 
     move-result-object v3
@@ -1355,7 +1355,7 @@
     :goto_e
     move-object/from16 v14, v18
 
-    .line 1607
+    .line 1571
     :goto_f
     sget-object v3, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
@@ -1397,7 +1397,7 @@
 
     invoke-virtual {v3, v4}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    .line 1608
+    .line 1572
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
     move-result v3
@@ -1416,7 +1416,7 @@
 
     packed-switch v3, :pswitch_data_1
 
-    .line 1613
+    .line 1577
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
     move-result v0
@@ -1460,7 +1460,7 @@
 
     goto :goto_11
 
-    .line 1610
+    .line 1574
     :cond_17
     move-object v0, v14
 
@@ -1490,7 +1490,7 @@
     :cond_18
     const/16 v3, 0x64
 
-    .line 1611
+    .line 1575
     invoke-static {v14, v3}, Lkotlin/text/StringsKt;->take(Ljava/lang/String;I)Ljava/lang/String;
 
     move-result-object v0
@@ -1513,7 +1513,7 @@
 
     goto :goto_10
 
-    .line 1612
+    .line 1576
     :cond_19
     invoke-virtual {v0}, Lokhttp3/Response;->code()I
 
@@ -1553,7 +1553,7 @@
 
     goto :goto_10
 
-    .line 1605
+    .line 1569
     :goto_11
     :try_start_8
     invoke-static {v2, v6}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
@@ -1587,7 +1587,7 @@
     :catch_0
     move-exception v0
 
-    .line 1621
+    .line 1585
     sget-object v2, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
     invoke-virtual {v0}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
@@ -1610,7 +1610,7 @@
 
     invoke-virtual {v2, v3}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    .line 1622
+    .line 1586
     invoke-virtual {v0}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
 
     move-result-object v0
@@ -1634,7 +1634,7 @@
     :catch_1
     move-exception v0
 
-    .line 1618
+    .line 1582
     sget-object v2, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
     invoke-virtual {v0}, Ljava/io/IOException;->getMessage()Ljava/lang/String;
@@ -1657,7 +1657,7 @@
 
     invoke-virtual {v2, v3}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    .line 1619
+    .line 1583
     invoke-virtual {v0}, Ljava/io/IOException;->getMessage()Ljava/lang/String;
 
     move-result-object v0

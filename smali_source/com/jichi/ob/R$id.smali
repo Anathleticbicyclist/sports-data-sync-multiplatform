@@ -46,6 +46,12 @@
 
 .field public static btnCopyLog:I = 0x7f080071
 
+.field public static btnDarkModeDark:I = 0x7f080327
+
+.field public static btnDarkModeLight:I = 0x7f080328
+
+.field public static btnDarkModeSystem:I = 0x7f080329
+
 .field public static btnDisclaimerClose:I = 0x7f080072
 
 .field public static btnDoMerge:I = 0x7f080073
@@ -182,6 +188,8 @@
 
 .field public static btnTestDownload:I = 0x7f0800b5
 
+.field public static btnTimeZoneEntry:I = 0x7f080326
+
 .field public static btnTrackDown:I = 0x7f0800b6
 
 .field public static btnTrackLeft:I = 0x7f0800b7
@@ -212,12 +220,113 @@
 
 .field public static cardCreateTask:I = 0x7f0800c8
 
+.field public static cardHeatmap:I = 0x7f08032a
+
 .field public static cardLabLogin:I = 0x7f0800c9
 
 .field public static cardLicense:I = 0x7f0800ca
 
 .field public static cardMerge:I = 0x7f0800cb
 
+.field public static bc_blockCad:I = 0x7f08032e
+.field public static bc_blockHr:I = 0x7f08032f
+.field public static bc_blockPower:I = 0x7f080330
+.field public static bc_btnBack:I = 0x7f080331
+.field public static bc_btnCadRunUnbind:I = 0x7f080332
+.field public static bc_btnCadUnbind:I = 0x7f080333
+.field public static bc_btnDisplay:I = 0x7f080334
+.field public static bc_btnGo:I = 0x7f080335
+.field public static bc_btnHeartUnbind:I = 0x7f080336
+.field public static bc_btnHistory:I = 0x7f080337
+.field public static bc_btnPause:I = 0x7f080338
+.field public static bc_btnPowerUnbind:I = 0x7f080339
+.field public static bc_btnResume:I = 0x7f08033a
+.field public static bc_btnSaveWheel:I = 0x7f08033b
+.field public static bc_btnScan:I = 0x7f08033c
+.field public static bc_btnSensors:I = 0x7f08033d
+.field public static bc_btnSpeedUnbind:I = 0x7f08033e
+.field public static bc_btnStart:I = 0x7f08033f
+.field public static bc_btnStop:I = 0x7f080340
+.field public static bc_cardAscent:I = 0x7f080341
+.field public static bc_cardCycling:I = 0x7f080342
+.field public static bc_cardDist:I = 0x7f080343
+.field public static bc_cardRunning:I = 0x7f080344
+.field public static bc_cardWalking:I = 0x7f080345
+.field public static bc_edtWheel:I = 0x7f080346
+.field public static bc_itemAlt:I = 0x7f080347
+.field public static bc_itemAvg:I = 0x7f080348
+.field public static bc_itemBaro:I = 0x7f080349
+.field public static bc_itemGrade:I = 0x7f08034a
+.field public static bc_itemMax:I = 0x7f08034b
+.field public static bc_listHistory:I = 0x7f08034c
+.field public static bc_listScanned:I = 0x7f08034d
+.field public static bc_mainCard:I = 0x7f08034e
+.field public static bc_optAlt:I = 0x7f08034f
+.field public static bc_optHr:I = 0x7f080350
+.field public static bc_optPace:I = 0x7f080351
+.field public static bc_optPower:I = 0x7f080352
+.field public static bc_optSpeed:I = 0x7f080353
+.field public static bc_rowCadRun:I = 0x7f080354
+.field public static bc_rowCadence:I = 0x7f080355
+.field public static bc_rowHeart:I = 0x7f080356
+.field public static bc_rowPower:I = 0x7f080357
+.field public static bc_rowSpeed:I = 0x7f080358
+.field public static bc_rowStatus:I = 0x7f080359
+.field public static bc_rowTime:I = 0x7f08035a
+.field public static bc_swAlt:I = 0x7f08035b
+.field public static bc_swAscent:I = 0x7f08035c
+.field public static bc_swAvg:I = 0x7f08035d
+.field public static bc_swBaro:I = 0x7f08035e
+.field public static bc_swCad:I = 0x7f08035f
+.field public static bc_swDist:I = 0x7f080360
+.field public static bc_swGrade:I = 0x7f080361
+.field public static bc_swHr:I = 0x7f080362
+.field public static bc_swMax:I = 0x7f080363
+.field public static bc_swPower:I = 0x7f080364
+.field public static bc_swTime:I = 0x7f080365
+.field public static bc_trackView:I = 0x7f080366
+.field public static bc_tvAlt:I = 0x7f080367
+.field public static bc_tvAscent:I = 0x7f080368
+.field public static bc_tvAvg:I = 0x7f080369
+.field public static bc_tvAvgLabel:I = 0x7f08036a
+.field public static bc_tvBaro:I = 0x7f08036b
+.field public static bc_tvBaroAlt:I = 0x7f08036c
+.field public static bc_tvBle:I = 0x7f08036d
+.field public static bc_tvCad:I = 0x7f08036e
+.field public static bc_tvCadDev:I = 0x7f08036f
+.field public static bc_tvCadLabel:I = 0x7f080370
+.field public static bc_tvCadRunDev:I = 0x7f080371
+.field public static bc_tvCadRunState:I = 0x7f080372
+.field public static bc_tvCadRunType:I = 0x7f080373
+.field public static bc_tvCadState:I = 0x7f080374
+.field public static bc_tvCadType:I = 0x7f080375
+.field public static bc_tvDevMac:I = 0x7f080376
+.field public static bc_tvDevName:I = 0x7f080377
+.field public static bc_tvDevRssi:I = 0x7f080378
+.field public static bc_tvDevType:I = 0x7f080379
+.field public static bc_tvDist:I = 0x7f08037a
+.field public static bc_tvGpsState:I = 0x7f08037b
+.field public static bc_tvGrade:I = 0x7f08037c
+.field public static bc_tvHeartDev:I = 0x7f08037d
+.field public static bc_tvHeartState:I = 0x7f08037e
+.field public static bc_tvHeartType:I = 0x7f08037f
+.field public static bc_tvHr:I = 0x7f080380
+.field public static bc_tvMain:I = 0x7f080381
+.field public static bc_tvMainLabel:I = 0x7f080382
+.field public static bc_tvMainUnit:I = 0x7f080383
+.field public static bc_tvMax:I = 0x7f080384
+.field public static bc_tvMaxLabel:I = 0x7f080385
+.field public static bc_tvPower:I = 0x7f080386
+.field public static bc_tvPowerDev:I = 0x7f080387
+.field public static bc_tvPowerState:I = 0x7f080388
+.field public static bc_tvPowerType:I = 0x7f080389
+.field public static bc_tvSpeedDev:I = 0x7f08038a
+.field public static bc_tvSpeedState:I = 0x7f08038b
+.field public static bc_tvSpeedType:I = 0x7f08038c
+.field public static bc_tvSportName:I = 0x7f08038d
+.field public static bc_tvTime:I = 0x7f08038e
+.field public static bc_tvTimeText:I = 0x7f08038f
+.field public static cardBikeComputer:I = 0x7f080390
 .field public static cardRecordCenter:I = 0x7f0800cc
 
 .field public static cardTaskMode:I = 0x7f0800cd
@@ -241,6 +350,8 @@
 .field public static containerStep:I = 0x7f0800ed
 
 .field public static containerTasks:I = 0x7f0800ee
+
+.field public static containerTimezone:I = 0x7f080325
 
 .field public static dateChips:I = 0x7f0800fb
 
@@ -319,6 +430,22 @@
 .field public static radioFakeCustom:I = 0x7f0801fd
 
 .field public static radioFakeMode:I = 0x7f0801fe
+
+.field public static rbHistoryMinus:I = 0x7f080323
+
+.field public static rbHistoryNone:I = 0x7f080324
+
+.field public static rbHistoryPlus:I = 0x7f080322
+
+.field public static rbSameDayMinus:I = 0x7f08031f
+
+.field public static rbSameDayNone:I = 0x7f080320
+
+.field public static rbSameDayPlus:I = 0x7f08031e
+
+.field public static rgHistory:I = 0x7f080321
+
+.field public static rgSameDay:I = 0x7f08031d
 
 .field public static rvMergeList:I = 0x7f080209
 
@@ -424,29 +551,9 @@
 
 .field public static switchGcj02FitContent:I = 0x7f080279
 
-.field public static switchGcj02Qiniu:I = 0x7f08027a
-
 .field public static switchGcj02LocalFolder:I = 0x7f08031c
 
-.field public static rgSameDay:I = 0x7f08031d
-
-.field public static rbSameDayPlus:I = 0x7f08031e
-
-.field public static rbSameDayMinus:I = 0x7f08031f
-
-.field public static rbSameDayNone:I = 0x7f080320
-
-.field public static rgHistory:I = 0x7f080321
-
-.field public static rbHistoryPlus:I = 0x7f080322
-
-.field public static rbHistoryMinus:I = 0x7f080323
-
-.field public static rbHistoryNone:I = 0x7f080324
-
-.field public static containerTimezone:I = 0x7f080325
-
-.field public static btnTimeZoneEntry:I = 0x7f080326
+.field public static switchGcj02Qiniu:I = 0x7f08027a
 
 .field public static tgt2b:I = 0x7f080299
 

@@ -446,7 +446,9 @@
 
     invoke-direct {v11}, Lokhttp3/Request$Builder;-><init>()V
 
-    const-string v12, "https://active.brytonsport.com/api/users/me"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->apiUsersMeUrl()Ljava/lang/String;
+
+    move-result-object v12
 
     invoke-virtual {v11, v12}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
 
@@ -664,7 +666,9 @@
 
     invoke-direct {v9}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v11, "https://active.brytonsport.com/workout/upload/"
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->workoutUploadUrl()Ljava/lang/String;
+
+    move-result-object v11
 
     invoke-virtual {v9, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 

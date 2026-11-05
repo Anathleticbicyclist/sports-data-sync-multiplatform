@@ -125,3 +125,28 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 - 改动：`GarminApi.smali` 的 `uploadActivity` 入口、fitData 参数处理前，先 `isAlreadyGarmin(fit)` 判断；非 Garmin 则 `fake(fit, true, 0)` 伪装为 Edge 830（manufacturer=1, product=0xc32），再上传；try/catch 兜底，伪装异常打日志「v9.4.1 FIT伪装异常」后用原文件上传，不阻断流程
 - 已是 Garmin 的文件（GPX→FIT 转换器产物）自动跳过不重复处理
 - 版本号对齐：apktool.yml 94001/9.4.1 + BuildConfig.VERSION_NAME + MainActivity.APP_VERSION + UpdateChecker + 关于页 fragment_about.xml（开发体验版v9.4.1/本次更新v9.4.1/更新日志三条简写）
+
+---
+
+## v9.5.4 / v9.5.5 Smali 修改说明（2026-11-05）
+
+### 新增文件
+- `com/jichi/ob/util/BrytonSite.smali` — 百锐腾站点静态缓存 + URL 工厂（cn=`http://www.brytonsports.cn`，int=`https://active.brytonsport.com`），含 `getUserId()/getToken()` 直读 SharedPreferences(`jichi_ob`) 与 cookie 补采
+- `com/jichi/ob/ui/BrytonSitePicker.smali` / `BrytonSitePicker.smali` / `BrytonSiteRowClick.smali` — 国内站/国际站切换单选弹窗与点击回调
+
+### 修改文件
+- `util/PrefsManager.smali` — 新增 `KEY_BRYTON_SITE="bryton_site"`（默认 cn）、`getBrytonSite()/setBrytonSite()`，构造器调用 `BrytonSite.init(ctx)`
+- `api/BrytonApi.smali` — BASE/LOGIN_URL 改为 <clinit> 按站点动态赋值；authHeaders 改为 Meteor 三件套（`X-User-Id` / `X-Auth-Token` / `x-api-key`）+ Cookie；FIT 下载 URL 改为 `GET {base}/api/activity?id={id}`
+- `api/BrytonApi$*.smali` / `BrytonWebApi*.smali` / `BrytonWebUploader*.smali` — 所有 Bryton host 统一走 BrytonSite 工厂
+- `ui/LoginWebActivity.smali` — 百锐腾登录入口按站点改写 URL；`detectIgpsport()` 的 JS 由只读 `persist:app-store` 改为多来源提取（`IGS--TOKEN` / persist / URL `?token=` / 全 localStorage / cookie），修复 iGPSPORT 国际区登录态识别不到
+- `ui/LoginFragment.smali` — 百锐腾卡片标题显示「· 国内站/国际站」，详情弹窗增加站点切换行
+- `api/IgpsportApi.smali` 及 5 个 `IgpsportApi$*.smali` — `authHeaders` 增加 intl 参数，Origin/Referer 按区域同源（int=.com / cn=.cn），下载请求 Referer 同步
+- `api/UploadEngine.smali` — 移除 BRYTON 枚举映射，上传落 default「开发中」
+- `ui/SyncSettingsFragment.smali` / `ui/CreateTaskFragment.smali` / `model/DataSource.smali` — 百锐腾不再作为上传目标（置灰/过滤/不可恢复）
+- `util/UpdateChecker.smali` / `MainActivity.smali` / `BuildConfig.smali` — 版本号 9.5.5 对齐
+- `res/layout/fragment_about.xml` — 更新日志改为 v9.5.5 / v9.5.4 / v9.5.3 三条简写 + 下载提示
+
+### 编译注意（v9.5.5 实测踩坑）
+1. 新增类后主 dex 类型数超过 65536，需把 `smali/io`、`smali/android`、`smali/_COROUTINE` 移到 `smali_classes5`
+2. `fragment_about.xml` 引用的 `@id/cardBikeComputer` 需在 `res/values/ids.xml` + `public.xml` 补齐（原 APK 数值 0x7f080390）
+3. 监听器接口方法名必须精确：`DialogInterface.OnClickListener` 是 `onClick(DialogInterface,int)`（写成 onItemClick 会 AbstractMethodError 闪退）
