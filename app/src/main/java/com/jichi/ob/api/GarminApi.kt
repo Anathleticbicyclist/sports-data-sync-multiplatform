@@ -9,6 +9,8 @@ import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import com.jichi.ob.model.ActivityRecord
 import com.jichi.ob.model.DataSource
 import kotlinx.coroutines.Dispatchers
@@ -1385,30 +1387,29 @@ class GarminApi {
                     val wv = sharedWebView!!
                     val headers = apiHeaders(ds, cred).toMutableMap()
                     headers["Accept"] = "*/*"
+                    // v9.5.3: 用 WebMessageListener 一次性回传，替代每500ms轮询 __g_done
                     val fetchJs = """
-                        (function(){ fetch('$url',{method:'GET',credentials:'include',headers:${JSONObject(headers as Map<String,String>).toString()}}).then(r=>{window.__g_status=r.status;return r.blob();}).then(b=>{var r=new FileReader();r.onload=e=>{window.__g_result=e.target.result.split(',')[1];window.__g_done=true;};r.readAsDataURL(b);}).catch(e=>{window.__g_error=e.toString();window.__g_done=true;}); })();
+                        (function(){
+                          fetch('$url',{method:'GET',credentials:'include',headers:${JSONObject(headers as Map<String,String>).toString()}})
+                            .then(function(r){var s=r.status;return r.blob().then(function(b){return {s:s,b:b};});})
+                            .then(function(x){var fr=new FileReader();fr.onload=function(e){window.jichiNative.postMessage(JSON.stringify({s:x.s,r:e.target.result.split(',')[1]}));};fr.readAsDataURL(x.b);})
+                            .catch(function(e){window.jichiNative.postMessage(JSON.stringify({s:0,r:'',e:e.toString()}));});
+                        })();
                     """.trimIndent()
                     val result = withTimeoutOrNull(60000) {
                         withContext(Dispatchers.Main) {
                             suspendCancellableCoroutine<String?> { cont ->
-                                var attempts = 0
-                                val check = object : Runnable {
-                                    override fun run() {
-                                        attempts++
-                                        wv.evaluateJavascript("(function(){ if(window.__g_done){ var s=window.__g_status||0; var r=window.__g_result!==undefined?window.__g_result:''; var e=window.__g_error||''; return JSON.stringify({s:s,r:r,e:e}); } return '__ND__'; })()") { v ->
-                                            val valStr = v?.trim()?.trim('"') ?: ""
-                                            if (valStr != "__ND__" && valStr.isNotEmpty()) {
-                                                try {
-                                                    val json = JSONObject(valStr.replace("\\n","\n").replace("\\\"","\""))
-                                                    cont.resume(if (json.optInt("s",0) in 200..299 && json.optString("r","").isNotEmpty()) json.optString("r") else null)
-                                                } catch (e: Exception) { cont.resume(null) }
-                                            } else if (attempts < 120) wv.postDelayed(this, 500)
-                                            else cont.resume(null)
-                                        }
-                                    }
+                                val listener = WebViewCompat.WebMessageListener { _, message, _, _, _ ->
+                                    try {
+                                        val json = JSONObject(message.data)
+                                        cont.resume(if (json.optInt("s",0) in 200..299 && json.optString("r","").isNotEmpty()) json.optString("r") else null)
+                                    } catch (e: Exception) { cont.resume(null) }
                                 }
-                                wv.evaluateJavascript("window.__g_done=false;window.__g_result=undefined;window.__g_error=undefined;") {
-                                    wv.evaluateJavascript(fetchJs) { check.run() }
+                                val allowed = setOf("https://connect.garmin.cn","https://connect.garmin.com")
+                                WebViewCompat.addWebMessageListener(wv, "jichiNative", allowed, listener)
+                                wv.evaluateJavascript(fetchJs, null)
+                                cont.invokeOnCancellation {
+                                    try { WebViewCompat.removeWebMessageListener(wv, listener) } catch (_: Exception) {}
                                 }
                             }
                         }
