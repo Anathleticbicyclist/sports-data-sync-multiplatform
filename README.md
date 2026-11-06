@@ -363,6 +363,14 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 ---
 
+## 🧩 二次开发 / 衍生项目
+
+欢迎基于本项目二次开发，以下是社区同学的衍生项目：
+
+- **[kylin2005-art/sports-data-sync-web](https://github.com/kylin2005-art/sports-data-sync-web/tree/main)** — 把本 Android 项目移植到 Web 端，浏览器里跑同步。
+
+---
+
 ## 🙏 鸣谢
 
 ### 🏢 平台鸣谢
