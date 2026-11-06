@@ -7568,6 +7568,9 @@
     .line 1639
     invoke-virtual {v10, v7}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
+    # v9.5.7 持久化保证：以下平台（Wahoo、高驰国内/国际、佳明国际 GARMIN_COM、佳明中国 GARMIN_CN）
+    # 即使启动检测判定失效，也一律跳到 :cond_54/:goto_68 保留本地凭证（仅提示需手动重登），
+    # 绝不调用 clearCredential。尤其佳明中国网页版登录拿到的 token/cookie 会被持久化，不会丢失。
     .line 1640
     sget-object v0, Lcom/jichi/ob/model/DataSource;->WAHOO:Lcom/jichi/ob/model/DataSource;
 
