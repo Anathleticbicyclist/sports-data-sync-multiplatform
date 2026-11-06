@@ -377,7 +377,13 @@
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p1, v2, :cond_e
+    # v9.5.7: 静默刷新（refreshDiToken）失败后的兜底策略。
+    # 正式版仅当 ds == GARMIN_CN（佳明中国）才用保存的 garmin_cn_email/password 调
+    # loginWithCredentialsCn 自动重登，佳明国际 GARMIN_COM 不自动重登（防 429 账号级风控）。
+    # 本版本按用户要求更严格：无论中国/国际，刷新失败都不做明文自动重登，
+    # 直接 goto :cond_e 返回原 cred 并保留凭证，用户需手动重登。
+    # 下方 :try_start_0 起的明文重登代码保留但不可达，如需对齐正式版可改回条件判断。
+    goto :cond_e
 
     .line 815
     :try_start_0
