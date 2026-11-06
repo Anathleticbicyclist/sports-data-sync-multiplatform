@@ -179,3 +179,26 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 1. 往巨型方法（onViewCreated/buildUi）中间插入代码会改变寄存器类型流，ART 校验直接 VerifyError 闪退。新增 UI 代码应追加到方法末尾或封装独立静态方法；改完必须装机冒烟。
 2. apktool 内置汇编器通过 ≠ 运行时校验通过，VerifyError 只有真机/模拟器启动才暴露。
 3. 热力图读文件必须走 MediaStore/SAF（App 未声明存储权限），裸 File.listFiles() 在 Android 10+ 返回空。
+
+---
+
+## v9.5.7 Smali 修改说明（2026-11-06）
+
+### 修改文件
+1. **`ui/LoginWebActivity.smali`**
+   - 核心修复：outbase 专属视口块 `const/4 v5` 由 0x0 改为 0x1，使 setUseWideViewPort、setLoadWithOverviewMode 均传 true，对齐正式版
+   - 根因：两开关误设 false 导致网页视口/布局异常，JS 报 "Cannot read properties of undefined (reading 'ec')"，网页自行跳回 login.html 并清 cookie
+   - onCreate 增加 setWebContentsDebuggingEnabled(true) 调试开关
+2. **`api/GarminApi$ensureValidToken$2.smali`**
+   - 第 386 行改为无条件 `goto :cond_e`：静默刷新失败后国内/国际都不做明文自动重登，返回原凭证，避免重复登录触发风控；原明文重登代码保留但不可达
+3. **`MainActivity$checkAllLogins$1.smali`**
+   - 持久化保证：唯一 clearCredential 前的平台判断，WAHOO/COROS_CN/COROS_INT/GARMIN_COM/GARMIN_CN 全部走保留分支，不清除凭证；佳明中国网页版登录态持久化
+4. **`res/layout/fragment_about.xml`**
+   - 更新日志第一条改为 v9.5.7 内容（修复 Outbase 登录、修复佳明检测逻辑）
+
+### 本轮踩坑（重要）
+- 修改二进制 AXML 文本时，手工重建字符串池（重算偏移/长度前缀/chunkSize/对齐）会被系统原生解析器判 "Corrupt XML binary file"，关于页 inflate 即闪退；自写结构校验脚本不可信，native 解析器与 logcat 才是权威。
+- 正确做法：等长字节替换，把新文案调整到与旧字符串完全相同的 UTF-8 字节数，只换内容，长度前缀/偏移/chunkSize/文件大小全部不变，再装机验证。
+
+### 验证
+- 模拟器实测：Outbase 真实登录后 dashboard 稳定停留、无 'ec' 报错、不跳回 login；启动不闪退，关于页正常，四个 tab 切换正常。
