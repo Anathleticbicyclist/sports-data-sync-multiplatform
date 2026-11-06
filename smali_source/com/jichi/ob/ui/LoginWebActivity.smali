@@ -1754,7 +1754,7 @@
 
     aput-object v4, v3, v15
 
-    const-string v4, "www.brytonsports.cn"
+    const-string/jumbo v4, "www.brytonsports.cn"
 
     invoke-virtual {v2, v4}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
@@ -1806,7 +1806,6 @@
 
     move-result-object v1
 
-    # v9.5.4: 国际站补采 active.brytonsport.com 的登录 cookie
     invoke-static {v1}, Lcom/jichi/ob/util/BrytonSite;->appendSiteCookie(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v1
@@ -1946,6 +1945,8 @@
     invoke-virtual {v0}, Lcom/jichi/ob/ui/LoginWebActivity;->finish()V
 
     return-void
+
+    nop
 
     :sswitch_data_0
     .sparse-switch
@@ -3157,7 +3158,7 @@
     aput-object v2, v1, v3
 
     .line 1041
-    const-string v2, "www.brytonsports.cn"
+    const-string/jumbo v2, "www.brytonsports.cn"
 
     invoke-virtual {v0, v2}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
@@ -3240,7 +3241,6 @@
 
     move-result-object v0
 
-    # v9.5.4: 国际站补采 active.brytonsport.com 的登录 cookie
     invoke-static {v0}, Lcom/jichi/ob/util/BrytonSite;->appendSiteCookie(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v0
@@ -5884,6 +5884,15 @@
     return-void
 
     :cond_1
+    invoke-virtual {v0}, Lcom/jichi/ob/ui/LoginWebActivity;->isOutbaseUrlReadyForDetect()Z
+
+    move-result v4
+
+    if-nez v4, :cond_1b
+
+    return-void
+
+    :cond_1b
     const/4 v4, 0x4
 
     .line 1698
@@ -6043,6 +6052,64 @@
     invoke-virtual {v0}, Lcom/jichi/ob/ui/LoginWebActivity;->finish()V
 
     return-void
+.end method
+
+# v9.5.7: outbase 登录前无条件清理残留 cookie，避免旧 sessionId 被秒判导致"点登录秒回退"
+.method public final forceCleanOutbaseIfNeeded()V
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
+
+    const-string v1, "outbase"
+
+    invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    sget-object v0, Lcom/jichi/ob/ui/LoginWebActivity;->Companion:Lcom/jichi/ob/ui/LoginWebActivity$Companion;
+
+    iget-object v1, p0, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
+
+    const/4 v2, 0x0
+
+    invoke-virtual {v0, v1, v2}, Lcom/jichi/ob/ui/LoginWebActivity$Companion;->clearPlatformWebLogin(Ljava/lang/String;Z)V
+
+    :cond_0
+    return-void
+.end method
+
+# v9.5.7: URL 门控，仍停留在 login.html 时不允许判定登录成功，防止旧 cookie 在登录页被秒判
+.method public final isOutbaseUrlReadyForDetect()Z
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
+
+    if-eqz v0, :cond_0
+
+    invoke-virtual {v0}, Landroid/webkit/WebView;->getUrl()Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_0
+
+    const-string v1, "login.html"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+
+    move-result v1
+
+    if-nez v1, :cond_0
+
+    const/4 v0, 0x1
+
+    return v0
+
+    :cond_0
+    const/4 v0, 0x0
+
+    return v0
 .end method
 
 .method private final detectTwoBulu()V
@@ -10957,6 +11024,11 @@
     .line 231
     invoke-super/range {p0 .. p1}, Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V
 
+    # v9.5.7: 打开 WebView 远程调试，便于通过 edge://inspect 排查 outbase 登录页的网络/控制台问题
+    const/4 v2, 0x1
+
+    invoke-static {v2}, Landroid/webkit/WebView;->setWebContentsDebuggingEnabled(Z)V
+
     .line 233
     :try_start_0
     sget v2, Lcom/jichi/ob/R$layout;->activity_login_web:I
@@ -11009,7 +11081,6 @@
 
     .line 238
     :cond_3
-    # v9.5.4: 百锐腾登录入口按「国内站/国际站」开关改写为当前站点首页
     iget-object v4, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
     const-string v5, "bryton"
@@ -11018,20 +11089,20 @@
 
     move-result v4
 
-    if-eqz v4, :cond_bryton_url_done
+    if-eqz v4, :cond_4
 
     invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->loginHomeUrl()Ljava/lang/String;
 
     move-result-object v2
 
-    :cond_bryton_url_done
+    :cond_4
     iget-object v4, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
     invoke-static {v4, v0}, Lkotlin/jvm/internal/Intrinsics;->areEqual(Ljava/lang/Object;Ljava/lang/Object;)Z
 
     move-result v4
 
-    if-eqz v4, :cond_4
+    if-eqz v4, :cond_5
 
     .line 239
     invoke-direct {v6}, Lcom/jichi/ob/ui/LoginWebActivity;->setupIgpNativeLogin()V
@@ -11039,7 +11110,7 @@
     return-void
 
     .line 243
-    :cond_4
+    :cond_5
     sget v4, Lcom/jichi/ob/R$id;->toolbar:I
 
     invoke-virtual {v6, v4}, Lcom/jichi/ob/ui/LoginWebActivity;->findViewById(I)Landroid/view/View;
@@ -11077,12 +11148,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_5
+    if-nez v3, :cond_6
 
     goto/16 :goto_0
 
     .line 253
-    :cond_5
+    :cond_6
     const-string/jumbo v3, "\u767b\u5f55\u4f73\u660e\u4e2d\u56fd"
 
     goto/16 :goto_1
@@ -11095,12 +11166,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_6
+    if-nez v3, :cond_7
 
     goto/16 :goto_0
 
     .line 250
-    :cond_6
+    :cond_7
     const-string/jumbo v3, "\u767b\u5f55\u9ed1\u9e1f\u5355\u8f66"
 
     goto/16 :goto_1
@@ -11111,12 +11182,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_7
+    if-nez v3, :cond_8
 
     goto/16 :goto_0
 
     .line 256
-    :cond_7
+    :cond_8
     const-string/jumbo v3, "\u767b\u5f55 Wahoo"
 
     goto/16 :goto_1
@@ -11129,12 +11200,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_8
+    if-nez v3, :cond_9
 
     goto/16 :goto_0
 
     .line 259
-    :cond_8
+    :cond_9
     const-string/jumbo v3, "\u767b\u5f55 Polar"
 
     goto/16 :goto_1
@@ -11147,12 +11218,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_9
+    if-nez v3, :cond_a
 
     goto/16 :goto_0
 
     .line 263
-    :cond_9
+    :cond_a
     const-string/jumbo v3, "\u767b\u5f55 \u4e24\u6b65\u8def"
 
     goto/16 :goto_1
@@ -11163,12 +11234,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_a
+    if-nez v3, :cond_b
 
     goto/16 :goto_0
 
     .line 252
-    :cond_a
+    :cond_b
     const-string/jumbo v3, "\u767b\u5f55\u4f73\u660e\u56fd\u9645"
 
     goto/16 :goto_1
@@ -11181,12 +11252,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_b
+    if-nez v3, :cond_c
 
     goto/16 :goto_0
 
     .line 254
-    :cond_b
+    :cond_c
     const-string/jumbo v3, "\u767b\u5f55\u9ad8\u9a70\u4e2d\u56fd"
 
     goto/16 :goto_1
@@ -11199,12 +11270,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_c
+    if-nez v3, :cond_d
 
     goto/16 :goto_0
 
     .line 262
-    :cond_c
+    :cond_d
     const-string/jumbo v3, "\u767b\u5f55 TrainingPeaks"
 
     goto/16 :goto_1
@@ -11215,12 +11286,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_d
+    if-nez v3, :cond_e
 
     goto/16 :goto_0
 
     .line 257
-    :cond_d
+    :cond_e
     const-string/jumbo v3, "\u767b\u5f55 \u677e\u62d3"
 
     goto/16 :goto_1
@@ -11233,12 +11304,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_e
+    if-nez v3, :cond_f
 
     goto/16 :goto_0
 
     .line 258
-    :cond_e
+    :cond_f
     const-string/jumbo v3, "\u767b\u5f55 Strava"
 
     goto/16 :goto_1
@@ -11251,12 +11322,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_f
+    if-nez v3, :cond_10
 
     goto/16 :goto_0
 
     .line 261
-    :cond_f
+    :cond_10
     const-string/jumbo v3, "\u767b\u5f55 Withings"
 
     goto/16 :goto_1
@@ -11269,12 +11340,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_10
+    if-nez v3, :cond_11
 
     goto :goto_0
 
     .line 248
-    :cond_10
+    :cond_11
     const-string/jumbo v3, "\u767b\u5f55\u8fc8\u91d1/\u987d\u9e7f"
 
     goto :goto_1
@@ -11285,12 +11356,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_11
+    if-nez v3, :cond_12
 
     goto :goto_0
 
     .line 249
-    :cond_11
+    :cond_12
     const-string/jumbo v3, "\u767b\u5f55 Outbase"
 
     goto :goto_1
@@ -11303,12 +11374,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_12
+    if-nez v3, :cond_13
 
     goto :goto_0
 
     .line 246
-    :cond_12
+    :cond_13
     const-string/jumbo v3, "\u767b\u5f55 iGPSPORT\u56fd\u9645"
 
     goto :goto_1
@@ -11321,12 +11392,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_13
+    if-nez v3, :cond_14
 
     goto :goto_0
 
     .line 260
-    :cond_13
+    :cond_14
     const-string/jumbo v3, "\u767b\u5f55 Fitbit"
 
     goto :goto_1
@@ -11339,12 +11410,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_14
+    if-nez v3, :cond_15
 
     goto :goto_0
 
     .line 255
-    :cond_14
+    :cond_15
     const-string/jumbo v3, "\u767b\u5f55\u9ad8\u9a70\u56fd\u9645"
 
     goto :goto_1
@@ -11357,12 +11428,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_15
+    if-nez v3, :cond_16
 
     goto :goto_0
 
     .line 251
-    :cond_15
+    :cond_16
     const-string/jumbo v3, "\u767b\u5f55\u767e\u9510\u817e"
 
     goto :goto_1
@@ -11373,12 +11444,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_16
+    if-nez v3, :cond_17
 
     goto :goto_0
 
     .line 245
-    :cond_16
+    :cond_17
     const-string/jumbo v3, "\u767b\u5f55 iGPSPORT"
 
     goto :goto_1
@@ -11389,12 +11460,12 @@
 
     move-result v3
 
-    if-nez v3, :cond_17
+    if-nez v3, :cond_18
 
     goto :goto_0
 
     .line 247
-    :cond_17
+    :cond_18
     const-string/jumbo v3, "\u767b\u5f55\u884c\u8005"
 
     goto :goto_1
@@ -11451,7 +11522,7 @@
 
     const/4 v5, 0x1
 
-    if-eqz v3, :cond_1f
+    if-eqz v3, :cond_20
 
     .line 271
     :try_start_3
@@ -11480,14 +11551,14 @@
 
     iput-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_18
+    if-nez v0, :cond_19
 
     .line 273
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_18
+    :cond_19
     const/16 v2, 0x8
 
     invoke-virtual {v0, v2}, Landroid/webkit/WebView;->setVisibility(I)V
@@ -11499,12 +11570,12 @@
 
     move-result-object v0
 
-    if-eqz v0, :cond_19
+    if-eqz v0, :cond_1a
 
     invoke-virtual {v0, v2}, Landroid/view/View;->setVisibility(I)V
 
     .line 275
-    :cond_19
+    :cond_1a
     sget v0, Lcom/jichi/ob/R$id;->etEmail:I
 
     invoke-virtual {v6, v0}, Lcom/jichi/ob/ui/LoginWebActivity;->findViewById(I)Landroid/view/View;
@@ -11604,7 +11675,7 @@
 
     check-cast v10, Landroid/widget/TextView;
 
-    if-eqz v10, :cond_1a
+    if-eqz v10, :cond_1b
 
     new-instance v11, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda46;
 
@@ -11612,7 +11683,7 @@
 
     invoke-virtual {v10, v11}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
-    :cond_1a
+    :cond_1b
     move/from16 v22, v1
 
     move-object v1, v0
@@ -11650,13 +11721,13 @@
     .line 442
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_1b
+    if-nez v0, :cond_1c
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_1b
+    :cond_1c
     invoke-virtual {v0}, Landroid/webkit/WebView;->getSettings()Landroid/webkit/WebSettings;
 
     move-result-object v0
@@ -11695,13 +11766,13 @@
     .line 453
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_1c
+    if-nez v0, :cond_1d
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_1c
+    :cond_1d
     new-instance v1, Lcom/jichi/ob/ui/LoginWebActivity$GarminJsBridge;
 
     invoke-direct {v1, v6}, Lcom/jichi/ob/ui/LoginWebActivity$GarminJsBridge;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
@@ -11713,13 +11784,13 @@
     .line 454
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_1d
+    if-nez v0, :cond_1e
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_1d
+    :cond_1e
     new-instance v1, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$7;
 
     invoke-direct {v1, v6}, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$7;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
@@ -11731,13 +11802,13 @@
     .line 489
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_1e
+    if-nez v0, :cond_1f
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_1e
+    :cond_1f
     new-instance v1, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$8;
 
     invoke-direct {v1, v6}, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$8;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
@@ -11748,7 +11819,7 @@
 
     return-void
 
-    :cond_1f
+    :cond_20
     const/4 v4, 0x0
 
     .line 497
@@ -11760,7 +11831,7 @@
 
     check-cast v3, Lcom/google/android/material/button/MaterialButton;
 
-    if-eqz v3, :cond_20
+    if-eqz v3, :cond_21
 
     new-instance v5, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda2;
 
@@ -11769,7 +11840,7 @@
     invoke-virtual {v3, v5}, Lcom/google/android/material/button/MaterialButton;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     .line 503
-    :cond_20
+    :cond_21
     sget v3, Lcom/jichi/ob/R$id;->webLoginContainer:I
 
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/LoginWebActivity;->findViewById(I)Landroid/view/View;
@@ -11778,12 +11849,12 @@
 
     check-cast v3, Landroid/widget/LinearLayout;
 
-    if-eqz v3, :cond_21
+    if-eqz v3, :cond_22
 
     invoke-virtual {v3, v4}, Landroid/widget/LinearLayout;->setVisibility(I)V
 
     .line 505
-    :cond_21
+    :cond_22
     sget v3, Lcom/jichi/ob/R$id;->progressBar:I
 
     invoke-virtual {v6, v3}, Lcom/jichi/ob/ui/LoginWebActivity;->findViewById(I)Landroid/view/View;
@@ -11809,14 +11880,14 @@
 
     iput-object v3, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v3, :cond_22
+    if-nez v3, :cond_23
 
     .line 507
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v3, v20
 
-    :cond_22
+    :cond_23
     invoke-virtual {v3}, Landroid/webkit/WebView;->getSettings()Landroid/webkit/WebSettings;
 
     move-result-object v3
@@ -11845,7 +11916,7 @@
 
     move-result v5
 
-    if-nez v5, :cond_24
+    if-nez v5, :cond_25
 
     iget-object v5, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
@@ -11853,7 +11924,7 @@
 
     move-result v5
 
-    if-nez v5, :cond_24
+    if-nez v5, :cond_25
 
     iget-object v5, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
@@ -11861,16 +11932,16 @@
 
     move-result v0
 
-    if-eqz v0, :cond_23
+    if-eqz v0, :cond_24
 
     goto :goto_2
 
-    :cond_23
+    :cond_24
     move-object/from16 v5, v19
 
     goto :goto_3
 
-    :cond_24
+    :cond_25
     :goto_2
     const-string v5, "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
 
@@ -11884,9 +11955,14 @@
 
     move-result v0
 
-    if-eqz v0, :cond_25
+    if-eqz v0, :cond_26
 
-    const/4 v5, 0x0
+    # v9.5.7 核心修复（outbase 登录后被踢回 login.html 的根因）：
+    # 正式版对 outbase 设 useWideViewPort=true 且 loadWithOverviewMode=true，
+    # 本工程此前误设为 false，导致桌面端页面在 WebView 中布局/视口异常，
+    # 网页 JS 读取视口相关对象报 "Cannot read properties of undefined (reading 'ec')"，
+    # 随后网页自行跳回 login.html 并清空 cookie。此处对齐正式版，两个开关均置 true。
+    const/4 v5, 0x1
 
     .line 517
     invoke-virtual {v3, v5}, Landroid/webkit/WebSettings;->setUseWideViewPort(Z)V
@@ -11896,7 +11972,7 @@
 
     goto :goto_4
 
-    :cond_25
+    :cond_26
     const/4 v5, 0x1
 
     .line 522
@@ -11914,13 +11990,13 @@
 
     iget-object v3, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v3, :cond_26
+    if-nez v3, :cond_27
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v3, v20
 
-    :cond_26
+    :cond_27
     const/4 v5, 0x1
 
     invoke-virtual {v0, v3, v5}, Landroid/webkit/CookieManager;->setAcceptThirdPartyCookies(Landroid/webkit/WebView;Z)V
@@ -11947,7 +12023,7 @@
 
     move-result v0
 
-    if-nez v0, :cond_27
+    if-nez v0, :cond_28
 
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
@@ -11955,19 +12031,19 @@
 
     move-result v0
 
-    if-eqz v0, :cond_29
+    if-eqz v0, :cond_2a
 
     .line 530
-    :cond_27
+    :cond_28
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_28
+    if-nez v0, :cond_29
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_28
+    :cond_29
     new-instance v3, Lcom/jichi/ob/ui/LoginWebActivity$GarminJsBridge;
 
     invoke-direct {v3, v6}, Lcom/jichi/ob/ui/LoginWebActivity$GarminJsBridge;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
@@ -11977,16 +12053,16 @@
     invoke-virtual {v0, v3, v8}, Landroid/webkit/WebView;->addJavascriptInterface(Ljava/lang/Object;Ljava/lang/String;)V
 
     .line 533
-    :cond_29
+    :cond_2a
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_2a
+    if-nez v0, :cond_2b
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_2a
+    :cond_2b
     new-instance v3, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$11;
 
     invoke-direct {v3, v6}, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$11;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
@@ -11998,13 +12074,13 @@
     .line 690
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_2b
+    if-nez v0, :cond_2c
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_2b
+    :cond_2c
     new-instance v3, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$12;
 
     invoke-direct {v3, v6}, Lcom/jichi/ob/ui/LoginWebActivity$onCreate$12;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
@@ -12016,6 +12092,8 @@
     .catch Ljava/lang/Exception; {:try_start_3 .. :try_end_3} :catch_1
 
     .line 700
+    invoke-virtual {v6}, Lcom/jichi/ob/ui/LoginWebActivity;->forceCleanOutbaseIfNeeded()V
+
     :try_start_4
     new-instance v0, Lcom/jichi/ob/util/PrefsManager;
 
@@ -12037,7 +12115,7 @@
 
     iput-boolean v3, v6, Lcom/jichi/ob/ui/LoginWebActivity;->pendingClean:Z
 
-    if-nez v0, :cond_2d
+    if-nez v0, :cond_2e
 
     .line 702
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
@@ -12069,7 +12147,7 @@
 
     move-result v0
 
-    if-nez v0, :cond_2c
+    if-nez v0, :cond_2d
 
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
@@ -12077,7 +12155,7 @@
 
     move-result v0
 
-    if-nez v0, :cond_2c
+    if-nez v0, :cond_2d
 
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
 
@@ -12085,11 +12163,11 @@
 
     move-result v0
 
-    if-nez v0, :cond_2c
+    if-nez v0, :cond_2d
 
     goto :goto_5
 
-    :cond_2c
+    :cond_2d
     move v5, v4
 
     .line 704
@@ -12110,7 +12188,7 @@
     iput-boolean v4, v6, Lcom/jichi/ob/ui/LoginWebActivity;->pendingClean:Z
 
     .line 708
-    :cond_2d
+    :cond_2e
     :goto_6
     move-object v0, v2
 
@@ -12120,22 +12198,22 @@
 
     move-result v0
 
-    if-nez v0, :cond_2f
+    if-nez v0, :cond_30
 
     iget-object v0, v6, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
 
-    if-nez v0, :cond_2e
+    if-nez v0, :cond_2f
 
     invoke-static/range {v21 .. v21}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object/from16 v0, v20
 
-    :cond_2e
+    :cond_2f
     invoke-virtual {v0, v2}, Landroid/webkit/WebView;->loadUrl(Ljava/lang/String;)V
 
     goto :goto_7
 
-    :cond_2f
+    :cond_30
     invoke-virtual {v6}, Lcom/jichi/ob/ui/LoginWebActivity;->finish()V
     :try_end_5
     .catch Ljava/lang/Exception; {:try_start_5 .. :try_end_5} :catch_1
