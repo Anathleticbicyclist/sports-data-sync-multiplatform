@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>鸡翅幸哲迈进OB（开发体验版）v9.5.5 用户使用手册</title>
+<style>
+@page {
+  size: A4;
+  margin: 22mm 20mm 22mm 20mm;
+  @bottom-center {
+    content: "鸡翅幸哲迈进OB v9.5.5 用户使用手册 · 第 " counter(page) " 页";
+    font-size: 9.5pt; color: #888; font-family: "Noto Sans CJK SC", sans-serif;
+  }
+}
+@page :first { margin: 0; @bottom-center { content: none; } }
+* { box-sizing: border-box; }
+body {
+  font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: 11.5pt; line-height: 1.85; color: #222; margin: 0;
+}
+h1 { font-size: 24pt; color: #FC4C02; border-bottom: 3px solid #FC4C02; padding-bottom: 8px; margin-top: 0; page-break-before: always; }
+h1.first { page-break-before: avoid; }
+h2 { font-size: 16pt; color: #1a4480; margin-top: 28px; border-left: 6px solid #FC4C02; padding-left: 12px; page-break-after: avoid; }
+h3 { font-size: 13.5pt; color: #2B8CFF; margin-top: 20px; page-break-after: avoid; }
+h4 { font-size: 12pt; color: #444; margin-top: 14px; margin-bottom: 6px; }
+p { margin: 8px 0; text-align: justify; }
+ul, ol { margin: 8px 0; padding-left: 26px; }
+li { margin: 5px 0; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 10.5pt; page-break-inside: avoid; }
+th, td { border: 1px solid #ccc; padding: 7px 9px; text-align: left; vertical-align: top; }
+th { background: #FFF3EC; color: #a33800; font-weight: 600; }
+tr:nth-child(even) td { background: #fafafa; }
+.cover {
+  height: 297mm; background: linear-gradient(135deg, #1a4480 0%, #2B8CFF 60%, #FC4C02 100%);
+  color: #fff; padding: 60mm 20mm; page-break-after: always;
+}
+.cover h1 { color: #fff; border: none; font-size: 34pt; page-break-before: avoid; }
+.cover .sub { font-size: 14pt; opacity: .92; margin-top: 10mm; line-height: 2; }
+.cover .ver { position: absolute; bottom: 30mm; left: 20mm; font-size: 12pt; opacity: .9; }
+.toc { page-break-after: always; }
+.toc h2 { border: none; padding: 0; }
+.toc ul { list-style: none; padding-left: 0; }
+.toc > ul > li { font-weight: 600; margin-top: 8px; font-size: 11pt; }
+.toc ul ul { padding-left: 22px; font-weight: normal; font-size: 10pt; }
+.toc ul ul li { margin: 2px 0; }
+.toc a { color: #222; text-decoration: none; }
+.toc .pg { float: right; color: #888; }
+.callout { background: #FFF8F3; border-left: 4px solid #FC4C02; padding: 8px 12px; margin: 10px 0; font-size: 10pt; }
+.tip { background: #EAF4FF; border-left: 4px solid #2B8CFF; padding: 8px 12px; margin: 10px 0; font-size: 10pt; }
+.warn { background: #FFF1F0; border-left: 4px solid #d93025; padding: 8px 12px; margin: 10px 0; font-size: 10pt; }
+.ok { background: #EAFBEF; border-left: 4px solid #188038; padding: 8px 12px; margin: 10px 0; font-size: 10pt; }
+.qa { margin: 10px 0; padding: 8px 12px; background: #fafafa; border-radius: 4px; }
+.qa .q { font-weight: 700; color: #1a4480; }
+.qa .a { margin-top: 4px; }
+.tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 8.5pt; margin-right: 4px; }
+.tag-done { background: #d4edda; color: #155724; }
+.tag-wip { background: #fff3cd; color: #856404; }
+.tag-never { background: #f8d7da; color: #721c24; }
+code { background: #f1f3f5; padding: 1px 5px; border-radius: 3px; font-family: "JetBrains Mono", monospace; font-size: 9.5pt; }
+.flow { background: #f8f9fa; border: 1px dashed #aaa; padding: 10px; font-family: monospace; font-size: 9.5pt; white-space: pre; margin: 8px 0; }
+.small { font-size: 9pt; color: #666; }
+.center { text-align: center; }
+.pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- ==================== 封面 ==================== -->
+<div class="cover">
+  <h1>🚴 鸡翅幸哲迈进OB<br>（开发体验版）</h1>
+  <div class="sub">
+    让运动数据自由流动<br>
+    二十平台运动记录互传工具 · 用户使用手册<br><br>
+    <span style="font-size:11pt;opacity:.85;">
+    从 v1.0 到 v9.5.5，每一个按钮、每一条工作流、每一个踩过的坑，<br>
+    这本手册都讲给你听。
+    </span>
+  </div>
+  <div class="ver">
+    当前版本：v9.5.5（2026-11-05）<br>
+    包名：com.jichi.ob.dev　|　最低系统：Android 8.0<br>
+    本手册基于 v9.5.5 源码与 smali 工程事实撰写
+  </div>
+</div>
+
+<!-- ==================== 目录 ==================== -->
+<div class="toc">
+<h2>📑 目录</h2>
+<ul>
+  <li>第一章　这是什么软件？30 秒看懂 <span class="pg">3</span>
+    <ul>
+      <li>1.1 一句话定位</li>
+      <li>1.2 它解决什么痛点</li>
+      <li>1.3 支持哪些平台（全景图）</li>
+      <li>1.4 开发体验版 vs 正式版</li>
+    </ul>
+  </li>
+  <li>第二章　安装与首次启动 <span class="pg">6</span>
+    <ul>
+      <li>2.1 从哪里下载</li>
+      <li>2.2 安装时的权限</li>
+      <li>2.3 首次启动会发生什么</li>
+    </ul>
+  </li>
+  <li>第三章　五大主界面逐节点详解 <span class="pg">8</span>
+    <ul>
+      <li>3.1 开屏页 SplashActivity</li>
+      <li>3.2 登录页 LoginFragment（每个平台卡片怎么点）</li>
+      <li>3.3 数据同步设置页 SyncSettingsFragment</li>
+      <li>3.4 同步页 SyncFragment（任务/日志/自动同步）</li>
+      <li>3.5 关于页 AboutFragment（所有二级入口）</li>
+      <li>3.6 WebView 登录页 LoginWebActivity</li>
+      <li>3.7 实验室登录页 LabLoginFragment</li>
+      <li>3.8 记录中心 RecordCenterFragment</li>
+    </ul>
+  </li>
+  <li>第四章　桥接专题 <span class="pg">28</span>
+    <ul>
+      <li>4.1 Strava 怎么进来？两条路</li>
+      <li>4.2 智能手表/手机运动怎么通过 Keep 介入？</li>
+      <li>4.3 国内区 ↔ 国际区互传</li>
+    </ul>
+  </li>
+  <li>第五章　核心工作流全解 <span class="pg">38</span>
+    <ul>
+      <li>5.1 一次同步内部到底发生了什么</li>
+      <li>5.2 下载 → 保存 → 转换 → 上传 → 记忆</li>
+      <li>5.3 后台自动同步（WorkManager）</li>
+      <li>5.4 同步记忆与去重</li>
+    </ul>
+  </li>
+  <li>第六章　高级功能 <span class="pg">44</span>
+    <ul>
+      <li>6.1 迈金 GCJ-02→WGS84 坐标转换</li>
+      <li>6.2 佳明 FIT 设备伪装（v9.4.1 自动）</li>
+      <li>6.3 上传 iGP 时区修正（-8h 时差）</li>
+      <li>6.4 轨迹合并 + 透明贴纸（含 3D）</li>
+      <li>6.5 临时码表（v9.4.0 并入）</li>
+      <li>6.6 热力图</li>
+      <li>6.7 健康数据同步（佳明 CN↔COM）</li>
+      <li>6.8 ICU 课表推送到 iGP/百锐腾</li>
+      <li>6.9 深色模式三态</li>
+    </ul>
+  </li>
+  <li>第七章　FAQ：从 v1.0 到 v9.5.5 所有踩坑记录 <span class="pg">56</span>
+    <ul>
+      <li>7.1 同步通用问题</li>
+      <li>7.2 佳明（中国/国际）专题</li>
+      <li>7.3 iGPSPORT 专题</li>
+      <li>7.4 迈金专题</li>
+      <li>7.5 行者/黑鸟专题</li>
+      <li>7.6 Wahoo 专题</li>
+      <li>7.7 Keep 专题</li>
+      <li>7.8 高驰专题</li>
+      <li>7.9 百锐腾专题（v9.5.5 最新）</li>
+      <li>7.10 其他平台（咕咚/Zepp/Komoot/Suunto/MyWhoosh/Zwift/Intervals.icu）</li>
+      <li>7.11 闪退/白屏/性能类</li>
+      <li>7.12 版本号/更新/安装类</li>
+    </ul>
+  </li>
+  <li>第八章　已知问题与未解决项 <span class="pg">80</span></li>
+  <li>第九章　致谢 <span class="pg">84</span>
+    <ul>
+      <li>9.1 平台鸣谢</li>
+      <li>9.2 开源项目鸣谢</li>
+      <li>9.3 测试人员鸣谢</li>
+      <li>9.4 开发者俱乐部</li>
+    </ul>
+  </li>
+  <li>附录　版本历史时间线 <span class="pg">88</span></li>
+</ul>
+</div>
+
+<!-- ==================== 第一章 ==================== -->
+<h1>第一章　这是什么软件？30 秒看懂</h1>
+
+<h2>1.1 一句话定位</h2>
+<p><b>鸡翅幸哲迈进OB（开发体验版）</b>是一款 Android 运动数据迁移工具，包名 <code>com.jichi.ob.dev</code>，核心理念是"<b>让运动数据自由流动</b>"。它能在二十余个运动平台之间自动同步运动记录（FIT/GPX 文件），让你在 A 平台的骑行/跑步数据，一键出现在 B、C、D 平台，不用手动导出再上传。</p>
+
+<p>类比理解：它就像运动数据界的"万能转接头"。你的码表（iGPSPORT/迈金/百锐腾）、手表（佳明/高驰/松拓）、手机 App（Keep/行者/黑鸟）、室内骑行台（Wahoo/MyWhoosh/Zwift）产生的记录，都可以被它下载下来，自动转换成目标平台认识的格式，再上传过去。</p>
+
+<h2>1.2 它解决什么痛点</h2>
+<ul>
+  <li><b>多平台手动重复上传太累</b>：以前换平台要手动导出 FIT/GPX 再上传，一次骑行要操作 5 个 App。</li>
+  <li><b>国内区和国际区数据割裂</b>：佳明中国和佳明国际是两套账号、两套数据；高驰中国和高驰国际也是。本软件直接互传。</li>
+  <li><b>坐标偏移</b>：迈金等国内码表用 GCJ-02（火星坐标），直接传到 Strava/佳明会偏移 400~500 米，赛段匹配不上。本软件自动纠偏。</li>
+  <li><b>第三方 FIT 不被佳明识别</b>：iGPSPORT/行者上传到佳明，Garmin Connect 不计算训练负荷。本软件自动伪装成 Edge 830 / Forerunner 945。</li>
+  <li><b>智能手表数据进不了 Strava</b>：华为/小米/OPPO/vivo 健康 App 本身不支持 Strava，但它们都能把数据汇到 Keep；本软件从 Keep 拉数据再分发。</li>
+</ul>
+
+<h2>1.3 支持哪些平台（全景图）</h2>
+<p>截至 v9.5.5，本软件共接入 <b>20+ 个平台</b>，按"能否下载（作为数据源）"和"能否上传（作为同步目标）"分类如下（数据来自源码 <code>com.jichi.ob.model.DataSource</code> 与 <code>UploadSupport</code> 枚举）：</p>
+
+<table>
+<tr><th>平台</th><th>下载(源)</th><th>上传(目标)</th><th>登录方式</th><th>备注</th></tr>
+<tr><td>iGPSPORT 迹驰（国内）</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>码表主流平台，OSS 直传</td></tr>
+<tr><td>iGPSPORT 国际版</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>v8.8.0 新增，v9.5.5 修复登录</td></tr>
+<tr><td>行者</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>官方开放 API</td></tr>
+<tr><td>迈金 / 顽鹿 Onelap</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>GCJ-02 坐标自动转换</td></tr>
+<tr><td>黑鸟单车</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>v7.6.5 起导出标准 FIT</td></tr>
+<tr><td>百锐腾 Bryton</td><td>✅</td><td>🚧</td><td>WebView 网页登录</td><td>v9.5.5 改为仅下载源，国内/国际站可切换</td></tr>
+<tr><td>捷安特 Giant</td><td>❌</td><td>✅</td><td>账号密码纯 API</td><td>仅上传，官方下载接口加密</td></tr>
+<tr><td>Outbase</td><td>❌</td><td>✅</td><td>手机号验证码</td><td>聚合上传平台，品牌色橙</td></tr>
+<tr><td>佳明国际 Garmin COM</td><td>✅</td><td>✅</td><td>mobile SSO + WebView</td><td>v9.5.0 起支持两步验证</td></tr>
+<tr><td>佳明中国 Garmin CN</td><td>✅</td><td>✅</td><td>mobile SSO + WebView</td><td>v9.5.1 修复拉记录崩溃</td></tr>
+<tr><td>高驰中国 COROS CN</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>OSS + fit/import 上传</td></tr>
+<tr><td>高驰国际 COROS INT</td><td>✅</td><td>✅</td><td>WebView 网页登录</td><td>AWS S3 上传</td></tr>
+<tr><td>Wahoo</td><td>✅</td><td>✅</td><td>OAuth2 授权</td><td>令牌自动复用/刷新</td></tr>
+<tr><td>MyWhoosh</td><td>✅</td><td>❌</td><td>账号密码纯 API</td><td>虚拟骑行，仅下载</td></tr>
+<tr><td>Zwift</td><td>✅</td><td>❌</td><td>账号密码纯 API</td><td>需正式会员才有 FIT 下载权限</td></tr>
+<tr><td>Intervals.icu</td><td>✅(课表)</td><td>✅</td><td>个人 API Key</td><td>课表可推送到 iGP/百锐腾</td></tr>
+<tr><td>Keep</td><td>✅</td><td>⚠️ 半自动</td><td>手机号+密码纯 API</td><td>桥接第三方设备的关键中转</td></tr>
+<tr><td>咕咚 Codoon</td><td>✅</td><td>❌</td><td>手机号+密码纯 API</td><td>v7.9.5 新增</td></tr>
+<tr><td>Zepp（华米）</td><td>✅</td><td>❌</td><td>邮箱/手机号+密码</td><td>v7.9.5 新增，登录机会有限</td></tr>
+<tr><td>Komoot</td><td>✅</td><td>✅</td><td>邮箱+密码纯 API</td><td>v7.9.6 新增，WGS-84 坐标</td></tr>
+<tr><td>Suunto 松拓</td><td>✅</td><td>✅</td><td>OAuth2（需自申请凭证）</td><td>v7.9.6 新增，实验室</td></tr>
+<tr><td>两步路 TwoBulu</td><td>✅</td><td>✅</td><td>WebView</td><td>v8.2.9 实验级接入</td></tr>
+<tr><td>Strava（实验室）</td><td>❌</td><td>✅</td><td>OAuth2（需自申请凭证）</td><td>见第四章桥接</td></tr>
+<tr><td>Polar / Fitbit / Withings / TrainingPeaks</td><td>实验</td><td>实验</td><td>OAuth2 自填凭证</td><td>实验室灰度</td></tr>
+</table>
+
+<div class="tip">
+<b>💡 支持的同步组合：</b>任意平台 → Outbase / Intervals.icu 上传；iGPSPORT / 行者 / 迈金 / 黑鸟 / 佳明(CN/COM) / 高驰(CN/INT) / Wahoo / Komoot / Suunto 之间任意互传；Keep / 咕咚 / Zepp → 任意上传目标；国内区↔国际区互传（佳明国际↔佳明中国、高驰中国↔高驰国际）。
+</div>
+
+<h2>1.4 开发体验版 vs 正式版</h2>
+<table>
+<tr><th>对比项</th><th>鸡翅幸哲迈进OB（开发体验版）</th><th>迈进OB（正式版）</th></tr>
+<tr><td>定位</td><td>新功能抢先体验</td><td>稳定日常使用</td></tr>
+<tr><td>核心链路</td><td>多平台互传</td><td>多来源 → Outbase 单向聚合</td></tr>
+<tr><td>轨迹合并/透明贴纸</td><td>✅ 支持</td><td>❌ 不支持</td></tr>
+<tr><td>FIT 设备伪装</td><td>✅ 上传佳明时自动</td><td>❌</td></tr>
+<tr><td>Strava 桥接</td><td>✅ 实验室 + 桥接方案</td><td>❌</td></tr>
+<tr><td>Keep 桥接</td><td>✅ 完整教程</td><td>❌</td></tr>
+<tr><td>包名</td><td><code>com.jichi.ob.dev</code></td><td>正式版包名</td></tr>
+<tr><td>数据目录</td><td><code>Download/鸡翅幸哲迈进OB/</code></td><td>独立目录</td></tr>
+</table>
+<div class="warn"><b>⚠️ 重要：</b>两个 App 可以同时安装（包名不同），但<b>同一佳明账号请勿同时在两款 App 登录</b>，多端交替登录会加速触发佳明风控。</div>
+
+<!-- ==================== 第二章 ==================== -->
+<h1>第二章　安装与首次启动</h1>
+
+<h2>2.1 从哪里下载</h2>
+<ul>
+  <li><b>GitHub Releases</b>：<code>github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases</code>，最新 v9.5.5 APK 直接下载。</li>
+  <li><b>抖音群</b>：若 GitHub 打不开，关注抖音【多吃两口】，从主页抖音群获取 APK。</li>
+  <li><b>鸿蒙旧机型 iGPSPORT 白屏适配版</b>：仓库内 <code>鸿蒙安卓卓易通特别适配版本/</code> 目录，独立包名 <code>com.jichi.ob.hw</code>，iGPSPORT 登录改为手机号验证码原生表单，不依赖 WebView。</li>
+</ul>
+
+<h2>2.2 安装时的权限</h2>
+<p>安装时选择"允许安装未知来源应用"。首次打开后会申请以下权限（来自 <code>AndroidManifest.xml</code>）：</p>
+<table>
+<tr><th>权限</th><th>用途</th></tr>
+<tr><td>INTERNET / ACCESS_NETWORK_STATE</td><td>访问各平台 API</td></tr>
+<tr><td>POST_NOTIFICATIONS</td><td>Android 13+ 后台同步前台通知</td></tr>
+<tr><td>FOREGROUND_SERVICE / FOREGROUND_SERVICE_DATA_SYNC</td><td>v7.5.8 起 WorkManager 前台同步</td></tr>
+<tr><td>WAKE_LOCK / RECEIVE_BOOT_COMPLETED</td><td>后台同步跨开机恢复</td></tr>
+<tr><td>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</td><td>引导用户加入电池优化白名单（国产 ROM 杀后台）</td></tr>
+<tr><td>身体传感器（BODY_SENSORS）</td><td>v9.4.0 临时码表心率/步频（可选授权，不阻塞）</td></tr>
+<tr><td>存储 / 位置 / 蓝牙</td><td>下载文件保存、临时码表 GPS 与蓝牙传感器</td></tr>
+</table>
+
+<h2>2.3 首次启动会发生什么</h2>
+<ol>
+  <li><b>开屏动画</b>（SplashActivity）：浅蓝渐变 1 秒，显示"鸡翅幸哲迈进OB · 让运动数据自由流动"。</li>
+  <li><b>免责声明弹窗</b>（dialog_disclaimer.xml）：首次启动弹出，需用户同意才能进入。</li>
+  <li><b>进入主界面</b>（MainActivity）：底部四个 Tab——登录 / 同步设置 / 同步 / 关于。</li>
+  <li><b>自动登录检测</b>：启动时后台检查各平台登录态，失效的自动刷新（迈金 refresh_token、佳明 DI token），无需手动操作。</li>
+</ol>
+
+<!-- ==================== 第三章 ==================== -->
+<h1>第三章　五大主界面逐节点详解</h1>
+
+<p>本章按"<b>这个按钮是什么 → 怎么点 → 背后发生了什么</b>"的顺序，把 App 里每一个能点的节点都讲清楚。源码对应：<code>SplashActivity</code>、<code>MainActivity</code>、<code>LoginFragment</code>、<code>SyncSettingsFragment</code>、<code>SyncFragment</code>、<code>AboutFragment</code>、<code>LoginWebActivity</code>、<code>LabLoginFragment</code>、<code>RecordCenterFragment</code>。</p>
+
+<h2>3.1 开屏页 SplashActivity</h2>
+<ul>
+  <li><b>是什么</b>：浅蓝渐变全屏，中央品牌 Logo + 标语。</li>
+  <li><b>怎么来的</b>：<code>activity_splash.xml</code>，1 秒延时后自动跳 MainActivity。</li>
+  <li><b>背后做什么</b>：初始化 <code>PrefsManager</code>（读深浅色模式三态）、<code>WebBridge</code>（迈金坐标转换引擎预热）、<code>UpdateChecker</code>（检查本地版本号）。</li>
+</ul>
+
+<h2>3.2 登录页 LoginFragment</h2>
+<p>登录页是用户接触最多的页面。顶部品牌横幅，中间是"<b>一键登录检测</b>"按钮 + "<b>自动检查登录态</b>"开关，下面是 Outbase 独立专区，再下面是已登录平台卡片网格，底部四个 Tab。</p>
+
+<h3>3.2.1 顶部"一键登录检测"按钮</h3>
+<ul>
+  <li><b>怎么用</b>：点一下，App 会逐个探测所有已登录平台的 token 是否还有效。</li>
+  <li><b>背后原理</b>：对每个已登录平台发一个轻量请求（通常是拉 1 条活动列表），成功则保留，失败则标记为"需重新登录"。</li>
+  <li><b>自动检查登录态开关</b>：开启后每次启动 App 自动跑一遍上面的检测，不用手动点。</li>
+</ul>
+
+<h3>3.2.2 Outbase 独立专区</h3>
+<ul>
+  <li><b>怎么用</b>：点 Outbase 卡片 → 手机号验证码登录（纯 API）。</li>
+  <li><b>为什么单独放</b>：Outbase 是聚合上传平台，几乎所有用户都会用它做最终目标，所以放显眼位置。</li>
+</ul>
+
+<h3>3.2.3 已登录平台卡片网格（每个卡片怎么点）</h3>
+<p>每个平台卡片显示：平台名称、品牌色小圆点（v7.7.7 起）、已下载条数、上传统计。点击卡片会弹出平台详情弹窗，里面有"重新登录""查看全部记录""注销"等按钮。</p>
+
+<table>
+<tr><th>平台卡片</th><th>点击后做什么</th><th>登录方式背后原理</th></tr>
+<tr>
+  <td><b>iGPSPORT（国内/国际）</b></td>
+  <td>弹出 WebView 登录页，输入账号密码后自动提取 token。v9.5.5 修复国际区 token 识别（从 <code>IGS--TOKEN</code> / persist:app-store / URL ?token= / 全 localStorage / cookie 多来源提取）。</td>
+  <td>WebView 加载 iGP 登录页，登录成功后 JS 注入读 localStorage，拿到 JWT 后真实校验（v7.6.0 起），无效自动清缓存重登。</td>
+</tr>
+<tr>
+  <td><b>行者</b></td>
+  <td>WebView 登录 imxingzhe.com。</td>
+  <td>官方开放 API，cookie 持久化。</td>
+</tr>
+<tr>
+  <td><b>迈金 / 顽鹿</b></td>
+  <td>WebView 登录 onelap.cn。</td>
+  <td>顽鹿 OTM API，refresh_token 自动续期（v7.5.9 起）。</td>
+</tr>
+<tr>
+  <td><b>黑鸟单车</b></td>
+  <td>WebView 登录 blackbirdsport.com。</td>
+  <td>v7.6.5 起导出标准 FIT（含累计 distance 字段）。</td>
+</tr>
+<tr>
+  <td><b>百锐腾 Bryton</b></td>
+  <td>v9.5.5 起卡片标题带"· 国内站/国际站"，点击后弹窗可切换站点。国内站 <code>brytonsports.cn</code>，国际站 <code>active.brytonsport.com</code>。</td>
+  <td>DDP 协议（Meteor 三件套：X-User-Id / X-Auth-Token / x-api-key），仅下载 FIT，上传已移除。</td>
+</tr>
+<tr>
+  <td><b>佳明国际</b></td>
+  <td>v9.5.0 起改为 WebView 网页登录（支持两步验证 MFA）。登录成功后自动走 mobile SSO → OAuth1 preauthorized → OAuth2 exchange → DI Bearer token。</td>
+  <td>参考 garth 库，访问 connectapi.garmin.com 绕过 Cloudflare；403 自动刷新 CSRF token 重发（v9.5.1）。</td>
+</tr>
+<tr>
+  <td><b>佳明中国</b></td>
+  <td>同佳明国际，WebView 网页登录。</td>
+  <td>DI Token 直连 connectapi.garmin.cn（v7.9.0 起不再走 WebView 慢路径）。</td>
+</tr>
+<tr>
+  <td><b>高驰中国/国际</b></td>
+  <td>WebView 登录，抓取 CPL-coros-token。</td>
+  <td>中国区 OSS + fit/import；国际区 AWS S3。v7.6.4 起循环翻页拉全部活动（不再只限 200 条）。</td>
+</tr>
+<tr>
+  <td><b>Wahoo</b></td>
+  <td>OAuth2 授权，自动模拟 SAML 登录流程，识别中文"授权"按钮。</td>
+  <td>v7.6.0 修复版起凭证自动复用/刷新，刷新后自动撤销旧令牌，不会累积超限。</td>
+</tr>
+<tr>
+  <td><b>Keep</b></td>
+  <td>弹窗输入手机号+密码，纯 API 登录（无 WebView）。</td>
+  <td>POST <code>api.gotokeep.com/v1.1/users/login</code>，拿 Bearer token；轨迹 AES-128-CBC 解密（密钥来自 running_page 开源项目）。</td>
+</tr>
+<tr>
+  <td><b>咕咚 Codoon</b></td>
+  <td>弹窗输入手机号+密码。</td>
+  <td>纯 API 三步登录（参考 running_page），仅下载，官方无上传接口。</td>
+</tr>
+<tr>
+  <td><b>Zepp（华米）</b></td>
+  <td>弹窗输入邮箱/手机号+密码。</td>
+  <td>纯 API 三步登录（参考 Mi-Fit-and-Zepp-workout-exporter），<b>登录机会有限，请一次性输对</b>。</td>
+</tr>
+<tr>
+  <td><b>Komoot</b></td>
+  <td>弹窗输入邮箱+密码。</td>
+  <td>官方内部 API（参考 Kompy），双向同步，WGS-84 坐标无需转换。</td>
+</tr>
+<tr>
+  <td><b>Suunto 松拓</b></td>
+  <td>实验室页 OAuth2，需自填 apizone 开发者凭证。</td>
+  <td>官方 Cloud API（参考 suunto-mcp），下载 FIT，GPX 自动转 FIT 上传。</td>
+</tr>
+<tr>
+  <td><b>MyWhoosh / Zwift</b></td>
+  <td>弹窗账号密码。</td>
+  <td>仅下载数据源；Zwift 需正式会员才有 FIT 下载权限。</td>
+</tr>
+<tr>
+  <td><b>Intervals.icu</b></td>
+  <td>粘贴个人 API Key。</td>
+  <td>官方开放 API，活动开始时间不早于 1971 年。</td>
+</tr>
+<tr>
+  <td><b>捷安特</b></td>
+  <td>弹窗账号密码。</td>
+  <td>纯 API 直传上传，不支持下载。</td>
+</tr>
+</table>
+
+<div class="warn">
+<b>⚠️ 佳明登录特别提醒：</b>佳明服务端对同一账号/设备/IP 短时间频繁登录（尤其失败尝试）会临时限流（HTTP 429）或触发人机验证，冷却期数小时到一天。<b>请保证账号密码一次性输对；勿同时登录开发版与正式版；若提示风控请勿反复尝试，等冷却期过后再登录。</b>若开启两步验证(MFA)，需先在佳明官网关闭（connect.garmin.com → 头像 → 账号设置 → 安全 → 两步验证 → 关闭）。
+</div>
+
+<h3>3.2.4 平台详情弹窗里的按钮</h3>
+<p>点任意已登录平台卡片，弹出详情弹窗，包含：</p>
+<ul>
+  <li><b>重新登录</b>：清空本地凭证，重新走登录流程。</li>
+  <li><b>查看全部记录</b>：进入记录中心（RecordCenterFragment），浏览该平台所有已下载的活动。v8.8.2 修复了从这里返回后底部导航不消失的 bug；v8.8.3 修复了关闭记录中心后错误跳到关于页的 bug。</li>
+  <li><b>注销</b>：清除 token/cookie/localStorage。v8.5.8 修复了 iGPSPORT 注销后仍自动登录旧账号的 bug（现在注销时无条件清 WebView cookie/localStorage）。</li>
+</ul>
+
+<h2>3.3 数据同步设置页 SyncSettingsFragment</h2>
+<p>这是"配置同步任务"的页面。所有控件从左到右、从上到下：</p>
+
+<h3>3.3.1 数据来源（单选）</h3>
+<ul>
+  <li><b>是什么</b>：左侧四列网格，选一个平台作为"从哪下载"。</li>
+  <li><b>怎么用</b>：点一下即选中，选中后该卡片品牌色小圆点点亮。</li>
+  <li><b>背后原理</b>：对应 <code>DataSource.sourcePlatforms()</code> 列表。来源和目标不能是同一个平台。</li>
+</ul>
+
+<h3>3.3.2 同步目标（多选）</h3>
+<ul>
+  <li><b>是什么</b>：右侧四列网格，可勾选多个平台。一条运动记录会自动分发到所有勾选目标。</li>
+  <li><b>特殊标注</b>：Keep 标注"半自动导入"；MyWhoosh/Zwift/咕咚/Zepp 标注"仅下载"（作为目标置灰）；百锐腾 v9.5.5 起作为目标置灰（上传开发中）。</li>
+</ul>
+
+<h3>3.3.3 同步数量滑块</h3>
+<ul>
+  <li><b>是什么</b>：每次同步拉多少条活动。</li>
+  <li><b>范围</b>：1 ~ 50 条（高驰等已支持拉到 1000 条历史）。</li>
+</ul>
+
+<h3>3.3.4 跳过数量滑块</h3>
+<ul>
+  <li><b>是什么</b>：跳过最近 N 条活动，用于增量同步。比如你已经同步到一周前，设跳过 7 就只同步更早的记录。</li>
+</ul>
+
+<h3>3.3.5 迈金坐标转换三开关</h3>
+<p>迈金 FIT 用 GCJ-02 火星坐标，直接传到 WGS-84 平台会偏移约 450 米。三个开关：</p>
+<ul>
+  <li><b>七牛云 durl</b>：建议<b>关</b>。这是迈金老的坐标转换通道，已被 fit_content 替代。</li>
+  <li><b>fit_content</b>：建议<b>开</b>。解析迈金 FIT 文件内容做 GCJ-02→WGS-84 纠偏（移植自 magene-fit-strava-fix 开源项目，藏在 WebView 里跑 JS）。</li>
+  <li><b>文件夹本地转换</b>：从本地文件夹选 FIT 时也做坐标转换。</li>
+</ul>
+
+<h3>3.3.6 上传 iGP 时区修正入口（v9.2.2 新增）</h3>
+<ul>
+  <li><b>为什么有这个</b>：历史 bug——迈金/佳明等平台的时间戳传到 iGPSPORT 国内版会差 8 小时（北京时间 vs UTC 处理不一致）。</li>
+  <li><b>怎么用</b>：点进去进入 <code>TimeZoneSettingsActivity</code>，11 个下载来源平台（迈金/佳明国际/佳明中国/Keep/行者/黑鸟/高驰中国/高驰国际/Wahoo/Intervals.icu/文件夹同步）每个分"当天数据"和"历史数据"两组，每组三选项：+8 小时 / -8 小时 / 不调整（默认）。</li>
+  <li><b>背后原理</b>：FIT 文件走 <code>FitTimeShift.shiftForIgpsportMinus()</code> 改时间戳；GPX 文件走 <code>GpxTimeFixer</code>。v9.2.4 还修复了 iGP 国际版上传假成功（原代码 4 处 URL 硬编码国内版端点，国际版 token 调国内版返回 200 但数据静默丢弃）。</li>
+</ul>
+
+<h3>3.3.7 深色模式三态（v9.2.9）</h3>
+<ul>
+  <li><b>是什么</b>：跟随系统 / 浅色 / 深色。</li>
+  <li><b>怎么来的</b>：v9.2.9 全页面深色化，新建 <code>values-night/colors.xml</code> 深色色板，24 处布局硬编码 hex 资源化，6 个 drawable 做深色变体。</li>
+</ul>
+
+<h2>3.4 同步页 SyncFragment</h2>
+
+<h3>3.4.1 同步任务卡片</h3>
+<ul>
+  <li><b>是什么</b>：每一张卡片是一条"多来源 × 多目标"的同步任务。可以创建多个任务（比如任务 A：iGP→佳明国际；任务 B：Keep→Outbase）。</li>
+  <li><b>怎么用</b>：点卡片可展开看详情；点卡片上的运行按钮可单独跑这一条任务。</li>
+  <li><b>新建任务按钮</b>：进入 <code>CreateTaskFragment</code>，选择来源、目标、数量、跳过数、健康同步天数、是否启用佳明伪装等。</li>
+</ul>
+
+<h3>3.4.2 统计卡片</h3>
+<ul>
+  <li><b>成功 / 跳过 / 失败</b>：实时统计本次同步结果。v7.5.9 起重复文件（行者 9006 / Wahoo 422）统一算"跳过"不再算"失败"。</li>
+</ul>
+
+<h3>3.4.3 后台自动同步开关</h3>
+<ul>
+  <li><b>是什么</b>：开启后 WorkManager 每 15 分钟~1 小时自动跑一次同步。</li>
+  <li><b>背后原理</b>：v7.5.5 起改用 WorkManager 系统调度（替代原前台 Service）。跨开机自动恢复、杀进程/关 App 后仍执行、Doze 省电模式下不受影响。最低间隔 15 分钟是系统限制。</li>
+  <li><b>通知</b>：同步中显示前台通知（源→目标、当前动作、间隔）；完成后显示可清除摘要通知（新上传 X 条、最近活动日期、下次检测时间）。</li>
+  <li><b>历史踩坑</b>：v7.5.5~v7.5.7 在 Android 14+ 闪退（InvalidForegroundServiceTypeException），v7.5.8 修复根因（ForegroundInfo 三参数构造函数显式指定 DATA_SYNC 类型）。</li>
+</ul>
+
+<h3>3.4.4 开始同步 / 停止 / 测试下载 / 复制日志 / 清记忆</h3>
+<ul>
+  <li><b>开始同步</b>：跑当前选中任务的全量同步。</li>
+  <li><b>停止</b>：同步过程中可随时点，立即中断。</li>
+  <li><b>测试下载</b>：只下载 1 条活动验证登录态和下载通道是否正常，不上传。换平台或登录后建议先点这个。</li>
+  <li><b>复制日志</b>：把运行日志复制到剪贴板，方便反馈问题。</li>
+  <li><b>清记忆</b>：清除所有同步记忆（上限 10000 条），下次同步会重新全量上传。</li>
+</ul>
+
+<h3>3.4.5 运行日志区</h3>
+<ul>
+  <li><b>是什么</b>：前台显示最近 3 条日志，可展开看完整日志、暂停滚动、清空。</li>
+  <li><b>背后原理</b>：v8.5.1 修复了运行时白屏——日志从每条刷主线程改为 200ms 批量刷新。</li>
+</ul>
+
+<h2>3.5 关于页 AboutFragment</h2>
+<p>关于页是所有二级功能的入口。从上到下：</p>
+
+<h3>3.5.1 版本信息与检查更新</h3>
+<ul>
+  <li><b>版本号</b>：当前显示 v9.5.5。</li>
+  <li><b>检查更新</b>：v7.7.6 起自动/手动检测 GitHub 最新 Release，弹窗对比"开源最新版 vs 当前版"。v9.2.4 修复了 UpdateChecker 硬编码版本号导致"检测更新还是旧版本"的 bug。</li>
+</ul>
+
+<h3>3.5.2 二级入口卡片</h3>
+<table>
+<tr><th>入口</th><th>功能</th><th>背后</th></tr>
+<tr><td><b>记录中心</b></td><td>浏览所有已下载的活动，按平台筛选</td><td><code>RecordCenterFragment</code></td></tr>
+<tr><td><b>轨迹合并 & 透明贴纸</b></td><td>多选活动合并 + 生成分享贴纸</td><td>v7.9.7 亮点功能，限时体验码</td></tr>
+<tr><td><b>热力图</b></td><td>历史运动轨迹热力图</td><td>v9.3.1 原型，瓦片异步化修复点击无法进入</td></tr>
+<tr><td><b>临时码表</b></td><td>App 内直接当码表用（GPS+心率+功率+踏频）</td><td>v9.4.0 并入，详见 6.5</td></tr>
+<tr><td><b>实验室</b></td><td>Suunto/Zepp/两步路/Strava/Polar/Fitbit 等灰度平台登录</td><td><code>LabLoginFragment</code></td></tr>
+</table>
+
+<h3>3.5.3 本次更新（最近三条更新日志）</h3>
+<p>v9.5.5 显示：</p>
+<ul>
+  <li>v9.5.5：iGPSPORT 国际区登录修复；百锐腾改为仅下载源，支持国内/国际站切换</li>
+  <li>v9.5.2：修复临时码表入口闪退 + 关于页版本号修正</li>
+  <li>v9.5.1：修复佳明中国/国际 WebView 登录后拉记录崩溃（NoSuchMethodError+VerifyError），403 自动刷新 CSRF</li>
+</ul>
+
+<h3>3.5.4 开源免费与赞赏</h3>
+<ul>
+  <li>本软件完全免费，赞赏为用户自愿赠与，不构成服务合同。</li>
+</ul>
+
+<h2>3.6 WebView 登录页 LoginWebActivity</h2>
+<ul>
+  <li><b>是什么</b>：一个全屏 WebView，用来跑 iGPSPORT/行者/迈金/黑鸟/佳明/高驰/Outbase/百锐腾等平台的登录网页。</li>
+  <li><b>怎么用</b>：在 WebView 里正常输入账号密码登录，登录成功后 App 自动提取 token/cookie。</li>
+  <li><b>背后原理</b>：v9.5.5 重写了 <code>detectIgpsport()</code> 的 JS——从只读 <code>persist:app-store</code> 改为多来源提取（<code>IGS--TOKEN</code> / persist / URL ?token= / 全 localStorage / cookie），修复 iGPSPORT 国际区登录态识别不到。</li>
+</ul>
+
+<h2>3.7 实验室登录页 LabLoginFragment</h2>
+<ul>
+  <li><b>是什么</b>：集中管理实验性平台的登录：Suunto、Zepp、两步路、Strava、Polar、Fitbit、Withings、TrainingPeaks。</li>
+  <li><b>为什么单独放</b>：这些平台要么需要用户自填 OAuth 开发者凭证（Strava/Polar/Fitbit），要么接口不稳定（Zepp 登录机会有限），不适合放主登录页干扰普通用户。</li>
+  <li><b>v8.3.1 修复</b>：实验室平台列表之前不能滑动，改为 ScrollView。</li>
+</ul>
+
+<h2>3.8 记录中心 RecordCenterFragment</h2>
+<ul>
+  <li><b>是什么</b>：浏览本软件下载过的所有活动记录，按平台分组。</li>
+  <li><b>怎么进入</b>：登录页点某平台卡片 → "查看全部记录"。</li>
+  <li><b>历史 bug</b>：v8.8.2 修复返回后底部导航消失；v8.8.3 修复关闭后错误跳到关于页（正确应回到登录页）。</li>
+</ul>
+
+<!-- ==================== 第四章 桥接专题 ==================== -->
+<h1>第四章　桥接专题</h1>
+
+<p>"桥接"是本软件最被用户关心的能力：让那些<b>本身不支持 Strava 的平台</b>（iGPSPORT、佳明、Wahoo、Keep、华为运动健康等）通过某条官方/半官方通道把数据送到 Strava；同时让<b>那些数据只存在国内健康 App 里</b>（华为/小米/OPPO/vivo 运动健康、Zepp 等）的智能手表记录，通过 Keep 这个中转拉出来再分发。</p>
+
+<h2>4.1 Strava 怎么进来？两条路</h2>
+
+<h3>4.1.1 方案一：经 iGPSPORT / 佳明 / Wahoo 官方绑定 Strava（推荐，免费）</h3>
+
+<p><b>这是最简单、最稳定的方案，无需申请开发者 API，也不消耗你自己的开发者额度。</b></p>
+
+<p><b>原理：</b>iGPSPORT、佳明 Connect、Wahoo App 这三家<b>官方都内置了"绑定 Strava 自动同步"功能</b>。只要数据先进了这三家之一，它们会自动把活动推到 Strava，不需要本软件做任何 Strava 相关的事。</p>
+
+<div class="flow">你的运动记录
+   │
+   ├── 方案 A：先到 iGPSPORT
+   │        └── iGPSPORT App → 设置 → 第三方分享 → 绑定 Strava
+   │                └── 新活动自动出现在 Strava
+   │
+   ├── 方案 B：先到佳明 Connect
+   │        └── connect.garmin.cn/.com → Settings → Account Linking → Link Strava
+   │                └── 新活动自动出现在 Strava
+   │
+   └── 方案 C：先到 Wahoo
+            └── Wahoo App → Settings → Connections → Strava
+                    └── 新活动自动出现在 Strava</div>
+
+<h4>详细操作步骤（以佳明为例）</h4>
+<ol>
+  <li>用本软件把运动记录同步到<b>佳明中国</b>或<b>佳明国际</b>（任选其一）。</li>
+  <li>手机或电脑浏览器登录 <code>connect.garmin.cn</code>（国内）或 <code>connect.garmin.com</code>（国际）。</li>
+  <li>点头像 → <b>设置 (Settings)</b> → <b>账户关联 (Account Linking)</b>。</li>
+  <li>在列表里找到 <b>Strava</b>，点 <b>关联 (Link)</b>。</li>
+  <li>跳转 Strava 授权页，登录 Strava 账号，点 <b>Authorize</b>。</li>
+  <li>绑定成功后，每一条同步到佳明的新活动，都会在 1~5 分钟内自动出现在 Strava。</li>
+</ol>
+
+<h4>iGPSPORT 国内/国际 桥接 Strava</h4>
+<ol>
+  <li>本软件把数据同步到 iGPSPORT 国内版（<code>iGPSPORT.com.cn</code>）或国际版（<code>iGPSPORT.com</code>）。</li>
+  <li>打开 iGPSPORT App → <b>我的 → 设置 → 第三方分享 → Strava</b>。</li>
+  <li>绑定你的 Strava 账号。之后 iGP 上的每条新活动自动同步到 Strava。</li>
+  <li><b>注意</b>：iGPSPORT 国内版和国际版是两套独立账号，Strava 绑定也各绑各的。如果你用国际版，绑 strava.com；国内版绑 strava.cn 或 strava.com（看你 Strava 账号注册地）。</li>
+</ol>
+
+<h4>Wahoo 桥接 Strava</h4>
+<ol>
+  <li>本软件把数据同步到 Wahoo（需 OAuth2 登录，见 3.2.3）。</li>
+  <li>打开 Wahoo App → <b>Settings → Connections → Strava</b>。</li>
+  <li>绑定后自动同步。</li>
+</ol>
+
+<div class="tip"><b>💡 推荐选择：</b>如果你的目标只是"让数据进 Strava"，<b>优先选佳明桥接</b>——因为佳明本身还会算训练负荷、恢复时间，数据完整度最高；其次选 iGPSPORT（国内码表用户最多）；Wahoo 适合室内骑行台用户。</div>
+
+<h3>4.1.2 方案二：Strava API V3 实验室直传</h3>
+
+<p>如果你不想经过佳明/iGP/Wahoo 中转，也可以用 Strava 开放 API 直接上传。这是本软件的实验室功能，需要你<b>自己申请一个 Strava 开发者应用</b>。</p>
+
+<h4>申请步骤</h4>
+<ol>
+  <li>浏览器访问 <code>strava.com/settings/api</code>，登录你的 Strava 账号。</li>
+  <li>点 <b>Create & Manage Your App → Create New Application</b>。</li>
+  <li>填写：
+    <ul>
+      <li>Application Name：随便填（如"我的同步工具"）</li>
+      <li>Website：随便填（如 <code>https://localhost</code>）</li>
+      <li>Authorization Callback Domain：填 <code>localhost</code></li>
+    </ul>
+  </li>
+  <li>创建成功后，页面会给你两个值：<b>Client ID</b> 和 <b>Client Secret</b>，复制下来。</li>
+  <li>打开本软件 → 关于页 → <b>实验室</b> → 找到 <b>Strava</b>，填入 Client ID / Client Secret。</li>
+  <li>点登录，跳转 Strava 授权页，点 Authorize。</li>
+  <li>授权成功后，回到本软件"数据同步设置"页，<b>同步目标勾选 Strava</b>。</li>
+</ol>
+
+<div class="warn"><b>⚠️ 注意：</b>
+<ul>
+  <li>Strava 开发者 API 有<b>每 15 分钟 2000 次请求</b>的限额，个人使用完全够。</li>
+  <li>Strava 对中国大陆数据中心 IP 注册开发者应用有风控（填邮箱后报"发生意外错误"）。如果你在 strava.com/settings/api 注册失败，需要用家用网络/手机热点重试，或找已有开发者账号的朋友帮忙。</li>
+  <li>方案二是直传，<b>不经过佳明，所以不会被佳明伪装</b>——但 Strava 本身不挑设备字段，能正常显示。</li>
+</ul>
+</div>
+
+<h2>4.2 智能手表/手机运动怎么通过 Keep 介入？</h2>
+
+<p><b>Keep 是国内最大的运动数据中转平台之一。</b>它支持把大量手表、手机健康 App 的运动数据汇到 Keep 账号里。本软件可以从 Keep 拉这些数据，再分发到 Outbase、佳明、Strava（经 4.1 桥接）等任意目标。</p>
+
+<h3>4.2.1 Keep 能桥接哪些设备和 App？</h3>
+
+<p>以下设备/App 都可以在 Keep 内绑定后，运动记录自动同步到 Keep：</p>
+
+<table>
+<tr><th>类别</th><th>具体设备/App</th><th>绑定路径</th></tr>
+<tr><td>手机厂商健康</td><td>华为运动健康、小米运动健康、荣耀运动健康、vivo 健康、OPPO 健康</td><td>Keep → 我的 → 右上角手表图标 → 第三方应用与服务</td></tr>
+<tr><td>专业运动手表</td><td>佳明 Garmin、高驰 COROS、松拓 Suunto、Polar、宜准 EZON、博能</td><td>同上，在"第三方应用与服务"里选对应品牌</td></tr>
+<tr><td>其他手环/App</td><td>Zepp（华米）、轻牛健康、好体魄、小米手环、华为手环、荣耀手环</td><td>同上</td></tr>
+<tr><td>本地文件导入</td><td>任意 FIT/GPX 文件手动导入 Keep App</td><td>Keep → 运动 → 数据同步 → 运动数据文件导入</td></tr>
+</table>
+
+<div class="tip">
+<b>💡 典型场景：</b>你戴华为 Watch 骑车，华为运动健康里有记录。华为本身不支持 Strava，但华为运动健康能把记录推到 Keep。本软件从 Keep 拉这条记录 → 同步到佳明 → 佳明自动桥接到 Strava。全程自动。
+</div>
+
+<h3>4.2.2 桥接操作 5 步</h3>
+<ol>
+  <li>手机装 Keep App，注册/登录一个 Keep 账号。</li>
+  <li>打开 Keep → <b>我的 → 右上角手表图标（设备管理）→ 第三方应用与服务</b>。</li>
+  <li>选择要绑定的设备（华为运动健康/佳明/高驰/小米/OPPO/vivo/荣耀/Zepp/Polar 等），按提示授权绑定。绑定后 Keep 会自动同步该设备的运动记录（可能有数分钟延迟）。</li>
+  <li>打开本软件 → <b>登录页 → Keep</b>，输入 Keep 手机号+密码登录。</li>
+  <li>本软件 → <b>数据同步设置</b> → 数据来源选 <b>Keep</b> → 同步目标选任意平台（Outbase/佳明/iGPSPORT/Strava 桥接）→ 开始同步。</li>
+</ol>
+
+<h3>4.2.3 Keep 接入背后的技术原理</h3>
+<p>本软件 Keep 模块（源码 <code>KeepApi.kt</code>）工作流程：</p>
+<ol>
+  <li><b>登录</b>：POST <code>https://api.gotokeep.com/v1.1/users/login</code>，body 为手机号+密码 form 表单，返回 Bearer token。</li>
+  <li><b>列表</b>：GET <code>/pd/v3/stats/detail</code>，分页拉取 Keep 运动记录列表。v8.5.1 修复了"Keep 同步只拉旧记录"——现在翻够 5 页/200 条才停止。</li>
+  <li><b>详情</b>：GET <code>/pd/v3/runninglog/{id}</code>，拿单条记录详情。</li>
+  <li><b>轨迹解密</b>：Keep 轨迹数据是 zlib+base64 压缩的 JSON（H4sI... 开头），解出来 geoPoints 是 AES-128-CBC 加密的。密钥 <code>56fe59;82g:d873c</code>，IV <code>2346892432920300</code>，从 <b>running_page</b> 开源项目移植。</li>
+  <li><b>坐标转换</b>：Keep 国内坐标是 GCJ-02，自动转 WGS-84，跨平台无偏移。</li>
+  <li><b>运动类型识别</b>：自动识别 running / cycling / hiking 三类，v7.9.3 修复了"Keep 跑步被算成骑行"的 bug。</li>
+  <li><b>GPX 写入</b>：逐点心率（gzip 解码后按时间最近邻匹配）、逐点步频（相邻点步数差/时间差算 SPM）、海拔、卡路里，全部写入标准 GPX TrackPointExtension。</li>
+  <li><b>上传是半自动</b>：Keep API 不提供上传接口，所以本软件下载后引导用户到 Keep App 内手动导入：Keep → 运动 → 数据同步 → 运动数据文件导入。</li>
+</ol>
+
+<div class="callout">
+<b>📝 Keep 桥接注意事项：</b>
+<ul>
+  <li>绑定第三方设备后，数据同步有数分钟延迟属正常。</li>
+  <li>室内运动（无 GPS 轨迹）也能同步，会生成合法 GPX。</li>
+  <li>Keep 不提供骑行踏频和功率数据，同步到其他平台后这两栏会空。</li>
+  <li>Keep 登录机会有限（纯 API 三步登录），请一次性输对手机号密码。</li>
+</ul>
+</div>
+
+<h2>4.3 国内区 ↔ 国际区互传</h2>
+<p>国内用户经常面临"佳明中国和佳明国际是两套账号"的问题。本软件原生支持互传：</p>
+<table>
+<tr><th>方向</th><th>操作</th><th>说明</th></tr>
+<tr><td>佳明中国 → 佳明国际</td><td>来源选佳明中国，目标选佳明国际</td><td>自动伪装 Edge 830/FR945，训练负荷正常算</td></tr>
+<tr><td>佳明国际 → 佳明中国</td><td>来源选佳明国际，目标选佳明中国</td><td>同上</td></tr>
+<tr><td>高驰中国 → 高驰国际</td><td>来源选 COROS 中国，目标选 COROS 国际</td><td>中国区 OSS，国际区 AWS S3</td></tr>
+<tr><td>iGPSPORT 国内 → 国际</td><td>分别登录两个账号，任务 A 国内→Outbase，任务 B 国际←Outbase</td><td>v9.5.5 修复国际区登录</td></tr>
+</table>
+
+<!-- ==================== 第五章 工作流 ==================== -->
+<h1>第五章　核心工作流全解</h1>
+
+<p>本章把"点开始同步后，App 内部到底发生了什么"一步一步拆开讲清楚，让你看到日志里每一行的含义。</p>
+
+<h2>5.1 一次同步的完整链路</h2>
+
+<div class="flow">┌─────────────────────────────────────────────────────────┐
+│  1. 用户在同步页点「开始同步」                            │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  2. WorkManager / Coroutine 启动 UploadEngine           │
+│     读取 PrefsManager 里的来源/目标/数量/跳过数          │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  3. 调用对应平台的 Api.listActivities()                  │
+│     - iGP: WebView cookie → JSON 列表                    │
+│     - 佳明: DI Bearer → connectapi activitylist         │
+│     - 迈金: OTM API 分页                                 │
+│     - 高驰: 循环翻页直到拉完所有活动                     │
+│     - Keep: /pd/v3/stats/detail 翻 5 页                  │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  4. 应用「跳过 N 条」和「同步记忆」过滤                  │
+│     - 前 N 条最新活动跳过                                │
+│     - 已同步过的 activityId 跳过（上限 10000 条）        │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  5. 逐条下载 FIT/GPX：api.downloadActivity(id)          │
+│     保存到 Download/鸡翅幸哲迈进OB/{平台}/{id}.fit      │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  6. 本地转换（按需）：                                    │
+│     - 迈金: GCJ-02 → WGS-84（WebBridge JS 转换）        │
+│     - Keep: zlib 解压 + AES 解密 + GPX 生成             │
+│     - GPX → FIT（jpx 库）                                │
+│     - 上传佳明时: FitSanitizer 改 manufacturer/product   │
+│       (骑行→Edge 830/3122，跑步→FR945/2967)             │
+│     - 上传 iGP 时: FitTimeShift 按设置 ±8h 修正时间戳    │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  7. 逐个目标平台上传：api.uploadActivity(file)           │
+│     - 成功: 写入 SyncMemory                              │
+│     - 重复(9006/422): 记为"跳过"，也写 SyncMemory        │
+│     - 失败: 记为"失败"，下轮重试                          │
+└─────────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  8. 更新前台通知 + 运行日志                               │
+└─────────────────────────────────────────────────────────┘</div>
+
+<h2>5.2 关键节点详解</h2>
+
+<h3>5.2.1 下载文件存哪</h3>
+<p>所有下载的 FIT/GPX 文件保存在：<code>/sdcard/Download/鸡翅幸哲迈进OB/{平台名}/{活动ID}.{fit|gpx}</code>。你可以用文件管理器打开查看，也可以分享给其他 App。</p>
+
+<h3>5.2.2 坐标转换只对迈金开</h3>
+<p>WebBridge（v8.5.9 起按通道拆分）是一个隐藏 WebView，加载 magene-fit-strava-fix 的 JS 脚本，把迈金 FIT 里的每个 trackpoint 经纬度从 GCJ-02 转回 WGS-84。<b>其他平台文件不会经过这个引擎</b>，避免误伤。</p>
+
+<h3>5.2.3 上传佳明时的 FIT 伪装</h3>
+<p>v8.5.8 引入、v9.4.1 自动修复 412 后，上传佳明中国/国际时自动：</p>
+<ul>
+  <li>骑行（公路/山地/室内骑行）→ manufacturer=Garmin, product=Edge 830 (3122)</li>
+  <li>跑步/徒步/室内跑 → manufacturer=Garmin, product=Forerunner 945 (2967)</li>
+</ul>
+<p>伪装改的是 FIT 文件 file_id 消息里的 manufacturer 和 product 字段，不改动运动数据本身。伪装后 Garmin Connect 活动详情页设备显示为 Edge 830 或 FR945，并正常计算训练负荷、VO2max、恢复时间。</p>
+
+<h3>5.2.4 上传 iGP 时的时区修正</h3>
+<p>历史 bug：迈金、佳明等平台的时间戳传到 iGPSPORT 国内版会差 8 小时。v9.2.2 新增 <code>FitTimeShift.shiftForIgpsportMinus()</code>，按用户在"时区修正"页的设置，把 FIT 文件里所有 record 的 timestamp 减 8 小时；GPX 文件走 <code>GpxTimeFixer</code>。v9.2.4 进一步修复 iGP 国际版上传假成功。</p>
+
+<h2>5.3 后台自动同步（WorkManager）</h2>
+<ul>
+  <li>开启后，系统每 15 分钟~1 小时自动跑一次同步。</li>
+  <li>跨开机、杀进程、关 App 后仍执行（BOOT_COMPLETED 自动恢复任务）。</li>
+  <li>Doze 省电模式下不受影响。</li>
+  <li>国产 ROM（小米/华为/OPPO/vivo）需手动把 App 加入电池优化白名单，否则后台被杀。</li>
+  <li>v7.5.8 修复了 Android 14+ 前台服务类型闪退。</li>
+</ul>
+
+<h2>5.4 同步记忆与去重</h2>
+<ul>
+  <li>每条上传成功的活动，把 <code>平台名+活动ID</code> 写入 SharedPreferences（上限 10000 条）。</li>
+  <li>下次同步时，这些 ID 自动跳过，不会重复上传。</li>
+  <li>v7.5.9 起，重复文件错误（行者 9006、Wahoo 422）也归为"跳过"并写记忆，不再算失败。</li>
+  <li>想重新全量上传，点"清记忆"即可。</li>
+</ul>
+
+<!-- ==================== 第六章 高级功能 ==================== -->
+<h1>第六章　高级功能</h1>
+
+<h2>6.1 迈金 GCJ-02→WGS84 坐标转换</h2>
+<p>见 3.3.5。核心：引擎启动时日志显示"✅迈金坐标转换引擎已就绪"，全程自动，只对迈金文件生效。</p>
+
+<h2>6.2 佳明 FIT 设备伪装（v9.4.1 自动）</h2>
+<p>见 5.2.3。v9.4.1 修复了第三方 FIT 传佳明 412 错误（伪装修复：FIT 文件 file_id 消息头标志位颠倒，导致 Garmin 解析失败返回 412 Precondition Failed）。</p>
+
+<h2>6.3 上传 iGP 时区修正（v9.2.2）</h2>
+<p>见 3.3.6 和 5.2.4。</p>
+
+<h2>6.4 轨迹合并 + 透明贴纸（含 3D）</h2>
+
+<h3>6.4.1 轨迹合并</h3>
+<ul>
+  <li><b>入口</b>：底部"轨迹"Tab（或关于页二级入口）。</li>
+  <li><b>流程</b>：选数据来源平台 → 勾选 2 条及以上活动 → 可选"本地文件"加 FIT/GPX → 点"合并"。</li>
+  <li><b>原理</b>：把多段轨迹按时间顺序拼接，时长和距离累加，累计爬升直接累加各段 total_ascent（码表口径，不重新算）。段间"跳飞"（不同地点记录相连）不计距离和爬升。</li>
+  <li><b>典型场景</b>：分段骑行（中午吃饭断开了 GPS）合并成一条完整记录。</li>
+</ul>
+
+<h3>6.4.2 透明贴纸</h3>
+<ul>
+  <li><b>入口</b>：轨迹页 → 贴纸；或合并完成后一键进入。</li>
+  <li><b>预设</b>：6 大分类（Strava 风格/艺术特效/数据卡片/照片叠加/海报大字/复古游戏），24+ 款预设，组合引擎上万种样式。</li>
+  <li><b>比例</b>：1:1 / 3:4 / 9:16。</li>
+  <li><b>透明背景</b>：开关后导出 PNG 透明底，可叠加到照片/视频。</li>
+  <li><b>3D 立体轨迹</b>：v8.3.x 起，轨迹随海拔 Z 轴抬升，可 Yaw/Pitch 旋转，按高度着色。3D 与发光互斥。</li>
+  <li><b>导出=预览</b>：v8.1.2 起改同源截帧，100% 一致；v8.1.3 修复导出颜色偏灰。</li>
+  <li><b>防压字</b>：字号按画布宽度自适应，一位小数锁定不缩放，两位小数自动舍一位。</li>
+</ul>
+
+<div class="warn"><b>⚠️ 铁律：</b>轨迹必须适应画面永不截断；归一化只在 HTML 端单一口径完成；预览与导出必须同源。（曾因 Kotlin/HTML 双口径归一化导致反复截断。）</div>
+
+<h2>6.5 临时码表（v9.4.0 并入）</h2>
+<p>v9.4.0 把独立的"临时码表"App 整体并入迈进OB，不用再装第二个 App。</p>
+<ul>
+  <li><b>入口</b>：关于页 → "临时码表"卡片。</li>
+  <li><b>功能</b>：GPS 轨迹记录、气压计测高、BLE 心率带/功率计/踏频器/速度传感器连接、RideSlate 风格大屏显示、显示项自定义。</li>
+  <li><b>导出</b>：FIT/GPX 落盘，结束后一键上传到已登录平台。</li>
+  <li><b>v9.5.2 修复</b>：临时码表入口闪退（TrialLicense 体验码门禁）。</li>
+</ul>
+
+<h2>6.6 热力图</h2>
+<p>v9.3.1 原型功能，把所有历史运动轨迹叠加成热力图。v9.3.1 后期修复了"热力图点击无法进入"（瓦片异步化）和 logo 白边。</p>
+
+<h2>6.7 健康数据同步（佳明 CN↔COM）</h2>
+<ul>
+  <li><b>能力</b>：佳明中国 ↔ 佳明国际之间同步步数/睡眠/HRV/压力。</li>
+  <li><b>v8.7.8 起</b>：任务级健康同步天数，新建任务时输入（默认 7 天，上限 365），首次同步后增量。</li>
+  <li><b>419 错误</b>：目标账号未绑定健康设备（手表/手环），只跳过当天不中断。</li>
+  <li><b>409 冲突</b>：已存在自动识别为重复，不算失败。</li>
+</ul>
+
+<h2>6.8 ICU 课表推送到 iGP/百锐腾</h2>
+<ul>
+  <li><b>能力</b>：Intervals.icu 日历训练课表自动推到 iGPSPORT 国内/国际和百锐腾。</li>
+  <li><b>范围</b>：自动同步未来 7 天训练，自动去重。</li>
+  <li><b>用法</b>：新建任务来源选 Intervals.icu，目标只选 iGPSPORT 或百锐腾。</li>
+</ul>
+
+<h2>6.9 深色模式三态</h2>
+<p>v9.2.9 全页面深色化，跟随系统/浅色/深色三态切换。</p>
+
+<!-- ==================== 第七章 FAQ ==================== -->
+<h1>第七章　FAQ：从 v1.0 到 v9.5.5 所有踩坑记录</h1>
+
+<p>本章把从 v1.0 到 v9.5.5 开发过程中，用户和开发者遇到的所有问题按平台分类汇总。每条标注 <span class="tag tag-done">已解决</span> / <span class="tag tag-wip">部分解决</span> / <span class="tag tag-never">未解决/平台限制</span>。</p>
+
+<h2>7.1 同步通用问题</h2>
+
+<div class="qa"><p class="q">Q1：同步失败怎么办？ <span class="tag tag-done">已解决</span></p>
+<p class="a">看运行日志错误信息。常见原因：登录态过期→重新登录；网络问题→检查网络；平台限流→等几分钟重试。点"复制日志"发给开发者可快速定位。</p></div>
+
+<div class="qa"><p class="q">Q2：为什么有些活动被跳过了？ <span class="tag tag-done">已解决</span></p>
+<p class="a">已同步过的活动会自动跳过（同步记忆）。想重新上传点"清记忆"。v7.5.9 起重复文件（行者 9006、Wahoo 422）统一算"跳过"不算失败。</p></div>
+
+<div class="qa"><p class="q">Q3：下载的文件在哪里？ <span class="tag tag-done">已解决</span></p>
+<p class="a"><code>/sdcard/Download/鸡翅幸哲迈进OB/{平台}/</code>。</p></div>
+
+<div class="qa"><p class="q">Q4：开启自动同步后闪退？ <span class="tag tag-done">已解决 v7.5.8</span></p>
+<p class="a">Android 14+ 前台服务类型问题。v7.5.8 用 ForegroundInfo 三参数构造函数显式指定 DATA_SYNC 类型修复。</p></div>
+
+<div class="qa"><p class="q">Q5：日志显示"上传失败"但实际是重复文件？ <span class="tag tag-done">已解决 v7.5.9</span></p>
+<p class="a">v7.5.9 起统一归为"跳过"并自动记同步记忆。</p></div>
+
+<div class="qa"><p class="q">Q6：后台同步被杀/不跑？ <span class="tag tag-wip">部分解决</span></p>
+<p class="a">国产 ROM（小米/华为/OPPO/vivo）需要把 App 加入电池优化白名单，关闭"后台弹出限制"。App 首次启动会引导，但部分机型需要手动设置。</p></div>
+
+<div class="qa"><p class="q">Q7：运行时白屏？ <span class="tag tag-done">已解决 v8.5.1</span></p>
+<p class="a">日志从每条刷主线程改为 200ms 批量刷新。</p></div>
+
+<div class="qa"><p class="q">Q8：Fragment 重复 add 闪退？ <span class="tag tag-done">已解决 v8.5.4</span></p>
+<p class="a">Activity 重建时复用已恢复 Fragment，不再重复 add。</p></div>
+
+<div class="qa"><p class="q">Q9：连续多选选不上？ <span class="tag tag-done">已解决 v8.1.3</span></p>
+<p class="a">列表事件冲突修复。</p></div>
+
+<h2>7.2 佳明（中国/国际）专题</h2>
+
+<div class="qa"><p class="q">Q10：佳明中国为什么这么慢？ <span class="tag tag-done">已解决 v7.9.0</span></p>
+<p class="a">原 WebView fetch 路径慢，v7.9.0 改 DI Token 直连 connectapi.garmin.cn，速度与国际区一致。</p></div>
+
+<div class="qa"><p class="q">Q11：佳明经常登录不上，过一天又好？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">佳明服务端风控：频繁登录/错误密码触发 429，冷却期数小时到一天。建议密码一次输对、勿频繁切换、勿开发版与正式版同登同一账号。</p></div>
+
+<div class="qa"><p class="q">Q12：提示"所有通道触发风控限流"？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">佳明防枚举风控。检查账号密码、是否开启两步验证，等约 24 小时再试。</p></div>
+
+<div class="qa"><p class="q">Q13：两步验证(MFA)怎么关？ <span class="tag tag-done">已解决 v9.5.0</span></p>
+<p class="a">v9.5.0 起改 WebView 登录，直接在网页上完成 MFA。旧版本需先去 connect.garmin.com → 头像 → 账号设置 → 安全 → 两步验证 → 关闭。</p></div>
+
+<div class="qa"><p class="q">Q14：佳明不计算训练负荷？ <span class="tag tag-done">已解决 v8.5.8</span></p>
+<p class="a">第三方 FIT 设备字段是 iGPSPORT，Garmin Connect 视为普通导入。v8.5.8 起自动伪装 Edge 830/FR945。</p></div>
+
+<div class="qa"><p class="q">Q15：佳明中国批量上传失败"Required SETTINGS preface not received"？ <span class="tag tag-done">已解决 v7.6.0</span></p>
+<p class="a">OkHttp HTTP/2 握手不稳定。v7.6.0 起强制 HTTP/1.1 + 自动重试。</p></div>
+
+<div class="qa"><p class="q">Q16：佳明中国上传 HTTP 412？ <span class="tag tag-done">已解决 v7.9.4</span></p>
+<p class="a">自研 FIT 补全 header。v9.4.1 进一步修复第三方 FIT 传佳明 412（file_id 消息头标志位颠倒）。</p></div>
+
+<div class="qa"><p class="q">Q17：佳明国际登录 mobile SSO 第一通道就 429？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">GCM_IOS_DARK 通道对错误密码统一返回 429 防枚举。停止尝试其他通道，等冷却。</p></div>
+
+<div class="qa"><p class="q">Q18：佳明登录成功但拉不到活动？ <span class="tag tag-wip">部分解决 v9.5.1</span></p>
+<p class="a">历史问题：DI 8 秒快速失败 + 降级 WebView fetch 30 秒超时。v9.5.1 修复协程 NoSuchMethodError/VerifyError，并加 403 自动刷新 CSRF token 重试。</p></div>
+
+<div class="qa"><p class="q">Q19：佳明登录弹窗为什么有日志窗口？ <span class="tag tag-done">已解决 v8.3.4</span></p>
+<p class="a">v8.3.4 起致命错误第一通道即停 + 弹窗精确提示 + 内置滑动日志 + 复制按钮。</p></div>
+
+<div class="qa"><p class="q">Q20：健康同步 419？ <span class="tag tag-done">已解决 v8.7.8</span></p>
+<p class="a">目标佳明账号未绑定健康设备。绑定手表/手环并打开 Garmin Connect。现在只跳过当天不中断。</p></div>
+
+<div class="qa"><p class="q">Q21：健康同步 409 冲突？ <span class="tag tag-done">已解决 v8.7.8</span></p>
+<p class="a">该文件已存在，自动识别为重复，不是错误。</p></div>
+
+<h2>7.3 iGPSPORT 专题</h2>
+
+<div class="qa"><p class="q">Q22：iGPSPORT 登录成功但列表/上传 403？ <span class="tag tag-done">已解决 v7.6.0</span></p>
+<p class="a">"日通行证"问题。v7.6.0 起登录态真实校验；若仍 403 重新登录一次。</p></div>
+
+<div class="qa"><p class="q">Q23：iGPSPORT 登录页白屏？ <span class="tag tag-done">已解决</span></p>
+<p class="a">WebView 内核旧。提供鸿蒙适配版（独立包 com.jichi.ob.hw），iGP 登录改手机号验证码原生表单。</p></div>
+
+<div class="qa"><p class="q">Q24：iGPSPORT 注销后仍自动登录旧账号？ <span class="tag tag-done">已解决 v8.5.8</span></p>
+<p class="a">注销时无条件清 WebView cookie/localStorage。</p></div>
+
+<div class="qa"><p class="q">Q25：iGPSPORT 国际版登录识别不到？ <span class="tag tag-done">已解决 v9.5.5</span></p>
+<p class="a">v9.5.5 重写 detectIgpsport()，从只读 persist:app-store 改为多来源提取（IGS--TOKEN/persist/URL ?token=/全 localStorage/cookie）。</p></div>
+
+<div class="qa"><p class="q">Q26：iGPSPORT 国际版上传假成功？ <span class="tag tag-done">已解决 v9.2.4</span></p>
+<p class="a">原代码 4 处 URL 硬编码国内版端点，国际版 token 调国内版返回 200 但数据静默丢弃。v9.2.4 改为按 token 来源区分端点。</p></div>
+
+<div class="qa"><p class="q">Q27：迈金→iGPSPORT 时差 8 小时？ <span class="tag tag-done">已解决 v9.2.2</span></p>
+<p class="a">v9.2.2 新增时区修正页，按来源平台 ±8h。FIT 走 FitTimeShift，GPX 走 GpxTimeFixer。</p></div>
+
+<div class="qa"><p class="q">Q28：iGPSPORT 上传大文件超时？ <span class="tag tag-wip">已知行为</span></p>
+<p class="a">iGP 异步解析，1.7MB GPX 可能耗时 20 万 ms 才算成功，不要当超时处理。</p></div>
+
+<h2>7.4 迈金专题</h2>
+
+<div class="qa"><p class="q">Q29：迈金同步提示"获取列表失败"？ <span class="tag tag-done">已解决 v7.5.9</span></p>
+<p class="a">自动检测登录态，失效自动刷新 refresh_token；刷新失败才需重新登录。</p></div>
+
+<div class="qa"><p class="q">Q30：迈金坐标偏移 450 米？ <span class="tag tag-done">已解决 v8.5.9</span></p>
+<p class="a">GCJ-02 火星坐标。v8.5.9 起三开关（七牛 durl 默认关、fit_content 默认开、文件夹本地转换）。</p></div>
+
+<h2>7.5 行者/黑鸟专题</h2>
+
+<div class="qa"><p class="q">Q31：行者数据同步到其他平台异常？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">行者 App 导出 FIT 非标准写法，严格解析平台不入库。建议目标选 Outbase，或走"清洗法"：黑鸟→行者→目标。</p></div>
+
+<div class="qa"><p class="q">Q32：上传黑鸟失败？ <span class="tag tag-done">已解决 v7.6.5</span></p>
+<p class="a">黑鸟要求标准 FIT，v7.6.5 起导出标准 FIT。</p></div>
+
+<div class="qa"><p class="q">Q33：黑鸟上传到其他平台失败？ <span class="tag tag-done">已解决 v7.6.5</span></p>
+<p class="a">推荐"清洗法"：黑鸟 → 行者 → 目标。</p></div>
+
+<div class="qa"><p class="q">Q34：黑鸟数据和原始设备对不上？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">黑鸟自身 GPS 海拔 vs 气压计海拔差异，爬升偏差、功率×0.78 校准，平台自身问题。</p></div>
+
+<div class="qa"><p class="q">Q35：行者→iGPSPORT 重复记录不跳过？ <span class="tag tag-done">已解决 v9.2.9 前</span></p>
+<p class="a">同步记忆 ID 匹配规则修复。</p></div>
+
+<h2>7.6 Wahoo 专题</h2>
+
+<div class="qa"><p class="q">Q36：Wahoo 令牌数量超限？ <span class="tag tag-done">已解决 v7.6.0</span></p>
+<p class="a">自动复用/刷新，刷新后自动撤销旧令牌。若仍超限：Wahoo App → 设置 → 已授权应用 → 找到本软件 → 撤销 → 重新登录。</p></div>
+
+<div class="qa"><p class="q">Q37：Wahoo SSL 证书不匹配？ <span class="tag tag-wip">开发期已绕开</span></p>
+<p class="a">api.wahooligan.com 证书 DN 不含该域名。禁止全局关证书校验，按域名白名单走 OAuth2 正规通道。</p></div>
+
+<h2>7.7 Keep 专题</h2>
+
+<div class="qa"><p class="q">Q38：Keep 下载失败"invalid block type"？ <span class="tag tag-done">已解决 v7.9.3</span></p>
+<p class="a">统一转标准 GPX/FIT。</p></div>
+
+<div class="qa"><p class="q">Q39：Keep 跑步被算成骑行？ <span class="tag tag-done">已解决 v7.9.3</span></p>
+<p class="a">运动类型自动识别 running/cycling/hiking。</p></div>
+
+<div class="qa"><p class="q">Q40：Keep 同步只拉旧记录？ <span class="tag tag-done">已解决 v8.5.1</span></p>
+<p class="a">分页翻够 5 页/200 条才停止。</p></div>
+
+<div class="qa"><p class="q">Q41：Keep 导出轨迹为空？ <span class="tag tag-done">已解决 v8.1.3</span></p>
+<p class="a">轨迹字段兼容 + 时间换算修复。</p></div>
+
+<div class="qa"><p class="q">Q42：Keep 逐点心率/步频不写入 GPX？ <span class="tag tag-done">已解决 v8.5.3/v8.5.4</span></p>
+<p class="a">gzip 解码心率按时间最近邻匹配，stepPoints 算 SPM，写入标准 TrackPointExtension。</p></div>
+
+<h2>7.8 高驰专题</h2>
+
+<div class="qa"><p class="q">Q43：高驰活动列表只能拉 200 条？ <span class="tag tag-done">已解决 v7.6.4</span></p>
+<p class="a">循环翻页拉全部活动。</p></div>
+
+<h2>7.9 百锐腾专题（v9.5.5 最新）</h2>
+
+<div class="qa"><p class="q">Q44：百锐腾上传活动失败？ <span class="tag tag-never">平台限制</span></p>
+<p class="a">v9.5.5 起百锐腾改为仅下载源（DDP 协议下载 FIT），活动上传已移除；保留课表上传（workout）。</p></div>
+
+<div class="qa"><p class="q">Q45：百锐腾国内站/国际站切换闪退？ <span class="tag tag-done">已解决 v9.5.5</span></p>
+<p class="a">v9.5.5 修复站点切换时 Fragment 状态错乱导致闪退。国内站 brytonsports.cn，国际站 active.brytonsport.com。</p></div>
+
+<h2>7.10 其他平台</h2>
+
+<div class="qa"><p class="q">Q46：Outbase/iGPSPORT 上传处理失败？ <span class="tag tag-done">已解决 v7.9.4</span></p>
+<p class="a">上传节流 400ms，大幅缓解。</p></div>
+
+<div class="qa"><p class="q">Q47：咕咚/Zepp 下载？ <span class="tag tag-done">已解决 v7.9.5</span></p>
+<p class="a">新增两个下载数据源。Zepp 纯 API 三步登录机会有限，请一次成功。</p></div>
+
+<div class="qa"><p class="q">Q48：Komoot/Suunto？ <span class="tag tag-done">已解决 v7.9.6</span></p>
+<p class="a">新增两大国际平台双向同步。Suunto 实验室需自申请开发者凭证。</p></div>
+
+<div class="qa"><p class="q">Q49：网页登录白屏？ <span class="tag tag-done">已解决 v8.0.9</span></p>
+<p class="a">WebView 内核兼容修复。</p></div>
+
+<div class="qa"><p class="q">Q50：Zwift 下载 403？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">试用订阅无 FIT 下载权限，需正式会员。v8.3.x 加预检测。</p></div>
+
+<h2>7.11 闪退/白屏/性能类</h2>
+
+<div class="qa"><p class="q">Q51：启动闪退 VerifyError？ <span class="tag tag-done">已解决 v9.2.0</span></p>
+<p class="a">协程文件寄存器冲突，重编 smali 修复。</p></div>
+
+<div class="qa"><p class="q">Q52：UploadEngine$upload$2 VerifyError？ <span class="tag tag-done">已解决 v9.2.4</span></p>
+<p class="a">协程类寄存器修复。</p></div>
+
+<div class="qa"><p class="q">Q53：佳明协程 NoSuchMethodError/VerifyError？ <span class="tag tag-done">已解决 v9.5.1</span></p>
+<p class="a">重写 GarminApi，403 自动刷新 CSRF token 重发。</p></div>
+
+<div class="qa"><p class="q">Q54：底部导航偶尔消失？ <span class="tag tag-done">已解决 v8.5.8</span></p>
+<p class="a">onResume 检查 Fragment 可见性。</p></div>
+
+<div class="qa"><p class="q">Q55：从平台弹窗点"查看全部记录"后底部导航不恢复？ <span class="tag tag-done">已解决 v8.8.2</span></p></div>
+
+<div class="qa"><p class="q">Q56：关闭记录中心错误跳到关于页？ <span class="tag tag-done">已解决 v8.8.3</span></p>
+<p class="a">正确应回到登录页。</p></div>
+
+<div class="qa"><p class="q">Q57：同步页/主页偶发崩溃？ <span class="tag tag-done">已解决 v8.1.3</span></p>
+<p class="a">页面销毁防护。</p></div>
+
+<div class="qa"><p class="q">Q58：连续多选选不上？ <span class="tag tag-done">已解决 v8.1.3</span></p></div>
+
+<div class="qa"><p class="q">Q59：实验室平台列表不能滑动？ <span class="tag tag-done">已解决 v8.3.1</span></p>
+<p class="a">改 ScrollView。</p></div>
+
+<div class="qa"><p class="q">Q60：临时码表入口闪退？ <span class="tag tag-done">已解决 v9.5.2</span></p>
+<p class="a">TrialLicense 体验码门禁修复。</p></div>
+
+<h2>7.12 版本号/更新/安装类</h2>
+
+<div class="qa"><p class="q">Q61：检测更新还是旧版本？ <span class="tag tag-done">已解决 v9.2.4</span></p>
+<p class="a">UpdateChecker 之前硬编码版本号，改为读 BuildConfig.VERSION_NAME。</p></div>
+
+<div class="qa"><p class="q">Q62：装上旧版覆盖新版失败？ <span class="tag tag-done">已解决</span></p>
+<p class="a">签名冲突。开发体验版必须打 devRelease（jichi-ob-dev.keystore），devDebug 签名与已装版本冲突。</p></div>
+
+<div class="qa"><p class="q">Q63：更新后版本号三处不一致？ <span class="tag tag-done">已解决</span></p>
+<p class="a">铁律：build.gradle defaultConfig + dev flavor + 关于页三处必须 grep 一致。</p></div>
+
+<!-- ==================== 第八章 已知问题 ==================== -->
+<h1>第八章　已知问题与未解决项</h1>
+
+<table>
+<tr><th>平台/场景</th><th>限制/说明</th><th>状态</th></tr>
+<tr><td>佳明两步验证</td><td>v9.5.0 起 WebView 登录支持 MFA；旧版本需先关闭</td><td><span class="tag tag-done">已解决</span></td></tr>
+<tr><td>佳明 429 风控</td><td>错误密码/MFA/异常请求触发，冷却数小时到一天</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>Zwift</td><td>仅下载；试用会员无 FIT 权限</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>捷安特</td><td>仅上传，官方下载接口加密</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>MyWhoosh</td><td>仅下载，官方未开放上传 API</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>Intervals.icu</td><td>活动开始时间不早于 1971 年</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>Keep</td><td>仅下载源，上传半自动；不提供踏频/功率</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>咕咚/Zepp</td><td>仅下载源</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>黑鸟</td><td>爬升偏差、部分记录缺失、功率×0.78、坐标精度有限（平台自身）</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>行者</td><td>非标准 FIT，严格解析平台建议走 Outbase 或清洗法</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>Zepp 登录</td><td>纯 API 三步登录机会有限，一次成功</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>Strava 实验室</td><td>需自申请 Client ID/Secret；数据中心 IP 注册开发者应用可能被风控</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>百锐腾</td><td>v9.5.5 起仅下载+课表上传，活动上传开发中</td><td><span class="tag tag-wip">开发中</span></td></tr>
+<tr><td>健康同步</td><td>目标佳明账号需绑定健康设备，否则 419</td><td><span class="tag tag-wip">平台限制</span></td></tr>
+<tr><td>轨迹合并/贴纸</td><td>限时体验功能，需体验码</td><td><span class="tag tag-wip">体验功能</span></td></tr>
+</table>
+
+<!-- ==================== 第九章 致谢 ==================== -->
+<h1>第九章　致谢</h1>
+
+<h2>9.1 平台鸣谢</h2>
+<p>本软件与以下运动平台的数据互通，均基于用户自有账号和官方/半官方接口：</p>
+<ul>
+  <li>iGPSPORT 迹驰（国内 / 国际）</li>
+  <li>行者 imxingzhe</li>
+  <li>迈金 / 顽鹿 Onelap</li>
+  <li>黑鸟单车</li>
+  <li>百锐腾 Bryton Sports</li>
+  <li>捷安特 Giant</li>
+  <li>Outbase</li>
+  <li>Intervals.icu</li>
+  <li>佳明 Garmin Connect（中国 / 国际）</li>
+  <li>高驰 COROS（中国 / 国际）</li>
+  <li>Wahoo Fitness</li>
+  <li>MyWhoosh</li>
+  <li>Kinomap / Zwift</li>
+  <li>Keep</li>
+  <li>咕咚 Codoon</li>
+  <li>Zepp（华米）</li>
+  <li>Komoot</li>
+  <li>Suunto 松拓</li>
+  <li>两步路 TwoBulu</li>
+  <li>Polar / Fitbit / Withings / TrainingPeaks（实验室）</li>
+  <li>Strava（桥接 / 实验室）</li>
+</ul>
+
+<h2>9.2 开源项目鸣谢</h2>
+<p>本软件站在以下开源项目的肩膀上：</p>
+<ul>
+  <li><b>garth</b>（mitparker/garth）——佳明 mobile SSO / DI Token 登录流程参考</li>
+  <li><b>magene-fit-strava-fix</b>——迈金 FIT GCJ-02→WGS84 坐标转换算法移植</li>
+  <li><b>wahoolib</b>——Wahoo OAuth2 流程参考</li>
+  <li><b>running_page</b>（yihong0618/running_page）——Keep/咕咚/Zepp 登录与轨迹解密参考（AES-128-CBC 密钥来自此项目）</li>
+  <li><b>Mi-Fit-and-Zepp-workout-exporter</b>——Zepp 纯 API 三步登录参考</li>
+  <li><b>Kompy</b>——Komoot 内部 API 参考</li>
+  <li><b>suunto-mcp</b>——Suunto Cloud API 参考</li>
+  <li><b>OkHttp 4.12</b>——HTTP 客户端</li>
+  <li><b>Kotlin Coroutines 1.7</b>——异步协程</li>
+  <li><b>Material Design / AndroidX</b>——UI 组件</li>
+  <li><b>Garmin FIT SDK 21.176</b>——FIT 文件解析与构造</li>
+  <li><b>jpx 3.1</b>——GPX 解析</li>
+  <li><b>WorkManager 2.9</b>——后台任务调度</li>
+  <li><b>Jsoup 1.17</b>——HTML 解析</li>
+</ul>
+
+<h2>9.3 测试人员鸣谢</h2>
+<p>本软件从 v1.0 到 v9.5.5 的每个版本，都经过以下骑友的实测反馈。没有你们的 bug 报告和耐心等待，就没有今天这二十个平台互传的能力：</p>
+<ul>
+  <li>素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao</li>
+  <li>胶州一哥大沽河河长赵铁柱、海参、兰兰大王、初夏飞雪bab</li>
+  <li>心急吃不了热豆付、青山依旧张指导、阿泽阿、泽、无名氏</li>
+  <li>我有一个朋友、N1d、ongoing33、七诗君、赵烨龙</li>
+  <li>狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾</li>
+  <li>以及所有通过抖音群、赞赏码、GitHub Issue 反馈问题的骑友</li>
+</ul>
+
+<p>特别感谢：</p>
+<ul>
+  <li>所有通过赞赏码自愿支持本项目的骑友——你们的每一笔都直接转化为下一个版本的开发动力。</li>
+  <li>抖音群里每一个耐心陪测、帮我们复现 bug 的骑友。</li>
+  <li>GitHub 上 star、watch、提 issue 的每一位开发者。</li>
+</ul>
+
+<h2>9.4 开发者俱乐部</h2>
+<p>本软件为个人开发项目，持续迭代中。若你愿意一起开发、提 PR、或反馈 bug，欢迎通过 GitHub 仓库联系。</p>
+
+<div class="callout center" style="margin-top:30mm;">
+<b>让运动数据自由流动。</b><br>
+愿每一次骑行、每一次跑步，都被完整记录、自由抵达。<br><br>
+—— 鸡翅幸哲迈进OB 开发组<br>
+v9.5.5 · 2026-11-05
+</div>
+
+<!-- ==================== 附录 ==================== -->
+<h1>附录　版本历史时间线</h1>
+
+<table>
+<tr><th>版本</th><th>日期</th><th>核心改动</th></tr>
+<tr><td>v9.5.5</td><td>2026-11-05</td><td>iGPSPORT 国际区登录修复（多来源 token 提取）；百锐腾改为仅下载源，国内/国际站切换；修复切换闪退</td></tr>
+<tr><td>v9.5.2</td><td>2026-10-30</td><td>修复临时码表入口闪退；关于页版本号修正</td></tr>
+<tr><td>v9.5.1</td><td>2026-10-28</td><td>修复佳明中国/国际 WebView 登录后拉记录崩溃（NoSuchMethodError+VerifyError）；403 自动刷新 CSRF token；OkHttp 放开 HTTP/2</td></tr>
+<tr><td>v9.5.0</td><td>2026-10-25</td><td>佳明中国/国际 WebView 登录升级（支持两步验证 MFA）</td></tr>
+<tr><td>v9.4.1</td><td>2026-10-20</td><td>佳明上传自动伪装修复 412（FIT file_id 消息头标志位颠倒）</td></tr>
+<tr><td>v9.4.0</td><td>2026-10-18</td><td>临时码表全量并入 App（GPS+心率+功率+踏频）；体验码门禁</td></tr>
+<tr><td>v9.3.1</td><td>2026-10-15</td><td>热力图功能原型；瓦片异步化修复点击无法进入</td></tr>
+<tr><td>v9.2.9</td><td>2026-10-12</td><td>深色模式三态全页面；12 个布局视觉优化；App 改名去括号</td></tr>
+<tr><td>v9.2.8</td><td>2026-10-11</td><td>colors.xml 统一色阶；12 个布局优化</td></tr>
+<tr><td>v9.2.6</td><td>2026-10-09</td><td>Wahoo→iGP FIT 净化功能（骑行直传、仅跑步净化）</td></tr>
+<tr><td>v9.2.4</td><td>2026-10-08</td><td>iGP 国际版上传假成功修复；UploadEngine VerifyError 修复；ICU 课表 erg/zwo/mrc 转 FIT</td></tr>
+<tr><td>v9.2.3</td><td>2026-10-07</td><td>健康同步诊断日志提升可见</td></tr>
+<tr><td>v9.2.2</td><td>2026-10-05</td><td>时区修正页（11 个来源 × 当天/历史 ±8h）；FIT/GPX 时间戳修正</td></tr>
+<tr><td>v9.2.0</td><td>2026-10-02</td><td>健康任务级弹窗 UI；时差诊断日志；修复启动闪退 VerifyError</td></tr>
+<tr><td>v9.1.9</td><td>2026-09-28</td><td>健康数据同步 wellness 字段</td></tr>
+<tr><td>v8.8.3</td><td>2026-10-10</td><td>修复记录中心返回跳转 bug</td></tr>
+<tr><td>v8.8.2</td><td>2026-10-10</td><td>任务级佳明伪装配置；记录卡片 UI 优化</td></tr>
+<tr><td>v8.8.1</td><td>2026-10-09</td><td>ICU 课表自动推送 iGP/百锐腾</td></tr>
+<tr><td>v8.8.0</td><td>2026-10-08</td><td>iGP 国际版登录；百锐腾从实验室移到登录页</td></tr>
+<tr><td>v8.7.8</td><td>2026-09-21</td><td>FIT 设备伪装 Edge 830/FR945；任务级健康天数；iGP 注销清 cookie；底部导航修复</td></tr>
+<tr><td>v8.5.8</td><td>2026-08</td><td>FIT 伪装；iGP 注销修复；底部导航 onResume 检查</td></tr>
+<tr><td>v8.5.4</td><td>2026-08</td><td>Fragment 重复 add 闪退修复；Keep 步频写入 GPX</td></tr>
+<tr><td>v8.5.3</td><td>2026-08</td><td>Keep 逐点心率写入标准 GPX TrackPointExtension</td></tr>
+<tr><td>v8.5.1</td><td>2026-08</td><td>Keep 分页翻 5 页；日志 200ms 批量刷新</td></tr>
+<tr><td>v8.3.4</td><td>2026-07</td><td>佳明致命错误第一通道即停 + 弹窗日志窗口</td></tr>
+<tr><td>v8.3.1</td><td>2026-07</td><td>实验室列表 ScrollView</td></tr>
+<tr><td>v8.1.3</td><td>2026-06</td><td>贴纸颜色还原；Keep 轨迹为空；页面销毁防护</td></tr>
+<tr><td>v8.1.2</td><td>2026-06</td><td>贴纸导出同源截帧 100% 一致</td></tr>
+<tr><td>v8.0.9</td><td>2026-05</td><td>网页登录白屏修复；贴纸黑框修复</td></tr>
+<tr><td>v8.0.7</td><td>2026-05</td><td>轨迹合并时长/距离异常修复</td></tr>
+<tr><td>v8.0.2/3</td><td>2026-05</td><td>透明贴纸背景/数据显示修复</td></tr>
+<tr><td>v8.0.1</td><td>2026-05</td><td>轨迹合并 + 透明贴纸上线</td></tr>
+<tr><td>v7.9.7</td><td>2026-04</td><td>轨迹合并原型</td></tr>
+<tr><td>v7.9.6</td><td>2026-04</td><td>Komoot / Suunto 双向同步</td></tr>
+<tr><td>v7.9.5</td><td>2026-04</td><td>咕咚 / Zepp 下载</td></tr>
+<tr><td>v7.9.4</td><td>2026-04</td><td>Outbase/iGP 上传节流；佳明中国 412 FIT header 补全</td></tr>
+<tr><td>v7.9.3</td><td>2026-04</td><td>Keep 统一转标准 GPX/FIT；运动类型自动识别</td></tr>
+<tr><td>v7.9.1</td><td>2026-03</td><td>佳明多通道轮换</td></tr>
+<tr><td>v7.9.0</td><td>2026-03</td><td>佳明中国 DI Token 直连 connectapi</td></tr>
+<tr><td>v7.7.7</td><td>2026-02</td><td>平台卡片品牌色小圆点</td></tr>
+<tr><td>v7.7.6</td><td>2026-02</td><td>检查更新自动/手动</td></tr>
+<tr><td>v7.6.5</td><td>2026-01</td><td>黑鸟导出标准 FIT</td></tr>
+<tr><td>v7.6.4</td><td>2026-01</td><td>高驰循环翻页拉全部活动</td></tr>
+<tr><td>v7.6.0</td><td>2026-01</td><td>iGP 登录态真实校验；Wahoo 令牌复用；OkHttp 强制 HTTP/1.1</td></tr>
+<tr><td>v7.5.9</td><td>2025-12</td><td>重复文件归跳过；迈金登录态自动刷新</td></tr>
+<tr><td>v7.5.8</td><td>2025-12</td><td>WorkManager 前台同步类型修复</td></tr>
+<tr><td>v7.5.5~7</td><td>2025-12</td><td>WorkManager 后台同步上线</td></tr>
+<tr><td>v1.0~v7.5</td><td>2025 及更早</td><td>初代版本：iGP/行者/迈金/黑鸟基础互传</td></tr>
+</table>
+
+<!-- ==================== 第十章 小白手把手 ==================== -->
+<h1>第十章　小白第一次同步：手把手 15 步</h1>
+
+<p>如果你是第一次用这个软件，这一章按步骤照做就行。不需要理解原理，跟着点。</p>
+
+<h2>10.1 准备工作</h2>
+<ol>
+  <li><b>下载 APK</b>：从 GitHub Releases 或抖音群拿到最新 v9.5.5 APK，传到手机。</li>
+  <li><b>安装</b>：点 APK 文件，若提示"禁止安装未知来源"，按提示去设置打开"允许此来源安装"，返回继续安装。</li>
+  <li><b>打开 App</b>：看到浅蓝开屏，1 秒后弹出免责声明，点"同意并继续"。</li>
+  <li><b>授权</b>：弹存储权限、通知权限，全部点"允许"。后台同步需要通知权限。</li>
+</ol>
+
+<h2>10.2 第一次登录（以 iGPSPORT → Outbase 为例）</h2>
+<ol start="5">
+  <li>底部 Tab 停在<b>"登录"</b>页。</li>
+  <li>找到 <b>iGPSPORT 国内</b>卡片，点一下。弹出 WebView 登录页。</li>
+  <li>在 WebView 里输入你 iGPSPORT 码表绑定的手机号和密码，登录。登录成功后会自动跳回 App，卡片变成"已登录"。</li>
+  <li>再点 <b>Outbase</b> 卡片，输入手机号验证码登录。</li>
+  <li>（可选）如果你还想用佳明、高驰等平台，同样点卡片登录。</li>
+</ol>
+
+<h2>10.3 配置同步方向</h2>
+<ol start="10">
+  <li>底部 Tab 切到<b>"同步设置"</b>。</li>
+  <li>左侧"数据来源"选 <b>iGPSPORT</b>（单选）。</li>
+  <li>右侧"同步目标"勾选 <b>Outbase</b>（可多选）。</li>
+  <li>同步数量拉到 <b>5</b>（先试 5 条，别一上来 50 条）；跳过数量 <b>0</b>。</li>
+</ol>
+
+<h2>10.4 跑第一次同步</h2>
+<ol start="14">
+  <li>底部 Tab 切到<b>"同步"</b>，点<b>"测试下载"</b>。等 10 秒，日志区应该显示"✅ 下载成功，文件保存在 Download/鸡翅幸哲迈进OB/iGPSPORT/"。如果失败，看错误信息，回登录页重登。</li>
+  <li>测试下载 OK 后，点<b>"开始同步"</b>。等几分钟，日志会滚动显示每条活动的下载→上传。完成后统计卡片显示"成功 5、跳过 0、失败 0"。</li>
+</ol>
+
+<div class="tip">
+<b>💡 第一次成功后：</b>回同步设置页，把同步数量拉到 20~50，打开<b>后台自动同步</b>。以后每次骑完车，打开 iGPSPORT 等码表同步完，本软件会自动把新记录传到 Outbase，不用再手动点。
+</div>
+
+<h2>10.5 常见第一次踩坑</h2>
+<table>
+<tr><th>现象</th><th>原因</th><th>解决</th></tr>
+<tr><td>登录 iGPSPORT 后卡片还是"未登录"</td><td>WebView 没识别到 token</td><td>退出 WebView 重进；v9.5.5 已修复国际区，国内版一般不会</td></tr>
+<tr><td>测试下载报 403</td><td>登录态过期</td><td>点 iGPSPORT 卡片 → 注销 → 重新登录</td></tr>
+<tr><td>上传 Outbase 失败</td><td>Outbase 没登录或验证码过期</td><td>重新登录 Outbase</td></tr>
+<tr><td>同步数量设 50 但只传了 3 条</td><td>剩下的已在同步记忆里（之前传过）</td><td>正常现象；想重传点"清记忆"</td></tr>
+<tr><td>后台同步没跑</td><td>国产 ROM 杀后台</td><td>设置 → 应用 → 本软件 → 电池 → 不限制；允许自启动</td></tr>
+</table>
+
+<!-- ==================== 第十一章 错误码对照表 ==================== -->
+<h1>第十一章　错误码与日志怎么读</h1>
+
+<h2>11.1 常见 HTTP 错误码对照表</h2>
+<table>
+<tr><th>错误码</th><th>含义</th><th>本软件场景</th><th>怎么处理</th></tr>
+<tr><td>401 Unauthorized</td><td>未认证</td><td>token 过期、密码错误</td><td>重新登录该平台</td></tr>
+<tr><td>403 Forbidden</td><td>无权限</td><td>iGP 日通行证失效；佳明 CSRF token 过期；Zwift 试用会员无 FIT 权限</td><td>重新登录；v9.5.1 佳明自动刷新 CSRF 重试</td></tr>
+<tr><td>404 Not Found</td><td>接口不存在</td><td>平台改了 API 路径；活动 ID 错误</td><td>升级到最新版；反馈开发者</td></tr>
+<tr><td>409 Conflict</td><td>冲突/已存在</td><td>健康数据重复上传</td><td>自动识别为"跳过"，不是错误</td></tr>
+<tr><td>412 Precondition Failed</td><td>前置条件失败</td><td>佳明 FIT 文件格式不对</td><td>v9.4.1 已自动伪装修复</td></tr>
+<tr><td>419</td><td>健康设备未绑定</td><td>佳明健康同步目标账号没绑手表</td><td>去目标账号绑手表/手环</td></tr>
+<tr><td>429 Too Many Requests</td><td>限流</td><td>佳明风控；iGP 上传太频繁</td><td>等 15 分钟~24 小时；勿反复尝试</td></tr>
+<tr><td>500 / 502 / 503</td><td>服务器错误</td><td>平台侧故障</td><td>等几小时重试；看平台官方状态页</td></tr>
+</table>
+
+<h2>11.2 本软件自定义错误码</h2>
+<table>
+<tr><th>错误</th><th>平台</th><th>含义</th><th>处理</th></tr>
+<tr><td>9006</td><td>行者</td><td>活动已存在</td><td>v7.5.9 起自动记为"跳过"</td></tr>
+<tr><td>422</td><td>Wahoo</td><td>重复文件</td><td>同上</td></tr>
+<tr><td>invalid block type</td><td>Keep</td><td>gzip 解压失败</td><td>v7.9.3 已统一转标准 GPX</td></tr>
+<tr><td>INVALID_USERNAME_PASSWORD</td><td>佳明中国</td><td>密码错误</td><td>检查密码；勿反复试触发 429</td></tr>
+<tr><td>SSLPeerUnverifiedException</td><td>Wahoo</td><td>证书域名不匹配</td><td>走 OAuth2 正规通道</td></tr>
+</table>
+
+<h2>11.3 日志怎么看</h2>
+<p>同步页下半部分是运行日志。每一行格式通常是：</p>
+<div class="flow">[时间] [平台] [动作] 详细信息
+例：
+[11:08:23] [iGPSPORT] 开始拉取活动列表，数量=50
+[11:08:25] [iGPSPORT] 拉到 50 条活动
+[11:08:25] [SyncMemory] 跳过 47 条已同步
+[11:08:26] [iGPSPORT] 下载活动 12345...
+[11:08:28] [iGPSPORT] 保存到 Download/鸡翅幸哲迈进OB/iGPSPORT/12345.fit
+[11:08:28] [迈金坐标转换] 引擎就绪，仅对迈金文件生效
+[11:08:29] [Outbase] 上传 12345.fit...
+[11:08:31] [Outbase] ✅ 上传成功
+[11:08:31] [SyncMemory] 记录 iGPSPORT:12345 → Outbase</div>
+
+<p>关键日志关键词：</p>
+<ul>
+  <li><b>✅</b>：成功</li>
+  <li><b>⏭️ 跳过</b>：已同步记忆或重复</li>
+  <li><b>❌ 失败</b>：看后面的 HTTP 错误码</li>
+  <li><b>登录态失效</b>：需要重新登录该平台</li>
+  <li><b>迈金坐标转换引擎已就绪</b>：启动正常</li>
+</ul>
+
+<!-- ==================== 第十二章 平台接入深度 ==================== -->
+<h1>第十二章　各平台接入深度解剖</h1>
+
+<p>本章把每个平台的登录 URL、API 路径、技术要点写透，方便高级用户排查问题。</p>
+
+<h2>12.1 iGPSPORT（国内 / 国际）</h2>
+<ul>
+  <li><b>WebView 登录 URL</b>：国内 <code>https://www.igpsport.com/login</code>；国际 <code>https://us.igpsport.com/login</code>。</li>
+  <li><b>Token 存储</b>：localStorage，key 为 <code>IGS--TOKEN</code> 或 <code>persist:app-store</code>。v9.5.5 重写 <code>detectIgpsport()</code>，从只读 persist 改为多来源（IGS--TOKEN / persist / URL ?token= / 全 localStorage / cookie）。</li>
+  <li><b>活动列表</b>：<code>/activity/list</code> JSON。</li>
+  <li><b>上传</b>：<code>/activity/upload</code> OSS 直传。异步解析，大文件可能 20 万 ms 才算成功，别当超时。</li>
+  <li><b>v9.2.4 修复</b>：原代码 4 处 URL 硬编码国内端点，国际版 token 调国内版返回 200 但数据静默丢弃。现在按 token 来源区分。</li>
+</ul>
+
+<h2>12.2 佳明中国 / 国际</h2>
+<ul>
+  <li><b>v9.5.0 起</b>：WebView 网页登录（支持 MFA）。</li>
+  <li><b>登录流程</b>：mobile SSO（GCM_IOS_DARK 等多通道）→ OAuth1 preauthorized → OAuth2 exchange → DI Bearer token。</li>
+  <li><b>API 端点</b>：国际 <code>connectapi.garmin.com</code>；中国 <code>connectapi.garmin.cn</code>。</li>
+  <li><b>v9.5.1 修复</b>：403 自动刷新 CSRF token 重发；协程 NoSuchMethodError/VerifyError；FIT 裸文件兜底；FIT 消息头标志位颠倒。</li>
+  <li><b>风控</b>：错误密码/MFA/异常请求统一返回 429，冷却数小时到一天。</li>
+</ul>
+
+<h2>12.3 高驰中国 / 国际</h2>
+<ul>
+  <li><b>登录</b>：WebView，抓 <code>CPL-coros-token</code>。</li>
+  <li><b>上传</b>：中国区 OSS + <code>fit/import</code>；国际区 AWS S3。</li>
+  <li><b>v7.6.4 修复</b>：循环翻页，不再只限 200 条。</li>
+</ul>
+
+<h2>12.4 迈金 / 顽鹿</h2>
+<ul>
+  <li><b>登录</b>：WebView，顽鹿 OTM API。</li>
+  <li><b>坐标</b>：GCJ-02 火星坐标。v8.5.9 起三开关：七牛 durl 默认关、fit_content 默认开、文件夹本地转换。</li>
+  <li><b>刷新</b>：v7.5.9 起 refresh_token 自动续期。</li>
+</ul>
+
+<h2>12.5 Keep</h2>
+<ul>
+  <li><b>登录</b>：POST <code>https://api.gotokeep.com/v1.1/users/login</code>，form 手机号+密码。</li>
+  <li><b>列表</b>：GET <code>/pd/v3/stats/detail</code>，翻 5 页/200 条。</li>
+  <li><b>详情</b>：GET <code>/pd/v3/runninglog/{id}</code>。</li>
+  <li><b>轨迹</b>：zlib+base64 压缩 JSON（H4sI...），geoPoints 用 AES-128-CBC（key=<code>56fe59;82g:d873c</code>，IV=<code>2346892432920300</code>）。</li>
+  <li><b>运动类型</b>：running / cycling / hiking。</li>
+  <li><b>上传</b>：半自动——Keep App 内手动导入（运动→数据同步→运动数据文件导入）。</li>
+</ul>
+
+<h2>12.6 Wahoo</h2>
+<ul>
+  <li><b>登录</b>：OAuth2，自动模拟 SAML，识别中文"授权"按钮。PKCE code_verifier/verifier-challenge 长度 43。</li>
+  <li><b>刷新</b>：v7.6.0 起自动复用/刷新，刷新后撤销旧令牌。</li>
+  <li><b>SSL</b>：api.wahooligan.com 证书 DN 不含该域名，禁止全局关证书校验，按域名白名单。</li>
+</ul>
+
+<h2>12.7 百锐腾 Bryton</h2>
+<ul>
+  <li><b>v9.5.5</b>：改为仅下载源，国内/国际站可切换。</li>
+  <li><b>协议</b>：DDP（Meteor 三件套：X-User-Id / X-Auth-Token / x-api-key）。</li>
+  <li><b>国内站</b>：<code>brytonsports.cn</code>。</li>
+  <li><b>国际站</b>：<code>active.brytonsport.com</code>。</li>
+  <li><b>上传</b>：仅支持课表 workout，活动上传开发中。</li>
+</ul>
+
+<!-- ==================== 第十三章 FAQ 补充 ==================== -->
+<h1>第十三章　FAQ 补充（开发对话全过程问题）</h1>
+
+<p>本章补充从 v7.5 到 v9.5.5 开发对话中，用户和开发者反复讨论过的问题。每条标注状态。</p>
+
+<h2>13.1 登录与凭证</h2>
+<div class="qa"><p class="q">Q64：为什么不直接保存我的密码？ <span class="tag tag-done">设计如此</span></p>
+<p class="a">本软件只在登录时拿一次 token/cookie，不保存密码。token 过期自动刷新；注销时全部清除。这样即使手机丢了，别人也拿不到你的密码。</p></div>
+
+<div class="qa"><p class="q">Q65：为什么佳明登录这么慢？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">v9.5.0 起 WebView 登录要走完 mobile SSO → OAuth1 → OAuth2 → DI token 四步，网络好时 5~10 秒，网络差时 20 秒。请耐心等待，不要重复点。</p></div>
+
+<div class="qa"><p class="q">Q66：Zepp 登录一次失败就再也登不上？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">Zepp 纯 API 三步登录机会有限（防止暴力破解）。请一次性输对邮箱和密码；如果失败了，等 24 小时再试。</p></div>
+
+<h2>13.2 同步行为</h2>
+<div class="qa"><p class="q">Q67：为什么一条活动传了好几次？ <span class="tag tag-done">已解决</span></p>
+<p class="a">v7.5.9 之前，重复文件错误（行者 9006、Wahoo 422）算失败，下轮会重试。v7.5.9 起归为"跳过"并写记忆，不再重复。</p></div>
+
+<div class="qa"><p class="q">Q68：同步数量设 50 但只跑了 3 条？ <span class="tag tag-done">正常行为</span></p>
+<p class="a">剩下 47 条已在同步记忆里。想重传点"清记忆"。</p></div>
+
+<div class="qa"><p class="q">Q69：为什么迈金→iGP 时间差 8 小时？ <span class="tag tag-done">已解决 v9.2.2</span></p>
+<p class="a">迈金/FIT 时间戳是 UTC，iGP 国内版按北京时间解析，差 8 小时。v9.2.2 起在"时区修正"页按来源平台设 -8h。</p></div>
+
+<div class="qa"><p class="q">Q70：为什么 Wahoo→iGP 上传失败？ <span class="tag tag-done">已解决 v9.2.6</span></p>
+<p class="a">Wahoo FIT 含 iGP 不认识的字段。v9.2.6 做了 FitSanitizer：骑行直传、仅跑步净化。</p></div>
+
+<h2>13.3 轨迹合并与贴纸</h2>
+<div class="qa"><p class="q">Q71：贴纸导出和预览不一致？ <span class="tag tag-done">已解决 v8.1.2</span></p>
+<p class="a">v8.1.2 起导出直接截预览当前帧放大，100% 一致。</p></div>
+
+<div class="qa"><p class="q">Q72：贴纸导出颜色偏灰？ <span class="tag tag-done">已解决 v8.1.3</span></p>
+<p class="a">光晕柔化 + 颜色还原。</p></div>
+
+<div class="qa"><p class="q">Q73：轨迹被截断？ <span class="tag tag-done">已解决</span></p>
+<p class="a">曾因 Kotlin/HTML 双口径归一化导致。现在归一化只在 HTML 端单一口径完成，预览与导出同源。</p></div>
+
+<div class="qa"><p class="q">Q74：3D 是什么意思？ <span class="tag tag-done">设计如此</span></p>
+<p class="a">3D = 轨迹立体化（海拔 Z 轴起伏 + Yaw/Pitch 旋转 + 海拔着色），不是海拔剖面立体化。借鉴 Outbase/百度 SDK 渲染理念，纯本地 Canvas。</p></div>
+
+<h2>13.4 健康数据同步</h2>
+<div class="qa"><p class="q">Q75：健康同步为什么只 7 天？ <span class="tag tag-done">已解决 v8.7.8</span></p>
+<p class="a">v8.7.8 起任务级可输入天数（默认 7，上限 365），首次全量后增量。</p></div>
+
+<div class="qa"><p class="q">Q76：419 错误？ <span class="tag tag-done">已解决 v8.7.8</span></p>
+<p class="a">目标佳明账号未绑健康设备。绑手表/手环并打开 Garmin Connect。现在只跳过当天不中断。</p></div>
+
+<h2>13.5 临时码表</h2>
+<div class="qa"><p class="q">Q77：临时码表和正式码表有什么区别？ <span class="tag tag-done">说明</span></p>
+<p class="a">v9.4.0 起临时码表并入迈进OB，不用再装第二个 App。功能：GPS+气压计+BLE 心率/功率/踏频，FIT/GPX 导出，结束后一键上传。</p></div>
+
+<div class="qa"><p class="q">Q78：临时码表闪退？ <span class="tag tag-done">已解决 v9.5.2</span></p>
+<p class="a">TrialLicense 体验码门禁修复。</p></div>
+
+<h2>13.6 版本与更新</h2>
+<div class="qa"><p class="q">Q79：build.gradle 里 versionCode 显示 95300/9.5.3 但 README 是 v9.5.5？ <span class="tag tag-done">说明</span></p>
+<p class="a">build.gradle 里残留 95300/9.5.3 未对齐，以 README 徽章和 Release APK 为准。实际 v9.5.5。</p></div>
+
+<div class="qa"><p class="q">Q80：为什么安装 devDebug 版装不上？ <span class="tag tag-done">设计如此</span></p>
+<p class="a">devDebug 签名与已装 devRelease 冲突。开发体验版必须打 devRelease（jichi-ob-dev.keystore，密码 jichiobdev2026，alias jichiobdev）。</p></div>
+
+<!-- ==================== 第十四章 隐私与安全 ==================== -->
+<h1>第十四章　隐私与数据安全</h1>
+
+<h2>14.1 本软件收集什么数据</h2>
+<ul>
+  <li>各平台登录 token/cookie：存在手机本地 SharedPreferences，不上传任何服务器。</li>
+  <li>下载的 FIT/GPX 文件：存在 <code>Download/鸡翅幸哲迈进OB/</code>，不上传。</li>
+  <li>同步记忆：本地记录哪些活动传过，不上传。</li>
+  <li>本软件<b>没有任何后端服务器</b>，所有同步都在你手机和各平台之间直连。</li>
+</ul>
+
+<h2>14.2 你需要注意的</h2>
+<ul>
+  <li>不要把本软件给别人登录你的账号，token 存在他手机里。</li>
+  <li>卸载本软件会清除所有本地 token，但各平台账号侧的授权不会自动撤销——建议去各平台"已授权应用"里撤销。</li>
+  <li>本软件是开源项目，代码可审计：<code>github.com/Anathleticbicyclist/sports-data-sync-multiplatform</code>。</li>
+</ul>
+
+<h2>14.3 免责声明</h2>
+<p>本软件为个人开源项目，仅供学习研究使用。使用者需自行承担使用风险。因使用本软件导致的账号封禁、数据丢失、平台限制等后果，开发者不承担责任。各平台名称、商标归其各自所有者，本软件与各平台无官方合作关系。</p>
+
+<!-- ==================== 第十五章 开发者自述 ==================== -->
+<h1>第十五章　开发者自述</h1>
+
+<p>这个项目最初是为了解决一个非常个人的痛点：我自己骑车用 iGPSPORT 码表，但又想让数据出现在 Outbase、Strava、佳明上好几个平台。手动导出再上传太累，于是写了个脚本。</p>
+
+<p>后来朋友也想用，就加了 UI；朋友的朋友也想用，就加了更多平台。从 v1.0 到 v9.5.5，两年多时间，从只支持 iGP/行者/迈金/黑鸟 4 个平台，长到现在 20+ 平台互传。中间踩过的坑——佳明 429 风控、迈金坐标偏移、Keep AES 解密、Wahoo SSL 证书、FIT 412、8 小时时差、协程 VerifyError——都记录在这本手册的 FAQ 里。</p>
+
+<p>这个软件完全免费，不靠卖账号盈利。赞赏是骑友自愿给的，全部用于覆盖服务器（其实没什么服务器）和开发时间。如果你觉得好用，最简单的支持方式是：告诉身边骑车的朋友、在 GitHub 点个 star、或者在抖音群里反馈 bug。</p>
+
+<p>感谢每一个陪我从 v1.0 走到 v9.5.5 的骑友。这本手册里每一个字，都是真实踩过的坑。</p>
+
+<!-- ==================== 第十六章 各平台常见报错速查 ==================== -->
+<h1>第十六章　各平台常见报错速查手册</h1>
+
+<p>本章按平台罗列用户最常遇到的报错信息、根因、解决方法。遇到问题先查这里。</p>
+
+<h2>16.1 iGPSPORT 国内/国际</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>登录成功但列表 403</td><td>日通行证过期</td><td>注销重登；v7.6.0 起登录态真实校验</td></tr>
+<tr><td>WebView 白屏</td><td>旧 WebView 内核</td><td>用鸿蒙适配版 com.jichi.ob.hw</td></tr>
+<tr><td>上传大文件超时</td><td>iGP 异步解析</td><td>20 万 ms 内都算成功，勿杀进程</td></tr>
+<tr><td>国际版上传假成功</td><td>4 处 URL 硬编码国内端点</td><td>v9.2.4 已修复，升级</td></tr>
+<tr><td>国际版登录识别不到 token</td><td>只读 persist:app-store</td><td>v9.5.5 多来源提取，升级</td></tr>
+<tr><td>上传后时间差 8 小时</td><td>UTC vs 北京时间</td><td>时区修正页设 -8h（v9.2.2）</td></tr>
+<tr><td>注销后仍自动登录旧账号</td><td>cookie/localStorage 残留</td><td>v8.5.8 注销时无条件清除</td></tr>
+</table>
+
+<h2>16.2 佳明中国/国际</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>429 Too Many Requests</td><td>风控/错误密码/MFA</td><td>等 15 分钟~24 小时；勿反复试</td></tr>
+<tr><td>密码错误弹窗</td><td>密码真错了</td><td>去 connect.garmin.cn 网页验证密码</td></tr>
+<tr><td>两步验证提示</td><td>账号开了 MFA</td><td>v9.5.0 起 WebView 内完成 MFA；旧版需先去官网关</td></tr>
+<tr><td>登录成功但拉不到活动</td><td>DI 超时 + 降级 fetch 未通</td><td>v9.5.1 修复协程崩溃；403 自动刷新 CSRF</td></tr>
+<tr><td>上传 412</td><td>FIT header 不合法</td><td>v9.4.1 自动伪装修复</td></tr>
+<tr><td>训练负荷不计算</td><td>第三方设备字段</td><td>v8.5.8 起伪装 Edge 830/FR945</td></tr>
+<tr><td>健康同步 419</td><td>目标账号未绑健康设备</td><td>去目标账号绑手表/手环</td></tr>
+<tr><td>健康同步 409</td><td>已存在</td><td>自动识别为重复，不是错误</td></tr>
+<tr><td>Required SETTINGS preface not received</td><td>OkHttp HTTP/2 握手不稳</td><td>v7.6.0 强制 HTTP/1.1 + 重试</td></tr>
+</table>
+
+<h2>16.3 迈金/顽鹿</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>获取列表失败</td><td>refresh_token 过期</td><td>v7.5.9 自动刷新；失败则重登</td></tr>
+<tr><td>坐标偏移 450 米</td><td>GCJ-02 火星坐标</td><td>开启 fit_content 坐标转换</td></tr>
+<tr><td>上传后海拔不对</td><td>码表 GPS 海拔 vs 气压海拔</td><td>平台自身问题</td></tr>
+</table>
+
+<h2>16.4 行者/黑鸟</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>行者上传其他平台失败</td><td>FIT 非标准写法</td><td>目标选 Outbase；或走"黑鸟→行者→目标"清洗法</td></tr>
+<tr><td>黑鸟上传失败</td><td>非标准 FIT</td><td>v7.6.5 起标准 FIT</td></tr>
+<tr><td>黑鸟功率偏小</td><td>平台 ×0.78 校准</td><td>平台自身问题</td></tr>
+<tr><td>行者重复记录不跳过</td><td>ID 匹配规则</td><td>v9.2.9 前修复</td></tr>
+</table>
+
+<h2>16.5 Keep</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>invalid block type</td><td>gzip 解压失败</td><td>v7.9.3 统一转标准 GPX</td></tr>
+<tr><td>跑步被算成骑行</td><td>运动类型识别错</td><td>v7.9.3 自动识别三类</td></tr>
+<tr><td>只拉旧记录</td><td>分页不够</td><td>v8.5.1 翻 5 页/200 条</td></tr>
+<tr><td>轨迹为空</td><td>字段兼容/时间换算</td><td>v8.1.3 修复</td></tr>
+<tr><td>心率/步频曲线空</td><td>未写入 TrackPointExtension</td><td>v8.5.3/v8.5.4 修复</td></tr>
+<tr><td>登录失败</td><td>手机号密码错</td><td>Keep 登录机会有限，一次输对</td></tr>
+</table>
+
+<h2>16.6 Wahoo</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>令牌超限</td><td>累积未撤销</td><td>v7.6.0 自动复用/刷新；Wahoo App → 设置 → 已授权应用 → 撤销重登</td></tr>
+<tr><td>SSLPeerUnverifiedException</td><td>证书域名不匹配</td><td>走 OAuth2 正规通道</td></tr>
+<tr><td>上传 iGP 失败</td><td>FIT 含不认识字段</td><td>v9.2.6 FitSanitizer</td></tr>
+</table>
+
+<h2>16.7 高驰中国/国际</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>只拉 200 条</td><td>未循环翻页</td><td>v7.6.4 循环翻页</td></tr>
+<tr><td>国际区上传失败</td><td>AWS S3 路径</td><td>升级到最新版</td></tr>
+</table>
+
+<h2>16.8 百锐腾</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>活动上传失败</td><td>v9.5.5 起改为仅下载</td><td>仅支持课表上传；活动上传开发中</td></tr>
+<tr><td>国内/国际站切换闪退</td><td>Fragment 状态错乱</td><td>v9.5.5 修复</td></tr>
+</table>
+
+<h2>16.9 Zwift / MyWhoosh</h2>
+<table>
+<tr><th>报错/现象</th><th>根因</th><th>解决</th></tr>
+<tr><td>Zwift 下载 403</td><td>试用会员无 FIT 权限</td><td>升级正式会员</td></tr>
+<tr><td>MyWhoosh 上传失败</td><td>官方未开放上传 API</td><td>仅作下载源</td></tr>
+</table>
+
+<!-- ==================== 第十七章 桥接扩展 ==================== -->
+<h1>第十七章　桥接扩展：组合方案速查</h1>
+
+<h2>17.1 你的目标是 Strava</h2>
+<table>
+<tr><th>你的数据来源</th><th>推荐桥接路径</th><th>备选</th></tr>
+<tr><td>iGPSPORT 码表</td><td>iGP → Strava 官方绑定（iGP App → 设置 → 第三方分享）</td><td>iGP → 佳明 → Strava</td></tr>
+<tr><td>佳明手表</td><td>佳明 Connect → Account Linking → Strava</td><td>实验室直传</td></tr>
+<tr><td>Wahoo 骑行台</td><td>Wahoo App → Connections → Strava</td><td>Wahoo → 佳明 → Strava</td></tr>
+<tr><td>华为/小米/OPPO/vivo 健康</td><td>健康 App → Keep → 本软件 → 佳明 → Strava</td><td>健康 App → Keep → Outbase（Outbase 也可绑 Strava）</td></tr>
+<tr><td>高驰手表</td><td>本软件 → 佳明 → Strava</td><td>高驰官方是否支持 Strava 绑定（看高驰 App）</td></tr>
+<tr><td>Keep App 跑步</td><td>本软件 → 佳明 → Strava</td><td>本软件 → Outbase → Strava</td></tr>
+<tr><td>Zwift 骑行台</td><td>Zwift 官方绑 Strava（Zwift App → Settings → Connections）</td><td>本软件从 Zwift 下载 → 佳明 → Strava</td></tr>
+</table>
+
+<h2>17.2 你的目标是 Outbase</h2>
+<p>Outbase 是聚合平台，几乎所有能下载的平台都能传到 Outbase。直接：来源选任意 → 目标勾选 Outbase。</p>
+
+<h2>17.3 你的目标是 Intervals.icu</h2>
+<p>ICU 是训练计划平台。来源选任意 → 目标勾选 Intervals.icu（需先在 ICU 拿 API Key）。反过来，ICU 的课表可推送到 iGP/百锐腾（v8.8.1）。</p>
+
+<h2>17.4 国内区 ↔ 国际区互通</h2>
+<table>
+<tr><th>你想做的</th><th>操作</th></tr>
+<tr><td>佳明中国数据 → 佳明国际</td><td>来源佳明中国，目标佳明国际</td></tr>
+<tr><td>佳明国际数据 → 佳明中国</td><td>来源佳明国际，目标佳明中国</td></tr>
+<tr><td>高驰中国 → 高驰国际</td><td>来源 COROS CN，目标 COROS INT</td></tr>
+<tr><td>iGPSPORT 国内 → 国际</td><td>两个账号分别登录；任务 A 国内→Outbase，任务 B 国际←Outbase</td></tr>
+</table>
+
+<!-- ==================== 第十八章 技术架构 ==================== -->
+<h1>第十八章　技术架构（给好奇的你）</h1>
+
+<h2>18.1 整体架构</h2>
+<div class="flow">┌─────────────────────────────────────┐
+│  UI 层（Fragments / Activities）      │
+│  LoginFragment / SyncSettingsFragment │
+│  SyncFragment / AboutFragment        │
+│  LoginWebActivity / LabLoginFragment │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  业务层（Api 包）                    │
+│  IgpsportApi / GarminApi / KeepApi   │
+│  CorosApi / WahooApi / XingzheApi    │
+│  MageneApi / BlackbirdApi / ...      │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  引擎层                              │
+│  UploadEngine（下载→转换→上传）      │
+│  WebBridge（迈金坐标 JS）            │
+│  FitSanitizer / FitTimeShift         │
+│  GpxTimeFixer / FitParser           │
+│  SyncMemory（SharedPreferences）     │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│  系统层                              │
+│  OkHttp / Coroutines / WorkManager   │
+│  Garmin FIT SDK / jpx (GPX)         │
+│  WebView（登录 + JS 坐标转换）       │
+└─────────────────────────────────────┘</div>
+
+<h2>18.2 关键类</h2>
+<table>
+<tr><th>类</th><th>职责</th></tr>
+<tr><td><code>DataSource</code></td><td>26 个平台枚举（IGPSPORT/XINGZHE/MAGENE/GARMIN_CN/GARMIN_COM/COROS_*/WAHOO/KEEP/...）</td></tr>
+<tr><td><code>UploadSupport</code></td><td>每个平台 available/note 标注</td></tr>
+<tr><td><code>PrefsManager</code></td><td>SharedPreferences 读写（来源/目标/数量/时区/深浅色/同步记忆）</td></tr>
+<tr><td><code>UploadEngine</code></td><td>核心同步引擎，下载→转换→上传→记忆</td></tr>
+<tr><td><code>WebBridge</code></td><td>隐藏 WebView 跑迈金坐标转换 JS</td></tr>
+<tr><td><code>FitTimeShift</code></td><td>FIT 时间戳 ±8h 修正（v9.2.2）</td></tr>
+<tr><td><code>GpxTimeFixer</code></td><td>GPX 时间修正</td></tr>
+<tr><td><code>FitSanitizer</code></td><td>Wahoo→iGP FIT 净化（v9.2.6）</td></tr>
+<tr><td><code>KeepApi</code></td><td>Keep 登录/列表/详情/AES 解密</td></tr>
+<tr><td><code>UpdateChecker</code></td><td>GitHub Release 检查更新</td></tr>
+<tr><td><code>TrialLicense</code></td><td>临时码表/贴纸体验码门禁</td></tr>
+</table>
+
+<h2>18.3 为什么用 WebView 登录</h2>
+<p>很多平台（iGPSPORT/行者/迈金/黑鸟/佳明/高驰）的登录页有滑块验证、人机验证、Cloudflare 挑战，纯 API 模拟很容易被封。用 WebView 让用户在真实网页里登录，登录成功后从 cookie/localStorage 里提取 token，既稳定又不违反平台 ToS（用户自己输密码）。</p>
+
+<h2>18.4 为什么 Keep 是纯 API</h2>
+<p>Keep 登录没有滑块验证，纯 form POST 就能拿到 token，不需要 WebView。轨迹解密逻辑（zlib+AES）从 running_page 开源项目移植。</p>
+
+<h2>18.5 为什么后台同步用 WorkManager</h2>
+<p>Android 原生 Service 在国产 ROM（小米/华为/OPPO/vivo）上经常被一键杀掉。WorkManager 是 Jetpack 组件，系统级调度，跨开机恢复，Doze 模式下仍执行，最稳定。</p>
+
+<!-- ==================== 第十九章 致谢扩展 ==================== -->
+<h1>第十九章　致谢（扩展版）</h1>
+
+<h2>19.1 开源项目再致谢</h2>
+<p>本软件直接或间接参考了以下开源项目，排名不分先后：</p>
+<ul>
+  <li><b>garth</b> — 佳明 connect 登录的 Python 参考实现，v9.5.0 WebView 重写时大量借鉴其 token 交换流程</li>
+  <li><b>magene-fit-strava-fix</b> — 迈金 FIT 坐标修正 JS，藏在 WebBridge 里跑</li>
+  <li><b>wahoolib</b> — Wahoo OAuth2 流程参考</li>
+  <li><b>running_page</b> — yihong0618 大神的运动页面项目，Keep/咕咚/Zepp 登录和轨迹解密密钥来自此</li>
+  <li><b>Mi-Fit-and-Zepp-workout-exporter</b> — Zepp 纯 API 登录参考</li>
+  <li><b>Kompy</b> — Komoot 内部 API</li>
+  <li><b>suunto-mcp</b> — Suunto Cloud API</li>
+  <li><b>OkHttp</b> — Square 出品，HTTP 客户端事实标准</li>
+  <li><b>Kotlin Coroutines</b> — JetBrains 协程</li>
+  <li><b>AndroidX / Material Design</b> — Google</li>
+  <li><b>Garmin FIT SDK</b> — Garmin 官方 FIT 协议库</li>
+  <li><b>jpx</b> — Java GPX 解析库</li>
+  <li><b>WorkManager</b> — Jetpack 后台任务</li>
+  <li><b>Jsoup</b> — Java HTML 解析</li>
+</ul>
+
+<h2>19.2 测试人员再致谢</h2>
+<p>从 v1.0 到 v9.5.5，每一个版本都经过真人真机测试。以下骑友的反馈直接导致了 bug 修复或新功能上线：</p>
+<ul>
+  <li><b>素甲粉</b> — 早期核心测试，佳明风控最早反馈者</li>
+  <li><b>青岛AUV阿哲</b> — iGPSPORT 国际区问题最早发现者</li>
+  <li><b>清茶</b> — 深色模式体验反馈</li>
+  <li><b>萧</b> — 高驰互传测试</li>
+  <li><b>洪斌大哥</b> — 百锐腾 DDP 协议测试</li>
+  <li><b>鸽子王腰果</b> — Wahoo 骑行台用户，令牌超限问题反馈</li>
+  <li><b>rockozhao</b> — 行者/黑鸟清洗法验证</li>
+  <li><b>胶州一哥大沽河河长赵铁柱</b> — 长距离骑行测试，时区问题最早反馈</li>
+  <li><b>海参</b> — Keep 桥接测试</li>
+  <li><b>兰兰大王</b> — 贴纸导出问题反馈</li>
+  <li><b>初夏飞雪bab</b> — 健康同步测试</li>
+  <li><b>心急吃不了热豆付</b> — 临时码表测试</li>
+  <li><b>青山依旧张指导</b> — 训练负荷不计算问题反馈</li>
+  <li><b>阿泽阿、泽、无名氏</b> — 持续反馈</li>
+  <li><b>我有一个朋友、N1d、ongoing33</b> — Zwift/MyWhoosh 测试</li>
+  <li><b>七诗君、赵烨龙</b> — 热力图测试</li>
+  <li><b>狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾</b> — 抖音群活跃反馈</li>
+</ul>
+
+<h2>19.3 捐赠用户</h2>
+<p>所有通过赞赏码自愿支持本项目的骑友。赞赏金额不公开、不点名，但每一笔都被记住。你们的支持让这个个人项目能持续迭代到 v9.5.5。</p>
+
+<h2>19.4 开发者俱乐部</h2>
+<p>本软件为个人开源项目，持续迭代中。GitHub: <code>github.com/Anathleticbicyclist/sports-data-sync-multiplatform</code>。欢迎 star、提 issue、提 PR。</p>
+
+<!-- ==================== 第二十章 术语表 ==================== -->
+<h1>第二十章　术语表（小白必看）</h1>
+
+<p>本手册和 App 里出现的所有专业名词，本章用大白话解释一遍。</p>
+
+<table>
+<tr><th>术语</th><th>大白话解释</th></tr>
+<tr><td>FIT</td><td>Garmin 定义的运动记录二进制文件格式，码表/手表最常用。含 GPS 轨迹、心率、功率、海拔等。</td></tr>
+<tr><td>GPX</td><td>XML 文本格式的轨迹文件，所有平台都支持。比 FIT 简单但字段少（比如不存功率）。</td></tr>
+<tr><td>TCX</td><td>Garmin 另一种 XML 格式，Polar 导出常用。</td></tr>
+<tr><td>GCJ-02（火星坐标）</td><td>中国测绘局强制加偏的坐标系统，国内 App（迈金/高德/腾讯）都用它。直接传到 Strava/Garmin 会偏移 400~500 米。</td></tr>
+<tr><td>WGS-84</td><td>GPS 卫星原始坐标，国际通用。Strava/Garmin/Komoot 用它。</td></tr>
+<tr><td>token / cookie</td><td>登录凭证。登录一次后，服务器给你一张"门禁卡"，之后请求带着它就不用再输密码。</td></tr>
+<tr><td>WebView</td><td>App 内嵌的浏览器。本软件用它打开 iGP/佳明等登录页，登录成功后从浏览器里偷 token。</td></tr>
+<tr><td>OAuth2</td><td>一种标准授权流程。你在第三方网页上点"Authorize"，App 拿到授权码再换 token。Wahoo/Strava/Suunto 用它。</td></tr>
+<tr><td>429 风控</td><td>服务器限流。佳明对错误密码/MFA/异常请求统一返回 429，冷却数小时到一天。</td></tr>
+<tr><td>DI Token</td><td>佳明 connectapi 的 Bearer Token。本软件用它直接调佳明 API，比 WebView 快。</td></tr>
+<tr><td>mobile SSO</td><td>佳明手机端登录流程，多通道轮换（GCM_IOS_DARK 等）。</td></tr>
+<tr><td>CSRF Token</td><td>佳明网页表单的防跨站伪造令牌。过期会 403，本软件自动刷新重试。</td></tr>
+<tr><td>OSS / S3</td><td>对象存储。高驰中国传阿里云 OSS，高驰国际传 AWS S3。</td></tr>
+<tr><td>DDP</td><td>Meteor 框架用的协议。百锐腾登录靠它（X-User-Id + X-Auth-Token + x-api-key 三件套）。</td></tr>
+<tr><td>同步记忆</td><td>本软件本地记录"哪些活动传过"的小本本，上限 10000 条。下次自动跳过。</td></tr>
+<tr><td>WorkManager</td><td>Android 官方后台任务调度库。本软件用它做 15 分钟~1 小时自动同步。</td></tr>
+<tr><td>WorkManager 前台通知</td><td>Android 14+ 要求后台同步必须显示通知，否则被杀。</td></tr>
+<tr><td>DevRelease / DevDebug</td><td>Android 构建类型。开发体验版必须打 devRelease（正式签名），devDebug 签名不同装不上。</td></tr>
+<tr><td>package / 包名</td><td>App 唯一标识。本软件开发版 com.jichi.ob.dev，正式版不同。两个包名可同时装。</td></tr>
+<tr><td>体验码</td><td>临时码表/贴纸等限时功能的激活码，防止被滥用。</td></tr>
+<tr><td>桥接</td><td>本软件不直接对接 Strava，而是通过佳明/Wahoo/iGP 这些"中转站"官方绑定 Strava，让数据自动过去。</td></tr>
+<tr><td>清洗法</td><td>黑鸟→行者→目标平台。行者会对 FIT 做标准化，解决黑鸟数据在严格解析平台不入库的问题。</td></tr>
+<tr><td>FIT 伪装</td><td>把第三方 FIT 文件里的设备字段改成 Edge 830/FR945，让佳明认作自家设备并算训练负荷。</td></tr>
+<tr><td>GPX TrackPointExtension</td><td>GPX 标准扩展字段，存逐点心率/步频。Keep 数据通过它保留心率曲线。</td></tr>
+<tr><td>AES-128-CBC</td><td>Keep 轨迹加密算法。密钥从 running_page 开源项目移植。</td></tr>
+</table>
+
+<!-- ==================== 第二十一章 开发历程 ==================== -->
+<h1>第二十一章　从 v1.0 到 v9.5.5：开发历程故事</h1>
+
+<h2>21.1 起源</h2>
+<p>v1.0 是 2025 年初为自己写的一个小脚本：每天骑完车，把 iGPSPORT 的 FIT 文件拉下来，传到 Outbase。手动太烦，就写了个 Android 小工具。那时候只有 4 个平台：iGP、行者、迈金、黑鸟。</p>
+
+<h2>21.2 第一波朋友测试（v7.x）</h2>
+<p>骑友们开始用，反馈"我也要传佳明""我也要传高驰"。一个平台一个平台加。v7.5~v7.9 是疯狂迭代期：</p>
+<ul>
+  <li>v7.5.5 引入 WorkManager 后台同步</li>
+  <li>v7.6.0 修复 iGP 登录态、Wahoo 令牌、OkHttp HTTP/2</li>
+  <li>v7.6.4 高驰循环翻页</li>
+  <li>v7.6.5 黑鸟标准 FIT</li>
+  <li>v7.9.0 佳明中国 DI Token 直连</li>
+  <li>v7.9.3 Keep 接入</li>
+  <li>v7.9.5 咕咚/Zepp</li>
+  <li>v7.9.6 Komoot/Suunto</li>
+</ul>
+
+<h2>21.3 轨迹合并与贴纸（v8.0）</h2>
+<p>v8.0.1 加了轨迹合并和透明贴纸。这个功能完全是额外福利，不在最初计划里。但骑友需要分享运动贴纸，就做了。中间踩了"双口径归一化导致轨迹截断"的坑，后来铁律改成"归一化只在 HTML 端单一口径完成"。</p>
+
+<h2>21.4 Keep 桥接与 Strava 桥接（v8.5）</h2>
+<p>v8.5.8 是一个里程碑：FIT 设备伪装（让佳明算训练负荷）、Keep 桥接教程、Strava 桥接两种方案。这一版开始，本软件不只是"传数据"，而是"帮你打通整个运动生态"。</p>
+
+<h2>21.5 健康同步与 ICU 课表（v8.7~v8.8）</h2>
+<p>v8.7.8 加了佳明中国↔国际健康数据同步（步数/睡眠/HRV/压力）。v8.8.1 加了 ICU 课表推送 iGP/百锐腾。v8.8.0 加了 iGP 国际版和百锐腾。</p>
+
+<h2>21.6 时区与 Wahoo 净化（v9.2）</h2>
+<p>v9.2.2 修复迈金→iGP 8 小时时差。v9.2.4 修复 iGP 国际版上传假成功。v9.2.6 做 Wahoo→iGP FIT 净化。v9.2.9 全页面深色模式。</p>
+
+<h2>21.7 临时码表并入（v9.4）</h2>
+<p>v9.4.0 把独立的"临时码表"App 整体并入迈进OB。v9.4.1 修复佳明上传 412。</p>
+
+<h2>21.8 佳明 WebView 重写（v9.5）</h2>
+<p>v9.5.0 佳明中国/国际改 WebView 登录（支持 MFA）。v9.5.1 修复协程崩溃。v9.5.5 iGP 国际区登录修复 + 百锐腾国内/国际站切换。</p>
+
+<p>两年多，从 4 个平台到 20+ 平台，从一个人用到几十骑友日常用。每一个版本号背后都是一个真实的 bug、一个真实的用户反馈。这本手册的 FAQ 章节，就是这段历程的完整记录。</p>
+
+<!-- ==================== 第二十二章 附录B 平台URL速查 ==================== -->
+<h1>第二十二章　附录 B：各平台登录 URL 速查</h1>
+
+<table>
+<tr><th>平台</th><th>登录/官网 URL</th><th>备注</th></tr>
+<tr><td>iGPSPORT 国内</td><td>https://www.igpsport.com/login</td><td>码表主流</td></tr>
+<tr><td>iGPSPORT 国际</td><td>https://us.igpsport.com/login</td><td>v8.8.0 新增</td></tr>
+<tr><td>行者</td><td>https://www.imxingzhe.com</td><td>官方开放 API</td></tr>
+<tr><td>迈金/顽鹿</td><td>https://www.onelap.cn</td><td>OTM API</td></tr>
+<tr><td>黑鸟单车</td><td>https://www.blackbirdsport.com</td><td>标准 FIT</td></tr>
+<tr><td>百锐腾国内</td><td>https://www.brytonsports.cn</td><td>DDP 协议</td></tr>
+<tr><td>百锐腾国际</td><td>https://active.brytonsport.com</td><td>DDP 协议</td></tr>
+<tr><td>佳明中国</td><td>https://connect.garmin.cn</td><td>DI Token 直连</td></tr>
+<tr><td>佳明国际</td><td>https://connect.garmin.com</td><td>mobile SSO</td></tr>
+<tr><td>高驰中国</td><td>https://www.coros.com.cn</td><td>CPL-coros-token</td></tr>
+<tr><td>高驰国际</td><td>https://www.coros.com</td><td>AWS S3</td></tr>
+<tr><td>Wahoo</td><td>https://www.wahoofitness.com</td><td>OAuth2</td></tr>
+<tr><td>Outbase</td><td>https://outbase.app</td><td>手机号验证码</td></tr>
+<tr><td>Intervals.icu</td><td>https://intervals.icu</td><td>个人 API Key</td></tr>
+<tr><td>Keep</td><td>https://www.gotokeep.com</td><td>手机号+密码</td></tr>
+<tr><td>Strava</td><td>https://www.strava.com</td><td>桥接/实验室</td></tr>
+<tr><td>Zwift</td><td>https://www.zwift.com</td><td>需正式会员</td></tr>
+<tr><td>MyWhoosh</td><td>https://mywhoosh.com</td><td>仅下载</td></tr>
+<tr><td>Komoot</td><td>https://www.komoot.com</td><td>WGS-84</td></tr>
+<tr><td>Suunto</td><td>https://www.suunto.com</td><td>OAuth2 实验室</td></tr>
+<tr><td>咕咚</td><td>https://www.codoon.com</td><td>仅下载</td></tr>
+<tr><td>Zepp</td><td>https://zepp.com</td><td>仅下载</td></tr>
+<tr><td>GitHub 仓库</td><td>https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform</td><td>本软件源码</td></tr>
+</table>
+
+<!-- ==================== 第二十三章 附录C 自检清单 ==================== -->
+<h1>第二十三章　附录 C：新手自检清单</h1>
+
+<p>第一次用本软件，按这个清单逐项打勾，确保配置正确。</p>
+
+<h2>23.1 安装</h2>
+<ul>
+  <li>☐ 已下载 v9.5.5 APK</li>
+  <li>☐ 已允许未知来源安装</li>
+  <li>☐ 已授予存储权限</li>
+  <li>☐ 已授予通知权限</li>
+  <li>☐ 已同意免责声明</li>
+</ul>
+
+<h2>23.2 登录</h2>
+<ul>
+  <li>☐ 已登录至少一个来源平台（iGP/迈金/行者/Keep 等）</li>
+  <li>☐ 已登录至少一个目标平台（Outbase/佳明/iGP 等）</li>
+  <li>☐ 已点"一键登录检测"确认所有 token 有效</li>
+</ul>
+
+<h2>23.3 同步设置</h2>
+<ul>
+  <li>☐ 数据来源已选（单选）</li>
+  <li>☐ 同步目标已勾选（至少一个）</li>
+  <li>☐ 来源和目标不是同一个平台</li>
+  <li>☐ 同步数量设为 5~50</li>
+  <li>☐ 跳过数量按需设置</li>
+  <li>☐ 迈金用户已开启 fit_content 坐标转换</li>
+  <li>☐ 上传 iGP 时间差问题已在时区修正页设置</li>
+</ul>
+
+<h2>23.4 同步</h2>
+<ul>
+  <li>☐ 已点"测试下载"验证单条</li>
+  <li>☐ 已点"开始同步"跑全量</li>
+  <li>☐ 日志无红色错误</li>
+  <li>☐ 统计卡片成功数 > 0</li>
+</ul>
+
+<h2>23.5 后台同步（可选但推荐）</h2>
+<ul>
+  <li>☐ 已开启"后台自动同步"</li>
+  <li>☐ 已把 App 加入电池优化白名单</li>
+  <li>☐ 已允许自启动（国产 ROM）</li>
+</ul>
+
+<h2>23.6 桥接（可选）</h2>
+<ul>
+  <li>☐ 如需 Strava：已在佳明/Wahoo/iGP 官方 App 内绑定 Strava</li>
+  <li>☐ 如需 Keep 桥接：已在 Keep App 内绑定华为/小米/佳明等设备</li>
+</ul>
+
+<!-- ==================== 第二十四章 使用剧本 ==================== -->
+<h1>第二十四章　按你的情况选方案：使用剧本</h1>
+
+<p>本章按你是谁、你有什么设备、你想去哪，直接给方案。对号入座即可。</p>
+
+<h2>24.1 剧本 A：iGPSPORT 码表骑友，想传 Outbase</h2>
+<ol>
+  <li>登录 iGPSPORT 国内版 + Outbase。</li>
+  <li>来源选 iGP，目标选 Outbase。</li>
+  <li>同步数量 20，开始同步。</li>
+  <li>打开后台自动同步。</li>
+</ol>
+<p><b>完成。</b>以后每次码表同步完 iGP，本软件自动把新记录传到 Outbase。</p>
+
+<h2>24.2 剧本 B：佳明手表用户，想数据进 Strava</h2>
+<ol>
+  <li>登录佳明中国（或国际）。</li>
+  <li>浏览器登 connect.garmin.cn → Settings → Account Linking → 绑 Strava。</li>
+  <li>完事。佳明新活动自动 Strava。</li>
+</ol>
+<p>如果你还想把佳明数据同时传到 Outbase：本软件来源选佳明，目标选 Outbase。</p>
+
+<h2>24.3 剧本 C：华为 Watch 用户，想数据进 Strava</h2>
+<ol>
+  <li>华为运动健康 App → 我的 → 设置 → 第三方数据 → 绑定 Keep。</li>
+  <li>Keep App → 我的 → 右上角手表图标 → 第三方应用与服务 → 确认华为运动健康已绑。</li>
+  <li>本软件登录 Keep（手机号+密码）。</li>
+  <li>本软件登录佳明中国。</li>
+  <li>来源选 Keep，目标选佳明中国。</li>
+  <li>佳明 Connect → Account Linking → 绑 Strava。</li>
+</ol>
+<p><b>链路：</b>华为 Watch → 华为运动健康 → Keep → 本软件 → 佳明 → Strava。全程自动。</p>
+
+<h2>24.4 剧本 D：Wahoo 骑行台用户，想数据进 iGPSPORT</h2>
+<ol>
+  <li>本软件登录 Wahoo（OAuth2）。</li>
+  <li>本软件登录 iGPSPORT 国内。</li>
+  <li>来源选 Wahoo，目标选 iGP。</li>
+  <li>v9.2.6 起 Wahoo FIT 自动净化，骑行直传不报错。</li>
+</ol>
+
+<h2>24.5 剧本 E：高驰手表用户，想国内国际区都有</h2>
+<ol>
+  <li>本软件登录高驰中国 + 高驰国际。</li>
+  <li>任务 A：来源高驰中国，目标高驰国际。</li>
+  <li>任务 B：来源高驰国际，目标高驰中国。</li>
+  <li>两个任务都跑，数据双向互通。</li>
+</ol>
+
+<h2>24.6 剧本 F：Zwift 室内骑行，想数据进 Outbase</h2>
+<ol>
+  <li>本软件登录 Zwift（需正式会员）。</li>
+  <li>本软件登录 Outbase。</li>
+  <li>来源选 Zwift，目标选 Outbase。</li>
+</ol>
+
+<h2>24.7 剧本 G：分段骑行想合并成一条</h2>
+<ol>
+  <li>底部"轨迹"Tab。</li>
+  <li>选来源平台，勾选 2 条及以上分段记录。</li>
+  <li>点"合并"。</li>
+  <li>合并后可一键生成透明贴纸分享。</li>
+</ol>
+
+<h2>24.8 剧本 H：想把历史数据全量搬到新平台</h2>
+<ol>
+  <li>登录新旧两个平台。</li>
+  <li>来源选旧平台，目标选新平台。</li>
+  <li>同步数量拉到 50，跳过数量 0。</li>
+  <li>开始同步。跑完一轮再跑一轮（同步记忆会自动跳过已传的）。</li>
+  <li>直到统计卡片"成功"不再增长，就是搬完了。</li>
+</ol>
+
+<!-- ==================== 第二十五章 FAQ 补充2 ==================== -->
+<h1>第二十五章　FAQ 补充（更多细节）</h1>
+
+<div class="qa"><p class="q">Q81：本软件要付费吗？ <span class="tag tag-done">免费</span></p>
+<p class="a">完全免费。赞赏是自愿赠与，不构成服务合同。</p></div>
+
+<div class="qa"><p class="q">Q82：为什么没有 iOS 版？ <span class="tag tag-wip">未计划</span></p>
+<p class="a">个人开发者，Android 技术栈。iOS 沙盒限制多，暂不计划。</p></div>
+
+<div class="qa"><p class="q">Q83：为什么没有 Windows/Mac 版？ <span class="tag tag-wip">未计划</span></p>
+<p class="a">手机端场景为主。如果你需要桌面端，可以用 running_page 等开源项目。</p></div>
+
+<div class="qa"><p class="q">Q84：同步会消耗多少流量？ <span class="tag tag-done">说明</span></p>
+<p class="a">一条 FIT 文件约 100KB~1MB。同步 50 条约 5~50MB。建议 WiFi 下跑全量，移动网络下跑增量。</p></div>
+
+<div class="qa"><p class="q">Q85：同步会耗电吗？ <span class="tag tag-done">说明</span></p>
+<p class="a">后台同步每 15 分钟跑一次，每次几秒到几十秒，耗电可忽略。</p></div>
+
+<div class="qa"><p class="q">Q86：为什么同步时手机发烫？ <span class="tag tag-wip">已知</span></p>
+<p class="a">迈金坐标转换在 WebView 里跑 JS，CPU 短时高负载。跑完即恢复。</p></div>
+
+<div class="qa"><p class="q">Q87：为什么下载的 FIT 文件打不开？ <span class="tag tag-done">说明</span></p>
+<p class="a">FIT 是二进制格式，手机文件管理器打不开。用本软件的"记录中心"看，或传到平台后在平台网页看。</p></div>
+
+<div class="qa"><p class="q">Q88：为什么 Outbase 上传后活动详情是空的？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">Outbase 对某些来源的 GPX 解析不完整。建议来源选 iGP/迈金/黑鸟等 FIT 源。</p></div>
+
+<div class="qa"><p class="q">Q89：为什么同步后海拔不对？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">码表 GPS 海拔 vs 气压计海拔差异。黑鸟平台自身问题。</p></div>
+
+<div class="qa"><p class="q">Q90：为什么功率数据偏小？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">黑鸟平台 ×0.78 校准。本软件不修改原始功率数据。</p></div>
+
+<div class="qa"><p class="q">Q91：为什么卡路里不对？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">各平台卡路里算法不同，本软件保留原始值，不重算。</p></div>
+
+<div class="qa"><p class="q">Q92：为什么平均速度不对？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">各平台均速算法不同（有的含红灯停车，有的不含）。本软件保留原始值。</p></div>
+
+<div class="qa"><p class="q">Q93：可以同时跑多个同步任务吗？ <span class="tag tag-done">支持</span></p>
+<p class="a">可以。本软件支持多任务，每个任务独立来源/目标。</p></div>
+
+<div class="qa"><p class="q">Q94：同步时可以关屏吗？ <span class="tag tag-done">可以</span></p>
+<p class="a">可以。WorkManager 后台跑，关屏不影响。但国产 ROM 需加电池白名单。</p></div>
+
+<div class="qa"><p class="q">Q95：同步时可以切到别的 App 吗？ <span class="tag tag-done">可以</span></p>
+<p class="a">可以。同步在后台跑，前台通知显示进度。</p></div>
+
+<div class="qa"><p class="q">Q96：同步中途断网会怎样？ <span class="tag tag-done">说明</span></p>
+<p class="a">当前这条失败，下轮重试。已成功的写记忆，不重传。</p></div>
+
+<div class="qa"><p class="q">Q97：同步中途杀进程会怎样？ <span class="tag tag-done">说明</span></p>
+<p class="a">当前这条中断，下次启动自动重试。已写记忆的不重传。</p></div>
+
+<div class="qa"><p class="q">Q98：为什么"清记忆"后所有活动都重传？ <span class="tag tag-done">设计如此</span></p>
+<p class="a">清记忆就是删小本本，下次同步全量重传。谨慎使用。</p></div>
+
+<div class="qa"><p class="q">Q99：为什么实验室平台登录不稳定？ <span class="tag tag-wip">平台限制</span></p>
+<p class="a">实验室平台（Suunto/Zepp/Strava 等）接口不稳定或需自申请凭证，所以放实验室页灰度。</p></div>
+
+<div class="qa"><p class="q">Q100：本软件会上传我的运动数据到自己服务器吗？ <span class="tag tag-done">不会</span></p>
+<p class="a">本软件没有后端服务器。所有同步在你手机和各平台之间直连。</p></div>
+
+<!-- ==================== 第二十六章 结语 ==================== -->
+<h1>第二十六章　结语</h1>
+
+<p>这本手册从"这是什么软件"讲到"每个按钮怎么点"，从"Strava 怎么桥接"讲到"v9.5.5 每个 bug 怎么修"。每一个字都来自真实代码和真实踩坑。</p>
+
+<p>最后再说三句话：</p>
+<ol>
+  <li><b>遇到问题先看日志</b>——运行日志里的错误码是定位问题的唯一钥匙。点"复制日志"发给开发者，比描述现象快十倍。</li>
+  <li><b>佳明 429 别硬刚</b>——等冷却，不要反复试。硬刚会让冷却从几小时变成一天。</li>
+  <li><b>数据安全第一</b>——本软件免费开源，但各平台账号是你的。不要把 token 给别人，不要在公共网络登录敏感账号。</li>
+</ol>
+
+<p>祝每一次骑行、每一次跑步，都被完整记录、自由抵达。</p>
+
+<!-- ==================== 第二十七章 按版本 bug 清单 ==================== -->
+<h1>第二十七章　按版本分类的完整修复清单</h1>
+
+<p>本章把从 v7.5 到 v9.5.5 每个版本修过的 bug 按版本列出，作为完整的"踩坑档案"。</p>
+
+<h2>27.1 v9.5.5（2026-11-05）</h2>
+<ul>
+  <li>iGPSPORT 国际区登录 token 识别不到：重写 detectIgpsport()，多来源提取。</li>
+  <li>百锐腾从双向改为仅下载源，国内/国际站可切换。</li>
+  <li>百锐腾站点切换闪退修复。</li>
+</ul>
+
+<h2>27.2 v9.5.2（2026-10-30）</h2>
+<ul>
+  <li>临时码表入口闪退（TrialLicense 门禁）。</li>
+  <li>关于页版本号修正。</li>
+</ul>
+
+<h2>27.3 v9.5.1（2026-10-28）</h2>
+<ul>
+  <li>佳明中国/国际 WebView 登录后拉记录崩溃（NoSuchMethodError + VerifyError）。</li>
+  <li>403 自动刷新 CSRF token 重发。</li>
+  <li>OkHttp 放开 HTTP/2。</li>
+  <li>FIT 裸文件兜底不可达修复。</li>
+  <li>FIT 消息头标志位颠倒修复。</li>
+</ul>
+
+<h2>27.4 v9.5.0（2026-10-25）</h2>
+<ul>
+  <li>佳明中国/国际 WebView 登录升级，支持两步验证 MFA。</li>
+</ul>
+
+<h2>27.5 v9.4.1（2026-10-20）</h2>
+<ul>
+  <li>第三方 FIT 传佳明 412 伪装修复。</li>
+</ul>
+
+<h2>27.6 v9.4.0（2026-10-18）</h2>
+<ul>
+  <li>临时码表全量并入 App（GPS+心率+功率+踏频）。</li>
+  <li>体验码门禁。</li>
+</ul>
+
+<h2>27.7 v9.3.1（2026-10-15）</h2>
+<ul>
+  <li>热力图功能原型。</li>
+  <li>热力图点击无法进入（瓦片异步化修复）。</li>
+  <li>logo 白边修复。</li>
+</ul>
+
+<h2>27.8 v9.2.9（2026-10-12）</h2>
+<ul>
+  <li>深色模式三态全页面。</li>
+  <li>12 个布局视觉优化。</li>
+  <li>App 改名去括号。</li>
+  <li>行者→iGPSPORT 重复记录不跳过修复。</li>
+</ul>
+
+<h2>27.9 v9.2.6（2026-10-09）</h2>
+<ul>
+  <li>Wahoo→iGP FIT 净化（FitSanitizer）。</li>
+  <li>骑行直传、仅跑步净化。</li>
+</ul>
+
+<h2>27.10 v9.2.4（2026-10-08）</h2>
+<ul>
+  <li>iGP 国际版上传假成功修复（4 处 URL 硬编码国内端点）。</li>
+  <li>UploadEngine$upload$2 VerifyError 闪退修复。</li>
+  <li>ICU 课表 erg/zwo/mrc 转 FIT 带功率踏频。</li>
+  <li>UpdateChecker 硬编码版本号修复。</li>
+</ul>
+
+<h2>27.11 v9.2.2（2026-10-05）</h2>
+<ul>
+  <li>时区修正页（11 个来源 × 当天/历史 ±8h）。</li>
+  <li>FIT 时间戳 FitTimeShift。</li>
+  <li>GPX GpxTimeFixer。</li>
+  <li>迈金两个坐标转换开关加注释。</li>
+  <li>文件夹同步增加坐标转换开关。</li>
+</ul>
+
+<h2>27.12 v9.2.0（2026-10-02）</h2>
+<ul>
+  <li>健康任务级弹窗 UI 恢复。</li>
+  <li>runTask 全局开关回滚 v8.8.2 三重条件。</li>
+  <li>时差诊断日志提升可见。</li>
+  <li>启动闪退 VerifyError 修复。</li>
+</ul>
+
+<h2>27.13 v8.8.3（2026-10-10）</h2>
+<ul>
+  <li>记录中心返回跳转修复。</li>
+  <li>恢复缺失新建任务 Fragment 源码。</li>
+</ul>
+
+<h2>27.14 v8.8.2（2026-10-10）</h2>
+<ul>
+  <li>记录中心返回后底部导航不恢复修复。</li>
+  <li>记录卡片 UI 优化。</li>
+  <li>任务级佳明设备伪装配置。</li>
+</ul>
+
+<h2>27.15 v8.8.1（2026-10-09）</h2>
+<ul>
+  <li>ICU 课表自动推 iGP/百锐腾。</li>
+</ul>
+
+<h2>27.16 v8.8.0（2026-10-08）</h2>
+<ul>
+  <li>iGPSPORT 国际版登录。</li>
+  <li>百锐腾从实验室移到登录页，DDP 下载 FIT。</li>
+</ul>
+
+<h2>27.17 v8.7.8（2026-09-21）</h2>
+<ul>
+  <li>FIT 设备伪装 Edge 830/FR945。</li>
+  <li>任务级健康天数。</li>
+  <li>iGP 注销清 cookie。</li>
+  <li>底部导航修复。</li>
+</ul>
+
+<h2>27.18 v8.5.x 系列</h2>
+<ul>
+  <li>v8.5.8：FIT 伪装、iGP 注销修复、底部导航 onResume 检查。</li>
+  <li>v8.5.4：Fragment 重复 add 闪退；Keep 步频写入 GPX。</li>
+  <li>v8.5.3：Keep 逐点心率写入标准 GPX。</li>
+  <li>v8.5.1：Keep 分页翻 5 页；日志 200ms 批量刷新。</li>
+</ul>
+
+<h2>27.19 v8.3.x 系列</h2>
+<ul>
+  <li>v8.3.4：佳明致命错误第一通道即停 + 弹窗日志窗口。</li>
+  <li>v8.3.1：实验室列表 ScrollView。</li>
+  <li>v8.3.x：轨迹真正 3D 立体投射；Zwift 试用订阅预检测。</li>
+</ul>
+
+<h2>27.20 v8.1.x 系列</h2>
+<ul>
+  <li>v8.1.3：贴纸颜色还原；Keep 轨迹为空；页面销毁防护；连续多选选不上。</li>
+  <li>v8.1.2：贴纸导出同源截帧 100% 一致。</li>
+  <li>v8.1.x：咕咚登录后拉不到记录修复。</li>
+</ul>
+
+<h2>27.21 v8.0.x 系列</h2>
+<ul>
+  <li>v8.0.9：网页登录白屏；贴纸黑框/数据不显示。</li>
+  <li>v8.0.7：轨迹合并时长/距离异常。</li>
+  <li>v8.0.2/3：透明贴纸背景/数据显示。</li>
+  <li>v8.0.1：轨迹合并 + 透明贴纸上线。</li>
+</ul>
+
+<h2>27.22 v7.9.x 系列</h2>
+<ul>
+  <li>v7.9.7：轨迹合并原型。</li>
+  <li>v7.9.6：Komoot/Suunto 双向同步。</li>
+  <li>v7.9.5：咕咚/Zepp 下载。</li>
+  <li>v7.9.4：Outbase/iGP 上传节流；佳明中国 412 FIT header。</li>
+  <li>v7.9.3：Keep 统一转标准 GPX/FIT；运动类型自动识别。</li>
+  <li>v7.9.1：佳明多通道轮换。</li>
+  <li>v7.9.0：佳明中国 DI Token 直连。</li>
+</ul>
+
+<h2>27.23 v7.5~v7.7 系列</h2>
+<ul>
+  <li>v7.7.7：平台卡片品牌色小圆点。</li>
+  <li>v7.7.6：检查更新自动/手动。</li>
+  <li>v7.6.5：黑鸟导出标准 FIT。</li>
+  <li>v7.6.4：高驰循环翻页。</li>
+  <li>v7.6.0：iGP 登录态真实校验；Wahoo 令牌复用；OkHttp 强制 HTTP/1.1。</li>
+  <li>v7.5.9：重复文件归跳过；迈金登录态自动刷新。</li>
+  <li>v7.5.8：WorkManager 前台同步类型修复。</li>
+  <li>v7.5.5~7：WorkManager 后台同步上线。</li>
+</ul>
+
+<!-- ==================== 第二十八章 与其他工具对比 ==================== -->
+<h1>第二十八章　与其他同步工具对比</h1>
+
+<table>
+<tr><th>能力</th><th>本软件</th><th>running_page</th><th>wahoo-sync</th><th>人工导出上传</th></tr>
+<tr><td>Android App</td><td>✅</td><td>❌（网页）</td><td>❌</td><td>✅</td></tr>
+<tr><td>平台数量</td><td>20+</td><td>10+</td><td>1</td><td>不限</td></tr>
+<tr><td>国内/国际区互传</td><td>✅</td><td>❌</td><td>❌</td><td>手动</td></tr>
+<tr><td>迈金坐标纠偏</td><td>✅ 自动</td><td>部分</td><td>❌</td><td>❌</td></tr>
+<tr><td>FIT 伪装佳明</td><td>✅ 自动</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>Keep 桥接</td><td>✅</td><td>✅</td><td>❌</td><td>手动</td></tr>
+<tr><td>后台自动同步</td><td>✅ WorkManager</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>轨迹合并贴纸</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>临时码表</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>健康数据同步</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+<tr><td>免费</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+</table>
+
+<p>本软件的定位：手机端、多平台、后台自动、面向国内骑友。running_page 适合开发者在服务器上跑自己的同步脚本；本软件适合普通骑友装在手机上一键同步。</p>
+
+<div class="callout center" style="margin-top:20mm;">
+<b>—— 手册正式完 ——</b><br>
+鸡翅幸哲迈进OB v9.5.5 用户使用手册<br>
+2026-11-05 · 基于源码事实撰写<br><br>
+让运动数据自由流动。 🚴
+</div>
+
+</body>
+</html>
