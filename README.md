@@ -367,7 +367,9 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 
 欢迎基于本项目二次开发，以下是社区同学的衍生项目：
 
-- **[kylin2005-art/sports-data-sync-web](https://github.com/kylin2005-art/sports-data-sync-web/tree/main)** — 把本 Android 项目移植到 Web 端，浏览器里跑同步。
+- **[kylin2005-art/sports-data-sync-web](https://github.com/kylin2005-art/sports-data-sync-web/tree/main)** — 由开发者 **@kylin** 基于本 Android 项目移植的 Web 端版本，并在二开基础上做了大量优化与增强。
+  - 适合场景：不想装 APK、希望在网页里登录各平台；或想在本地电脑、云服务器、云电脑上 7×24 小时自动同步运动数据。
+  - 开箱即用，可自部署，无需 Android 手机常驻。
 
 ---
 
