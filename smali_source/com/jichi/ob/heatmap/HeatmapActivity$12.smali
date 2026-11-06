@@ -47,16 +47,10 @@
 .method public run()V
     .locals 7
 
-    .line 378
     :try_start_0
-    new-instance v0, Ljava/io/File;
+    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapActivity$12;->this$0:Lcom/jichi/ob/heatmap/HeatmapActivity;
 
-    const-string v1, "/storage/emulated/0/Download/\u9e21\u7fc5\u5e78\u54f2\u8fc8\u8fdbOB"
-
-    invoke-direct {v0, v1}, Ljava/io/File;-><init>(Ljava/lang/String;)V
-
-    .line 379
-    invoke-static {v0}, Lcom/jichi/ob/heatmap/TrackFileParser;->scanFiles(Ljava/io/File;)Ljava/util/List;
+    invoke-static {v0}, Lcom/jichi/ob/heatmap/HeatmapTrackStore;->scan(Landroid/content/Context;)Ljava/util/List;
 
     move-result-object v0
 

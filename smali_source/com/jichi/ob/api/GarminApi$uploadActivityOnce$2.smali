@@ -905,6 +905,65 @@
 
     .line 1544
     :goto_8
+    # ===== v9.5.6: 佳明 CN/COM 优先单次 POST（尤其网页登录态、无 DI token 的账号）=====
+    # 旧逻辑：每条活动都 prepareWebView(注入 cookie/必要时重载 + 最多5s等待) 再在 WebView
+    # 里用大段 base64 JS fetch + 500ms 轮询，单条 5~15s。这里先用 Cookie/CSRF 会话头直接
+    # OkHttp 单次 POST /gc-api/upload-service/upload/；只有明确不可用(401/403/HTML)才回退。
+    iget-object v13, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
+
+    sget-object v14, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v13, v14, :cookie_fast_ds
+
+    sget-object v14, Lcom/jichi/ob/model/DataSource;->GARMIN_COM:Lcom/jichi/ob/model/DataSource;
+
+    if-ne v13, v14, :cookie_fast_skip
+
+    :cookie_fast_ds
+    # 保存 p0(v1) 与 spilled session(v4)，复用连续寄存器窗口 v0..v4 调用合成访问器
+    move-object/from16 v25, v1
+
+    move-object/from16 v26, v4
+
+    iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
+
+    iget-object v2, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$cred:Ljava/lang/String;
+
+    iget-object v3, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$data:[B
+
+    iget-object v4, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$fileName:Ljava/lang/String;
+
+    iget-object v1, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;
+
+    invoke-static/range {v0 .. v4}, Lcom/jichi/ob/api/GarminApi;->access$uploadActivityOnceCookiePost(Lcom/jichi/ob/api/GarminApi;Lcom/jichi/ob/model/DataSource;Ljava/lang/String;[BLjava/lang/String;)Ljava/lang/String;
+
+    move-result-object v13
+
+    move-object/from16 v1, v25
+
+    move-object/from16 v4, v26
+
+    # 恢复 v3 为 int，保证与未走快路径的分支(:cond_4, v3=size)汇合时类型一致
+    const/4 v3, 0x0
+
+    if-eqz v13, :cookie_fast_null
+
+    const-string v14, "__RETRY_WEBVIEW__"
+
+    invoke-virtual {v13, v14}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v3
+
+    if-eqz v3, :cookie_fast_skip
+
+    return-object v13
+
+    :cookie_fast_null
+    const/4 v0, 0x0
+
+    return-object v0
+
+    :cookie_fast_skip
     iget-object v0, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->this$0:Lcom/jichi/ob/api/GarminApi;
 
     iget-object v2, v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;->$ds:Lcom/jichi/ob/model/DataSource;

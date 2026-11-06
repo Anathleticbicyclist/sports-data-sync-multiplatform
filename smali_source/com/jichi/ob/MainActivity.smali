@@ -1068,7 +1068,7 @@
     sput-object v0, Lcom/jichi/ob/MainActivity;->Companion:Lcom/jichi/ob/MainActivity$Companion;
 
     .line 97
-    const-string/jumbo v0, "v9.5.5"
+    const-string/jumbo v0, "v9.5.6"
 
     sput-object v0, Lcom/jichi/ob/MainActivity;->APP_VERSION:Ljava/lang/String;
 
@@ -16027,6 +16027,8 @@
 .method private final recordSync(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;IIILjava/lang/String;)V
     .locals 9
 
+    invoke-static {p1, p2, p6}, Lcom/jichi/ob/ui/SyncRunReport;->note(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;Ljava/lang/String;)V
+
     .line 1505
     :try_start_0
     sget-object v0, Lcom/jichi/ob/util/ActivityCache;->Companion:Lcom/jichi/ob/util/ActivityCache$Companion;
@@ -22006,6 +22008,10 @@
             "Ljava/lang/Object;"
         }
     .end annotation
+
+    invoke-static/range {p2 .. p2}, Lcom/jichi/ob/ui/SyncRunReport;->beginRecord(Lcom/jichi/ob/model/ActivityRecord;)V
+
+    invoke-static/range {p6 .. p6}, Lcom/jichi/ob/ui/SyncRunReport;->beginTarget(Lcom/jichi/ob/model/DataSource;)V
 
     move-object/from16 v0, p0
 
@@ -31115,6 +31121,8 @@
     goto :goto_0
 
     :cond_0
+    invoke-static {}, Lcom/jichi/ob/ui/SyncRunReport;->begin()V
+
     const/4 v0, 0x0
 
     .line 2423
@@ -32580,6 +32588,8 @@
 
     .line 2175
     :cond_2
+    invoke-static {}, Lcom/jichi/ob/ui/SyncRunReport;->begin()V
+
     iget-object v0, v1, Lcom/jichi/ob/MainActivity;->settingsFragment:Lcom/jichi/ob/ui/SyncSettingsFragment;
 
     if-nez v0, :cond_3

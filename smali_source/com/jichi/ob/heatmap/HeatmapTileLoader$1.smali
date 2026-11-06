@@ -34,15 +34,15 @@
 
 
 # direct methods
-.method constructor <init>(Lcom/jichi/ob/heatmap/HeatmapTileLoader;IIIZLjava/lang/Runnable;Ljava/lang/String;)V
-    .locals 0
+.method constructor <init>(Lcom/jichi/ob/heatmap/HeatmapTileLoader;IIIZLjava/lang/String;Ljava/lang/Runnable;)V
+    .registers 8
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "()V"
         }
     .end annotation
 
-    .line 74
+    .line 94
     iput-object p1, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
 
     iput p2, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$z:I
@@ -53,9 +53,9 @@
 
     iput-boolean p5, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$dark:Z
 
-    iput-object p6, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$done:Ljava/lang/Runnable;
+    iput-object p6, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$key:Ljava/lang/String;
 
-    iput-object p7, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$key:Ljava/lang/String;
+    iput-object p7, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$done:Ljava/lang/Runnable;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
@@ -65,26 +65,18 @@
 
 # virtual methods
 .method public run()V
-    .locals 5
+    .registers 8
 
-    .line 76
-    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
+    .line 97
+    nop
 
-    iget v1, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$z:I
+    .line 98
+    nop
 
-    iget v2, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$x:I
+    .line 100
+    const/4 v0, 0x0
 
-    iget v3, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$y:I
-
-    iget-boolean v4, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$dark:Z
-
-    invoke-static {v0, v1, v2, v3, v4}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->access$000(Lcom/jichi/ob/heatmap/HeatmapTileLoader;IIIZ)Landroid/graphics/Bitmap;
-
-    move-result-object v0
-
-    if-eqz v0, :cond_0
-
-    .line 78
+    :try_start_3
     iget-object v1, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
 
     iget v2, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$z:I
@@ -93,56 +85,63 @@
 
     iget v4, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$y:I
 
-    invoke-static {v1, v2, v3, v4}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->access$100(Lcom/jichi/ob/heatmap/HeatmapTileLoader;III)Ljava/io/File;
+    iget-boolean v5, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$dark:Z
 
-    move-result-object v2
-
-    invoke-static {v1, v2, v0}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->access$200(Lcom/jichi/ob/heatmap/HeatmapTileLoader;Ljava/io/File;Landroid/graphics/Bitmap;)V
-
-    .line 79
-    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$done:Ljava/lang/Runnable;
-
-    if-eqz v0, :cond_1
-
-    invoke-interface {v0}, Ljava/lang/Runnable;->run()V
-
-    goto :goto_0
-
-    .line 81
-    :cond_0
-    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
-
-    invoke-static {v0}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->access$300(Lcom/jichi/ob/heatmap/HeatmapTileLoader;)Ljava/util/List;
-
-    move-result-object v0
-
-    monitor-enter v0
-
-    .line 82
-    :try_start_0
-    iget-object v1, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
-
-    invoke-static {v1}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->access$400(Lcom/jichi/ob/heatmap/HeatmapTileLoader;)Ljava/util/Set;
+    invoke-static {v1, v2, v3, v4, v5}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->-$$Nest$mdownload(Lcom/jichi/ob/heatmap/HeatmapTileLoader;IIIZ)Landroid/graphics/Bitmap;
 
     move-result-object v1
+    :try_end_11
+    .catchall {:try_start_3 .. :try_end_11} :catchall_22
 
-    iget-object v2, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$key:Ljava/lang/String;
+    .line 101
+    :try_start_11
+    iget-object v2, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
 
-    invoke-interface {v1, v2}, Ljava/util/Set;->add(Ljava/lang/Object;)Z
+    iget v3, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$z:I
 
-    .line 83
-    monitor-exit v0
+    iget v4, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$x:I
 
-    :cond_1
-    :goto_0
-    return-void
+    iget v5, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$y:I
 
-    :catchall_0
+    iget-boolean v6, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$dark:Z
+
+    invoke-static {v2, v3, v4, v5, v6}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->-$$Nest$mtileFile(Lcom/jichi/ob/heatmap/HeatmapTileLoader;IIIZ)Ljava/io/File;
+
+    move-result-object v0
+    :try_end_1f
+    .catchall {:try_start_11 .. :try_end_1f} :catchall_20
+
+    .line 103
+    goto :goto_24
+
+    .line 102
+    :catchall_20
+    move-exception v2
+
+    goto :goto_24
+
+    :catchall_22
     move-exception v1
 
-    monitor-exit v0
-    :try_end_0
-    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+    move-object v1, v0
 
-    throw v1
+    .line 104
+    :goto_24
+    iget-object v2, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->this$0:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
+
+    iget-object v3, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$key:Ljava/lang/String;
+
+    invoke-static {v2, v3, v1, v0}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->-$$Nest$mhandleResult(Lcom/jichi/ob/heatmap/HeatmapTileLoader;Ljava/lang/String;Landroid/graphics/Bitmap;Ljava/io/File;)V
+
+    .line 105
+    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapTileLoader$1;->val$done:Ljava/lang/Runnable;
+
+    if-eqz v0, :cond_32
+
+    .line 106
+    invoke-interface {v0}, Ljava/lang/Runnable;->run()V
+
+    .line 108
+    :cond_32
+    return-void
 .end method

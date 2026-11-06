@@ -1329,6 +1329,14 @@
 
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
+    invoke-static {}, Lcom/jichi/ob/ui/SyncRunReport;->formatSummary()Ljava/lang/String;
+
+    move-result-object v4
+
+    check-cast v4, Ljava/lang/CharSequence;
+
+    invoke-virtual {v3, v4}, Landroid/widget/TextView;->append(Ljava/lang/CharSequence;)V
+
     const/high16 v4, 0x41300000    # 11.0f
 
     .line 525
@@ -4822,6 +4830,7 @@
 
     iput-object p2, p0, Lcom/jichi/ob/ui/SyncFragment;->tvStatFail:Landroid/widget/TextView;
 
+
     .line 66
     iget-object p2, p0, Lcom/jichi/ob/ui/SyncFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
@@ -5255,6 +5264,119 @@
 
     :catch_0
     :cond_d
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncFragment;->requireActivity()Landroidx/fragment/app/FragmentActivity;
+
+    move-result-object v0
+
+    invoke-static {v0}, Lcom/jichi/ob/ui/SyncRunReport;->attach(Landroid/app/Activity;)V
+
+    sget-object v0, Lcom/jichi/ob/ui/SyncRunReport;->INSTANCE:Lcom/jichi/ob/ui/SyncRunReport;
+
+    iget-object v1, p0, Lcom/jichi/ob/ui/SyncFragment;->tvStatOk:Landroid/widget/TextView;
+
+    const-string v2, "ok"
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTag(Ljava/lang/Object;)V
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    iget-object v1, p0, Lcom/jichi/ob/ui/SyncFragment;->tvStatSkip:Landroid/widget/TextView;
+
+    const-string v2, "skip"
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTag(Ljava/lang/Object;)V
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    iget-object v1, p0, Lcom/jichi/ob/ui/SyncFragment;->tvStatFail:Landroid/widget/TextView;
+
+    const-string v2, "fail"
+
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTag(Ljava/lang/Object;)V
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    new-instance v1, Landroid/widget/TextView;
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    invoke-direct {v1, v2}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+
+    const-string v3, "\ud83d\udccb \u672c\u6b21\u8fd0\u884c\u660e\u7ec6\uff08\u70b9\u51fb\u67e5\u770b\u6210\u529f/\u8df3\u8fc7/\u5931\u8d25\u660e\u7ec6\u4e0e\u5931\u8d25\u539f\u56e0\uff0c\u5931\u8d25\u53ef\u5355\u6761\u91cd\u8bd5\uff09"
+
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    const/high16 v3, 0x41400000    # 12.0f
+
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setTextSize(F)V
+
+    sget v3, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {v2, v3}, Landroid/content/Context;->getColor(I)I
+
+    move-result v3
+
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setTextColor(I)V
+
+    const/16 v3, 0x11
+
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setGravity(I)V
+
+    sget v3, Lcom/jichi/ob/R$drawable;->bg_check_update:I
+
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setBackgroundResource(I)V
+
+    const/high16 v3, 0x40a00000    # 5.0f
+
+    invoke-direct {p0, v3}, Lcom/jichi/ob/ui/SyncFragment;->dp8(F)I
+
+    move-result v3
+
+    invoke-virtual {v1, v3, v3, v3, v3}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    const-string v3, "all"
+
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setTag(Ljava/lang/Object;)V
+
+    invoke-virtual {v1, v0}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    iget-object v2, p0, Lcom/jichi/ob/ui/SyncFragment;->tvStatOk:Landroid/widget/TextView;
+
+    invoke-virtual {v2}, Landroid/widget/TextView;->getParent()Landroid/view/ViewParent;
+
+    move-result-object v2
+
+    check-cast v2, Landroid/view/View;
+
+    invoke-virtual {v2}, Landroid/view/View;->getParent()Landroid/view/ViewParent;
+
+    move-result-object v2
+
+    check-cast v2, Landroid/view/View;
+
+    invoke-virtual {v2}, Landroid/view/View;->getParent()Landroid/view/ViewParent;
+
+    move-result-object v3
+
+    check-cast v3, Landroid/view/ViewGroup;
+
+    invoke-virtual {v3, v2}, Landroid/view/ViewGroup;->indexOfChild(Landroid/view/View;)I
+
+    move-result v4
+
+    add-int/lit8 v4, v4, 0x1
+
+    new-instance v5, Landroid/widget/LinearLayout$LayoutParams;
+
+    const/4 v6, -0x1
+
+    const/4 v7, -0x2
+
+    invoke-direct {v5, v6, v7}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+
+    invoke-virtual {v3, v1, v4, v5}, Landroid/view/ViewGroup;->addView(Landroid/view/View;ILandroid/view/ViewGroup$LayoutParams;)V
     return-void
 .end method
 

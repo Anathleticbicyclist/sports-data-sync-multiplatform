@@ -4,6 +4,8 @@
 
 
 # instance fields
+.field private baseOnline:Z
+
 .field private dark:Z
 
 .field private fitted:Z
@@ -55,6 +57,8 @@
 
     .line 27
     iput-boolean v0, p0, Lcom/jichi/ob/heatmap/HeatmapView;->dark:Z
+
+    iput-boolean v0, p0, Lcom/jichi/ob/heatmap/HeatmapView;->baseOnline:Z
 
     const/4 v0, 0x0
 
@@ -303,6 +307,8 @@
     :goto_0
     invoke-virtual {v1, v2}, Landroid/graphics/Canvas;->drawColor(I)V
 
+    invoke-direct/range {p0 .. p1}, Lcom/jichi/ob/heatmap/HeatmapView;->drawBase(Landroid/graphics/Canvas;)V
+
     .line 122
     iget-object v2, v0, Lcom/jichi/ob/heatmap/HeatmapView;->heat:Landroid/graphics/Bitmap;
 
@@ -328,6 +334,8 @@
     const/high16 v5, 0x42200000    # 40.0f
 
     invoke-virtual {v1, v4, v5, v2, v3}, Landroid/graphics/Canvas;->drawText(Ljava/lang/String;FFLandroid/graphics/Paint;)V
+
+    invoke-direct/range {p0 .. p1}, Lcom/jichi/ob/heatmap/HeatmapView;->drawOverlay(Landroid/graphics/Canvas;)V
 
     return-void
 
@@ -659,6 +667,8 @@
     invoke-virtual {v1, v2, v3, v4}, Landroid/graphics/Canvas;->drawBitmap(Landroid/graphics/Bitmap;Landroid/graphics/Matrix;Landroid/graphics/Paint;)V
 
     :cond_6
+    invoke-direct/range {p0 .. p1}, Lcom/jichi/ob/heatmap/HeatmapView;->drawOverlay(Landroid/graphics/Canvas;)V
+
     return-void
 .end method
 
@@ -775,6 +785,454 @@
     invoke-virtual {p0, p1}, Lcom/jichi/ob/heatmap/HeatmapView;->post(Ljava/lang/Runnable;)Z
 
     .line 78
+    invoke-virtual {p0}, Lcom/jichi/ob/heatmap/HeatmapView;->invalidate()V
+
+    return-void
+.end method
+
+.method private drawBase(Landroid/graphics/Canvas;)V
+    .locals 14
+
+    move-object/from16 v0, p0
+
+    move-object/from16 v1, p1
+
+    const/16 v2, 0x9
+
+    new-array v3, v2, [F
+
+    iget-object v2, v0, Lcom/jichi/ob/heatmap/HeatmapView;->mat:Landroid/graphics/Matrix;
+
+    invoke-virtual {v2, v3}, Landroid/graphics/Matrix;->getValues([F)V
+
+    const/4 v2, 0x0
+
+    aget v4, v3, v2
+
+    const/4 v2, 0x4
+
+    aget v5, v3, v2
+
+    const/4 v2, 0x2
+
+    aget v6, v3, v2
+
+    const/4 v2, 0x5
+
+    aget v7, v3, v2
+
+    const/high16 v2, 0x43800000    # 256.0f
+
+    mul-float v8, v4, v2
+
+    mul-float v9, v5, v2
+
+    new-instance v10, Landroid/graphics/Paint;
+
+    invoke-direct {v10}, Landroid/graphics/Paint;-><init>()V
+
+    iget-boolean v2, v0, Lcom/jichi/ob/heatmap/HeatmapView;->dark:Z
+
+    if-eqz v2, :cond_light_lines
+
+    const v2, 0x33ffffff
+
+    goto :goto_line_color
+
+    :cond_light_lines
+    const v2, 0x33000000
+
+    :goto_line_color
+    invoke-virtual {v10, v2}, Landroid/graphics/Paint;->setColor(I)V
+
+    sget-object v2, Landroid/graphics/Paint$Style;->STROKE:Landroid/graphics/Paint$Style;
+
+    invoke-virtual {v10, v2}, Landroid/graphics/Paint;->setStyle(Landroid/graphics/Paint$Style;)V
+
+    const/high16 v2, 0x3f800000    # 1.0f
+
+    invoke-virtual {v10, v2}, Landroid/graphics/Paint;->setStrokeWidth(F)V
+
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapView;->getWidth()I
+
+    move-result v2
+
+    int-to-float v12, v2
+
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapView;->getHeight()I
+
+    move-result v2
+
+    int-to-float v13, v2
+
+    new-instance v11, Landroid/graphics/Path;
+
+    invoke-direct {v11}, Landroid/graphics/Path;-><init>()V
+
+    const/4 v3, 0x0
+
+    const/high16 v4, 0x41400000    # 12.0f
+
+    cmpg-float v2, v8, v4
+
+    if-gez v2, :cond_vskip
+
+    cmpl-float v2, v8, v12
+
+    if-lez v2, :cond_vskip
+
+    rem-float v5, v6, v8
+
+    cmpg-float v2, v5, v3
+
+    if-gez v2, :cond_vnorm_done
+
+    add-float v5, v5, v8
+
+    :cond_vnorm_done
+    :cond_vloop
+    cmpl-float v2, v5, v12
+
+    if-lez v2, :cond_vskip
+
+    invoke-virtual {v11, v5, v3}, Landroid/graphics/Path;->moveTo(FF)V
+
+    invoke-virtual {v11, v5, v13}, Landroid/graphics/Path;->lineTo(FF)V
+
+    add-float v5, v5, v8
+
+    goto :cond_vloop
+
+    :cond_vskip
+    cmpg-float v2, v9, v4
+
+    if-gez v2, :cond_hdone
+
+    cmpl-float v2, v9, v13
+
+    if-lez v2, :cond_hdone
+
+    rem-float v5, v7, v9
+
+    cmpg-float v2, v5, v3
+
+    if-gez v2, :cond_hnorm_done
+
+    add-float v5, v5, v9
+
+    :cond_hnorm_done
+    :cond_hloop
+    cmpl-float v2, v5, v13
+
+    if-lez v2, :cond_hdone
+
+    invoke-virtual {v11, v3, v5}, Landroid/graphics/Path;->moveTo(FF)V
+
+    invoke-virtual {v11, v12, v5}, Landroid/graphics/Path;->lineTo(FF)V
+
+    add-float v5, v5, v9
+
+    goto :cond_hloop
+
+    :cond_hdone
+    invoke-virtual {v1, v11, v10}, Landroid/graphics/Canvas;->drawPath(Landroid/graphics/Path;Landroid/graphics/Paint;)V
+
+    return-void
+.end method
+.method private drawOverlay(Landroid/graphics/Canvas;)V
+    .locals 0
+
+    invoke-direct {p0, p1}, Lcom/jichi/ob/heatmap/HeatmapView;->drawStatus(Landroid/graphics/Canvas;)V
+
+    invoke-direct {p0, p1}, Lcom/jichi/ob/heatmap/HeatmapView;->drawLegend(Landroid/graphics/Canvas;)V
+
+    return-void
+.end method
+
+.method private drawStatus(Landroid/graphics/Canvas;)V
+    .locals 10
+
+    move-object/from16 v0, p0
+
+    move-object/from16 v1, p1
+
+    new-instance v2, Landroid/graphics/Paint;
+
+    invoke-direct {v2}, Landroid/graphics/Paint;-><init>()V
+
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapView;->getResources()Landroid/content/res/Resources;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+
+    move-result-object v3
+
+    iget v3, v3, Landroid/util/DisplayMetrics;->density:F
+
+    const/high16 v4, 0x41400000    # 12.0f
+
+    mul-float v4, v4, v3
+
+    invoke-virtual {v2, v4}, Landroid/graphics/Paint;->setTextSize(F)V
+
+    iget-boolean v4, v0, Lcom/jichi/ob/heatmap/HeatmapView;->dark:Z
+
+    if-eqz v4, :cond_text_light
+
+    const v4, -0x13100d
+
+    goto :goto_text_color
+
+    :cond_text_light
+    const v4, -0xd4d0ca
+
+    :goto_text_color
+    invoke-virtual {v2, v4}, Landroid/graphics/Paint;->setColor(I)V
+
+    iget-object v9, v0, Lcom/jichi/ob/heatmap/HeatmapView;->tiles:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
+
+    if-nez v9, :cond_status_none
+
+    invoke-virtual {v9}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->getOnlineEnabled()Z
+
+    move-result v4
+
+    if-eqz v4, :cond_status_off
+
+    invoke-virtual {v9}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->isOffline()Z
+
+    move-result v4
+
+    if-nez v4, :cond_status_not_offline
+
+    const-string v5, "\u5e95\u56fe\u52a0\u8f7d\u5931\u8d25\uff0c\u5df2\u4f7f\u7528\u79bb\u7ebf\u7f51\u683c"
+
+    goto :goto_status_done
+
+    :cond_status_not_offline
+    invoke-virtual {v9}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->getPendingTiles()I
+
+    move-result v4
+
+    if-lez v4, :cond_status_not_loading
+
+    const-string v5, "\u5728\u7ebf\u5e95\u56fe\u52a0\u8f7d\u4e2d\u2026"
+
+    goto :goto_status_done
+
+    :cond_status_not_loading
+    invoke-virtual {v9}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->getOkTiles()I
+
+    move-result v4
+
+    if-lez v4, :cond_status_grid
+
+    const-string v5, "\u5728\u7ebf\u5e95\u56fe"
+
+    goto :goto_status_done
+
+    :cond_status_grid
+    const-string v5, "\u79bb\u7ebf\u7f51\u683c\u5e95\u56fe"
+
+    goto :goto_status_done
+
+    :cond_status_off
+    const-string v5, "\u79bb\u7ebf\u7f51\u683c \u00b7 \u5728\u7ebf\u5e95\u56fe\u5df2\u5173\u95ed"
+
+    goto :goto_status_done
+
+    :cond_status_none
+    const-string v5, "\u79bb\u7ebf\u7f51\u683c\u5e95\u56fe"
+
+    :goto_status_done
+    const/high16 v4, 0x41200000    # 10.0f
+
+    mul-float v4, v4, v3
+
+    const/high16 v6, 0x41b00000    # 22.0f
+
+    mul-float v6, v6, v3
+
+    invoke-virtual {v1, v5, v4, v6, v2}, Landroid/graphics/Canvas;->drawText(Ljava/lang/String;FFLandroid/graphics/Paint;)V
+
+    return-void
+.end method
+
+.method private drawLegend(Landroid/graphics/Canvas;)V
+    .locals 20
+
+    move-object/from16 v0, p0
+
+    move-object/from16 v1, p1
+
+    new-instance v2, Landroid/graphics/Paint;
+
+    invoke-direct {v2}, Landroid/graphics/Paint;-><init>()V
+
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapView;->getResources()Landroid/content/res/Resources;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+
+    move-result-object v3
+
+    iget v3, v3, Landroid/util/DisplayMetrics;->density:F
+
+    const/high16 v4, 0x41200000    # 10.0f
+
+    mul-float v4, v4, v3
+
+    invoke-virtual {v2, v4}, Landroid/graphics/Paint;->setTextSize(F)V
+
+    iget-boolean v4, v0, Lcom/jichi/ob/heatmap/HeatmapView;->dark:Z
+
+    if-eqz v4, :cond_text_light
+
+    const v4, -0x13100d
+
+    goto :goto_text_color
+
+    :cond_text_light
+    const v4, -0xd4d0ca
+
+    :goto_text_color
+    invoke-virtual {v2, v4}, Landroid/graphics/Paint;->setColor(I)V
+
+    const/high16 v4, 0x41200000    # 10.0f
+
+    mul-float v4, v4, v3
+
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapView;->getHeight()I
+
+    move-result v5
+
+    int-to-float v5, v5
+
+    const/high16 v6, 0x41b00000    # 22.0f
+
+    mul-float v6, v6, v3
+
+    sub-float v5, v5, v6
+
+    const/high16 v6, 0x42c80000    # 100.0f
+
+    mul-float v6, v6, v3
+
+    const/high16 v7, 0x40a00000    # 5.0f
+
+    mul-float v7, v7, v3
+
+    add-float v8, v4, v6
+
+    add-float v9, v5, v7
+
+    new-instance v10, Landroid/graphics/RectF;
+
+    invoke-direct {v10, v4, v5, v8, v9}, Landroid/graphics/RectF;-><init>(FFFF)V
+
+    new-instance v11, Landroid/graphics/LinearGradient;
+
+    move v12, v4
+
+    move v13, v5
+
+    move v14, v8
+
+    move v15, v9
+
+    const v16, 0xff3b30
+
+    const v17, -0xc4d0
+
+    sget-object v18, Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+
+    invoke-direct/range {v11 .. v18}, Landroid/graphics/LinearGradient;-><init>(FFFFIILandroid/graphics/Shader$TileMode;)V
+
+    new-instance v12, Landroid/graphics/Paint;
+
+    invoke-direct {v12}, Landroid/graphics/Paint;-><init>()V
+
+    invoke-virtual {v12, v11}, Landroid/graphics/Paint;->setShader(Landroid/graphics/Shader;)Landroid/graphics/Shader;
+
+    invoke-virtual {v1, v10, v12}, Landroid/graphics/Canvas;->drawRect(Landroid/graphics/RectF;Landroid/graphics/Paint;)V
+
+    const/high16 v13, 0x40000000    # 2.0f
+
+    mul-float v13, v13, v3
+
+    sub-float v13, v8, v13
+
+    const/high16 v14, 0x40800000    # 4.0f
+
+    mul-float v14, v14, v3
+
+    sub-float v14, v5, v14
+
+    sget-object v15, Landroid/graphics/Paint$Align;->RIGHT:Landroid/graphics/Paint$Align;
+
+    invoke-virtual {v2, v15}, Landroid/graphics/Paint;->setTextAlign(Landroid/graphics/Paint$Align;)V
+
+    const-string v15, "\u591a"
+
+    invoke-virtual {v1, v15, v13, v14, v2}, Landroid/graphics/Canvas;->drawText(Ljava/lang/String;FFLandroid/graphics/Paint;)V
+
+    sget-object v15, Landroid/graphics/Paint$Align;->LEFT:Landroid/graphics/Paint$Align;
+
+    invoke-virtual {v2, v15}, Landroid/graphics/Paint;->setTextAlign(Landroid/graphics/Paint$Align;)V
+
+    const-string v15, "\u5c11"
+
+    invoke-virtual {v1, v15, v4, v14, v2}, Landroid/graphics/Canvas;->drawText(Ljava/lang/String;FFLandroid/graphics/Paint;)V
+
+    return-void
+.end method
+.method public getOnlineTiles()Z
+    .locals 1
+
+    iget-boolean v0, p0, Lcom/jichi/ob/heatmap/HeatmapView;->baseOnline:Z
+
+    return v0
+.end method
+
+.method public resetView()V
+    .locals 1
+
+    invoke-direct {p0}, Lcom/jichi/ob/heatmap/HeatmapView;->fitView()V
+
+    const/4 v0, 0x1
+
+    iput-boolean v0, p0, Lcom/jichi/ob/heatmap/HeatmapView;->fitted:Z
+
+    invoke-virtual {p0}, Lcom/jichi/ob/heatmap/HeatmapView;->invalidate()V
+
+    return-void
+.end method
+
+.method public setOnlineTiles(Z)V
+    .locals 1
+
+    iput-boolean p1, p0, Lcom/jichi/ob/heatmap/HeatmapView;->baseOnline:Z
+
+    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapView;->tiles:Lcom/jichi/ob/heatmap/HeatmapTileLoader;
+
+    if-nez v0, :cond_0
+
+    return-void
+
+    :cond_0
+    invoke-virtual {v0, p1}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->setOnlineEnabled(Z)V
+
+    if-nez p1, :cond_1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/heatmap/HeatmapView;->invalidate()V
+
+    return-void
+
+    :cond_1
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapTileLoader;->resetTiles()V
+
     invoke-virtual {p0}, Lcom/jichi/ob/heatmap/HeatmapView;->invalidate()V
 
     return-void

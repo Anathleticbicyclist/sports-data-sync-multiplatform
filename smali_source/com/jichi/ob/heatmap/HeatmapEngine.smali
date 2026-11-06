@@ -796,14 +796,7 @@
     return-object v5
 
     :cond_13
-    if-eqz p4, :cond_14
-
-    const v5, -0xf3f1ee
-
-    goto :goto_c
-
-    :cond_14
-    const v5, -0xd0b09
+    const/4 v5, 0x0
 
     :goto_c
     move/from16 v8, v18

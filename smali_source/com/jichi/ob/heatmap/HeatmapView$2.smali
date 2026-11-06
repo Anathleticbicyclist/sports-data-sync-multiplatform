@@ -65,3 +65,15 @@
 
     return p1
 .end method
+
+.method public onDoubleTap(Landroid/view/MotionEvent;)Z
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/heatmap/HeatmapView$2;->this$0:Lcom/jichi/ob/heatmap/HeatmapView;
+
+    invoke-virtual {v0}, Lcom/jichi/ob/heatmap/HeatmapView;->resetView()V
+
+    const/4 v0, 0x1
+
+    return v0
+.end method

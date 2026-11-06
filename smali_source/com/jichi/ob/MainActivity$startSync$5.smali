@@ -4214,6 +4214,8 @@
 
     const-string v4, "/"
 
+    invoke-static/range {v27 .. v27}, Lcom/jichi/ob/ui/SyncRunReport;->beginRecord(Lcom/jichi/ob/model/ActivityRecord;)V
+
     if-eqz v0, :cond_20
 
     add-int/lit8 v11, v32, 0x1

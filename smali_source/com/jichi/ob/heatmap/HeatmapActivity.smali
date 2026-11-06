@@ -12,6 +12,8 @@
 
 .field private btnDark:Landroid/widget/Button;
 
+.field private btnBase:Landroid/widget/Button;
+
 .field private btnDownload:Landroid/widget/Button;
 
 .field private btnLight:Landroid/widget/Button;
@@ -246,6 +248,14 @@
     move-result p0
 
     return p0
+.end method
+
+.method static synthetic access$1600(Lcom/jichi/ob/heatmap/HeatmapActivity;)Landroid/widget/Button;
+    .locals 0
+
+    iget-object p0, p0, Lcom/jichi/ob/heatmap/HeatmapActivity;->btnBase:Landroid/widget/Button;
+
+    return-object p0
 .end method
 
 .method static synthetic access$200(Lcom/jichi/ob/heatmap/HeatmapActivity;I)V
@@ -522,7 +532,7 @@
     iput-object v1, v0, Lcom/jichi/ob/heatmap/HeatmapActivity;->tipView:Landroid/widget/TextView;
 
     .line 99
-    const-string v9, "\u26a0 \u70ed\u529b\u56fe\u4ec5\u53e0\u52a0\u672c\u5730\u7f13\u5b58\u8fc7\u7684\u8f68\u8ff9\u6587\u4ef6\uff08/storage/emulated/0/Download/\u9e21\u7fc5\u5e78\u54f2\u8fc8\u8fdbOB\uff09\uff0c\u5982\u9700\u66f4\u591a\u6570\u636e\u8bf7\u5148\u540c\u6b65/\u4e0b\u8f7d\u5230\u6587\u4ef6\u5939"
+    const-string v9, "\u26a0 \u70ed\u529b\u56fe\u53e0\u52a0\u672c\u5730\u8f68\u8ff9\uff1a\u81ea\u52a8\u8bfb\u53d6\u300c\u4e0b\u8f7d/\u9e21\u7fc5\u5e78\u54f2\u8fc8\u8fdbOB\u300d\u4e0e App \u4e0b\u8f7d\u8bb0\u5f55\uff1b\u53ef\u70b9\u4e0b\u65b9\u300c\u9009\u62e9\u6587\u4ef6\u5939\u300d\u624b\u52a8\u6307\u5b9a\u76ee\u5f55\u3002\u5e95\u56fe\u79bb\u7ebf\u65f6\u70ed\u529b\u7167\u5e38\u663e\u793a\u3002"
 
     invoke-virtual {v1, v9}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
@@ -653,7 +663,7 @@
     iput-object v2, v0, Lcom/jichi/ob/heatmap/HeatmapActivity;->emptyView:Landroid/widget/TextView;
 
     .line 122
-    const-string v12, "\ud83d\udcc2 \u6587\u4ef6\u5939\u6682\u65e0\u8f68\u8ff9\u6587\u4ef6\n\n\u8bf7\u5148\u5230 App \u4e0b\u8f7d\u4e2d\u5fc3\u4e0b\u8f7d\u8f68\u8ff9\u6570\u636e\u5230\u7f13\u5b58\u6587\u4ef6\u5939\n\uff08Download/\u9e21\u7fc5\u5e78\u54f2\u8fc8\u8fdbOB\uff09\uff0c\u8fd4\u56de\u540e\u81ea\u52a8\u751f\u6210\u70ed\u529b\u56fe"
+    const-string v12, "\ud83d\udcc2 \u672a\u627e\u5230\u672c\u5730\u8f68\u8ff9\u6587\u4ef6\n\n\u5df2\u81ea\u52a8\u626b\u63cf\uff1aDownload/\u9e21\u7fc5\u5e78\u54f2\u8fc8\u8fdbOB\u3001App \u4e0b\u8f7d\u8bb0\u5f55\u4e0e\u5df2\u9009\u6587\u4ef6\u5939\n\u53ef\u70b9\u300c\u9009\u62e9\u6587\u4ef6\u5939\u300d\u624b\u52a8\u6307\u5b9a GPX/FIT/TCX \u76ee\u5f55\n\uff08\u6bcf\u4e2a\u6587\u4ef6\u9700 \u226510 \u4e2a\u8f68\u8ff9\u70b9\u624d\u53c2\u4e0e\u70ed\u529b\u53e0\u52a0\uff09"
 
     invoke-virtual {v2, v12}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
@@ -727,6 +737,7 @@
     iget-object v5, v0, Lcom/jichi/ob/heatmap/HeatmapActivity;->emptyLayout:Landroid/widget/LinearLayout;
 
     invoke-virtual {v5, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
 
     .line 136
     new-instance v2, Landroid/widget/FrameLayout$LayoutParams;
@@ -1101,6 +1112,54 @@
     invoke-virtual {v1, v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     .line 230
+    invoke-virtual {v4, v1}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    new-instance v1, Landroid/widget/LinearLayout;
+
+    invoke-direct {v1, v0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v1, v7}, Landroid/widget/LinearLayout;->setOrientation(I)V
+
+    invoke-virtual {v1, v8}, Landroid/widget/LinearLayout;->setGravity(I)V
+
+    const-string v2, "\u5e95\u56fe: \u5728\u7ebf"
+
+    invoke-direct {v0, v2, v7}, Lcom/jichi/ob/heatmap/HeatmapActivity;->mkButton(Ljava/lang/String;Z)Landroid/widget/Button;
+
+    move-result-object v2
+
+    iput-object v2, v0, Lcom/jichi/ob/heatmap/HeatmapActivity;->btnBase:Landroid/widget/Button;
+
+    new-instance v3, Lcom/jichi/ob/heatmap/HeatmapActivity$13;
+
+    invoke-direct {v3, v0}, Lcom/jichi/ob/heatmap/HeatmapActivity$13;-><init>(Lcom/jichi/ob/heatmap/HeatmapActivity;)V
+
+    invoke-virtual {v2, v3}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    new-instance v3, Landroid/widget/LinearLayout$LayoutParams;
+
+    invoke-direct {v3, v7, v11, v5}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+
+    invoke-virtual {v1, v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    const-string v2, "\u9009\u62e9\u6587\u4ef6\u5939"
+
+    invoke-direct {v0, v2, v7}, Lcom/jichi/ob/heatmap/HeatmapActivity;->mkButton(Ljava/lang/String;Z)Landroid/widget/Button;
+
+    move-result-object v2
+
+    new-instance v3, Lcom/jichi/ob/heatmap/HeatmapActivity$14;
+
+    invoke-direct {v3, v0}, Lcom/jichi/ob/heatmap/HeatmapActivity$14;-><init>(Lcom/jichi/ob/heatmap/HeatmapActivity;)V
+
+    invoke-virtual {v2, v3}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    new-instance v3, Landroid/widget/LinearLayout$LayoutParams;
+
+    invoke-direct {v3, v7, v11, v5}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+
+    invoke-virtual {v1, v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
     invoke-virtual {v4, v1}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     .line 232
@@ -1574,6 +1633,33 @@
     .line 49
     invoke-direct {p0}, Lcom/jichi/ob/heatmap/HeatmapActivity;->buildUi()V
 
+    return-void
+.end method
+
+.method protected onActivityResult(IILandroid/content/Intent;)V
+    .locals 3
+
+    invoke-super {p0, p1, p2, p3}, Landroid/app/Activity;->onActivityResult(IILandroid/content/Intent;)V
+
+    const/16 v0, 0x55
+
+    if-ne p1, v0, :cond_done
+
+    if-nez p2, :cond_done
+
+    if-nez p3, :cond_done
+
+    invoke-virtual {p3}, Landroid/content/Intent;->getData()Landroid/net/Uri;
+
+    move-result-object v1
+
+    if-nez v1, :cond_done
+
+    invoke-static {p0, v1}, Lcom/jichi/ob/heatmap/HeatmapTrackStore;->setFolderUri(Landroid/content/Context;Landroid/net/Uri;)V
+
+    invoke-direct {p0}, Lcom/jichi/ob/heatmap/HeatmapActivity;->scanLocal()V
+
+    :cond_done
     return-void
 .end method
 

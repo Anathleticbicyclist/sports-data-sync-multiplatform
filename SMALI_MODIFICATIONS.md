@@ -150,3 +150,32 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 1. 新增类后主 dex 类型数超过 65536，需把 `smali/io`、`smali/android`、`smali/_COROUTINE` 移到 `smali_classes5`
 2. `fragment_about.xml` 引用的 `@id/cardBikeComputer` 需在 `res/values/ids.xml` + `public.xml` 补齐（原 APK 数值 0x7f080390）
 3. 监听器接口方法名必须精确：`DialogInterface.OnClickListener` 是 `onClick(DialogInterface,int)`（写成 onItemClick 会 AbstractMethodError 闪退）
+
+---
+
+## v9.5.6 Smali 修改说明（2026-11-06）
+
+### 新增文件
+- `ui/SyncRunReport.smali` — 本次运行明细内存区（状态/标题/源/目标/详情/原因/分类/时间/ActivityRecord/平台）+ 失败原因分类 + 点选监听 + 摘要格式化
+- `ui/SyncRunDetailDialog.smali` — 纯代码构建三段式明细弹窗（成功/跳过/失败，失败行带原因分类+原文+「重试」）
+- `ui/SyncRunRetry.smali` — 单条重试后台线程（Continuation+CountDownLatch 桥接），复用 access\ / access\
+- `heatmap/HeatmapTrackStore.smali` — 热力图本地轨迹统一扫描（MediaStore.Downloads / 裸 File 降级 / App 外部目录 / SAF 选择文件夹）
+- `heatmap/HeatmapActivity\/\/\.smali` — 底图在线切换 / 选择文件夹 / 重新扫描监听
+
+### 修改文件
+- `MainActivity.smali`：recordSync 处单点打点 `SyncRunReport.note(...)`；uploadOneToTarget 记录目标平台；runTask/startSync 调 `begin()`
+- `MainActivity\\.smali`：每条记录循环体记录开始明细
+- `ui/SyncFragment.smali`：统计数字可点击 + 「本次运行明细」入口（新增 UI 代码块放在 onViewCreated 末尾，规避寄存器类型冲突）
+- `heatmap/HeatmapTileLoader.smali`：瓦片源改合法 XYZ + OSM/Carto 回退；内存 LruCache + 磁盘缓存按 z/x/y_亮暗 分 key；连续失败熔断进离线
+- `heatmap/HeatmapView.smali`：离线优先渲染（经纬网格底图 + 热力 + 状态条 + 图例 + 双击复位）
+- `heatmap/HeatmapEngine.smali`：热力位图背景改全透明（原不透明底把地图完全盖住）
+- `heatmap/HeatmapActivity.smali` / `\` / `\`：扫描入口改 `HeatmapTrackStore.scan(context)`，新增底图开关/选择文件夹按钮，空状态文案可操作
+- `api/GarminApi.smali`：新增 `uploadActivityOnceCookiePost`（单次 OkHttp POST `/gc-api/upload-service/upload/`，Cookie/CSRF/Origin/Referer 全套头）；injectCookies 同凭证跳过；parseCredential 引用缓存；prepareWebView 轮询 500→250ms
+- `api/GarminApi\\.smali`：CN/COM 先走单 POST，成功/409/明确失败即返回，401/403/HTML 回退旧链路
+- `res/values/public.xml` + `ids.xml`：补齐 125 个缺失资源 id（按原 APK 数值），稳定 aapt2 id 分配
+- 版本号对齐：apktool.yml（95600/9.5.6）、BuildConfig、UpdateChecker、MainActivity banner、fragment_about.xml
+
+### 本轮踩坑（重要）
+1. 往巨型方法（onViewCreated/buildUi）中间插入代码会改变寄存器类型流，ART 校验直接 VerifyError 闪退。新增 UI 代码应追加到方法末尾或封装独立静态方法；改完必须装机冒烟。
+2. apktool 内置汇编器通过 ≠ 运行时校验通过，VerifyError 只有真机/模拟器启动才暴露。
+3. 热力图读文件必须走 MediaStore/SAF（App 未声明存储权限），裸 File.listFiles() 在 Android 10+ 返回空。
