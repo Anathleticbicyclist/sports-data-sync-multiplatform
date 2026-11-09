@@ -34,7 +34,7 @@
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.6.0 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.0/鸡翅幸哲迈进OB-v9.6.0.apk)) |
+| 体验版下载 | [v9.6.0 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.0/jichi-ob-dev-9.6.0.apk)) |
 | 用户手册 | [v9.5.5 完整使用手册 (PDF, 81页)](docs/manual-v9.5.5.pdf) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
