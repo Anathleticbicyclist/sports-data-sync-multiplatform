@@ -7,10 +7,17 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.5.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.6.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
+
+## 📋 更新日志
+
+### v9.6.0
+- iGPSPORT数据传输时间识别修复
+
+> 因缓存机制导致无法获取最新数据，迈金用户建议卸载本软件重新安装
 
 > ⚠️ **开发版仅供测试体验**，部分平台功能有限制，详见下方"已知问题与限制"。
 
@@ -22,12 +29,12 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.5.9 |
+| 当前版本 | v9.6.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.5.9 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.5.9/jichi-ob-dev-9.5.9.apk)) |
+| 体验版下载 | [v9.6.0 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.0/鸡翅幸哲迈进OB-v9.6.0.apk)) |
 | 用户手册 | [v9.5.5 完整使用手册 (PDF, 81页)](docs/manual-v9.5.5.pdf) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
