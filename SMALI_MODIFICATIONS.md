@@ -202,3 +202,24 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 
 ### 验证
 - 模拟器实测：Outbase 真实登录后 dashboard 稳定停留、无 'ec' 报错、不跳回 login；启动不闪退，关于页正常，四个 tab 切换正常。
+
+---
+
+## v9.6.3 / v9.6.4 行者 FIT 时间智能归一化（2026-11-10）
+
+### 背景
+行者存在两类 FIT：App 生成的规范文件 `local_timestamp - timestamp = +8h`（本就正确，多为当天）；服务器生成的不规范文件两者相等、缺时区偏移（多为历史）。iGPSPORT/迈金按 Garmin 标准用该差值反推时区，旧逻辑对所有行者 FIT 一刀切 +8h，导致当天文件被改成 +16h。
+
+### 修改/新增文件
+1. **新增 `util/FitUtcShift.smali`（v9.6.3，本次补入库）**：协议级白名单，仅改 `(mesg=34,field=5)` activity.local_timestamp，含 CRC 重算；含内部类 `$DefMsg`、`$FieldDef`。
+2. **新增 `util/XingzheFitNormalizer.smali`（v9.6.4，Java 编译进 dex）**：读 activity 真实偏移——偏移=0 调 `FitUtcShift.shift(+28800)`；偏移=+8h 原样；其他/异常（Throwable 兜底）原样返回。
+3. **`api/XingzheApi$downloadGpxOrFit$2.smali`**：仅 FIT 分支 return 前对字节数组调 `XingzheFitNormalizer.normalize`，两个 GPX 分支不动。
+4. **`api/UploadEngine.smali`**：删除"行者 FIT 强制 +8h"整段，保留用户手动三选一开关（`{source}_same_day`/`{source}_history`）。
+
+### 本轮踩坑（重要）
+1. 手写 FIT 解析器时，定义消息的开发者字段并非总存在：必须按 record header 的 bit5(0x20) 判断，该位为 0 时没有 dev count 字节，误读会导致位置错位、findActivity 静默返回 null。
+2. 下载点已自动归一化后，若用户在"上传 iGP 时区修正"里对行者又开 +8h，会叠加成 +16h（平台导回文件偏移 57600s 是关键证据）。根源归一化后行者手动开关应保持"不调整"。
+
+### 验证
+- 真实文件功能测试：历史文件（偏移 0）触发 1 次 shift(28800)，当天文件（+8h）返回原数组不触发。
+- 真机实测：当天、历史两条记录 iGPSPORT 显示时间均正确。

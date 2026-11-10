@@ -813,6 +813,10 @@
     invoke-static {v14, v0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
 
     .line 165
+    invoke-static {v4}, Lcom/jichi/ob/util/XingzheFitNormalizer;->normalize([B)[B
+
+    move-result-object v4
+
     new-instance v0, Lkotlin/Pair;
 
     sget-object v2, Lcom/jichi/ob/model/FileKind;->FIT:Lcom/jichi/ob/model/FileKind;

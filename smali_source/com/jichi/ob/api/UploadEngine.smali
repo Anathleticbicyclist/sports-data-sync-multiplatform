@@ -590,7 +590,7 @@
 
     aget-byte v3, v1, v3
 
-    const/16 v4, 0x46
+    const/16 v4, 0x2e
 
     if-ne v3, v4, :cond_1
 
@@ -598,11 +598,19 @@
 
     aget-byte v3, v1, v3
 
-    const/16 v4, 0x49
+    const/16 v4, 0x46
 
     if-ne v3, v4, :cond_1
 
     const/16 v3, 0xa
+
+    aget-byte v3, v1, v3
+
+    const/16 v4, 0x49
+
+    if-ne v3, v4, :cond_1
+
+    const/16 v3, 0xb
 
     aget-byte v3, v1, v3
 
@@ -628,12 +636,12 @@
 
     if-eqz v12, :cond_2
 
-    const-string v4, "_same_day"
+    const-string v4, "_history"
 
     goto :goto_2
 
     :cond_2
-    const-string v4, "_history"
+    const-string v4, "_same_day"
 
     :goto_2
     new-instance v5, Ljava/lang/StringBuilder;
@@ -674,13 +682,9 @@
 
     invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
 
-    sget-object v3, Lcom/jichi/ob/util/FitTimeShift;->INSTANCE:Lcom/jichi/ob/util/FitTimeShift;
+    const v4, 0x7080
 
-    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
-
-    move-result-wide v4
-
-    invoke-virtual {v3, v1, v4, v5}, Lcom/jichi/ob/util/FitTimeShift;->shiftForIgpsport([BJ)[B
+    invoke-static {v1, v4}, Lcom/jichi/ob/util/FitUtcShift;->shift([BI)[B
 
     move-result-object v0
 
@@ -710,13 +714,9 @@
 
     invoke-static {v3, v4}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
 
-    sget-object v3, Lcom/jichi/ob/util/FitTimeShift;->INSTANCE:Lcom/jichi/ob/util/FitTimeShift;
+    const v4, -0x7080
 
-    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getStartTimeMs()J
-
-    move-result-wide v4
-
-    invoke-virtual {v3, v1, v4, v5}, Lcom/jichi/ob/util/FitTimeShift;->shiftForIgpsportMinus([BJ)[B
+    invoke-static {v1, v4}, Lcom/jichi/ob/util/FitUtcShift;->shift([BI)[B
 
     move-result-object v0
 
