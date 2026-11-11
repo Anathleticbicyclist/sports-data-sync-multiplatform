@@ -764,6 +764,10 @@
 
     invoke-virtual {v0, v3}, Lcom/jichi/ob/api/MageneApi$Companion;->setLastFromFitContent(Z)V
 
+    invoke-static {v2}, Lcom/jichi/ob/util/MageneFitTz;->normalizeAuto([B)[B
+
+    move-result-object v2
+
     .line 361
     new-instance v0, Lcom/jichi/ob/api/MageneApi$MageneFitResult;
 

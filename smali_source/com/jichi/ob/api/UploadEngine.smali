@@ -522,6 +522,26 @@
 
     move-object/from16 v2, p2
 
+    invoke-virtual {v2}, Lcom/jichi/ob/model/ActivityRecord;->getSource()Lcom/jichi/ob/model/DataSource;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
+
+    move-result-object v3
+
+    const-string v4, "MAGENE"
+
+    invoke-virtual {v3, v4}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v3
+
+    if-eqz v3, :skip_magene_tz
+
+    return-object v1
+
+    :skip_magene_tz
+
     invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
 
     move-result-object v3

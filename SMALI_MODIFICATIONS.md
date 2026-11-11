@@ -223,3 +223,23 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 ### 验证
 - 真实文件功能测试：历史文件（偏移 0）触发 1 次 shift(28800)，当天文件（+8h）返回原数组不触发。
 - 真机实测：当天、历史两条记录 iGPSPORT 显示时间均正确。
+
+---
+
+## v9.6.5 迈金 FIT 时间形态判定（2026-11-11）
+
+### 背景
+迈金 `fit_content` 下发的 FIT 里 `record/start_time` 存的是 UTC 原值，iGPSPORT 直接把该数值当本地时间显示，造成活动时间早 8 小时（本地 09:14 显示 01:14）。迈金同一来源的文件存在三种形态，不能一刀切：
+
+- 形态 A：`local_timestamp` 缺失或为 0（纯 UTC）
+- 形态 B：`local_timestamp` 与 `record.timestamp` 相同（本地时间冒充 UTC）
+- 形态 C：两者相差 +28800（规范分离）
+
+### 新增 / 修改文件
+1. **新增 `util/MageneFitTz.smali`**：严格结构解析（definition→字段表→按 gno / 字段号 / base type 定位，按 `arch` 判大端），两遍遍历；仅平移 base type = uint32 的时间字段，经纬度为 sint32 不受影响；改完重算尾部 CRC16；唯一入口 `normalizeAuto([B)[B`，形态 A 才 +28800 并补 `local_timestamp`，其余原样返回，幂等。
+2. **`api/MageneApi$downloadFit$2.smali`**：在 fit_content 分支的 `MageneFitResult` 构造前对字节数组调 `MageneFitTz.normalizeAuto`（注意该分支 `v2` 才是 byte[]，`v3` 是 flag；另一分支 `{v3, v2}` 里 `v2` 是 `const/4 0x0`，挂错会类型不符）。
+3. **`api/UploadEngine.smali`**：`applyIgpTimezoneShift` 入口判来源为 MAGENE 直接 `return-object v1`，避免下载已归一后上传阶段再叠加，其余来源与手选档位不受影响。
+
+### 验证
+- 离线：两份真实迈金样本（22463B / 8099B）record/start_time/local 全部 +28800，CRC PASS，810/278 点坐标逐点差 0.000000000000 度，二次调用不再改字节。
+- 真机：下载→落盘→上传 iGPSPORT 全链路跑通，iGPSPORT 侧持有的文件与设备落盘件字节一致，时间字段即本地时间。
