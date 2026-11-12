@@ -305,6 +305,8 @@
 
     if-eqz v0, :cond_3
 
+    invoke-static {v0}, Lcom/jichi/ob/util/MageneRefreshPersist;->handle(Lorg/json/JSONObject;)V
+
     .line 120
     invoke-virtual {v0, v1, v3}, Lorg/json/JSONObject;->optString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 

@@ -7,7 +7,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.6.5-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.6.6-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
@@ -24,13 +24,13 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.6.5 |
+| 当前版本 | v9.6.6 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.6.5 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.5/jichi-ob-dev-9.6.5.apk) |
-| 仓库内直存 | [鸡翅幸哲迈进OB-v9.6.5.apk](鸡翅幸哲迈进OB-v9.6.5.apk)（不跳 Release 的备用下载） |
+| 体验版下载 | [v9.6.6 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.6/jichi-ob-dev-9.6.6.apk) |
+| 仓库内直存 | [鸡翅幸哲迈进OB-v9.6.6.apk](鸡翅幸哲迈进OB-v9.6.6.apk)（不跳 Release 的备用下载） |
 | 用户手册 | [v9.5.5 完整使用手册 (PDF, 81页)](docs/manual-v9.5.5.pdf) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
@@ -434,6 +434,9 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v9.6.6
+- 优化顽鹿运动OTM数据拉取
 
 ### v9.6.5
 - 迈金FIT时间按文件形态判定：纯UTC文件在下载阶段把时间戳统一+8h，iGPSPORT 直接显示本地时间；本地冒充UTC、以及本就规范分离的文件保持原样，不再依赖"上传iGP时区修正"页的手动档位

@@ -243,3 +243,22 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 ### 验证
 - 离线：两份真实迈金样本（22463B / 8099B）record/start_time/local 全部 +28800，CRC PASS，810/278 点坐标逐点差 0.000000000000 度，二次调用不再改字节。
 - 真机：下载→落盘→上传 iGPSPORT 全链路跑通，iGPSPORT 侧持有的文件与设备落盘件字节一致，时间字段即本地时间。
+---
+
+## v9.6.6 顽鹿 OTM 预导入 / 刷新令牌回写 / 403 风控异常分离（2026-11-12）
+
+### 背景
+顽鹿 OTM 新记录存在服务端可见但尚未落入迈金活动列表的延迟，拉列表前先调 capability_list 预导入补齐；`/api/token` 刷新成功后返回体里的新 refresh_token 需回写本地，否则下一轮过期仍沿用旧令牌；HTTP/业务 403 属风控拦截，与 401 登录过期语义不同，需拆成独立异常类型。
+
+### 新增 / 修改文件
+1. **新增 `smali_source/com/jichi/ob/util/MageneCapabilitySync.smali`**：拉取活动列表前 POST `/api/otm/ride_record/capability_list` 做预导入；读取 `data.sync.inserted`，同一 token 20s 内去重，最多 3 轮；全过程异常全部吞掉，不阻断列表主流程。
+2. **新增 `smali_source/com/jichi/ob/util/MageneRefreshPersist.smali`**：`/api/token` 刷新成功后，将返回 `data` 中的 `refresh_token` 回写 SharedPreferences（prefs 名 `jichi_ob`，键 `magene_refresh_token`）。
+3. **新增 `smali_source/com/jichi/ob/api/MageneRiskControlException.smali`**：独立风控异常类，与"登录已过期"分离。
+4. **`smali_source/com/jichi/ob/api/MageneApi$getActivities$2.smali`**：在 `:cond_1` 挂钩点接入 `MageneCapabilitySync` 预导入。
+5. **`smali_source/com/jichi/ob/api/MageneApi$refreshToken$2.smali`**：刷新成功分支挂钩 `MageneRefreshPersist` 回写新 refresh_token；403 判定跳 `:cond_risk`。
+
+### 403 风控分离
+- HTTP 403 与业务 code 403 都跳 `:cond_risk`，抛出 `MageneRiskControlException`；401 两处判定保持原样，仍走登录过期分支。
+
+### 验证
+- 待装机冒烟：预导入异常不阻断活动列表；刷新成功后本地新令牌生效；403 走风控分支，不被误判为登录过期。

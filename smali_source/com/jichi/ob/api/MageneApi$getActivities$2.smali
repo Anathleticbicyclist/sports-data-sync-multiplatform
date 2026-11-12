@@ -334,6 +334,9 @@
     :cond_1
     invoke-static/range {p1 .. p1}, Lkotlin/ResultKt;->throwOnFailure(Ljava/lang/Object;)V
 
+    iget-object v2, v0, Lcom/jichi/ob/api/MageneApi$getActivities$2;->$token:Ljava/lang/String;
+    invoke-static {v2}, Lcom/jichi/ob/util/MageneCapabilitySync;->sync(Ljava/lang/String;)I
+
     .line 204
     new-instance v2, Ljava/util/ArrayList;
 
@@ -509,6 +512,10 @@
 
     if-eq v11, v13, :cond_14
 
+    const/16 v13, 0x193
+
+    if-eq v11, v13, :cond_risk
+
     .line 224
     new-instance v11, Lorg/json/JSONObject;
 
@@ -523,7 +530,13 @@
 
     move-result v14
 
+    const/16 v13, 0x191
+
     if-eq v14, v13, :cond_13
+
+    const/16 v13, 0x193
+
+    if-eq v14, v13, :cond_risk
 
     const/16 v12, 0xc8
 
@@ -1134,6 +1147,14 @@
 
     invoke-direct {v1, v2}, Ljava/lang/Exception;-><init>(Ljava/lang/String;)V
 
+    throw v1
+
+    :cond_risk
+    new-instance v1, Lcom/jichi/ob/api/MageneRiskControlException;
+    const/16 v2, 0x64
+    invoke-static {v10, v2}, Lkotlin/text/StringsKt;->take(Ljava/lang/String;I)Ljava/lang/String;
+    move-result-object v2
+    invoke-direct {v1, v2}, Lcom/jichi/ob/api/MageneRiskControlException;-><init>(Ljava/lang/String;)V
     throw v1
 
     .line 278
