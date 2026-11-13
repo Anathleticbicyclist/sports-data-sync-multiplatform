@@ -262,3 +262,33 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 
 ### 验证
 - 待装机冒烟：预导入异常不阻断活动列表；刷新成功后本地新令牌生效；403 走风控分支，不被误判为登录过期。
+
+## v9.6.7 Strava 网页登录闭环与上传（2026-11-13）
+
+### 背景
+9.6.7 官方版本带出 Strava 平台入口；本补丁树补齐「网页 cookie 登录 → 登录态显示 → FIT 上传」全链路，参考同作者 `wawajiao-sync` 的「凭证即 cookie」实现，不引入额外兜底逻辑。
+
+### 新增文件
+1. **`smali_source/com/jichi/ob/api/StravaApi.smali`**（配套 `$Companion` / `$Result` / `$SessionCheck` / `$NotLoggedInException` / `$RateLimitedException` / `$$ExternalSyntheticLambda0`）：`fetchCsrf` / `uploadFit` / `pollProgress`（三步上传协议）与 `hasSession`（`GET /upload/select`，仅 200 视为有效会话）。
+2. **`smali_source/com/jichi/ob/api/StravaApi$upload$2.smali`**、**`smali_source/com/jichi/ob/api/UploadEngine$uploadToStrava$1.smali`**：上传协程体与续体。
+
+### 修改文件
+1. **`api/UploadEngine.smali`**：新增 `uploadToStravaWeb(Ljava/lang/String;[B)` 与 `access$uploadToStravaWeb`（凭证优先 → 空则读 prefs → 仍空报未登录）；`uploadToCoros` 删除 `0x5000`（20KB）判断。
+2. **`api/UploadEngine$upload$2.smali`** / **`$WhenMappings.smali`**：新增 `:pswitch_strava` 分发与 when 映射表项。
+3. **`api/CorosApi$uploadFit$2.smali`**：`if-ge v4, v13, :cond_4` 改 `goto :cond_4`，去除 20KB 上限。
+4. **`ui/LoginWebActivity.smali`**：新增 `detectStrava()`（双域名取 cookie、`"; "` 拼接、长度 < 20 返回、`AtomicBoolean` CAS 重入保护）+ 两个 `public static final` 合成 lambda。
+5. **`ui/LoginFragment.smali`**：删除 Strava「开发者登录」次级按钮块（含 `$$ExternalSyntheticLambda19`）。
+6. **`MainActivity.smali`** / **`MainActivity$loginLauncher$1$3.smali`**：网页登录回传（`type` 以 `strava` 开头且 data 含 `=`）只调 `saveStravaWebCookie`，不进 OAuth 兑换；`$1$3` 二次兜底 `return-void`。
+7. **`util/PrefsManager.smali`**：`isLoggedIn` 加 STRAVA 前置块 → `isStravaWebLoggedIn()`；`saveStravaCookie` 双写（`strava_cookie` + 静态副本 `fix3StravaCookie`）；`getStravaCookie` 回落静态副本；`isStravaWebLoggedIn` 真值修正（null/空串 → false）。
+8. **`res/layout/fragment_about.xml`** / **`res/layout/activity_login_web.xml`** / **`BuildConfig.smali`**：关于页版本文案与网页登录页。
+
+### 本轮踩坑（重要）
+1. **Dalvik 助记符极性**：`if-nez` 是"寄存器 ≠ 0 才跳"，`if-eqz` 是"= 0 才跳"。`getStravaCookie` / `isStravaWebLoggedIn` / `uploadToStravaWeb` 四处长度与空值判定曾误用 `if-nez`，等价于「非空 → false」，表现为 cookie 明明已保存却恒显示未登录、上传 2ms 报「Strava 未登录」。四处已统一改 `if-eqz`。
+2. **`UploadResult` 构造寄存器位次**：`new-instance v3` 后不能紧跟 `const/4 v3, 0x1`（会把 this 覆盖成 int，`VerifyError` 整类被校验器拒绝）。
+3. **合成 lambda 访问级别**：跨类 `invoke-static` 的合成 lambda 必须 `public static final`，否则 `IllegalAccessError`（检测线程死亡→进程自杀）。
+4. **SharedPreferences 不能外部改文件**：adb 直接改 `shared_prefs/*.xml` 会被应用内存 map 整表回写覆盖，不能作为「cookie 已落盘」的证据；验证必须在应用内写入。
+
+### 验证
+- 成品包反编逐方法核对 **19 项全 PASS**（明细见 `docs/9.6.7-发布核对.md` 第 3 节）。
+- 模拟器：登录页显示「已登录平台（1）/ Strava ✓ 已登录」，日志 `cookie PRESENT -> true`。
+- 真机：网页登录后日志「✅ Strava 网页登录成功，已保存 2428 字节 cookie」，上传不再报「Strava 未登录」。

@@ -7,10 +7,10 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.6.6-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.6.7-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
-一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
+一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Strava / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入）。
 
 > 📋 版本更新日志已移至文末：[📋 更新日志](#-更新日志)
 
@@ -24,13 +24,13 @@
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.6.6 |
+| 当前版本 | v9.6.7 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.6.6 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.6/jichi-ob-dev-9.6.6.apk) |
-| 仓库内直存 | [鸡翅幸哲迈进OB-v9.6.6.apk](鸡翅幸哲迈进OB-v9.6.6.apk)（不跳 Release 的备用下载） |
+| 体验版下载 | [v9.6.7 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.7/jichi-ob-dev-9.6.7.apk) |
+| 仓库内直存 | [鸡翅幸哲迈进OB-v9.6.7.apk](鸡翅幸哲迈进OB-v9.6.7.apk)（不跳 Release 的备用下载） |
 | 用户手册 | [v9.5.5 完整使用手册 (PDF, 81页)](docs/manual-v9.5.5.pdf) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
@@ -116,6 +116,7 @@
 | 松拓Suunto | OAuth2授权登录（需开发者凭证） |
 | 高驰中国 | 账号登录 |
 | 高驰国际 | 账号登录 |
+| Strava | 网页账号登录（浏览器内登录成功后自动保存登录态） |
 | Wahoo | 账号登录 |
 
 > ⚠️ **佳明账号**：若开启两步验证(MFA)，需先在佳明App中关闭，当前版本不支持MFA验证码输入。**佳明对频繁登录有风控（限流/人机验证）**：请保证账号密码一次性输对，勿同时登录开发体验版与正式版；若登录失败提示风控，请勿反复尝试，过几小时或次日再登录。
@@ -434,6 +435,13 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v9.6.7
+- 新增 Strava 同步：网页登录后自动保存登录态，登录页/首页正确显示「已登录」，记录可上传到 Strava（当前仅作上传目标）
+- 新增迈金坐标转换，支持骑行台数据（GCJ-02→WGS-84，七牛云建议关、fit_content 建议开、本地文件夹可单独转换）
+- 优化自动重登规则：检测失败进入冷却期，冷却期内不再反复自动登录，凭证保留、可手动重登
+- 修复登录相关 bug：网页登录回调偶发被吞、登录成功后状态不刷新
+- 高驰上传去除 20KB 小文件限制（保留 200MB 上限）
 
 ### v9.6.6
 - 优化顽鹿运动OTM数据拉取
