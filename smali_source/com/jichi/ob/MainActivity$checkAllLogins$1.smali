@@ -3548,7 +3548,7 @@
     move-object v10, v12
 
     :cond_0
-    invoke-virtual {v10, v9}, Lcom/jichi/ob/util/PrefsManager;->isLoggedIn(Lcom/jichi/ob/model/DataSource;)Z
+    invoke-virtual {v10, v9}, Lcom/jichi/ob/util/PrefsManager;->isLoggedInOrReloginable(Lcom/jichi/ob/model/DataSource;)Z
 
     move-result v10
 
@@ -7556,6 +7556,26 @@
     :cond_51
     const/16 v15, 0xe
 
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v0, :ck_relog
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v0, :ck_relog
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v0, :ck_relog
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v0, :ck_relog
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->INTERVALS_ICU:Lcom/jichi/ob/model/DataSource;
+
+    if-eq v7, v0, :ck_icu
+
     .line 1638
     iget v0, v5, Lkotlin/jvm/internal/Ref$IntRef;->element:I
 
@@ -7568,9 +7588,6 @@
     .line 1639
     invoke-virtual {v10, v7}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
-    # v9.5.7 持久化保证：以下平台（Wahoo、高驰国内/国际、佳明国际 GARMIN_COM、佳明中国 GARMIN_CN）
-    # 即使启动检测判定失效，也一律跳到 :cond_54/:goto_68 保留本地凭证（仅提示需手动重登），
-    # 绝不调用 clearCredential。尤其佳明中国网页版登录拿到的 token/cookie 会被持久化，不会丢失。
     .line 1640
     sget-object v0, Lcom/jichi/ob/model/DataSource;->WAHOO:Lcom/jichi/ob/model/DataSource;
 
@@ -7620,6 +7637,34 @@
     invoke-direct {v3, v0, v7}, Lcom/jichi/ob/MainActivity$checkAllLogins$1$$ExternalSyntheticLambda4;-><init>(Lcom/jichi/ob/MainActivity;Lcom/jichi/ob/model/DataSource;)V
 
     invoke-virtual {v0, v3}, Lcom/jichi/ob/MainActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+
+    goto :goto_69
+
+    :ck_icu
+    const/4 v11, 0x0
+
+    iget-object v3, v1, Lcom/jichi/ob/MainActivity$checkAllLogins$1;->this$0:Lcom/jichi/ob/MainActivity;
+
+    const-string/jumbo v2, "\uD83D\uDD11 Intervals.icu \u6821\u9a8c\u5931\u8d25\uff0c\u5df2\u4fdd\u7559 API Key\uff0c\u4e0b\u6b21\u542f\u52a8\u7ee7\u7eed\u91cd\u8bd5"
+
+    invoke-static {v3, v2}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    goto :goto_69
+
+    :ck_relog
+    const/4 v11, 0x0
+
+    iget-object v3, v1, Lcom/jichi/ob/MainActivity$checkAllLogins$1;->this$0:Lcom/jichi/ob/MainActivity;
+
+    invoke-static {v3}, Lcom/jichi/ob/MainActivity;->access$getPrefs$p(Lcom/jichi/ob/MainActivity;)Lcom/jichi/ob/util/PrefsManager;
+
+    move-result-object v0
+
+    invoke-virtual {v0, v7}, Lcom/jichi/ob/util/PrefsManager;->markReloginFail(Lcom/jichi/ob/model/DataSource;)V
+
+    const-string/jumbo v2, "\u672C\u6B21\u81EA\u52A8\u91CD\u767B\u5931\u8D25\uFF0C\u5DF2\u4FDD\u7559\u8D26\u53F7\u5BC6\u7801\u4E0E\u0074\u006F\u006B\u0065\u006E\uFF0C\u4E0B\u6B21\u542F\u52A8\u7EE7\u7EED\u91CD\u8BD5"
+
+    invoke-static {v3, v2}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
     goto :goto_69
 

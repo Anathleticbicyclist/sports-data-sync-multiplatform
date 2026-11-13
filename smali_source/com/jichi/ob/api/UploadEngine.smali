@@ -536,12 +536,11 @@
 
     move-result v3
 
-    if-eqz v3, :skip_magene_tz
+    if-eqz v3, :cond_0
 
     return-object v1
 
-    :skip_magene_tz
-
+    :cond_0
     invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
 
     move-result-object v3
@@ -566,7 +565,7 @@
 
     move-result v8
 
-    if-ne v7, v8, :cond_0
+    if-ne v7, v8, :cond_1
 
     const/16 v4, 0x2
 
@@ -578,7 +577,7 @@
 
     move-result v8
 
-    if-ne v7, v8, :cond_0
+    if-ne v7, v8, :cond_1
 
     const/16 v4, 0x5
 
@@ -590,13 +589,13 @@
 
     move-result v8
 
-    if-ne v7, v8, :cond_0
+    if-ne v7, v8, :cond_1
 
     const/4 v12, 0x1
 
     goto :goto_0
 
-    :cond_0
+    :cond_1
     const/4 v12, 0x0
 
     :goto_0
@@ -604,7 +603,7 @@
 
     const/16 v4, 0xc
 
-    if-lt v3, v4, :cond_1
+    if-lt v3, v4, :cond_2
 
     const/16 v3, 0x8
 
@@ -612,7 +611,7 @@
 
     const/16 v4, 0x2e
 
-    if-ne v3, v4, :cond_1
+    if-ne v3, v4, :cond_2
 
     const/16 v3, 0x9
 
@@ -620,7 +619,7 @@
 
     const/16 v4, 0x46
 
-    if-ne v3, v4, :cond_1
+    if-ne v3, v4, :cond_2
 
     const/16 v3, 0xa
 
@@ -628,7 +627,7 @@
 
     const/16 v4, 0x49
 
-    if-ne v3, v4, :cond_1
+    if-ne v3, v4, :cond_2
 
     const/16 v3, 0xb
 
@@ -636,13 +635,13 @@
 
     const/16 v4, 0x54
 
-    if-ne v3, v4, :cond_1
+    if-ne v3, v4, :cond_2
 
     const/4 v13, 0x1
 
     goto :goto_1
 
-    :cond_1
+    :cond_2
     const/4 v13, 0x0
 
     :goto_1
@@ -654,13 +653,13 @@
 
     move-result-object v3
 
-    if-eqz v12, :cond_2
+    if-eqz v12, :cond_3
 
     const-string v4, "_history"
 
     goto :goto_2
 
-    :cond_2
+    :cond_3
     const-string v4, "_same_day"
 
     :goto_2
@@ -692,9 +691,9 @@
 
     const/4 v3, 0x1
 
-    if-ne v14, v3, :cond_4
+    if-ne v14, v3, :cond_5
 
-    if-eqz v13, :cond_3
+    if-eqz v13, :cond_4
 
     const-string v3, "UploadEngine"
 
@@ -710,7 +709,7 @@
 
     return-object v0
 
-    :cond_3
+    :cond_4
     sget-object v3, Lcom/jichi/ob/util/GpxTimeFixer;->INSTANCE:Lcom/jichi/ob/util/GpxTimeFixer;
 
     const/4 v4, -0x8
@@ -721,12 +720,12 @@
 
     return-object v0
 
-    :cond_4
+    :cond_5
     const/4 v3, 0x2
 
-    if-ne v14, v3, :cond_6
+    if-ne v14, v3, :cond_7
 
-    if-eqz v13, :cond_5
+    if-eqz v13, :cond_6
 
     const-string v3, "UploadEngine"
 
@@ -742,7 +741,7 @@
 
     return-object v0
 
-    :cond_5
+    :cond_6
     sget-object v3, Lcom/jichi/ob/util/GpxTimeFixer;->INSTANCE:Lcom/jichi/ob/util/GpxTimeFixer;
 
     const/16 v4, 0x8
@@ -753,7 +752,7 @@
 
     return-object v0
 
-    :cond_6
+    :cond_7
     return-object v1
 .end method
 
@@ -2542,12 +2541,6 @@
 
     .line 885
     :goto_8
-    array-length v0, v11
-
-    const/16 v3, 0x5000
-
-    if-lt v0, v3, :cond_b
-
     array-length v0, v11
 
     const/high16 v3, 0xc800000
@@ -12749,4 +12742,234 @@
     move-result-object p1
 
     return-object p1
+.end method
+
+.method public static final synthetic access$uploadToStravaWeb(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[B)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    .locals 0
+
+    invoke-direct {p0, p1, p2}, Lcom/jichi/ob/api/UploadEngine;->uploadToStravaWeb(Ljava/lang/String;[B)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    move-result-object p0
+
+    return-object p0
+.end method
+
+.method private final uploadToStravaWeb(Ljava/lang/String;[B)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    .locals 13
+
+    iget-object v0, p0, Lcom/jichi/ob/api/UploadEngine;->context:Landroid/content/Context;
+
+    new-instance v1, Lcom/jichi/ob/util/PrefsManager;
+    invoke-direct {v1, v0}, Lcom/jichi/ob/util/PrefsManager;-><init>(Landroid/content/Context;)V
+
+    if-eqz p1, :sw2_from_prefs
+    invoke-virtual {p1}, Ljava/lang/String;->length()I
+    move-result v2
+    if-eqz v2, :sw2_from_prefs
+    move-object v1, p1
+    goto :sw2_check_cookie
+
+    :sw2_from_prefs
+    invoke-virtual {v1}, Lcom/jichi/ob/util/PrefsManager;->getStravaCookie()Ljava/lang/String;
+    move-result-object v1
+
+    :sw2_check_cookie
+    if-eqz v1, :sw2_no_login
+    invoke-static {v1}, Lkotlin/text/StringsKt;->isBlank(Ljava/lang/CharSequence;)Z
+    move-result v2
+    if-eqz v2, :sw2_have_cookie
+
+    :sw2_no_login
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const-string v6, "Strava \u672a\u767b\u5f55\uff0c\u8bf7\u5148\u767b\u5f55"
+    const/4 v7, 0x0
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+
+    :sw2_have_cookie
+    const-string p1, "鸡翅幸哲迈进OB"
+    :try_start_0
+    new-instance v11, Lcom/jichi/ob/api/StravaApi;
+    const/4 v0, 0x0
+    const/4 v2, 0x1
+    invoke-direct {v11, v0, v2, v0}, Lcom/jichi/ob/api/StravaApi;-><init>(Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+
+    invoke-static {v11, v1}, Lcom/jichi/ob/api/StravaApi;->access$fetchCsrf(Lcom/jichi/ob/api/StravaApi;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v2
+
+    invoke-static {v11, v1, v2, p2, p1}, Lcom/jichi/ob/api/StravaApi;->access$postFiles(Lcom/jichi/ob/api/StravaApi;Ljava/lang/String;Ljava/lang/String;[BLjava/lang/String;)Ljava/lang/String;
+    move-result-object v12
+
+    move-object v6, v11
+
+    move-object v7, v1
+
+    move-object v8, v12
+
+    const-wide/16 v9, 0x7d0
+
+    const/16 v11, 0xc
+
+    invoke-static/range {v6 .. v11}, Lcom/jichi/ob/api/StravaApi;->access$poll(Lcom/jichi/ob/api/StravaApi;Ljava/lang/String;Ljava/lang/String;JI)Lcom/jichi/ob/api/StravaApi$Result;
+
+    move-result-object v11
+
+
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getSuccess()Z
+    move-result v2
+    if-eqz v2, :sw2_pending
+
+    const-string v6, "\u2462 \u2705 \u5904\u7406\u5b8c\u6210\uff1a"
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getMessage()Ljava/lang/String;
+    move-result-object v12
+    new-instance v2, Ljava/lang/StringBuilder;
+    invoke-direct {v2, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v2, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v2
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x1
+    const-string v5, ""
+    const/4 v7, 0x0
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+
+    :sw2_pending
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getPending()Z
+    move-result v2
+    if-eqz v2, :sw2_skipped
+
+    const-string v6, "\u2462 \u23f3 \u5f85\u786e\u8ba4\uff08\u5df2\u4e0a\u4f20\u672a\u5165\u5e93\uff0c\u7a0d\u540e\u5230 Strava \u7f51\u9875\u7aef\u6838\u5bf9\uff0c\u4e0d\u8981\u91cd\u4f20\uff09\uff1a"
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getMessage()Ljava/lang/String;
+    move-result-object v12
+    new-instance v2, Ljava/lang/StringBuilder;
+    invoke-direct {v2, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v2, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v2
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const/4 v7, 0x0
+    const/4 v8, 0x1
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+
+    :sw2_skipped
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getSkipped()Z
+    move-result v2
+    if-eqz v2, :sw2_fail
+
+    const-string v6, "\u2462 \u23ed \u8df3\u8fc7\uff1a"
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getMessage()Ljava/lang/String;
+    move-result-object v12
+    new-instance v2, Ljava/lang/StringBuilder;
+    invoke-direct {v2, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v2, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v2
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const/4 v7, 0x1
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+
+    :sw2_fail
+    const-string v6, "\u2462 \u274c \u5931\u8d25\uff1a"
+    invoke-virtual {v11}, Lcom/jichi/ob/api/StravaApi$Result;->getMessage()Ljava/lang/String;
+    move-result-object v12
+    new-instance v2, Ljava/lang/StringBuilder;
+    invoke-direct {v2, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v2, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v2
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const/4 v7, 0x0
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+    :try_end_0
+    .catch Lcom/jichi/ob/api/StravaApi$NotLoggedInException; {:try_start_0 .. :try_end_0} :sw2_catch_nologin
+    .catch Lcom/jichi/ob/api/StravaApi$RateLimitedException; {:try_start_0 .. :try_end_0} :sw2_catch_ratelimit
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :sw2_catch_other
+
+    :sw2_catch_nologin
+    move-exception v12
+    invoke-virtual {v12}, Lcom/jichi/ob/api/StravaApi$NotLoggedInException;->getMessage()Ljava/lang/String;
+    move-result-object v6
+    if-nez v6, :sw2_nologin_fb
+    goto :sw2_nologin_done
+    :sw2_nologin_fb
+    const-string v6, "Strava \u767b\u5f55\u5df2\u5931\u6548\uff0c\u8bf7\u91cd\u65b0\u767b\u5f55"
+    :sw2_nologin_done
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const/4 v7, 0x0
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+
+    :sw2_catch_ratelimit
+    move-exception v12
+    invoke-virtual {v12}, Lcom/jichi/ob/api/StravaApi$RateLimitedException;->getMessage()Ljava/lang/String;
+    move-result-object v6
+    if-nez v6, :sw2_rate_fb
+    goto :sw2_rate_done
+    :sw2_rate_fb
+    const-string v6, "Strava \u8bf7\u6c42\u8fc7\u4e8e\u9891\u7e41\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5"
+    :sw2_rate_done
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const/4 v7, 0x0
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
+
+    :sw2_catch_other
+    move-exception v12
+    new-instance v2, Ljava/lang/StringBuilder;
+    const-string v6, "Strava \u4e0a\u4f20\u5931\u8d25: "
+    invoke-direct {v2, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v12}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+    move-result-object v6
+    invoke-virtual {v2, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    move-result-object v2
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    new-instance v3, Lcom/jichi/ob/api/UploadEngine$UploadResult;
+    const/4 v4, 0x0
+    const-string v5, ""
+    const/4 v7, 0x0
+    const/4 v8, 0x0
+    const/4 v9, 0x0
+    const/4 v10, 0x0
+    invoke-direct/range {v3 .. v10}, Lcom/jichi/ob/api/UploadEngine$UploadResult;-><init>(ZLjava/lang/String;Ljava/lang/String;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+    return-object v3
 .end method

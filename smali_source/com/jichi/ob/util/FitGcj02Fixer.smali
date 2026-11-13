@@ -500,8 +500,11 @@
     :cond_1
     if-eqz p3, :cond_2
 
+    # v6 preserves the data array; p1 is reused for devFieldCount below
+    move-object v6, p1
+
     .line 210
-    aget-byte p1, p1, p2
+    aget-byte p1, v6, p2
 
     and-int/lit16 p1, p1, 0xff
 
@@ -510,7 +513,16 @@
     :goto_2
     if-ge v1, p1, :cond_2
 
+    # developer field size = data[offset + 1]; add it to the record stride (v5)
+    add-int/lit8 v7, p2, 0x1
+
+    aget-byte v7, v6, v7
+
+    and-int/lit16 v7, v7, 0xff
+
     add-int/lit8 p2, p2, 0x3
+
+    add-int/2addr v5, v7
 
     add-int/lit8 v1, v1, 0x1
 

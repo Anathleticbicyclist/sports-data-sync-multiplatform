@@ -1939,6 +1939,98 @@
 
     return-void
 
+    :sswitch_b
+    const-string/jumbo v1, "strava"
+
+    invoke-virtual {v3, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v3
+
+    if-nez v3, :cond_strava_web
+
+    goto :goto_7
+
+    :cond_strava_web
+    const-string v4, "https://www.strava.com"
+
+    invoke-virtual {v2, v4}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v4
+
+    const-string v5, "https://strava.com"
+
+    invoke-virtual {v2, v5}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v5
+
+    if-nez v4, :c_s1
+
+    move-object v4, v9
+
+    :c_s1
+    if-nez v5, :c_s2
+
+    move-object v5, v9
+
+    :c_s2
+    new-instance v6, Ljava/lang/StringBuilder;
+
+    invoke-direct {v6, v4}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v5}, Ljava/lang/String;->length()I
+
+    move-result v4
+
+    if-lez v4, :c_s3
+
+    const-string v4, "; "
+
+    invoke-virtual {v6, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v6
+
+    invoke-virtual {v6, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v6
+
+    :c_s3
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v5
+
+    invoke-virtual {v5}, Ljava/lang/String;->length()I
+
+    move-result v4
+
+    if-lez v4, :cond_strava_web_fail
+
+    new-instance v4, Landroid/content/Intent;
+
+    invoke-direct {v4}, Landroid/content/Intent;-><init>()V
+
+    invoke-virtual {v4, v11, v5}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+
+    move-result-object v4
+
+    invoke-virtual {v4, v10, v1}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+
+    move-result-object v4
+
+    invoke-virtual {v0, v12, v4}, Lcom/jichi/ob/ui/LoginWebActivity;->setResult(ILandroid/content/Intent;)V
+
+    goto :goto_7
+
+    :cond_strava_web_fail
+    iput-boolean v15, v0, Lcom/jichi/ob/ui/LoginWebActivity;->detected:Z
+
+    new-instance v4, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda15;
+
+    invoke-direct {v4, v0}, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda15;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;)V
+
+    invoke-virtual {v0, v4}, Lcom/jichi/ob/ui/LoginWebActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+
+    return-void
+
     .line 1552
     :cond_17
     :goto_7
@@ -1956,6 +2048,7 @@
         -0x4c74f7e6 -> :sswitch_7
         -0x41f4a0e1 -> :sswitch_6
         -0x40788157 -> :sswitch_5
+        -0x352abd05 -> :sswitch_b
         -0x1b3d9520 -> :sswitch_4
         -0x6d093c4 -> :sswitch_3
         0x6ba993e -> :sswitch_2
@@ -5339,9 +5432,14 @@
 
     move-result v0
 
-    if-nez v0, :cond_b
+    if-nez v0, :cond_strava
 
     goto/16 :goto_0
+
+    :cond_strava
+    invoke-direct {p0}, Lcom/jichi/ob/ui/LoginWebActivity;->detectStrava()V
+
+    return-void
 
     :sswitch_a
     const-string/jumbo v1, "withings"
@@ -5888,11 +5986,11 @@
 
     move-result v4
 
-    if-nez v4, :cond_1b
+    if-nez v4, :cond_2
 
     return-void
 
-    :cond_1b
+    :cond_2
     const/4 v4, 0x4
 
     .line 1698
@@ -6052,64 +6150,6 @@
     invoke-virtual {v0}, Lcom/jichi/ob/ui/LoginWebActivity;->finish()V
 
     return-void
-.end method
-
-# v9.5.7: outbase 登录前无条件清理残留 cookie，避免旧 sessionId 被秒判导致"点登录秒回退"
-.method public final forceCleanOutbaseIfNeeded()V
-    .locals 2
-
-    iget-object v0, p0, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
-
-    const-string v1, "outbase"
-
-    invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v0
-
-    if-eqz v0, :cond_0
-
-    sget-object v0, Lcom/jichi/ob/ui/LoginWebActivity;->Companion:Lcom/jichi/ob/ui/LoginWebActivity$Companion;
-
-    iget-object v1, p0, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
-
-    const/4 v2, 0x0
-
-    invoke-virtual {v0, v1, v2}, Lcom/jichi/ob/ui/LoginWebActivity$Companion;->clearPlatformWebLogin(Ljava/lang/String;Z)V
-
-    :cond_0
-    return-void
-.end method
-
-# v9.5.7: URL 门控，仍停留在 login.html 时不允许判定登录成功，防止旧 cookie 在登录页被秒判
-.method public final isOutbaseUrlReadyForDetect()Z
-    .locals 2
-
-    iget-object v0, p0, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
-
-    if-eqz v0, :cond_0
-
-    invoke-virtual {v0}, Landroid/webkit/WebView;->getUrl()Ljava/lang/String;
-
-    move-result-object v0
-
-    if-eqz v0, :cond_0
-
-    const-string v1, "login.html"
-
-    invoke-virtual {v0, v1}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
-
-    move-result v1
-
-    if-nez v1, :cond_0
-
-    const/4 v0, 0x1
-
-    return v0
-
-    :cond_0
-    const/4 v0, 0x0
-
-    return v0
 .end method
 
 .method private final detectTwoBulu()V
@@ -10960,6 +11000,62 @@
 
 
 # virtual methods
+.method public final forceCleanOutbaseIfNeeded()V
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
+
+    const-string v1, "outbase"
+
+    invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    sget-object v0, Lcom/jichi/ob/ui/LoginWebActivity;->Companion:Lcom/jichi/ob/ui/LoginWebActivity$Companion;
+
+    iget-object v1, p0, Lcom/jichi/ob/ui/LoginWebActivity;->loginType:Ljava/lang/String;
+
+    const/4 p0, 0x0
+
+    invoke-virtual {v0, v1, p0}, Lcom/jichi/ob/ui/LoginWebActivity$Companion;->clearPlatformWebLogin(Ljava/lang/String;Z)V
+
+    :cond_0
+    return-void
+.end method
+
+.method public final isOutbaseUrlReadyForDetect()Z
+    .locals 2
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/LoginWebActivity;->webView:Landroid/webkit/WebView;
+
+    if-eqz v0, :cond_0
+
+    invoke-virtual {v0}, Landroid/webkit/WebView;->getUrl()Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_0
+
+    const-string v1, "login.html"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+
+    move-result v1
+
+    if-nez v1, :cond_0
+
+    const/4 v0, 0x1
+
+    return v0
+
+    :cond_0
+    const/4 v0, 0x0
+
+    return v0
+.end method
+
 .method public onBackPressed()V
     .locals 3
 
@@ -11024,7 +11120,6 @@
     .line 231
     invoke-super/range {p0 .. p1}, Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V
 
-    # v9.5.7: 打开 WebView 远程调试，便于通过 edge://inspect 排查 outbase 登录页的网络/控制台问题
     const/4 v2, 0x1
 
     invoke-static {v2}, Landroid/webkit/WebView;->setWebContentsDebuggingEnabled(Z)V
@@ -11957,11 +12052,6 @@
 
     if-eqz v0, :cond_26
 
-    # v9.5.7 核心修复（outbase 登录后被踢回 login.html 的根因）：
-    # 正式版对 outbase 设 useWideViewPort=true 且 loadWithOverviewMode=true，
-    # 本工程此前误设为 false，导致桌面端页面在 WebView 中布局/视口异常，
-    # 网页 JS 读取视口相关对象报 "Cannot read properties of undefined (reading 'ec')"，
-    # 随后网页自行跳回 login.html 并清空 cookie。此处对齐正式版，两个开关均置 true。
     const/4 v5, 0x1
 
     .line 517
@@ -12236,6 +12326,8 @@
     :goto_7
     return-void
 
+    nop
+
     :sswitch_data_0
     .sparse-switch
         -0x7aa89db3 -> :sswitch_12
@@ -12292,6 +12384,262 @@
     .line 1724
     :catch_0
     invoke-super {p0}, Landroidx/appcompat/app/AppCompatActivity;->onDestroy()V
+
+    return-void
+.end method
+.method private final detectStrava()V
+    .locals 13
+
+    .line 961
+    invoke-static {}, Landroid/webkit/CookieManager;->getInstance()Landroid/webkit/CookieManager;
+
+    move-result-object v0
+
+    const/4 v1, 0x2
+
+    .line 963
+    new-array v1, v1, [Ljava/lang/String;
+
+    const-string v2, "https://www.strava.com"
+
+    invoke-virtual {v0, v2}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v2
+
+    const/4 v3, 0x0
+
+    aput-object v2, v1, v3
+
+    .line 964
+    const-string/jumbo v2, "www.strava.com"
+
+    invoke-virtual {v0, v2}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    const/4 v2, 0x1
+
+    aput-object v0, v1, v2
+
+    .line 962
+    invoke-static {v1}, Lkotlin/collections/CollectionsKt;->listOf([Ljava/lang/Object;)Ljava/util/List;
+
+    move-result-object v0
+
+    check-cast v0, Ljava/lang/Iterable;
+
+    .line 965
+    invoke-static {v0}, Lkotlin/collections/CollectionsKt;->filterNotNull(Ljava/lang/Iterable;)Ljava/util/List;
+
+    move-result-object v0
+
+    move-object v4, v0
+
+    check-cast v4, Ljava/lang/Iterable;
+
+    const-string v0, "; "
+
+    move-object v5, v0
+
+    check-cast v5, Ljava/lang/CharSequence;
+
+    const/16 v11, 0x3e
+
+    const/4 v12, 0x0
+
+    const/4 v6, 0x0
+
+    const/4 v7, 0x0
+
+    const/4 v8, 0x0
+
+    const/4 v9, 0x0
+
+    const/4 v10, 0x0
+
+    invoke-static/range {v4 .. v12}, Lkotlin/collections/CollectionsKt;->joinToString$default(Ljava/lang/Iterable;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;ILjava/lang/CharSequence;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+
+    move-result-object v0
+
+    .line 966
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+
+    move-result v1
+
+    const/16 v4, 0x14
+
+    if-ge v1, v4, :cond_0
+
+    goto :goto_0
+
+    .line 967
+    :cond_0
+    iget-object v1, p0, Lcom/jichi/ob/ui/LoginWebActivity;->verifying:Ljava/util/concurrent/atomic/AtomicBoolean;
+
+    invoke-virtual {v1, v3, v2}, Ljava/util/concurrent/atomic/AtomicBoolean;->compareAndSet(ZZ)Z
+
+    move-result v1
+
+    if-nez v1, :cond_1
+
+    :goto_0
+    return-void
+
+    .line 968
+    :cond_1
+    new-instance v1, Ljava/lang/Thread;
+
+    .line 988
+    new-instance v2, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda47;
+
+    invoke-direct {v2, v0, p0}, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda47;-><init>(Ljava/lang/String;Lcom/jichi/ob/ui/LoginWebActivity;)V
+
+    .line 968
+    invoke-direct {v1, v2}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+
+    .line 988
+    invoke-virtual {v1}, Ljava/lang/Thread;->start()V
+
+    return-void
+.end method
+
+.method public static final detectStrava$lambda$47(Ljava/lang/String;Lcom/jichi/ob/ui/LoginWebActivity;)V
+    .locals 6
+
+    .line 969
+    const-string v0, "LoginWeb"
+
+    .line 0
+    const-string/jumbo v1, "\u2705 Strava \u767b\u5f55\u9a8c\u8bc1\u901a\u8fc7, cookie len="
+
+    const/4 v2, 0x0
+
+    .line 970
+    :try_start_0
+    new-instance v3, Lcom/jichi/ob/api/StravaApi;
+
+    const/4 v4, 0x1
+
+    const/4 v5, 0x0
+
+    invoke-direct {v3, v5, v4, v5}, Lcom/jichi/ob/api/StravaApi;-><init>(Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+
+    .line 971
+    invoke-virtual {v3, p0}, Lcom/jichi/ob/api/StravaApi;->hasSession(Ljava/lang/String;)Z
+
+    move-result v3
+
+    if-eqz v3, :cond_0
+
+    .line 972
+    iput-boolean v4, p1, Lcom/jichi/ob/ui/LoginWebActivity;->detected:Z
+
+    .line 973
+    invoke-virtual {p0}, Ljava/lang/String;->length()I
+
+    move-result v3
+
+    new-instance v4, Ljava/lang/StringBuilder;
+
+    invoke-direct {v4, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-static {v0, v1}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    .line 974
+    new-instance v1, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda48;
+
+    invoke-direct {v1, p1, p0}, Lcom/jichi/ob/ui/LoginWebActivity$$ExternalSyntheticLambda48;-><init>(Lcom/jichi/ob/ui/LoginWebActivity;Ljava/lang/String;)V
+
+    invoke-virtual {p1, v1}, Lcom/jichi/ob/ui/LoginWebActivity;->runOnUiThread(Ljava/lang/Runnable;)V
+
+    return-void
+
+    .line 981
+    :cond_0
+    const-string p0, "Strava cookie \u672a\u901a\u8fc7 /upload/select \u6821\u9a8c\uff0c\u7ee7\u7eed\u68c0\u6d4b"
+
+    invoke-static {v0, p0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+
+    .line 982
+    iget-object p0, p1, Lcom/jichi/ob/ui/LoginWebActivity;->verifying:Ljava/util/concurrent/atomic/AtomicBoolean;
+
+    invoke-virtual {p0, v2}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    return-void
+
+    :catch_0
+    move-exception p0
+
+    .line 985
+    invoke-virtual {p0}, Ljava/lang/Exception;->getMessage()Ljava/lang/String;
+
+    move-result-object p0
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    const-string v3, "Strava \u9a8c\u8bc1\u5f02\u5e38: "
+
+    invoke-direct {v1, v3}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v1, p0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object p0
+
+    invoke-virtual {p0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object p0
+
+    invoke-static {v0, p0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
+
+    .line 986
+    iget-object p0, p1, Lcom/jichi/ob/ui/LoginWebActivity;->verifying:Ljava/util/concurrent/atomic/AtomicBoolean;
+
+    invoke-virtual {p0, v2}, Ljava/util/concurrent/atomic/AtomicBoolean;->set(Z)V
+
+    return-void
+.end method
+
+.method public static final detectStrava$lambda$48(Lcom/jichi/ob/ui/LoginWebActivity;Ljava/lang/String;)V
+    .locals 2
+
+    .line 975
+    new-instance v0, Landroid/content/Intent;
+
+    invoke-direct {v0}, Landroid/content/Intent;-><init>()V
+
+    .line 976
+    const-string v1, "session_id"
+
+    invoke-virtual {v0, v1, p1}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+
+    move-result-object p1
+
+    .line 977
+    const-string v0, "login_type"
+
+    const-string/jumbo v1, "strava"
+
+    invoke-virtual {p1, v0, v1}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
+
+    move-result-object p1
+
+    const/4 v0, -0x1
+
+    .line 975
+    invoke-virtual {p0, v0, p1}, Lcom/jichi/ob/ui/LoginWebActivity;->setResult(ILandroid/content/Intent;)V
+
+    .line 978
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/LoginWebActivity;->finish()V
 
     return-void
 .end method

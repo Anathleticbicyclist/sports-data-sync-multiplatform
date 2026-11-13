@@ -14,9 +14,9 @@
 
 .field public static final IGP_NATIVE_LOGIN:Z = true
 
-.field public static final VERSION_CODE:I = 0x17444
+.field public static final VERSION_CODE:I = 0x179BC
 
-.field public static final VERSION_NAME:Ljava/lang/String; = "9.5.6"
+.field public static final VERSION_NAME:Ljava/lang/String; = "9.6.7"
 
 .field public static final WAHOO_CLIENT_ID:Ljava/lang/String; = "lGMZOR4YVIhQZt6Zao6Z5RzmGXRTFZVgmaqV91JmoeU"
 

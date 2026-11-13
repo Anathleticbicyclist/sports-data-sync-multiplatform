@@ -1068,7 +1068,7 @@
     sput-object v0, Lcom/jichi/ob/MainActivity;->Companion:Lcom/jichi/ob/MainActivity$Companion;
 
     .line 97
-    const-string/jumbo v0, "v9.5.6"
+    const-string/jumbo v0, "v9.6.7"
 
     sput-object v0, Lcom/jichi/ob/MainActivity;->APP_VERSION:Ljava/lang/String;
 
@@ -1198,6 +1198,222 @@
 
     return-void
 .end method
+.method private static final saveStravaWebCookie(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+    .locals 3
+
+    if-eqz p1, :cond_0
+
+    invoke-virtual {p1}, Ljava/lang/String;->length()I
+
+    move-result v0
+
+    if-lez v0, :fix3_cookie_empty
+
+    const/16 v2, 0x14
+
+    if-lt v0, v2, :fix3_cookie_short
+
+    iget-object v0, p0, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez v0, :cond_1
+
+    const-string v1, "prefs"
+
+    invoke-static {v1}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    :cond_1
+    invoke-virtual {v0, p1}, Lcom/jichi/ob/util/PrefsManager;->saveStravaCookie(Ljava/lang/String;)V
+
+    invoke-virtual {p1}, Ljava/lang/String;->length()I
+
+    move-result v0
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    const-string v2, "✅ Strava 网页登录成功，已保存 "
+
+    invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    const-string v2, " 字节 cookie"
+
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-static {p0, v1}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    goto :cond_0
+
+:fix3_cookie_short
+    const-string v1, "[fix3] strava cookie too short (<20), ignored"
+
+    invoke-static {p0, v1}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    goto :cond_0
+
+:fix3_cookie_empty
+    const-string v1, "⚠️ Strava 网页登录未拿到 cookie（session_id 为空），请重试"
+
+    invoke-static {p0, v1}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    :cond_0
+    return-void
+.end method
+.method private static final fix3StravaCookieOnly(Lcom/jichi/ob/MainActivity;Ljava/lang/String;Ljava/lang/String;)Z
+    .locals 4
+
+    if-eqz p1, :cond_not
+
+    const-string v0, "strava"
+
+    invoke-virtual {p1, v0}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_not
+
+    if-eqz p2, :cond_no_data
+
+    invoke-virtual {p2}, Ljava/lang/String;->length()I
+
+    move-result v1
+
+    const-string v3, "="
+
+    invoke-virtual {p2, v3}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+
+    move-result v2
+
+    goto :cond_check
+
+    :cond_no_data
+    const/4 v1, 0x0
+
+    const/4 v2, 0x0
+
+    :cond_check
+    new-instance v3, Ljava/lang/StringBuilder;
+
+    invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v0, "[fix3] strava callback: type="
+
+    invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v3, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/CharSequence;)Ljava/lang/StringBuilder;
+
+    const-string v0, " len="
+
+    invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v3, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    const-string v0, " eq="
+
+    invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-static {p0, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    const/16 v0, 0x14
+
+    if-ge v1, v0, :cond_len_ok
+
+    const-string v0, "[fix3] strava cookie too short (<20), ignored"
+
+    invoke-static {p0, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    const/4 v0, 0x1
+
+    return v0
+
+    :cond_len_ok
+    if-eqz v2, :cond_code
+
+    invoke-static {p0, p2}, Lcom/jichi/ob/MainActivity;->saveStravaWebCookie(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    const/4 v0, 0x1
+
+    return v0
+
+    :cond_code
+    const-string/jumbo v0, "\u26a0\ufe0f Strava \u4ec5\u652f\u6301\u7f51\u9875 cookie \u767b\u5f55\uff0c\u5df2\u8df3\u8fc7 OAuth \u5151\u6362"
+
+    invoke-static {p0, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    const/4 v0, 0x1
+
+    return v0
+
+    :cond_not
+    const/4 v0, 0x0
+
+    return v0
+.end method
+.method private static final fix3Identity(Lcom/jichi/ob/MainActivity;)V
+    .locals 1
+
+    const-string v0, "[fix3] OB9.6.7 STRAVA=cookie-only"
+
+    invoke-static {p0, v0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    return-void
+.end method
+.method private static final fix3Diag(Lcom/jichi/ob/MainActivity;Ljava/lang/String;Ljava/lang/String;)V
+    .locals 3
+
+    new-instance v0, Ljava/lang/StringBuilder;
+
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v1, "[fix3] diag type="
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v0, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/CharSequence;)Ljava/lang/StringBuilder;
+
+    const-string v1, " len="
+
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    if-eqz p2, :diag_len0
+
+    invoke-virtual {p2}, Ljava/lang/String;->length()I
+
+    move-result v2
+
+    goto :diag_len
+
+    :diag_len0
+    const/4 v2, 0x0
+
+    :diag_len
+    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-static {p0, v1}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+
+
 
 .method public static final synthetic access$cleanCacheType(Lcom/jichi/ob/MainActivity;Lcom/jichi/ob/model/DataSource;Ljava/lang/String;)Ljava/lang/String;
     .locals 0
@@ -2174,47 +2390,6 @@
     return-void
 .end method
 
-.method public final checkTrialFeature()Z
-    .locals 4
-
-    .line 3461
-    invoke-direct {p0}, Lcom/jichi/ob/MainActivity;->getTrialLicense()Lcom/jichi/ob/util/TrialLicense;
-
-    move-result-object v0
-
-    .line 3462
-    invoke-virtual {v0}, Lcom/jichi/ob/util/TrialLicense;->isFirstUse()Z
-
-    move-result v1
-
-    const/4 v2, 0x1
-
-    const/4 v3, 0x0
-
-    if-eqz v1, :cond_0
-
-    .line 3463
-    invoke-direct {p0, v0, v2}, Lcom/jichi/ob/MainActivity;->showTrialDialog(Lcom/jichi/ob/util/TrialLicense;Z)V
-
-    return v3
-
-    .line 3466
-    :cond_0
-    invoke-virtual {v0}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
-
-    move-result v1
-
-    if-eqz v1, :cond_1
-
-    return v2
-
-    .line 3467
-    :cond_1
-    invoke-direct {p0, v0, v3}, Lcom/jichi/ob/MainActivity;->showTrialDialog(Lcom/jichi/ob/util/TrialLicense;Z)V
-
-    return v3
-.end method
-
 .method private final cleanCacheType(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;)Ljava/lang/String;
     .locals 8
 
@@ -2448,6 +2623,7 @@
     .end annotation
 
     move-object/from16 v1, p0
+
 
     move-object/from16 v0, p1
 
@@ -9868,9 +10044,9 @@
 
     const/4 v9, -0x1
 
-    if-ne v8, v9, :cond_4d
+    if-ne v8, v9, :cond_4f
 
-    if-eqz v7, :cond_4d
+    if-eqz v7, :cond_4f
 
     .line 169
     const-string v8, "login_type"
@@ -9926,6 +10102,8 @@
 
     .line 173
     :cond_3
+    invoke-static {v1, v8, v11}, Lcom/jichi/ob/MainActivity;->fix3Diag(Lcom/jichi/ob/MainActivity;Ljava/lang/String;Ljava/lang/String;)V
+
     invoke-virtual {v8}, Ljava/lang/String;->hashCode()I
 
     move-result v12
@@ -10749,12 +10927,13 @@
     :sswitch_9
     move-object v4, v6
 
-    .line 173
     invoke-virtual {v8, v14}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 
     move-result v2
 
     if-nez v2, :cond_32
+
+    invoke-static {v1, v11}, Lcom/jichi/ob/MainActivity;->saveStravaWebCookie(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
     goto/16 :goto_d
 
@@ -10790,7 +10969,7 @@
 
     const/16 v2, 0x14
 
-    if-le v0, v2, :cond_4a
+    if-le v0, v2, :cond_4c
 
     .line 186
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
@@ -10858,7 +11037,7 @@
 
     move-result v0
 
-    if-le v0, v3, :cond_4a
+    if-le v0, v3, :cond_4c
 
     .line 213
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
@@ -10917,7 +11096,7 @@
 
     const/16 v2, 0x14
 
-    if-le v0, v2, :cond_4a
+    if-le v0, v2, :cond_4c
 
     .line 178
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
@@ -11027,17 +11206,38 @@
     .line 286
     :cond_36
     :goto_a
+    # fix3: delegate strava cookie-only decision to helper; callback method registers stay untouched
+    invoke-static {v1, v8, v11}, Lcom/jichi/ob/MainActivity;->fix3StravaCookieOnly(Lcom/jichi/ob/MainActivity;Ljava/lang/String;Ljava/lang/String;)Z
+
+    move-result v2
+
+    if-eqz v2, :fix3_default
+
+    goto/16 :goto_d
+
+    :fix3_default
     sget-object v0, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
     .line 288
     :goto_b
+    :cond_38
+:fix3_ds_gate
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+
+    if-ne v0, v2, :fix3_ds_not_strava
+
+    invoke-static {v1, v11}, Lcom/jichi/ob/MainActivity;->saveStravaWebCookie(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    goto/16 :goto_d
+
+:fix3_ds_not_strava
     invoke-virtual {v11}, Ljava/lang/String;->length()I
 
     move-result v2
 
     const/4 v7, 0x5
 
-    if-le v2, v7, :cond_37
+    if-le v2, v7, :cond_39
 
     .line 290
     move-object v2, v1
@@ -11079,7 +11279,7 @@
     goto/16 :goto_d
 
     .line 299
-    :cond_37
+    :cond_39
     invoke-virtual {v0}, Lcom/jichi/ob/model/DataSource;->getDisplayName()Ljava/lang/String;
 
     move-result-object v0
@@ -11120,28 +11320,28 @@
 
     move-result v0
 
-    if-nez v0, :cond_38
+    if-nez v0, :cond_3a
 
     goto/16 :goto_d
 
     .line 235
-    :cond_38
+    :cond_3a
     invoke-virtual {v11}, Ljava/lang/String;->length()I
 
     move-result v0
 
-    if-le v0, v3, :cond_3a
+    if-le v0, v3, :cond_3c
 
     .line 236
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v6, :cond_39
+    if-nez v6, :cond_3b
 
     invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v6, v4
 
-    :cond_39
+    :cond_3b
     invoke-virtual {v6, v11}, Lcom/jichi/ob/util/PrefsManager;->saveCorosIntToken(Ljava/lang/String;)V
 
     .line 237
@@ -11156,7 +11356,7 @@
     goto/16 :goto_d
 
     .line 238
-    :cond_3a
+    :cond_3c
     const-string/jumbo v0, "\u26a0\ufe0f \u9ad8\u9a70\u56fd\u9645\u767b\u5f55\u5931\u8d25: \u672a\u6355\u83b7\u5230token"
 
     invoke-direct {v1, v0}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
@@ -11173,12 +11373,12 @@
 
     move-result v0
 
-    if-nez v0, :cond_3b
+    if-nez v0, :cond_3d
 
     goto/16 :goto_d
 
     .line 195
-    :cond_3b
+    :cond_3d
     move-object/from16 v19, v11
 
     check-cast v19, Ljava/lang/CharSequence;
@@ -11212,23 +11412,23 @@
 
     check-cast v6, Ljava/lang/String;
 
-    if-nez v6, :cond_3c
+    if-nez v6, :cond_3e
 
     move-object v6, v9
 
     .line 197
-    :cond_3c
+    :cond_3e
     invoke-static {v5, v0}, Lkotlin/collections/CollectionsKt;->getOrNull(Ljava/util/List;I)Ljava/lang/Object;
 
     move-result-object v0
 
     check-cast v0, Ljava/lang/String;
 
-    if-nez v0, :cond_3d
+    if-nez v0, :cond_3f
 
     goto :goto_c
 
-    :cond_3d
+    :cond_3f
     move-object v9, v0
 
     .line 198
@@ -11272,7 +11472,7 @@
 
     move-result v5
 
-    if-le v5, v3, :cond_41
+    if-le v5, v3, :cond_43
 
     move-object v3, v9
 
@@ -11282,31 +11482,9 @@
 
     move-result v3
 
-    if-lez v3, :cond_41
+    if-lez v3, :cond_43
 
     .line 200
-    iget-object v3, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
-
-    if-nez v3, :cond_3e
-
-    invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
-
-    move-object v3, v4
-
-    :cond_3e
-    invoke-virtual {v3, v6}, Lcom/jichi/ob/util/PrefsManager;->saveBrytonToken(Ljava/lang/String;)V
-
-    iget-object v3, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
-
-    if-nez v3, :cond_3f
-
-    invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
-
-    move-object v3, v4
-
-    :cond_3f
-    invoke-virtual {v3, v9}, Lcom/jichi/ob/util/PrefsManager;->saveBrytonUserId(Ljava/lang/String;)V
-
     iget-object v3, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
     if-nez v3, :cond_40
@@ -11316,6 +11494,28 @@
     move-object v3, v4
 
     :cond_40
+    invoke-virtual {v3, v6}, Lcom/jichi/ob/util/PrefsManager;->saveBrytonToken(Ljava/lang/String;)V
+
+    iget-object v3, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez v3, :cond_41
+
+    invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object v3, v4
+
+    :cond_41
+    invoke-virtual {v3, v9}, Lcom/jichi/ob/util/PrefsManager;->saveBrytonUserId(Ljava/lang/String;)V
+
+    iget-object v3, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez v3, :cond_42
+
+    invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object v3, v4
+
+    :cond_42
     invoke-virtual {v3, v0}, Lcom/jichi/ob/util/PrefsManager;->saveBrytonCookie(Ljava/lang/String;)V
 
     .line 201
@@ -11361,25 +11561,25 @@
     goto/16 :goto_d
 
     .line 203
-    :cond_41
+    :cond_43
     invoke-virtual {v0}, Ljava/lang/String;->length()I
 
     move-result v2
 
     const/4 v7, 0x5
 
-    if-le v2, v7, :cond_43
+    if-le v2, v7, :cond_45
 
     .line 204
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v6, :cond_42
+    if-nez v6, :cond_44
 
     invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v6, v4
 
-    :cond_42
+    :cond_44
     invoke-virtual {v6, v0}, Lcom/jichi/ob/util/PrefsManager;->saveBrytonCookie(Ljava/lang/String;)V
 
     invoke-virtual {v0}, Ljava/lang/String;->length()I
@@ -11414,7 +11614,7 @@
     goto/16 :goto_d
 
     .line 206
-    :cond_43
+    :cond_45
     const-string/jumbo v0, "\u26a0\ufe0f \u767e\u9510\u817ecookie\u5f02\u5e38\uff0c\u8bf7\u91cd\u65b0\u767b\u5f55"
 
     invoke-direct {v1, v0}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
@@ -11431,30 +11631,30 @@
 
     move-result v0
 
-    if-nez v0, :cond_44
+    if-nez v0, :cond_46
 
     goto :goto_d
 
     .line 174
-    :cond_44
+    :cond_46
     invoke-virtual {v10}, Ljava/lang/String;->length()I
 
     move-result v0
 
     const/16 v2, 0x14
 
-    if-le v0, v2, :cond_4a
+    if-le v0, v2, :cond_4c
 
     .line 175
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v6, :cond_45
+    if-nez v6, :cond_47
 
     invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v6, v4
 
-    :cond_45
+    :cond_47
     invoke-virtual {v6, v10}, Lcom/jichi/ob/util/PrefsManager;->saveIgpsportToken(Ljava/lang/String;)V
 
     const-string/jumbo v0, "\u2705 iGPSPORT\u767b\u5f55\u6210\u529f"
@@ -11477,28 +11677,28 @@
 
     move-result v0
 
-    if-nez v0, :cond_46
+    if-nez v0, :cond_48
 
     goto :goto_d
 
     .line 180
-    :cond_46
+    :cond_48
     invoke-virtual {v11}, Ljava/lang/String;->length()I
 
     move-result v0
 
-    if-le v0, v3, :cond_4a
+    if-le v0, v3, :cond_4c
 
     .line 181
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v6, :cond_47
+    if-nez v6, :cond_49
 
     invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v6, v4
 
-    :cond_47
+    :cond_49
     invoke-virtual {v6, v11}, Lcom/jichi/ob/util/PrefsManager;->saveXingzheSessionId(Ljava/lang/String;)V
 
     .line 182
@@ -11510,21 +11710,21 @@
 
     move-result v0
 
-    if-lez v0, :cond_49
+    if-lez v0, :cond_4b
 
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v6, :cond_48
+    if-nez v6, :cond_4a
 
     invoke-static/range {v18 .. v18}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object v6, v4
 
-    :cond_48
+    :cond_4a
     invoke-virtual {v6, v7}, Lcom/jichi/ob/util/PrefsManager;->saveXingzheCsrf(Ljava/lang/String;)V
 
     .line 183
-    :cond_49
+    :cond_4b
     const-string/jumbo v0, "\u2705 \u884c\u8005\u767b\u5f55\u6210\u529f"
 
     invoke-direct {v1, v0}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
@@ -11534,11 +11734,11 @@
     invoke-direct {v1, v0}, Lcom/jichi/ob/MainActivity;->fetchUsernameAfterLogin(Lcom/jichi/ob/model/DataSource;)V
 
     .line 302
-    :cond_4a
+    :cond_4c
     :goto_d
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->loginFragment:Lcom/jichi/ob/ui/LoginFragment;
 
-    if-nez v6, :cond_4b
+    if-nez v6, :cond_4d
 
     const-string v0, "loginFragment"
 
@@ -11546,7 +11746,7 @@
 
     move-object v6, v4
 
-    :cond_4b
+    :cond_4d
     invoke-virtual {v6}, Lcom/jichi/ob/ui/LoginFragment;->updateStatus()V
     :try_end_2
     .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_1
@@ -11555,7 +11755,7 @@
     :try_start_3
     iget-object v6, v1, Lcom/jichi/ob/MainActivity;->settingsFragment:Lcom/jichi/ob/ui/SyncSettingsFragment;
 
-    if-nez v6, :cond_4c
+    if-nez v6, :cond_4e
 
     const-string/jumbo v0, "settingsFragment"
 
@@ -11563,7 +11763,7 @@
 
     move-object v6, v4
 
-    :cond_4c
+    :cond_4e
     invoke-virtual {v6}, Lcom/jichi/ob/ui/SyncSettingsFragment;->refreshLoginState()V
 
     sget-object v0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
@@ -11592,7 +11792,7 @@
 
     invoke-static {v2, v1, v0}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
 
-    :cond_4d
+    :cond_4f
     :goto_e
     return-void
 
@@ -16136,6 +16336,65 @@
         }
     .end annotation
 
+    # === 冷却闸（T4 修复）：四平台处于失败冷却窗口时直接返回 null，不触发 validateToken / login ===
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+
+    if-eq p1, v0, :cg_chk
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+
+    if-eq p1, v0, :cg_chk
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+
+    if-eq p1, v0, :cg_chk
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+
+    if-eq p1, v0, :cg_chk
+
+    goto :cg_continue
+
+    :cg_chk
+    iget-object v0, p0, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    invoke-virtual {v0, p1}, Lcom/jichi/ob/util/PrefsManager;->isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
+
+    move-result v0
+
+    if-eqz v0, :cg_continue
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v0, "cd_gate=HIT ds="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {p1}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v2, "JichiOB"
+
+    invoke-static {v2, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    const-string/jumbo v2, "\u81EA\u52A8\u91CD\u767B\u51B7\u5374\u4E2D\uFF0830 \u5206\u949F\u5185\u5DF2\u5931\u8D25\u8FC7\uFF09\uFF0C\u672C\u6B21\u8DF3\u8FC7"
+
+    invoke-static {p0, v2}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
+
+    const/4 v9, 0x0
+
+    return-object v9
+
+    :cg_continue
     instance-of v0, p3, Lcom/jichi/ob/MainActivity$refreshCredentialOnStart$1;
 
     if-eqz v0, :cond_0
@@ -17033,18 +17292,68 @@
 
     .line 1863
     :pswitch_12
-    :try_start_b
-    iget-object p3, p0, Lcom/jichi/ob/MainActivity;->komootApi:Lcom/jichi/ob/api/KomootApi;
+    iget-object p3, p0, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez p3, :cond_17
+    if-nez p3, :ckom_prefs
 
-    const-string p3, "komootApi"
-
-    invoke-static {p3}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+    invoke-static {v8}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
     move-object p3, v9
 
-    :cond_17
+    :ckom_prefs
+    invoke-virtual {p3}, Lcom/jichi/ob/util/PrefsManager;->getKomootAccount()Ljava/lang/String;
+
+    move-result-object p3
+
+    iget-object v0, p0, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez v0, :ckom_pw
+
+    invoke-static {v8}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object v0, v9
+
+    :ckom_pw
+    invoke-virtual {v0}, Lcom/jichi/ob/util/PrefsManager;->getKomootPassword()Ljava/lang/String;
+
+    move-result-object v0
+
+    move-object v1, p3
+
+    check-cast v1, Ljava/lang/CharSequence;
+
+    if-eqz v1, :cond_65
+
+    invoke-interface {v1}, Ljava/lang/CharSequence;->length()I
+
+    move-result v1
+
+    if-nez v1, :cond_65
+
+    move-object v1, v0
+
+    check-cast v1, Ljava/lang/CharSequence;
+
+    if-eqz v1, :cond_65
+
+    invoke-interface {v1}, Ljava/lang/CharSequence;->length()I
+
+    move-result v1
+
+    if-nez v1, :cond_65
+
+    :try_start_b
+    iget-object v1, p0, Lcom/jichi/ob/MainActivity;->komootApi:Lcom/jichi/ob/api/KomootApi;
+
+    if-nez v1, :ckom_api
+
+    const-string v1, "komootApi"
+
+    invoke-static {v1}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object v1, v9
+
+    :ckom_api
     invoke-static {p1}, Lkotlin/coroutines/jvm/internal/SpillingKt;->nullOutSpilledVariable(Ljava/lang/Object;)Ljava/lang/Object;
 
     move-result-object p1
@@ -17057,11 +17366,23 @@
 
     iput-object p1, v6, Lcom/jichi/ob/MainActivity$refreshCredentialOnStart$1;->L$1:Ljava/lang/Object;
 
+    invoke-static {p3}, Lkotlin/coroutines/jvm/internal/SpillingKt;->nullOutSpilledVariable(Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object p1
+
+    iput-object p1, v6, Lcom/jichi/ob/MainActivity$refreshCredentialOnStart$1;->L$2:Ljava/lang/Object;
+
+    invoke-static {v0}, Lkotlin/coroutines/jvm/internal/SpillingKt;->nullOutSpilledVariable(Ljava/lang/Object;)Ljava/lang/Object;
+
+    move-result-object p1
+
+    iput-object p1, v6, Lcom/jichi/ob/MainActivity$refreshCredentialOnStart$1;->L$3:Ljava/lang/Object;
+
     const/16 p1, 0xd
 
     iput p1, v6, Lcom/jichi/ob/MainActivity$refreshCredentialOnStart$1;->label:I
 
-    invoke-virtual {p3, v6}, Lcom/jichi/ob/api/KomootApi;->reLoginIfNeeded(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+    invoke-virtual {v1, p3, v0, v6}, Lcom/jichi/ob/api/KomootApi;->login(Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 
     move-result-object p3
 
@@ -17075,6 +17396,21 @@
     check-cast p3, Lcom/jichi/ob/api/KomootApi$LoginResult;
 
     if-eqz p3, :cond_65
+
+    iget-object p1, p0, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    if-nez p1, :ckom_save
+
+    invoke-static {v8}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
+
+    move-object p1, v9
+
+    :ckom_save
+    invoke-virtual {p3}, Lcom/jichi/ob/api/KomootApi$LoginResult;->getToken()Ljava/lang/String;
+
+    move-result-object p2
+
+    invoke-virtual {p1, p2}, Lcom/jichi/ob/util/PrefsManager;->saveKomootToken(Ljava/lang/String;)V
 
     .line 1864
     invoke-virtual {p3}, Lcom/jichi/ob/api/KomootApi$LoginResult;->getToken()Ljava/lang/String;
@@ -23546,8 +23882,19 @@
     :cond_1f
     sget-object v1, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
 
-    if-eq v14, v1, :cond_27
+    if-ne v14, v1, :strava_not
 
+    iget-object v1, v0, Lcom/jichi/ob/MainActivity;->prefs:Lcom/jichi/ob/util/PrefsManager;
+
+    invoke-virtual {v1}, Lcom/jichi/ob/util/PrefsManager;->isStravaWebLoggedIn()Z
+
+    move-result v1
+
+    if-eqz v1, :cond_27
+
+    goto :cond_24
+
+    :strava_not
     sget-object v1, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
     if-eq v14, v1, :cond_27
@@ -25445,6 +25792,47 @@
     return-void
 .end method
 
+.method public final checkTrialFeature()Z
+    .locals 4
+
+    .line 3461
+    invoke-direct {p0}, Lcom/jichi/ob/MainActivity;->getTrialLicense()Lcom/jichi/ob/util/TrialLicense;
+
+    move-result-object v0
+
+    .line 3462
+    invoke-virtual {v0}, Lcom/jichi/ob/util/TrialLicense;->isFirstUse()Z
+
+    move-result v1
+
+    const/4 v2, 0x1
+
+    const/4 v3, 0x0
+
+    if-eqz v1, :cond_0
+
+    .line 3463
+    invoke-direct {p0, v0, v2}, Lcom/jichi/ob/MainActivity;->showTrialDialog(Lcom/jichi/ob/util/TrialLicense;Z)V
+
+    return v3
+
+    .line 3466
+    :cond_0
+    invoke-virtual {v0}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
+
+    move-result v1
+
+    if-eqz v1, :cond_1
+
+    return v2
+
+    .line 3467
+    :cond_1
+    invoke-direct {p0, v0, v3}, Lcom/jichi/ob/MainActivity;->showTrialDialog(Lcom/jichi/ob/util/TrialLicense;Z)V
+
+    return v3
+.end method
+
 .method public final clearSyncMemory$app_devRelease()V
     .locals 7
 
@@ -27126,6 +27514,8 @@
 
     invoke-direct {v1, v5}, Lcom/jichi/ob/MainActivity;->appendLog(Ljava/lang/String;)V
 
+    invoke-static {v1}, Lcom/jichi/ob/MainActivity;->fix3Identity(Lcom/jichi/ob/MainActivity;)V
+
     .line 390
     const-string/jumbo v5, "\ud83c\udfaf \u8ba9\u8fd0\u52a8\u6570\u636e\u81ea\u7531\u6d41\u52a8"
 
@@ -28163,7 +28553,6 @@
 
     invoke-virtual {v6, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # v9.5.0: 涓ゆ楠岃瘉鐢ㄦ埛寮曞鎻愮ず锛堜匠鏄庝腑鍥界洿鎺ョ櫥褰曞脊绐楋級
     new-instance v9, Landroid/widget/TextView;
 
     invoke-direct {v9, v1}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
@@ -28174,7 +28563,7 @@
 
     invoke-virtual {v9, v10}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    const v10, 0x41300000
+    const v10, 0x41300000    # 11.0f
 
     invoke-virtual {v9, v10}, Landroid/widget/TextView;->setTextSize(F)V
 
@@ -28201,7 +28590,6 @@
     check-cast v9, Landroid/view/View;
 
     invoke-virtual {v6, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-    # v9.5.0 end
 
     .line 764
     check-cast v6, Landroid/view/View;
@@ -29420,11 +29808,11 @@
 
     .line 532
     :pswitch_6
-    sget-object p1, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+    const-string p1, "strava"
 
-    const-string/jumbo v0, "strava"
+    const-string v0, "https://www.strava.com/login"
 
-    invoke-direct {p0, p1, v0}, Lcom/jichi/ob/MainActivity;->openDevOAuthLogin(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;)V
+    invoke-virtual {p0, p1, v0}, Lcom/jichi/ob/MainActivity;->openLogin$app_devRelease(Ljava/lang/String;Ljava/lang/String;)V
 
     return-void
 

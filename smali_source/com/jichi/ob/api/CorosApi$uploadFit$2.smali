@@ -504,9 +504,7 @@
     .line 287
     array-length v4, v2
 
-    const/16 v13, 0x5000
-
-    if-ge v4, v13, :cond_4
+    goto :cond_4
 
     .line 290
     new-instance v0, Ljava/lang/StringBuilder;

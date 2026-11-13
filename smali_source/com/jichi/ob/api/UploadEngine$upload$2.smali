@@ -3357,6 +3357,25 @@
     :goto_19
     check-cast v0, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
+
+    :pswitch_strava
+    iget-object v0, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->this$0:Lcom/jichi/ob/api/UploadEngine;
+
+    move-object/from16 v17, v0
+
+    iget-object v3, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$credential:Ljava/lang/String;
+
+    move-object/from16 v18, v3
+
+    iget-object v15, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->$fitData:[B
+
+    move-object/from16 v19, v15
+
+    invoke-static/range {v17 .. v19}, Lcom/jichi/ob/api/UploadEngine;->access$uploadToStravaWeb(Lcom/jichi/ob/api/UploadEngine;Ljava/lang/String;[B)Lcom/jichi/ob/api/UploadEngine$UploadResult;
+
+    move-result-object v0
+
+    goto :goto_1a
     :goto_1a
     return-object v0
 
@@ -3401,5 +3420,6 @@
         :pswitch_12
         :pswitch_11
         :pswitch_21
+        :pswitch_strava
     .end packed-switch
 .end method

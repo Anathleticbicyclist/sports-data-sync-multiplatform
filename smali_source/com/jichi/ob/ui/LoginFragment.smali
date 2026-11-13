@@ -360,7 +360,7 @@
     .line 28
     invoke-direct {p0}, Landroidx/fragment/app/Fragment;-><init>()V
 
-    const/16 v0, 0x14
+    const/16 v0, 0x15
 
     .line 53
     new-array v0, v0, [Lcom/jichi/ob/model/DataSource;
@@ -490,6 +490,12 @@
 
     aput-object v9, v0, v1
 
+    const/16 v1, 0x14
+
+    sget-object v9, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+
+    aput-object v9, v0, v1
+
     .line 52
     invoke-static {v0}, Lkotlin/collections/CollectionsKt;->listOf([Ljava/lang/Object;)Ljava/util/List;
 
@@ -498,32 +504,29 @@
     iput-object v0, p0, Lcom/jichi/ob/ui/LoginFragment;->LOGIN_PLATFORMS:Ljava/util/List;
 
     .line 63
+    const/4 v8, 0x5
     new-array v0, v8, [Lcom/jichi/ob/model/DataSource;
 
     sget-object v1, Lcom/jichi/ob/model/DataSource;->TWO_BULU:Lcom/jichi/ob/model/DataSource;
 
     aput-object v1, v0, v2
 
-    sget-object v1, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
-
-    aput-object v1, v0, v3
-
     sget-object v1, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
 
-    aput-object v1, v0, v4
+    aput-object v1, v0, v3
 
     .line 64
     sget-object v1, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
 
-    aput-object v1, v0, v5
+    aput-object v1, v0, v4
 
     sget-object v1, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
 
-    aput-object v1, v0, v6
+    aput-object v1, v0, v5
 
     sget-object v1, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
-    aput-object v1, v0, v7
+    aput-object v1, v0, v6
 
     .line 62
     invoke-static {v0}, Lkotlin/collections/CollectionsKt;->listOf([Ljava/lang/Object;)Ljava/util/List;
@@ -2319,7 +2322,6 @@
 
     move-result-object v13
 
-    # v9.5.4: 百锐腾卡片标题追加当前站点
     invoke-static {v1, v13}, Lcom/jichi/ob/util/BrytonSite;->decorateTitle(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v13
@@ -4200,10 +4202,9 @@
 
     .line 570
     :cond_11
-    # v9.5.4: 百锐腾详情弹窗增加「国内站/国际站」切换入口
     sget-object v2, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
 
-    if-ne v6, v2, :cond_bryton_site_done
+    if-ne v6, v2, :cond_12
 
     invoke-static {v0, v1}, Lcom/jichi/ob/ui/LoginFragment;->siteRow(Landroid/content/Context;Lcom/jichi/ob/ui/LoginFragment;)Landroid/widget/TextView;
 
@@ -4213,7 +4214,7 @@
 
     invoke-virtual {v15, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    :cond_bryton_site_done
+    :cond_12
     new-instance v2, Landroidx/appcompat/app/AlertDialog$Builder;
 
     invoke-direct {v2, v0}, Landroidx/appcompat/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
@@ -4262,7 +4263,7 @@
 
     invoke-virtual {v7, v0}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
-    if-eqz v9, :cond_12
+    if-eqz v9, :cond_13
 
     .line 584
     move-object v0, v1
@@ -4319,7 +4320,7 @@
 
     invoke-static/range {v1 .. v6}, Lkotlinx/coroutines/BuildersKt;->launch$default(Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/CoroutineContext;Lkotlinx/coroutines/CoroutineStart;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 
-    :cond_12
+    :cond_13
     return-void
 .end method
 
@@ -5108,6 +5109,84 @@
     invoke-virtual {p0, p1}, Lcom/jichi/ob/MainActivity;->openRecordCenter(Ljava/lang/String;)V
 
     return-void
+.end method
+
+.method private static final siteRow(Landroid/content/Context;Lcom/jichi/ob/ui/LoginFragment;)Landroid/widget/TextView;
+    .locals 5
+
+    new-instance v0, Landroid/widget/TextView;
+
+    invoke-direct {v0, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+
+    const/high16 v1, 0x41400000    # 12.0f
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setTextSize(F)V
+
+    sget v1, Lcom/jichi/ob/R$color;->primary:I
+
+    invoke-virtual {p0, v1}, Landroid/content/Context;->getColor(I)I
+
+    move-result v1
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setTextColor(I)V
+
+    const/4 v1, 0x1
+
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setClickable(Z)V
+
+    const/4 v2, 0x0
+
+    const/high16 v3, 0x41000000    # 8.0f
+
+    invoke-direct {p1, v3}, Lcom/jichi/ob/ui/LoginFragment;->dp(F)F
+
+    move-result v3
+
+    float-to-int v3, v3
+
+    const/high16 v4, 0x40c00000    # 6.0f
+
+    invoke-direct {p1, v4}, Lcom/jichi/ob/ui/LoginFragment;->dp(F)F
+
+    move-result v4
+
+    float-to-int v4, v4
+
+    invoke-virtual {v0, v2, v3, v2, v4}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    new-instance v2, Ljava/lang/StringBuilder;
+
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string/jumbo v3, "\u767e\u9510\u817e\u7ad9\u70b9\uff1a"
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->label()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    const-string v3, "  \u70b9\u51fb\u5207\u6362"
+
+    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v2
+
+    check-cast v2, Ljava/lang/CharSequence;
+
+    invoke-virtual {v0, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    new-instance v2, Lcom/jichi/ob/ui/BrytonSiteRowClick;
+
+    invoke-direct {v2, p1}, Lcom/jichi/ob/ui/BrytonSiteRowClick;-><init>(Lcom/jichi/ob/ui/LoginFragment;)V
+
+    invoke-virtual {v0, v2}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+
+    return-object v0
 .end method
 
 .method private final startCheckAll()V
@@ -6274,83 +6353,4 @@
     :catch_0
     :goto_0
     return-void
-.end method
-
-.method private static final siteRow(Landroid/content/Context;Lcom/jichi/ob/ui/LoginFragment;)Landroid/widget/TextView;
-    .locals 5
-
-    # v9.5.4: 百锐腾站点切换行（详情弹窗内，点击弹出国内站/国际站选择）
-    new-instance v0, Landroid/widget/TextView;
-
-    invoke-direct {v0, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-
-    const/high16 v1, 0x41400000    # 12.0f
-
-    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setTextSize(F)V
-
-    sget v1, Lcom/jichi/ob/R$color;->primary:I
-
-    invoke-virtual {p0, v1}, Landroid/content/Context;->getColor(I)I
-
-    move-result v1
-
-    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setTextColor(I)V
-
-    const/4 v1, 0x1
-
-    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setClickable(Z)V
-
-    const/4 v2, 0x0
-
-    const/high16 v3, 0x41000000    # 8.0f
-
-    invoke-direct {p1, v3}, Lcom/jichi/ob/ui/LoginFragment;->dp(F)F
-
-    move-result v3
-
-    float-to-int v3, v3
-
-    const/high16 v4, 0x40c00000    # 6.0f
-
-    invoke-direct {p1, v4}, Lcom/jichi/ob/ui/LoginFragment;->dp(F)F
-
-    move-result v4
-
-    float-to-int v4, v4
-
-    invoke-virtual {v0, v2, v3, v2, v4}, Landroid/widget/TextView;->setPadding(IIII)V
-
-    new-instance v2, Ljava/lang/StringBuilder;
-
-    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v3, "\u767e\u9510\u817e\u7ad9\u70b9\uff1a"
-
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-static {}, Lcom/jichi/ob/util/BrytonSite;->label()Ljava/lang/String;
-
-    move-result-object v3
-
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    const-string v3, "  \u70b9\u51fb\u5207\u6362"
-
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v2
-
-    check-cast v2, Ljava/lang/CharSequence;
-
-    invoke-virtual {v0, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-
-    new-instance v2, Lcom/jichi/ob/ui/BrytonSiteRowClick;
-
-    invoke-direct {v2, p1}, Lcom/jichi/ob/ui/BrytonSiteRowClick;-><init>(Lcom/jichi/ob/ui/LoginFragment;)V
-
-    invoke-virtual {v0, v2}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
-    return-object v0
 .end method

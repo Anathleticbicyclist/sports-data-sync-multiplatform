@@ -1001,7 +1001,8 @@
 .end method
 
 .method public final uploadFile(Lcom/jichi/ob/model/DataSource;Ljava/io/File;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-    .locals 3
+    .locals 8
+    :dev_oauth
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",

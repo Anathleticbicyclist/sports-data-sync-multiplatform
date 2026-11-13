@@ -145,23 +145,7 @@
 
     .line 1437
     :cond_1
-    invoke-static {p1}, Lcom/jichi/ob/MainActivity;->access$getPrefs$p(Lcom/jichi/ob/MainActivity;)Lcom/jichi/ob/util/PrefsManager;
-
-    move-result-object p0
-
-    if-nez p0, :cond_2
-
-    invoke-static {v0}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
-
-    move-object p0, v1
-
-    :cond_2
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->INTERVALS_ICU:Lcom/jichi/ob/model/DataSource;
-
-    invoke-virtual {p0, v0}, Lcom/jichi/ob/util/PrefsManager;->clearCredential(Lcom/jichi/ob/model/DataSource;)V
-
-    .line 1438
-    const-string/jumbo p0, "\u274c Intervals.icu API Key \u65e0\u6548\u6216\u7f51\u7edc\u5f02\u5e38\uff0c\u8bf7\u91cd\u65b0\u8f93\u5165"
+    const-string/jumbo p0, "\uD83D\uDD11 Intervals.icu \u6821\u9a8c\u5931\u8d25\uff0c\u5df2\u4fdd\u7559 API Key\uff0c\u4e0b\u6b21\u542f\u52a8\u7ee7\u7eed\u91cd\u8bd5"
 
     invoke-static {p1, p0}, Lcom/jichi/ob/MainActivity;->access$appendLog(Lcom/jichi/ob/MainActivity;Ljava/lang/String;)V
 
