@@ -292,3 +292,34 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 - 成品包反编逐方法核对 **19 项全 PASS**（明细见 `docs/9.6.7-发布核对.md` 第 3 节）。
 - 模拟器：登录页显示「已登录平台（1）/ Strava ✓ 已登录」，日志 `cookie PRESENT -> true`。
 - 真机：网页登录后日志「✅ Strava 网页登录成功，已保存 2428 字节 cookie」，上传不再报「Strava 未登录」。
+
+---
+
+## v9.6.8 自动登录闪退修复 / 百锐腾来源 / Strava 仅上传 / 多选闸门（2026-11-15）
+
+### 背景
+无网络、平台失效或连不通时，启动阶段循环闪退、无法进入；本版修复协程晚到回调与上下文装配问题，开放百锐腾（BRYTON）作为数据来源，Strava 仅保留上传目标、来源列表隐藏，多选目标接入内测资格闸门，并清理 fix3 诊断桩、对齐版本号与圆角启动图标。
+
+### 新增文件
+1. **`smali_source/com/jichi/ob/MainActivity$checkAllLogins$safeHandler.smali`**：协程异常兜底 `CoroutineExceptionHandler`，`checkAllLogins` 启动协程与 `Dispatchers.IO` 组合，`handleException` 仅记日志不重抛，兜住穿透到协程 machinery 的致命异常。
+2. **`smali_source/com/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda36.smali`**：多选目标闸门通过后的 `Function0` 回调类，持 Fragment + 平台 tag。
+
+### 修改文件
+1. **闪退修复（195）**
+   - `MainActivity.smali`：safeHandler 与 Dispatcher 组合改为 `invoke-interface CoroutineContext->plus`（修正首版误挂 AbstractCoroutineContextElement 的接口错配）；清掉 fix3 诊断桩；接入闸门准入与百锐腾下载分支；APP_VERSION `v9.6.8`。
+   - `api/GarminApi` 五组共 15 个 WebView SCC 晚到回调守卫：fetchViaWebView / downloadViaWebView / uploadViaWebView / uploadBinaryViaWebView / downloadFitOnce，check 类加 `$done` BooleanRef 字段，`run()` 入口判已置位直接 return，各 resume 分支前置位 done；downloadFitOnce 与 uploadViaWebView 两组 BooleanRef 与 ContinuationImpl 寄存器分离修正。
+2. **多选目标闸门（196）**
+   - `util/TrialLicense.smali`：`isAllowed` 只读 license_period（LIFE→true；空→false；周期≥当前→true；解析失败/过期→false），移除首启 14 天 trial_start_time 宽免；三处文案改「未激活」。
+   - `ui/SyncSettingsFragment.smali`：restoreSettings 回填历史多选后裁剪闸门；Lambda36 装配；静态方法 `onMultiTargetGatePassed`；Strava 来源两处排除。
+3. **百锐腾来源接入（198）**
+   - `model/DataSource$Companion.smali`：sourcePlatforms 25→26，BRYTON 追加在 CYCITY 后；targetPlatforms 不含 BRYTON。
+   - `util/PrefsManager.smali`：isBrytonLoggedIn 校验 token/cookie/userId 三要素非空；isLoggedIn 路由到该判定。
+   - `ui/MergeFragment.smali`：移除 BRYTON 硬编码跳过两段，跟随通用遍历。
+4. **版本对齐（197）**：`BuildConfig.smali` VERSION_CODE 0x17a20 / VERSION_NAME `9.6.8`；`util/UpdateChecker.smali` 基准与两处提示文案 v9.6.8；`res/layout/fragment_about.xml` 关于页版本与最近三条日志。
+5. **Strava 仅上传（194）**：来源 setupSourceButtons / updateSourceChips 两处排除 STRAVA；上传目标、登录闭环与 cookie-only 闸门保留。
+6. **诊断桩清理（185）**：MainActivity 删除 fix3Diag / fix3Identity 及两处调用、三处 `[fix3]` 前缀；fix3StravaCookieOnly 业务闸门保留。
+7. **启动图标（193 圆角）**：五尺寸 mipmap ic_launcher.png 改为圆角矩形 RGBA、四角透明，主体零裁切。
+
+### 验证
+- 白名单：资源 11 + smali 修改 23 + 新增 2，逐项在位；清单外文件 0 改动、0 删除。
+- 模拟器两次冷启动进 MainActivity 无 FATAL；成品包反编逐方法核对全 PASS。

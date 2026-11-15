@@ -52,9 +52,11 @@
 
 .field final synthetic $wv:Landroid/webkit/WebView;
 
+.field final synthetic $done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
 
 # direct methods
-.method constructor <init>(Lkotlin/jvm/internal/Ref$IntRef;Landroid/webkit/WebView;Lkotlinx/coroutines/CancellableContinuation;)V
+.method constructor <init>(Lkotlin/jvm/internal/Ref$IntRef;Landroid/webkit/WebView;Lkotlinx/coroutines/CancellableContinuation;Lkotlin/jvm/internal/Ref$BooleanRef;)V
     .locals 0
     .annotation system Ldalvik/annotation/Signature;
         value = {
@@ -64,7 +66,8 @@
             "Lkotlinx/coroutines/CancellableContinuation<",
             "-",
             "Ljava/lang/String;",
-            ">;)V"
+            ">;",
+            "Lkotlin/jvm/internal/Ref$BooleanRef;)V"
         }
     .end annotation
 
@@ -73,6 +76,8 @@
     iput-object p2, p0, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;->$wv:Landroid/webkit/WebView;
 
     iput-object p3, p0, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;->$cont:Lkotlinx/coroutines/CancellableContinuation;
+
+    iput-object p4, p0, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
 
     .line 1110
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -85,6 +90,15 @@
 .method public run()V
     .locals 5
 
+    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    iget-boolean v0, v0, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
+
+    if-eqz v0, :cond_done_ok
+
+    return-void
+
+    :cond_done_ok
     .line 1112
     iget-object v0, p0, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;->$attempts:Lkotlin/jvm/internal/Ref$IntRef;
 

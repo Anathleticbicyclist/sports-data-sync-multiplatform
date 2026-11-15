@@ -37,6 +37,7 @@
                     <com.jichi.ob.ui.PlatformButton android:id="@id/srcXz" android:tag="xz" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />
                     <com.jichi.ob.ui.PlatformButton android:id="@id/srcMg" android:tag="mg" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />
                     <com.jichi.ob.ui.PlatformButton android:id="@id/srcBb" android:tag="bb" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />
+                    <com.jichi.ob.ui.PlatformButton android:id="@id/srcBr" android:tag="br" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />
                     <com.jichi.ob.ui.PlatformButton android:id="@id/srcGm" android:tag="gm" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />
                     <com.jichi.ob.ui.PlatformButton android:id="@id/srcGcn" android:tag="gcn" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />
                     <com.jichi.ob.ui.PlatformButton android:id="@id/srcCscn" android:tag="cscn" android:layout_width="0.0dip" android:layout_height="44.0dip" android:layout_margin="2.0dip" android:layout_columnWeight="1.0" />

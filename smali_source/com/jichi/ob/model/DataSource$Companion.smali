@@ -154,7 +154,7 @@
         }
     .end annotation
 
-    const/16 v0, 0x8
+    const/16 v0, 0x7
 
     .line 73
     new-array v0, v0, [Lcom/jichi/ob/model/DataSource;
@@ -179,29 +179,23 @@
 
     const/4 v1, 0x3
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/4 v1, 0x4
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/4 v1, 0x5
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
-
-    aput-object v2, v0, v1
-
-    const/4 v1, 0x6
-
     sget-object v2, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
-    const/4 v1, 0x7
+    const/4 v1, 0x6
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
@@ -225,7 +219,7 @@
         }
     .end annotation
 
-    const/16 v0, 0x8
+    const/16 v0, 0x7
 
     .line 70
     new-array v0, v0, [Lcom/jichi/ob/model/DataSource;
@@ -250,29 +244,23 @@
 
     const/4 v1, 0x3
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/4 v1, 0x4
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/4 v1, 0x5
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
-
-    aput-object v2, v0, v1
-
-    const/4 v1, 0x6
-
     sget-object v2, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
-    const/4 v1, 0x7
+    const/4 v1, 0x6
 
     sget-object v2, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
@@ -423,37 +411,37 @@
 
     const/16 v1, 0x14
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x15
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->POLAR:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x16
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->FITBIT:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x17
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->WITHINGS:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x18
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->TRAININGPEAKS:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->CYCITY:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 
     const/16 v1, 0x19
 
-    sget-object v2, Lcom/jichi/ob/model/DataSource;->CYCITY:Lcom/jichi/ob/model/DataSource;
+    sget-object v2, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
 
     aput-object v2, v0, v1
 

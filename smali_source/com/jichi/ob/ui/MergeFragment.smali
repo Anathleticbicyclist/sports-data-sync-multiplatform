@@ -12069,10 +12069,6 @@
 
     if-eqz v7, :cond_1
 
-    sget-object v7, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
-
-    if-eq v6, v7, :cond_1
-
     .line 1826
     invoke-interface {v4, v5}, Ljava/util/Collection;->add(Ljava/lang/Object;)Z
 

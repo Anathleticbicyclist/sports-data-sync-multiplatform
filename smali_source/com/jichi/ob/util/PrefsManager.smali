@@ -2,8 +2,6 @@
 .super Ljava/lang/Object;
 .source "PrefsManager.kt"
 
-.field public static fix3StravaCookie:Ljava/lang/String;
-
 
 # annotations
 .annotation system Ldalvik/annotation/MemberClasses;
@@ -434,6 +432,8 @@
 
 .field private static final TAG:Ljava/lang/String; = "PrefsManager"
 
+.field public static fix3StravaCookie:Ljava/lang/String;
+
 
 # instance fields
 .field private final prefs:Landroid/content/SharedPreferences;
@@ -463,7 +463,6 @@
 
     return-void
 .end method
-
 
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 2
@@ -1583,6 +1582,63 @@
     return-void
 .end method
 
+.method public final clearReloginFail(Lcom/jichi/ob/model/DataSource;)V
+    .locals 2
+
+    const-string v0, "ds"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_0
+
+    const-string v0, "relogin_fail_keep"
+
+    goto :goto_0
+
+    :cond_0
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_1
+
+    const-string v0, "relogin_fail_mywhoosh"
+
+    goto :goto_0
+
+    :cond_1
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_2
+
+    const-string v0, "relogin_fail_zepp"
+
+    goto :goto_0
+
+    :cond_2
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_3
+
+    const-string v0, "relogin_fail_komot"
+
+    :goto_0
+    iget-object v1, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v1
+
+    invoke-interface {v1, v0}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v1
+
+    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    :cond_3
+    return-void
+.end method
+
 .method public final clearSyncedIds()V
     .locals 2
 
@@ -2006,7 +2062,7 @@
 
     sget-object v0, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p1, v0, :fix3_cred_not_strava
+    if-ne p1, v0, :cond_0
 
     invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getStravaCookie()Ljava/lang/String;
 
@@ -2014,7 +2070,7 @@
 
     return-object v0
 
-    :fix3_cred_not_strava
+    :cond_0
     const-string v0, "ds"
 
     invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
@@ -2235,8 +2291,6 @@
     move-result-object p1
 
     return-object p1
-
-    nop
 
     :pswitch_data_0
     .packed-switch 0x1
@@ -3746,6 +3800,35 @@
     return v0
 .end method
 
+.method public final getStravaCookie()Ljava/lang/String;
+    .locals 3
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    const-string/jumbo v1, "strava_cookie"
+
+    const/4 v2, 0x0
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_0
+
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+
+    move-result v1
+
+    if-eqz v1, :cond_0
+
+    return-object v0
+
+    :cond_0
+    sget-object v0, Lcom/jichi/ob/util/PrefsManager;->fix3StravaCookie:Ljava/lang/String;
+
+    return-object v0
+.end method
+
 .method public final getSuuntoClientId()Ljava/lang/String;
     .locals 3
 
@@ -4727,47 +4810,49 @@
 .end method
 
 .method public final isBrytonLoggedIn()Z
-    .locals 1
+    .locals 2
 
-    .line 117
     invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getBrytonToken()Ljava/lang/String;
 
     move-result-object v0
 
-    check-cast v0, Ljava/lang/CharSequence;
-
-    if-eqz v0, :cond_0
+    if-eqz v0, :cond_br0
 
     invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
 
-    move-result v0
+    move-result v1
 
-    if-nez v0, :cond_1
+    if-nez v1, :cond_br0
 
-    :cond_0
     invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getBrytonCookie()Ljava/lang/String;
 
     move-result-object v0
 
-    check-cast v0, Ljava/lang/CharSequence;
-
-    if-eqz v0, :cond_2
+    if-eqz v0, :cond_br0
 
     invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
 
-    move-result v0
+    move-result v1
 
-    if-nez v0, :cond_1
+    if-nez v1, :cond_br0
 
-    goto :goto_0
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getBrytonUserId()Ljava/lang/String;
 
-    :cond_1
+    move-result-object v0
+
+    if-eqz v0, :cond_br0
+
+    invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
+
+    move-result v1
+
+    if-nez v1, :cond_br0
+
     const/4 v0, 0x1
 
     return v0
 
-    :cond_2
-    :goto_0
+    :cond_br0
     const/4 v0, 0x0
 
     return v0
@@ -5393,448 +5478,12 @@
     return p1
 .end method
 
-.method public final isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
-    .locals 12
-
-    const-string v0, "ds"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cd_1
-
-    const-string v0, "relogin_fail_keep"
-
-    goto :cd_key
-
-    :cd_1
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cd_2
-
-    const-string v0, "relogin_fail_mywhoosh"
-
-    goto :cd_key
-
-    :cd_2
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cd_3
-
-    const-string v0, "relogin_fail_zepp"
-
-    goto :cd_key
-
-    :cd_3
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cd_nullkey
-
-    const-string v0, "relogin_fail_komot"
-
-    :cd_key
-    move-object v8, v0
-
-    iget-object v1, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    invoke-interface {v1, v8}, Landroid/content/SharedPreferences;->contains(Ljava/lang/String;)Z
-
-    move-result v9
-
-    const-wide/16 v2, 0x0
-
-    invoke-interface {v1, v8, v2, v3}, Landroid/content/SharedPreferences;->getLong(Ljava/lang/String;J)J
-
-    move-result-wide v2
-
-    const-wide/16 v4, 0x0
-
-    cmp-long v0, v2, v4
-
-    if-eqz v0, :cd_false
-
-    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
-
-    move-result-wide v6
-
-    move-wide v4, v6
-
-    sub-long/2addr v4, v2
-
-    const-wide v10, 0x1b7740
-
-    cmp-long v0, v4, v10
-
-    if-gez v0, :cd_false
-
-    const/4 v8, 0x1
-
-    goto :cd_epi
-
-    :cd_false
-    const-wide/16 v4, 0x0
-
-    const-wide/16 v6, 0x0
-
-    const/4 v8, 0x0
-
-    goto :cd_epi
-
-    :cd_nullkey
-    const/4 v9, 0x0
-
-    const-wide/16 v2, 0x0
-
-    const-wide/16 v4, 0x0
-
-    const-wide/16 v6, 0x0
-
-    const/4 v8, 0x0
-
-    :cd_epi
-    new-instance v1, Ljava/lang/StringBuilder;
-
-    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v0, "cd cand="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {p1}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
-
-    move-result-object v0
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    const-string v0, " rawKey="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1, v9}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
-
-    const-string v0, " lastFail="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1, v2, v3}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
-
-    const-string v0, " now="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1, v6, v7}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
-
-    const-string v0, " elapsed="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1, v4, v5}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
-
-    const-string v0, " window=1800000 result="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1, v8}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    const-string v1, "JichiOB"
-
-    invoke-static {v1, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
-
-    return v8
-.end method
-
-.method public final markReloginFail(Lcom/jichi/ob/model/DataSource;)V
-    .locals 4
-
-    const-string v0, "ds"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :mk_1
-
-    const-string v0, "relogin_fail_keep"
-
-    goto :mk_put
-
-    :mk_1
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :mk_2
-
-    const-string v0, "relogin_fail_mywhoosh"
-
-    goto :mk_put
-
-    :mk_2
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :mk_3
-
-    const-string v0, "relogin_fail_zepp"
-
-    goto :mk_put
-
-    :mk_3
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :mk_done
-
-    const-string v0, "relogin_fail_komot"
-
-    :mk_put
-    iget-object v1, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-
-    move-result-object v1
-
-    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
-
-    move-result-wide v2
-
-    invoke-interface {v1, v0, v2, v3}, Landroid/content/SharedPreferences$Editor;->putLong(Ljava/lang/String;J)Landroid/content/SharedPreferences$Editor;
-
-    move-result-object v1
-
-    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
-
-    :mk_done
-    return-void
-.end method
-
-.method public final clearReloginFail(Lcom/jichi/ob/model/DataSource;)V
-    .locals 2
-
-    const-string v0, "ds"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cl_1
-
-    const-string v0, "relogin_fail_keep"
-
-    goto :cl_do
-
-    :cl_1
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cl_2
-
-    const-string v0, "relogin_fail_mywhoosh"
-
-    goto :cl_do
-
-    :cl_2
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cl_3
-
-    const-string v0, "relogin_fail_zepp"
-
-    goto :cl_do
-
-    :cl_3
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :cl_done
-
-    const-string v0, "relogin_fail_komot"
-
-    :cl_do
-    iget-object v1, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-
-    move-result-object v1
-
-    invoke-interface {v1, v0}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
-
-    move-result-object v1
-
-    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
-
-    :cl_done
-    return-void
-.end method
-
-.method public final isLoggedInOrReloginable(Lcom/jichi/ob/model/DataSource;)Z
-    .locals 3
-
-    const-string v0, "ds"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    # 冷却优先闸（第 1 层）：冷却中直接返回 false，不发起 validateToken / login；未冷却才走原逻辑
-    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
-
-    move-result v0
-
-    if-eqz v0, :ir_nocd
-
-    new-instance v1, Ljava/lang/StringBuilder;
-
-    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
-
-    const-string v0, "cd_gate=GATE ds="
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {p1}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
-
-    move-result-object v0
-
-    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v0
-
-    const-string v1, "JichiOB"
-
-    invoke-static {v1, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
-
-    const-string v1, "JichiOB"
-
-    const-string/jumbo v2, "\u2139\uFE0F Keep \u81EA\u52A8\u91CD\u767B\u51B7\u5374\u4E2D\uFF0830 \u5206\u949F\u5185\u5931\u8D25\u8FC7\uFF09\uFF0C\u672C\u6B21\u8DF3\u8FC7\u68C0\u6D4B"
-
-    invoke-static {v1, v2}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
-
-    const/4 v0, 0x0
-
-    return v0
-
-    :ir_nocd
-    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->isLoggedIn(Lcom/jichi/ob/model/DataSource;)Z
-
-    move-result v0
-
-    if-eqz v0, :ir_0
-
-    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->clearReloginFail(Lcom/jichi/ob/model/DataSource;)V
-
-    const/4 p1, 0x1
-
-    return p1
-
-    :ir_0
-    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
-
-    move-result v0
-
-    if-eqz v0, :ir_1
-
-    const/4 p1, 0x0
-
-    return p1
-
-    :ir_1
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :ir_2
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKeepAccount()Ljava/lang/String;
-
-    move-result-object v1
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKeepPassword()Ljava/lang/String;
-
-    move-result-object v2
-
-    goto :ir_chk
-
-    :ir_2
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :ir_3
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getMywhooshAccount()Ljava/lang/String;
-
-    move-result-object v1
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getMywhooshPassword()Ljava/lang/String;
-
-    move-result-object v2
-
-    goto :ir_chk
-
-    :ir_3
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :ir_4
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getZeppAccount()Ljava/lang/String;
-
-    move-result-object v1
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getZeppPassword()Ljava/lang/String;
-
-    move-result-object v2
-
-    goto :ir_chk
-
-    :ir_4
-    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p1, v0, :ir_false
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKomootAccount()Ljava/lang/String;
-
-    move-result-object v1
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKomootPassword()Ljava/lang/String;
-
-    move-result-object v2
-
-    :ir_chk
-    move-object v0, v1
-
-    check-cast v0, Ljava/lang/CharSequence;
-
-    if-eqz v0, :ir_false
-
-    invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
-
-    move-result v0
-
-    if-eqz v0, :ir_false
-
-    move-object v0, v2
-
-    check-cast v0, Ljava/lang/CharSequence;
-
-    if-eqz v0, :ir_false
-
-    invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
-
-    move-result v0
-
-    if-eqz v0, :ir_false
-
-    const/4 p1, 0x1
-
-    return p1
-
-    :ir_false
-    const/4 p1, 0x0
-
-    return p1
-.end method
-
 .method public final isLoggedIn(Lcom/jichi/ob/model/DataSource;)Z
     .locals 2
 
     sget-object v0, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p1, v0, :strava_pre_not_logged
+    if-ne p1, v0, :cond_0
 
     invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->isStravaWebLoggedIn()Z
 
@@ -5842,8 +5491,7 @@
 
     return v0
 
-:strava_pre_not_logged
-
+    :cond_0
     const-string v0, "ds"
 
     invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
@@ -5873,22 +5521,22 @@
 
     check-cast p1, Ljava/lang/CharSequence;
 
-    if-eqz p1, :cond_1
+    if-eqz p1, :cond_2
 
     invoke-interface {p1}, Ljava/lang/CharSequence;->length()I
 
     move-result p1
 
-    if-nez p1, :cond_0
+    if-nez p1, :cond_1
 
     goto :goto_0
 
-    :cond_0
+    :cond_1
     const/4 p1, 0x1
 
     return p1
 
-    :cond_1
+    :cond_2
     :goto_0
     const/4 p1, 0x0
 
@@ -6086,8 +5734,6 @@
 
     return p1
 
-    nop
-
     :pswitch_data_0
     .packed-switch 0x1
         :pswitch_18
@@ -6120,6 +5766,168 @@
         :pswitch_1
         :pswitch_0
     .end packed-switch
+.end method
+
+.method public final isLoggedInOrReloginable(Lcom/jichi/ob/model/DataSource;)Z
+    .locals 3
+
+    const-string v0, "ds"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_0
+
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v0, "cd_gate=GATE ds="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {p1}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v1, "JichiOB"
+
+    invoke-static {v1, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    const-string v1, "JichiOB"
+
+    const-string/jumbo v2, "\u2139\ufe0f Keep \u81ea\u52a8\u91cd\u767b\u51b7\u5374\u4e2d\uff0830 \u5206\u949f\u5185\u5931\u8d25\u8fc7\uff09\uff0c\u672c\u6b21\u8df3\u8fc7\u68c0\u6d4b"
+
+    invoke-static {v1, v2}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    const/4 v0, 0x0
+
+    return v0
+
+    :cond_0
+    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->isLoggedIn(Lcom/jichi/ob/model/DataSource;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_1
+
+    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->clearReloginFail(Lcom/jichi/ob/model/DataSource;)V
+
+    const/4 p1, 0x1
+
+    return p1
+
+    :cond_1
+    invoke-virtual {p0, p1}, Lcom/jichi/ob/util/PrefsManager;->isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
+
+    move-result v0
+
+    if-eqz v0, :cond_2
+
+    const/4 p1, 0x0
+
+    return p1
+
+    :cond_2
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_3
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKeepAccount()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKeepPassword()Ljava/lang/String;
+
+    move-result-object v2
+
+    goto :goto_0
+
+    :cond_3
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_4
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getMywhooshAccount()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getMywhooshPassword()Ljava/lang/String;
+
+    move-result-object v2
+
+    goto :goto_0
+
+    :cond_4
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_5
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getZeppAccount()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getZeppPassword()Ljava/lang/String;
+
+    move-result-object v2
+
+    goto :goto_0
+
+    :cond_5
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_6
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKomootAccount()Ljava/lang/String;
+
+    move-result-object v1
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getKomootPassword()Ljava/lang/String;
+
+    move-result-object v2
+
+    :goto_0
+    move-object v0, v1
+
+    check-cast v0, Ljava/lang/CharSequence;
+
+    if-eqz v0, :cond_6
+
+    invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
+
+    move-result v0
+
+    if-eqz v0, :cond_6
+
+    move-object v0, v2
+
+    check-cast v0, Ljava/lang/CharSequence;
+
+    if-eqz v0, :cond_6
+
+    invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
+
+    move-result v0
+
+    if-eqz v0, :cond_6
+
+    const/4 p1, 0x1
+
+    return p1
+
+    :cond_6
+    const/4 p1, 0x0
+
+    return p1
 .end method
 
 .method public final isMageneLoggedIn()Z
@@ -6229,6 +6037,186 @@
 
     :goto_1
     xor-int/2addr v0, v1
+
+    return v0
+.end method
+
+.method public final isReloginCoolingDown(Lcom/jichi/ob/model/DataSource;)Z
+    .locals 12
+
+    const-string v0, "ds"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_0
+
+    const-string v0, "relogin_fail_keep"
+
+    goto :goto_0
+
+    :cond_0
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_1
+
+    const-string v0, "relogin_fail_mywhoosh"
+
+    goto :goto_0
+
+    :cond_1
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_2
+
+    const-string v0, "relogin_fail_zepp"
+
+    goto :goto_0
+
+    :cond_2
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_4
+
+    const-string v0, "relogin_fail_komot"
+
+    :goto_0
+    move-object v8, v0
+
+    iget-object v1, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v1, v8}, Landroid/content/SharedPreferences;->contains(Ljava/lang/String;)Z
+
+    move-result v9
+
+    const-wide/16 v2, 0x0
+
+    invoke-interface {v1, v8, v2, v3}, Landroid/content/SharedPreferences;->getLong(Ljava/lang/String;J)J
+
+    move-result-wide v2
+
+    const-wide/16 v4, 0x0
+
+    cmp-long v0, v2, v4
+
+    if-eqz v0, :cond_3
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v6
+
+    move-wide v4, v6
+
+    sub-long/2addr v4, v2
+
+    const-wide v10, 0x1b7740
+
+    cmp-long v0, v4, v10
+
+    if-gez v0, :cond_3
+
+    const/4 v8, 0x1
+
+    goto :goto_1
+
+    :cond_3
+    const-wide/16 v4, 0x0
+
+    const-wide/16 v6, 0x0
+
+    const/4 v8, 0x0
+
+    goto :goto_1
+
+    :cond_4
+    const/4 v9, 0x0
+
+    const-wide/16 v2, 0x0
+
+    const-wide/16 v4, 0x0
+
+    const-wide/16 v6, 0x0
+
+    const/4 v8, 0x0
+
+    :goto_1
+    new-instance v1, Ljava/lang/StringBuilder;
+
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+
+    const-string v0, "cd cand="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {p1}, Lcom/jichi/ob/model/DataSource;->name()Ljava/lang/String;
+
+    move-result-object v0
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    const-string v0, " rawKey="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1, v9}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+
+    const-string v0, " lastFail="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1, v2, v3}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+
+    const-string v0, " now="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1, v6, v7}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+
+    const-string v0, " elapsed="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1, v4, v5}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
+
+    const-string v0, " window=1800000 result="
+
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1, v8}, Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;
+
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v0
+
+    const-string v1, "JichiOB"
+
+    invoke-static {v1, v0}, Landroid/util/Log;->i(Ljava/lang/String;Ljava/lang/String;)I
+
+    return v8
+.end method
+
+.method public final isStravaWebLoggedIn()Z
+    .locals 2
+
+    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getStravaCookie()Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_0
+
+    invoke-virtual {v0}, Ljava/lang/String;->length()I
+
+    move-result v1
+
+    if-eqz v1, :cond_0
+
+    const/4 v0, 0x1
+
+    return v0
+
+    :cond_0
+    const/4 v0, 0x0
 
     return v0
 .end method
@@ -6671,6 +6659,20 @@
     return-object p1
 .end method
 
+.method public final logoutStravaWeb()V
+    .locals 1
+
+    const-string v0, ""
+
+    invoke-virtual {p0, v0}, Lcom/jichi/ob/util/PrefsManager;->saveStravaCookie(Ljava/lang/String;)V
+
+    const/4 v0, 0x0
+
+    sput-object v0, Lcom/jichi/ob/util/PrefsManager;->fix3StravaCookie:Ljava/lang/String;
+
+    return-void
+.end method
+
 .method public final logoutTwoBulu()V
     .locals 1
 
@@ -6679,6 +6681,67 @@
 
     invoke-virtual {p0, v0}, Lcom/jichi/ob/util/PrefsManager;->saveTwoBuluCookie(Ljava/lang/String;)V
 
+    return-void
+.end method
+
+.method public final markReloginFail(Lcom/jichi/ob/model/DataSource;)V
+    .locals 4
+
+    const-string v0, "ds"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KEEP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_0
+
+    const-string v0, "relogin_fail_keep"
+
+    goto :goto_0
+
+    :cond_0
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->MYWHOOSH:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_1
+
+    const-string v0, "relogin_fail_mywhoosh"
+
+    goto :goto_0
+
+    :cond_1
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->ZEPP:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_2
+
+    const-string v0, "relogin_fail_zepp"
+
+    goto :goto_0
+
+    :cond_2
+    sget-object v0, Lcom/jichi/ob/model/DataSource;->KOMOT:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p1, v0, :cond_3
+
+    const-string v0, "relogin_fail_komot"
+
+    :goto_0
+    iget-object v1, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v1
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+
+    move-result-wide v2
+
+    invoke-interface {v1, v0, v2, v3}, Landroid/content/SharedPreferences$Editor;->putLong(Ljava/lang/String;J)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v1
+
+    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    :cond_3
     return-void
 .end method
 
@@ -8549,6 +8612,32 @@
     return-void
 .end method
 
+.method public final saveStravaCookie(Ljava/lang/String;)V
+    .locals 3
+
+    const-string v0, "cookie"
+
+    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
+
+    sput-object p1, Lcom/jichi/ob/util/PrefsManager;->fix3StravaCookie:Ljava/lang/String;
+
+    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    const-string/jumbo v1, "strava_cookie"
+
+    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object p1
+
+    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    return-void
+.end method
+
 .method public final saveSuuntoClientId(Ljava/lang/String;)V
     .locals 2
 
@@ -8795,101 +8884,6 @@
     move-result-object p1
 
     invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
-
-    return-void
-.end method
-
-
-.method public final getStravaCookie()Ljava/lang/String;
-    .locals 3
-
-    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    const-string/jumbo v1, "strava_cookie"
-
-    const/4 v2, 0x0
-
-    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-
-    move-result-object v0
-
-    if-eqz v0, :fix3_strava_static
-
-    invoke-virtual {v0}, Ljava/lang/String;->length()I
-
-    move-result v1
-
-    if-eqz v1, :fix3_strava_static
-
-    return-object v0
-
-    :fix3_strava_static
-    sget-object v0, Lcom/jichi/ob/util/PrefsManager;->fix3StravaCookie:Ljava/lang/String;
-
-    return-object v0
-.end method
-
-.method public final saveStravaCookie(Ljava/lang/String;)V
-    .locals 3
-
-    const-string v0, "cookie"
-
-    invoke-static {p1, v0}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullParameter(Ljava/lang/Object;Ljava/lang/String;)V
-
-    sput-object p1, Lcom/jichi/ob/util/PrefsManager;->fix3StravaCookie:Ljava/lang/String;
-
-    iget-object v0, p0, Lcom/jichi/ob/util/PrefsManager;->prefs:Landroid/content/SharedPreferences;
-
-    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-
-    move-result-object v0
-
-    const-string/jumbo v1, "strava_cookie"
-
-    invoke-interface {v0, v1, p1}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
-
-    move-result-object p1
-
-    invoke-interface {p1}, Landroid/content/SharedPreferences$Editor;->apply()V
-
-    return-void
-.end method
-
-.method public final isStravaWebLoggedIn()Z
-    .locals 2
-
-    invoke-virtual {p0}, Lcom/jichi/ob/util/PrefsManager;->getStravaCookie()Ljava/lang/String;
-
-    move-result-object v0
-
-    if-eqz v0, :fix3_strava_off
-
-    invoke-virtual {v0}, Ljava/lang/String;->length()I
-
-    move-result v1
-
-    if-eqz v1, :fix3_strava_off
-
-    const/4 v0, 0x1
-
-    return v0
-
-    :fix3_strava_off
-    const/4 v0, 0x0
-
-    return v0
-.end method
-
-.method public final logoutStravaWeb()V
-    .locals 1
-
-    const-string v0, ""
-
-    invoke-virtual {p0, v0}, Lcom/jichi/ob/util/PrefsManager;->saveStravaCookie(Ljava/lang/String;)V
-
-    const/4 v0, 0x0
-
-    sput-object v0, Lcom/jichi/ob/util/PrefsManager;->fix3StravaCookie:Ljava/lang/String;
 
     return-void
 .end method

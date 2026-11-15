@@ -615,116 +615,9 @@
 
     .line 135
     :cond_1
-    iget-object v1, v0, Lcom/jichi/ob/util/TrialLicense;->prefs:Landroid/content/SharedPreferences;
+    const-string/jumbo v0, "\u672a\u6fc0\u6d3b"
 
-    const-string/jumbo v10, "trial_start_time"
-
-    const-wide/16 v11, 0x0
-
-    invoke-interface {v1, v10, v11, v12}, Landroid/content/SharedPreferences;->getLong(Ljava/lang/String;J)J
-
-    move-result-wide v13
-
-    cmp-long v1, v13, v11
-
-    if-nez v1, :cond_2
-
-    return-object v8
-
-    .line 137
-    :cond_2
-    invoke-static {}, Ljava/util/Calendar;->getInstance()Ljava/util/Calendar;
-
-    move-result-object v1
-
-    invoke-virtual {v1, v13, v14}, Ljava/util/Calendar;->setTimeInMillis(J)V
-
-    invoke-virtual {v1, v5, v4}, Ljava/util/Calendar;->add(II)V
-
-    .line 138
-    invoke-virtual {v1, v9}, Ljava/util/Calendar;->get(I)I
-
-    move-result v4
-
-    sget-object v5, Lkotlin/jvm/internal/StringCompanionObject;->INSTANCE:Lkotlin/jvm/internal/StringCompanionObject;
-
-    invoke-virtual {v1, v3}, Ljava/util/Calendar;->get(I)I
-
-    move-result v3
-
-    add-int/2addr v3, v9
-
-    invoke-static {v3}, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
-
-    move-result-object v3
-
-    filled-new-array {v3}, [Ljava/lang/Object;
-
-    move-result-object v3
-
-    invoke-static {v3, v9}, Ljava/util/Arrays;->copyOf([Ljava/lang/Object;I)[Ljava/lang/Object;
-
-    move-result-object v3
-
-    invoke-static {v7, v3}, Ljava/lang/String;->format(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
-
-    move-result-object v3
-
-    invoke-static {v3, v6}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullExpressionValue(Ljava/lang/Object;Ljava/lang/String;)V
-
-    sget-object v5, Lkotlin/jvm/internal/StringCompanionObject;->INSTANCE:Lkotlin/jvm/internal/StringCompanionObject;
-
-    invoke-virtual {v1, v2}, Ljava/util/Calendar;->get(I)I
-
-    move-result v1
-
-    invoke-static {v1}, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
-
-    move-result-object v1
-
-    filled-new-array {v1}, [Ljava/lang/Object;
-
-    move-result-object v1
-
-    invoke-static {v1, v9}, Ljava/util/Arrays;->copyOf([Ljava/lang/Object;I)[Ljava/lang/Object;
-
-    move-result-object v1
-
-    invoke-static {v7, v1}, Ljava/lang/String;->format(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
-
-    move-result-object v1
-
-    invoke-static {v1, v6}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullExpressionValue(Ljava/lang/Object;Ljava/lang/String;)V
-
-    new-instance v2, Ljava/lang/StringBuilder;
-
-    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
-
-    invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
-
-    move-result-object v2
-
-    invoke-virtual {v2, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v2
-
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v2
-
-    invoke-virtual {v2, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v2
-
-    invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-
-    move-result-object v1
-
-    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-
-    move-result-object v1
-
-    return-object v1
+    return-object v0
 .end method
 
 .method public final getLicenseType()Ljava/lang/String;
@@ -809,15 +702,14 @@
 
     .line 120
     :cond_2
-    const-string/jumbo v0, "\u9996\u6b21\u4f53\u9a8c"
+    const-string/jumbo v0, "\u672a\u6fc0\u6d3b"
 
     return-object v0
 .end method
 
 .method public final isAllowed()Z
-    .locals 8
+    .locals 5
 
-    .line 66
     iget-object v0, p0, Lcom/jichi/ob/util/TrialLicense;->prefs:Landroid/content/SharedPreferences;
 
     const-string v1, "license_period"
@@ -840,7 +732,6 @@
 
     return v3
 
-    .line 67
     :cond_0
     iget-object v0, p0, Lcom/jichi/ob/util/TrialLicense;->prefs:Landroid/content/SharedPreferences;
 
@@ -852,7 +743,6 @@
 
     if-eqz v0, :cond_2
 
-    .line 70
     invoke-virtual {v0, v3}, Ljava/lang/String;->substring(I)Ljava/lang/String;
 
     move-result-object v0
@@ -871,7 +761,6 @@
 
     move-result v0
 
-    .line 71
     invoke-virtual {p0}, Lcom/jichi/ob/util/TrialLicense;->getCurrentPeriod()Ljava/lang/String;
 
     move-result-object v4
@@ -899,47 +788,7 @@
     :cond_1
     return v1
 
-    .line 74
     :cond_2
-    iget-object v0, p0, Lcom/jichi/ob/util/TrialLicense;->prefs:Landroid/content/SharedPreferences;
-
-    const-string/jumbo v2, "trial_start_time"
-
-    const-wide/16 v4, 0x0
-
-    invoke-interface {v0, v2, v4, v5}, Landroid/content/SharedPreferences;->getLong(Ljava/lang/String;J)J
-
-    move-result-wide v6
-
-    cmp-long v0, v6, v4
-
-    if-nez v0, :cond_3
-
-    return v1
-
-    .line 76
-    :cond_3
-    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
-
-    move-result-wide v4
-
-    sub-long/2addr v4, v6
-
-    const v0, 0x5265c00
-
-    int-to-long v6, v0
-
-    div-long/2addr v4, v6
-
-    const-wide/16 v6, 0xe
-
-    cmp-long v0, v4, v6
-
-    if-gez v0, :cond_4
-
-    return v3
-
-    :cond_4
     return v1
 .end method
 

@@ -374,10 +374,14 @@
 
     invoke-direct {v1}, Lkotlin/jvm/internal/Ref$IntRef;-><init>()V
 
+    new-instance v9, Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    invoke-direct {v9}, Lkotlin/jvm/internal/Ref$BooleanRef;-><init>()V
+
     .line 1110
     new-instance v3, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;
 
-    invoke-direct {v3, v1, v5, v2}, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;-><init>(Lkotlin/jvm/internal/Ref$IntRef;Landroid/webkit/WebView;Lkotlinx/coroutines/CancellableContinuation;)V
+    invoke-direct {v3, v1, v5, v2, v9}, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$checkResult$1;-><init>(Lkotlin/jvm/internal/Ref$IntRef;Landroid/webkit/WebView;Lkotlinx/coroutines/CancellableContinuation;Lkotlin/jvm/internal/Ref$BooleanRef;)V
 
     .line 1128
     new-instance v1, Lcom/jichi/ob/api/GarminApi$uploadViaWebView$2$1$1$1;

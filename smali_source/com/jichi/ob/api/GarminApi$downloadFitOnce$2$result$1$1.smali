@@ -184,7 +184,7 @@
 .end method
 
 .method public final invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
-    .locals 7
+    .locals 8
 
     invoke-static {}, Lkotlin/coroutines/intrinsics/IntrinsicsKt;->getCOROUTINE_SUSPENDED()Ljava/lang/Object;
 
@@ -265,10 +265,14 @@
 
     invoke-direct {v5}, Lkotlin/jvm/internal/Ref$IntRef;-><init>()V
 
+    new-instance v7, Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    invoke-direct {v7}, Lkotlin/jvm/internal/Ref$BooleanRef;-><init>()V
+
     .line 1459
     new-instance v6, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;
 
-    invoke-direct {v6, v5, p1, v2}, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;-><init>(Lkotlin/jvm/internal/Ref$IntRef;Landroid/webkit/WebView;Lkotlinx/coroutines/CancellableContinuation;)V
+    invoke-direct {v6, v5, p1, v2, v7}, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;-><init>(Lkotlin/jvm/internal/Ref$IntRef;Landroid/webkit/WebView;Lkotlinx/coroutines/CancellableContinuation;Lkotlin/jvm/internal/Ref$BooleanRef;)V
 
     .line 1474
     new-instance v2, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$1;

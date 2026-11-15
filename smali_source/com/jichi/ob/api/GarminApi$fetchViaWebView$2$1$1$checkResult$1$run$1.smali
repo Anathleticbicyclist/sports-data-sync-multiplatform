@@ -103,6 +103,17 @@
 
     move-object/from16 v0, p0
 
+    iget-object v15, v0, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;
+
+    iget-object v15, v15, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    iget-boolean v15, v15, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
+
+    if-eqz v15, :cond_done_ok
+
+    return-void
+
+    :cond_done_ok
     const/4 v1, 0x0
 
     .line 1053
@@ -252,6 +263,14 @@
     move-object v2, v10
 
     :goto_2
+    iget-object v15, v0, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;
+
+    iget-object v15, v15, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    const/4 v6, 0x1
+
+    iput-boolean v6, v15, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
+
     invoke-static {v2}, Lkotlin/Result;->constructor-impl(Ljava/lang/Object;)Ljava/lang/Object;
 
     move-result-object v1
@@ -267,6 +286,14 @@
     iget-object v1, v0, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1$run$1;->$cont:Lkotlinx/coroutines/CancellableContinuation;
 
     check-cast v1, Lkotlin/coroutines/Continuation;
+
+    iget-object v15, v0, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;
+
+    iget-object v15, v15, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    const/4 v6, 0x1
+
+    iput-boolean v6, v15, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
 
     sget-object v2, Lkotlin/Result;->Companion:Lkotlin/Result$Companion;
 
@@ -306,6 +333,14 @@
     iget-object v1, v0, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1$run$1;->$cont:Lkotlinx/coroutines/CancellableContinuation;
 
     check-cast v1, Lkotlin/coroutines/Continuation;
+
+    iget-object v15, v0, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;
+
+    iget-object v15, v15, Lcom/jichi/ob/api/GarminApi$fetchViaWebView$2$1$1$checkResult$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    const/4 v6, 0x1
+
+    iput-boolean v6, v15, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
 
     sget-object v2, Lkotlin/Result;->Companion:Lkotlin/Result$Companion;
 

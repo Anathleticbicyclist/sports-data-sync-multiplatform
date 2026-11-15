@@ -7,7 +7,7 @@
             <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:layout_marginStart="12.0dip">
                 <TextView android:textSize="16.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="鸡翅幸哲迈进OB" />
                 <TextView android:textSize="12.0sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1.0dip" android:text="让运动数据自由流动" />
-                <TextView android:textSize="11.0sp" android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3.0dip" android:text="开发体验版 v9.6.7" />
+                <TextView android:textSize="11.0sp" android:textColor="@color/primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3.0dip" android:text="开发体验版 v9.6.8" />
             </LinearLayout>
             <TextView android:textSize="11.0sp" android:textColor="@color/primary" android:id="@id/btnCheckUpdate" android:background="@drawable/bg_check_update" android:paddingTop="6.0dip" android:paddingBottom="6.0dip" android:focusable="true" android:clickable="true" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="检查更新" android:paddingStart="12.0dip" android:paddingEnd="12.0dip" android:layout_marginStart="8.0dip" />
         </LinearLayout>
@@ -60,7 +60,7 @@
         <com.google.android.material.card.MaterialCardView android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:layout_marginBottom="6.0dip" app:cardCornerRadius="16.0dip" app:cardElevation="0.0dip" app:strokeColor="@color/stroke_blue" app:strokeWidth="1.0dip">
             <LinearLayout android:orientation="vertical" android:padding="12.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
                 <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 最近三条更新" />
-                <TextView android:textSize="12.0sp" android:textColor="@color/text_primary" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:text="📦 v9.6.7：优化自动重登规则、修复登录 bug；新增迈金坐标转换支持骑行台数据；新增 Strava 同步\n📦 v9.6.6：优化顽鹿运动OTM数据拉取\n📦 v9.6.5：修复 iGP 上传；优化迈金活动列表拉取" android:lineSpacingExtra="3.0dip" />
+                <TextView android:textSize="12.0sp" android:textColor="@color/text_primary" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:text="📦 v9.6.8：修复严重自动登录闪退Bug（平台失效、无网、连不通平台会循环闪退导致无法启动）\n📦 v9.6.7：优化自动重登规则、修复登录 bug；新增迈金坐标转换支持骑行台数据；新增 Strava 同步\n📦 v9.6.6：优化顽鹿运动OTM数据拉取" android:lineSpacingExtra="3.0dip" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <LinearLayout android:orientation="vertical" android:background="@drawable/bg_note_card" android:padding="6.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dip" android:layout_marginBottom="6.0dip">

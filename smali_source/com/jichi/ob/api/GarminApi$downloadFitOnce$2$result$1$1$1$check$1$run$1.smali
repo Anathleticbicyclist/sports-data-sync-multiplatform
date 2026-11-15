@@ -103,6 +103,17 @@
 
     move-object/from16 v0, p0
 
+    iget-object v7, v0, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;
+
+    iget-object v7, v7, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    iget-boolean v7, v7, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
+
+    if-eqz v7, :cond_done_ok
+
+    return-void
+
+    :cond_done_ok
     .line 1463
     const-string v1, "r"
 
@@ -252,6 +263,14 @@
     move-object v1, v11
 
     :goto_2
+    iget-object v7, v0, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;
+
+    iget-object v7, v7, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    const/4 v8, 0x1
+
+    iput-boolean v8, v7, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
+
     sget-object v2, Lkotlin/Result;->Companion:Lkotlin/Result$Companion;
 
     invoke-static {v1}, Lkotlin/Result;->constructor-impl(Ljava/lang/Object;)Ljava/lang/Object;
@@ -269,6 +288,14 @@
     iget-object v1, v0, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1$run$1;->$cont:Lkotlinx/coroutines/CancellableContinuation;
 
     check-cast v1, Lkotlin/coroutines/Continuation;
+
+    iget-object v7, v0, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;
+
+    iget-object v7, v7, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    const/4 v8, 0x1
+
+    iput-boolean v8, v7, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
 
     sget-object v2, Lkotlin/Result;->Companion:Lkotlin/Result$Companion;
 
@@ -307,6 +334,14 @@
     iget-object v1, v0, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1$run$1;->$cont:Lkotlinx/coroutines/CancellableContinuation;
 
     check-cast v1, Lkotlin/coroutines/Continuation;
+
+    iget-object v7, v0, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1$run$1;->this$0:Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;
+
+    iget-object v7, v7, Lcom/jichi/ob/api/GarminApi$downloadFitOnce$2$result$1$1$1$check$1;->$done:Lkotlin/jvm/internal/Ref$BooleanRef;
+
+    const/4 v8, 0x1
+
+    iput-boolean v8, v7, Lkotlin/jvm/internal/Ref$BooleanRef;->element:Z
 
     sget-object v2, Lkotlin/Result;->Companion:Lkotlin/Result$Companion;
 

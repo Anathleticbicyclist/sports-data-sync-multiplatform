@@ -3000,6 +3000,60 @@
     .line 520
     invoke-virtual {v0, v7}, Ljava/util/LinkedHashSet;->addAll(Ljava/util/Collection;)Z
 
+    new-instance v6, Lcom/jichi/ob/util/TrialLicense;
+
+    invoke-virtual {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v7
+
+    const-string v8, "requireContext(...)"
+
+    invoke-static {v7, v8}, Lkotlin/jvm/internal/Intrinsics;->checkNotNullExpressionValue(Ljava/lang/Object;Ljava/lang/String;)V
+
+    invoke-direct {v6, v7}, Lcom/jichi/ob/util/TrialLicense;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v6}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
+
+    move-result v6
+
+    if-nez v6, :cond_trim_targets
+
+    goto :goto_targets_highlight
+
+    :cond_trim_targets
+    invoke-virtual {v0}, Ljava/util/LinkedHashSet;->size()I
+
+    move-result v6
+
+    const/4 v7, 0x1
+
+    if-le v6, v7, :goto_targets_highlight
+
+    invoke-virtual {v0}, Ljava/util/LinkedHashSet;->iterator()Ljava/util/Iterator;
+
+    move-result-object v6
+
+    invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v7
+
+    :trim_loop
+    invoke-interface {v6}, Ljava/util/Iterator;->hasNext()Z
+
+    move-result v8
+
+    if-eqz v8, :goto_targets_highlight
+
+    invoke-interface {v6}, Ljava/util/Iterator;->next()Ljava/lang/Object;
+
+    move-result-object v8
+
+    invoke-interface {v6}, Ljava/util/Iterator;->remove()V
+
+    goto :trim_loop
+
+    :goto_targets_highlight
+
     .line 523
     iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->gridTarget:Landroid/widget/GridLayout;
 
@@ -4410,7 +4464,7 @@
 .end method
 
 .method private final setupSourceButtons()V
-    .locals 9
+    .locals 10
 
     .line 356
     iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->gridSource:Landroid/widget/GridLayout;
@@ -4499,6 +4553,15 @@
 
     if-eqz v7, :cond_7
 
+    sget-object v9, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+
+    if-ne v7, v9, :cond_strava_ok
+
+    const/16 v8, 0x8
+
+    goto :goto_3
+
+    :cond_strava_ok
     .line 361
     iget-object v8, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
@@ -4990,7 +5053,7 @@
 .end method
 
 .method private static final setupTargetButtons$lambda$27(Lcom/jichi/ob/ui/PlatformButton;Ljava/lang/String;Lcom/jichi/ob/ui/SyncSettingsFragment;Landroid/view/View;)V
-    .locals 1
+    .locals 3
 
     .line 415
     invoke-virtual {p0}, Lcom/jichi/ob/ui/PlatformButton;->isEnabled()Z
@@ -5125,6 +5188,43 @@
     :cond_6
     iget-object p0, p2, Lcom/jichi/ob/ui/SyncSettingsFragment;->selectedTargetTags:Ljava/util/LinkedHashSet;
 
+    invoke-virtual {p0}, Ljava/util/LinkedHashSet;->size()I
+
+    move-result p0
+
+    if-eqz p0, :cond_first
+
+    new-instance v1, Lcom/jichi/ob/util/TrialLicense;
+
+    invoke-virtual {p2}, Lcom/jichi/ob/ui/SyncSettingsFragment;->requireContext()Landroid/content/Context;
+
+    move-result-object v2
+
+    invoke-direct {v1, v2}, Lcom/jichi/ob/util/TrialLicense;-><init>(Landroid/content/Context;)V
+
+    invoke-virtual {v1}, Lcom/jichi/ob/util/TrialLicense;->isAllowed()Z
+
+    move-result v1
+
+    if-nez v1, :cond_gate
+
+    goto :cond_add
+
+    :cond_gate
+    new-instance v1, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda36;
+
+    invoke-direct {v1, p2, p1}, Lcom/jichi/ob/ui/SyncSettingsFragment$$ExternalSyntheticLambda36;-><init>(Lcom/jichi/ob/ui/SyncSettingsFragment;Ljava/lang/String;)V
+
+    const-string/jumbo v2, "\u300c\u4e00\u5bf9\u591a\u4e92\u4f20\uff081 \u4e2a\u6765\u6e90 \u00d7 \u591a\u4e2a\u76ee\u6807\uff09\u300d\u5c5e\u4e8e\u5185\u6d4b\u4f53\u9a8c\u529f\u80fd\n\u5f53\u524d\u672a\u6fc0\u6d3b\u8d44\u683c\uff0c\u9700\u8f93\u5165\u4f53\u9a8c\u7801\u7ee7\u7eed\u4f7f\u7528"
+
+    invoke-direct {p2, v1, v2}, Lcom/jichi/ob/ui/SyncSettingsFragment;->showTrialDialogForFeature(Lkotlin/jvm/functions/Function0;Ljava/lang/String;)V
+
+    return-void
+
+    :cond_first
+    :cond_add
+    iget-object p0, p2, Lcom/jichi/ob/ui/SyncSettingsFragment;->selectedTargetTags:Ljava/util/LinkedHashSet;
+
     invoke-virtual {p0, p1}, Ljava/util/LinkedHashSet;->add(Ljava/lang/Object;)Z
 
     .line 439
@@ -5175,6 +5275,20 @@
     invoke-virtual {p0}, Landroid/widget/Toast;->show()V
 
     return-void
+.end method
+
+.method public static synthetic onMultiTargetGatePassed(Lcom/jichi/ob/ui/SyncSettingsFragment;Ljava/lang/String;)Lkotlin/Unit;
+    .locals 1
+
+    iget-object v0, p0, Lcom/jichi/ob/ui/SyncSettingsFragment;->selectedTargetTags:Ljava/util/LinkedHashSet;
+
+    invoke-virtual {v0, p1}, Ljava/util/LinkedHashSet;->add(Ljava/lang/Object;)Z
+
+    invoke-direct {p0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->refreshTargetButtons()V
+
+    sget-object v0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+
+    return-object v0
 .end method
 
 .method private final showInputDialog(Ljava/lang/String;Lcom/google/android/material/slider/Slider;Landroid/widget/TextView;II)V
@@ -5400,13 +5514,25 @@
 .end method
 
 .method private final showTrialDialogForFeature(Lkotlin/jvm/functions/Function0;)V
+    .locals 1
+
+    const-string/jumbo v0, "\u300c\u4f73\u660e\u8bbe\u5907\u4f2a\u88c5\u300d\u5c5e\u4e8e\u5185\u6d4b\u4f53\u9a8c\u529f\u80fd\n\u8be5\u529f\u80fd\u4e0d\u6536\u53d6\u4efb\u4f55\u8d39\u7528\uff0c\u9700\u8f93\u5165\u4f53\u9a8c\u7801\u7ee7\u7eed\u4f7f\u7528"
+
+    invoke-direct {p0, p1, v0}, Lcom/jichi/ob/ui/SyncSettingsFragment;->showTrialDialogForFeature(Lkotlin/jvm/functions/Function0;Ljava/lang/String;)V
+
+    return-void
+.end method
+
+.method private final showTrialDialogForFeature(Lkotlin/jvm/functions/Function0;Ljava/lang/String;)V
     .locals 11
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
             "Lkotlin/jvm/functions/Function0<",
             "Lkotlin/Unit;",
-            ">;)V"
+            ">;",
+            "Ljava/lang/String;",
+            ")V"
         }
     .end annotation
 
@@ -5596,7 +5722,7 @@
     if-eqz v0, :cond_8
 
     .line 752
-    const-string/jumbo v5, "\u300c\u4f73\u660e\u8bbe\u5907\u4f2a\u88c5\u300d\u5c5e\u4e8e\u5185\u6d4b\u4f53\u9a8c\u529f\u80fd\n\u8be5\u529f\u80fd\u4e0d\u6536\u53d6\u4efb\u4f55\u8d39\u7528\uff0c\u9700\u8f93\u5165\u4f53\u9a8c\u7801\u7ee7\u7eed\u4f7f\u7528"
+    move-object v5, p2
 
     check-cast v5, Ljava/lang/CharSequence;
 
@@ -6490,6 +6616,17 @@
 
     move-result-object v6
 
+    sget-object v7, Lcom/jichi/ob/model/DataSource;->STRAVA:Lcom/jichi/ob/model/DataSource;
+
+    if-ne v6, v7, :cond_strava_src_ok
+
+    const/16 v7, 0x8
+
+    invoke-virtual {v5, v7}, Lcom/jichi/ob/ui/PlatformButton;->setVisibility(I)V
+
+    goto :goto_6
+
+    :cond_strava_src_ok
     if-nez v6, :cond_6
 
     goto :goto_6
@@ -6636,7 +6773,7 @@
     move v5, v4
 
     :goto_0
-    if-ge v5, v1, :cond_d
+    if-ge v5, v1, :cond_e
 
     .line 562
     iget-object v6, v0, Lcom/jichi/ob/ui/SyncSettingsFragment;->gridTarget:Landroid/widget/GridLayout;
@@ -6837,16 +6974,16 @@
     :cond_9
     sget-object v3, Lcom/jichi/ob/model/DataSource;->BRYTON:Lcom/jichi/ob/model/DataSource;
 
-    if-eq v7, v3, :cond_9b
+    if-eq v7, v3, :cond_a
 
     invoke-virtual {v8}, Lcom/jichi/ob/model/UploadSupport;->getAvailable()Z
 
     move-result v3
 
-    if-nez v3, :cond_a
+    if-nez v3, :cond_b
 
-    :cond_9b
     .line 580
+    :cond_a
     invoke-virtual {v6, v4}, Lcom/jichi/ob/ui/PlatformButton;->setEnabled(Z)V
 
     .line 581
@@ -6941,10 +7078,10 @@
     goto :goto_5
 
     .line 593
-    :cond_a
+    :cond_b
     iget-object v3, v0, Lcom/jichi/ob/ui/SyncSettingsFragment;->prefs:Lcom/jichi/ob/util/PrefsManager;
 
-    if-nez v3, :cond_b
+    if-nez v3, :cond_c
 
     const-string v3, "prefs"
 
@@ -6952,12 +7089,12 @@
 
     const/4 v3, 0x0
 
-    :cond_b
+    :cond_c
     invoke-virtual {v3, v7}, Lcom/jichi/ob/util/PrefsManager;->isLoggedIn(Lcom/jichi/ob/model/DataSource;)Z
 
     move-result v3
 
-    if-nez v3, :cond_c
+    if-nez v3, :cond_d
 
     .line 594
     invoke-virtual {v6, v13}, Lcom/jichi/ob/ui/PlatformButton;->setVisibility(I)V
@@ -6965,7 +7102,7 @@
     goto :goto_5
 
     .line 597
-    :cond_c
+    :cond_d
     invoke-virtual {v6, v4}, Lcom/jichi/ob/ui/PlatformButton;->setVisibility(I)V
 
     :goto_5
@@ -6974,10 +7111,10 @@
     goto/16 :goto_0
 
     .line 599
-    :cond_d
+    :cond_e
     iget-object v1, v0, Lcom/jichi/ob/ui/SyncSettingsFragment;->gridTarget:Landroid/widget/GridLayout;
 
-    if-nez v1, :cond_e
+    if-nez v1, :cond_f
 
     invoke-static {v2}, Lkotlin/jvm/internal/Intrinsics;->throwUninitializedPropertyAccessException(Ljava/lang/String;)V
 
@@ -6985,7 +7122,7 @@
 
     goto :goto_6
 
-    :cond_e
+    :cond_f
     move-object v3, v1
 
     :goto_6
