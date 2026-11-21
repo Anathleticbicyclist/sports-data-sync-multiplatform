@@ -49,4 +49,8 @@
     <color name="black">#000000</color>
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
+    <!-- 合并/贴纸页补回：9.6.8 布局引用的三个颜色，原值未知，按用途补（半透明遮罩/贴纸白字/主蓝描边） -->
+    <color name="overlay_scrim">#80000000</color>
+    <color name="sticker_text">#FFFFFF</color>
+    <color name="stroke_blue">#2B8CFF</color>
 </resources>
