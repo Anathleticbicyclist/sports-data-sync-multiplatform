@@ -1,25 +1,14 @@
 package com.jichi.ob
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.graphics.Color
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.TextPaint
-import android.text.method.LinkMovementMethod
-import android.text.style.ClickableSpan
 import android.util.Log
 import android.view.View
-import android.widget.ScrollView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -29,27 +18,16 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.chip.Chip
-import android.widget.GridLayout
-import android.text.SpannableString
-import android.text.Spannable
-import android.text.style.AbsoluteSizeSpan
-import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.google.android.material.slider.Slider
-import com.google.android.material.switchmaterial.SwitchMaterial
 import com.jichi.ob.api.BlackbirdApi
 import com.jichi.ob.api.BrytonApi
 import com.jichi.ob.api.CorosApi
 import com.jichi.ob.api.GarminApi
-import com.jichi.ob.api.GarminOAuthHelper
 import com.jichi.ob.api.GiantApi
 import com.jichi.ob.api.IntervalsIcuApi
 import com.jichi.ob.api.MyWhooshApi
 import com.jichi.ob.api.ZwiftApi
 import com.jichi.ob.api.KeepApi
 import com.jichi.ob.api.WahooApi
-import com.jichi.ob.api.WahooOAuth2Service
 import com.jichi.ob.api.IgpsportApi
 import com.jichi.ob.api.CodoonApi
 import com.jichi.ob.api.ZeppApi
@@ -101,42 +79,49 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private lateinit var prefs: PrefsManager
-    private lateinit var igpsportApi: IgpsportApi
-    private lateinit var xingzheApi: XingzheApi
-    private lateinit var mageneApi: MageneApi
-    private lateinit var blackbirdApi: BlackbirdApi
-    private lateinit var brytonApi: BrytonApi
-    private lateinit var giantApi: GiantApi
-    private lateinit var outbaseApi: OutbaseApi
-    private lateinit var garminApi: GarminApi
-    private lateinit var mywhooshApi: MyWhooshApi
-    private lateinit var zwiftApi: ZwiftApi
-    private lateinit var keepApi: KeepApi
-    private lateinit var codoonApi: CodoonApi
-    private lateinit var zeppApi: ZeppApi
-    private var lastZeppLoginAttempt = 0L   // v8.0.1: Zepp 登录节流（华米 429 风控）
-    private lateinit var komootApi: KomootApi
-    private lateinit var suuntoApi: SuuntoApi
-    private lateinit var intervalsIcuApi: IntervalsIcuApi
-    private lateinit var corosApi: CorosApi
-    private lateinit var wahooApi: WahooApi
-    private lateinit var devOAuthApi: com.jichi.ob.api.DevOAuth2Api
-    private lateinit var twoBuluApi: com.jichi.ob.api.TwoBuluApi
-    private lateinit var uploadEngine: UploadEngine
+    internal lateinit var prefs: PrefsManager
+    internal lateinit var igpsportApi: IgpsportApi
+    internal lateinit var xingzheApi: XingzheApi
+    internal lateinit var mageneApi: MageneApi
+    internal lateinit var blackbirdApi: BlackbirdApi
+    internal lateinit var brytonApi: BrytonApi
+    internal lateinit var giantApi: GiantApi
+    internal lateinit var outbaseApi: OutbaseApi
+    internal lateinit var garminApi: GarminApi
+    internal lateinit var mywhooshApi: MyWhooshApi
+    internal lateinit var zwiftApi: ZwiftApi
+    internal lateinit var keepApi: KeepApi
+    internal lateinit var codoonApi: CodoonApi
+    internal lateinit var zeppApi: ZeppApi
+    internal var lastZeppLoginAttempt = 0L   // v8.0.1: Zepp 登录节流（华米 429 风控）
+    internal lateinit var komootApi: KomootApi
+    internal lateinit var suuntoApi: SuuntoApi
+    internal lateinit var intervalsIcuApi: IntervalsIcuApi
+    internal lateinit var corosApi: CorosApi
+    internal lateinit var wahooApi: WahooApi
+    internal lateinit var devOAuthApi: com.jichi.ob.api.DevOAuth2Api
+    internal lateinit var twoBuluApi: com.jichi.ob.api.TwoBuluApi
+    internal lateinit var uploadEngine: UploadEngine
+
+    // P1 Step 1: 协调器——登录/同步状态/导航/日志逻辑已移至 coordinator/ 与 util/AppLog，
+    // 此处只保留字段与一行委托，对外调用方签名不变。
+    internal lateinit var appLog: com.jichi.ob.util.AppLog
+    internal lateinit var auth: com.jichi.ob.coordinator.AuthCoordinator
+    internal lateinit var syncCoordinator: com.jichi.ob.coordinator.SyncCoordinator
+    internal lateinit var navigator: com.jichi.ob.coordinator.FragmentNavigator
 
     // v7.6.2: 四页面Fragment引用
-    private lateinit var loginFragment: com.jichi.ob.ui.LoginFragment
-    private lateinit var settingsFragment: com.jichi.ob.ui.SyncSettingsFragment
-    private lateinit var syncFragment: com.jichi.ob.ui.SyncFragment
-    private lateinit var aboutFragment: com.jichi.ob.ui.AboutFragment
+    internal lateinit var loginFragment: com.jichi.ob.ui.LoginFragment
+    internal lateinit var settingsFragment: com.jichi.ob.ui.SyncSettingsFragment
+    internal lateinit var syncFragment: com.jichi.ob.ui.SyncFragment
+    internal lateinit var aboutFragment: com.jichi.ob.ui.AboutFragment
     // v8.2.0: 记录中心（跨平台日期检索）
-    private lateinit var recordFragment: com.jichi.ob.ui.RecordCenterFragment
+    internal lateinit var recordFragment: com.jichi.ob.ui.RecordCenterFragment
     // v7.9.7: 轨迹合并页（全屏覆盖）
-    private lateinit var mergeFragment: com.jichi.ob.ui.MergeFragment
+    internal lateinit var mergeFragment: com.jichi.ob.ui.MergeFragment
     // v8.2.1: 实验室登录页（松拓/Zepp/百锐腾，可返回）
-    private lateinit var labLoginFragment: com.jichi.ob.ui.LabLoginFragment
-    private lateinit var createTaskFragment: com.jichi.ob.ui.CreateTaskFragment
+    internal lateinit var labLoginFragment: com.jichi.ob.ui.LabLoginFragment
+    internal lateinit var createTaskFragment: com.jichi.ob.ui.CreateTaskFragment
 
     private var syncJob: Job? = null
     private var autoSyncJob: Job? = null
@@ -156,147 +141,11 @@ class MainActivity : AppCompatActivity() {
         if (granted) appendLog("✅ 通知权限已授予") else appendLog("⚠️ 通知权限被拒绝，后台同步通知可能不显示")
     }
 
-    private val loginLauncher = registerForActivityResult(
+    internal val loginLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         try {
-            val data = result.data
-            if (result.resultCode == Activity.RESULT_OK && data != null) {
-                val type = data.getStringExtra(LoginWebActivity.RESULT_LOGIN_TYPE) ?: ""
-                val token = data.getStringExtra(LoginWebActivity.RESULT_TOKEN) ?: ""
-                val sid = data.getStringExtra(LoginWebActivity.RESULT_SESSION_ID) ?: ""
-                val extra = data.getStringExtra(LoginWebActivity.RESULT_EXTRA) ?: ""
-                when (type) {
-                    LoginWebActivity.TYPE_IGPSPORT -> if (token.length > 20) {
-                        prefs.saveIgpsportToken(token); appendLog("✅ iGPSPORT登录成功"); fetchUsernameAfterLogin(DataSource.IGPSPORT)
-                    }
-                    LoginWebActivity.TYPE_XINGZHE -> if (sid.length > 10) {
-                        prefs.saveXingzheSessionId(sid)
-                        if (extra.isNotEmpty()) prefs.saveXingzheCsrf(extra)
-                        appendLog("✅ 行者登录成功"); fetchUsernameAfterLogin(DataSource.XINGZHE)
-                    }
-                    LoginWebActivity.TYPE_MAGENE -> if (token.length > 20) {
-                        prefs.saveMageneToken(token)
-                        if (extra.isNotEmpty()) prefs.saveMageneRefreshToken(extra)
-                        appendLog("✅ 迈金登录成功"); fetchUsernameAfterLogin(DataSource.MAGENE)
-                    }
-                    LoginWebActivity.TYPE_BLACKBIRD -> if (sid.length > 5) {
-                        prefs.saveBlackbirdCookie(sid); appendLog("✅ 黑鸟单车登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.BLACKBIRD)
-                    } else appendLog("⚠️ 黑鸟单车cookie异常，请重新登录")
-                    LoginWebActivity.TYPE_BRYTON -> {
-                        // v6.2.4: 百锐腾凭证格式 token;userId;cookie（Meteor登录态在localStorage）
-                        val parts = sid.split(";")
-                        val tok = parts.getOrNull(0) ?: ""
-                        val uid = parts.getOrNull(1) ?: ""
-                        val ck = parts.drop(2).joinToString(";")
-                        if (tok.length > 10 && uid.isNotEmpty()) {
-                            prefs.saveBrytonToken(tok); prefs.saveBrytonUserId(uid); prefs.saveBrytonCookie(ck)
-                            appendLog("✅ 百锐腾登录成功(Meteor token ${tok.length}B, userId=$uid)")
-                            fetchUsernameAfterLogin(DataSource.BRYTON)
-                        } else if (ck.length > 5) {
-                            prefs.saveBrytonCookie(ck); appendLog("✅ 百锐腾登录成功(cookie ${ck.length}字节)")
-                            fetchUsernameAfterLogin(DataSource.BRYTON)
-                        } else appendLog("⚠️ 百锐腾cookie异常，请重新登录")
-                    }
-                    LoginWebActivity.TYPE_TWO_BULU -> if (sid.length > 10) {
-                        prefs.saveTwoBuluCookie(sid)
-                        appendLog("✅ 两步路登录成功(cookie ${sid.length}字节)"); fetchUsernameAfterLogin(DataSource.TWO_BULU)
-                    } else appendLog("⚠️ 两步路登录失败: cookie异常")
-                    LoginWebActivity.TYPE_OUTBASE -> if (sid.length > 10) {
-                        prefs.saveOutbaseSessionId(sid)
-                        prefs.saveGatewayCookies(extra)
-                        appendLog("✅ Outbase登录成功"); fetchUsernameAfterLogin(DataSource.OUTBASE)
-                    }
-                    LoginWebActivity.TYPE_GARMIN_COM -> if (token.length > 20) {
-                        prefs.saveGarminComToken(token)
-                        prefs.saveGarminComCookie("")
-                        appendLog("✅ 佳明国际登录成功(mobile SSO+DI Token)"); fetchUsernameAfterLogin(DataSource.GARMIN_COM)
-                        // v7.9.0: 佳明风控引导——已生成长期刷新凭证，提醒勿频繁重新登录
-                        com.jichi.ob.util.GarminLoginHint.show(this, "佳明国际")
-                    } else appendLog("⚠️ 佳明国际登录失败: 未获取到token")
-                    LoginWebActivity.TYPE_GARMIN_CN -> if (token.length > 20) {
-                        prefs.saveGarminCnToken(token)
-                        prefs.saveGarminCnCookie("")
-                        appendLog("✅ 佳明中国登录成功(JWT_WEB+session)"); fetchUsernameAfterLogin(DataSource.GARMIN_CN)
-                        // v7.9.0: 佳明风控引导——已生成长期刷新凭证，提醒勿频繁重新登录
-                        com.jichi.ob.util.GarminLoginHint.show(this, "佳明中国")
-                    } else appendLog("⚠️ 佳明中国登录失败: 未获取到token")
-                    LoginWebActivity.TYPE_COROS_CN -> if (sid.length > 10) {
-                        prefs.saveCorosCnToken(sid)
-                        appendLog("✅ 高驰中国登录成功"); fetchUsernameAfterLogin(DataSource.COROS_CN)
-                    } else appendLog("⚠️ 高驰中国登录失败: 未捕获到token")
-                    LoginWebActivity.TYPE_COROS_INT -> if (sid.length > 10) {
-                        prefs.saveCorosIntToken(sid)
-                        appendLog("✅ 高驰国际登录成功"); fetchUsernameAfterLogin(DataSource.COROS_INT)
-                    } else appendLog("⚠️ 高驰国际登录失败: 未捕获到token")
-                    LoginWebActivity.TYPE_WAHOO -> {
-                        // v7.1.3: Wahoo 返回 OAuth2 授权码，优先用内置生产凭证，其次用用户配置的凭证
-                        val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
-                        val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
-                        if (sid.length > 5 && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
-                            val code = sid
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val fresh = wahooApi.exchangeToken(code, clientId, clientSecret)
-                                runOnUiThread {
-                                    if (fresh != null) {
-                                        prefs.saveWahooToken(fresh.first)
-                                        prefs.saveWahooRefresh(fresh.second)
-                                        appendLog("✅ Wahoo登录成功"); fetchUsernameAfterLogin(DataSource.WAHOO)
-                                    } else appendLog("⚠️ Wahoo token换取失败")
-                                    loginFragment.updateStatus()
-                                }
-                            }
-                        } else appendLog("⚠️ Wahoo登录失败: 未捕获到授权码或未配置凭证")
-                    }
-                    LoginWebActivity.TYPE_SUUNTO -> {
-                        // v7.9.6: Suunto 返回 OAuth2 授权码 → 换 token（需三凭证）
-                        val clientId = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_ID else prefs.getSuuntoClientId()
-                        val clientSecret = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_SECRET else prefs.getSuuntoClientSecret()
-                        val subKey = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_SUBSCRIPTION_KEY else prefs.getSuuntoSubscriptionKey()
-                        if (sid.length > 5 && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty() && !subKey.isNullOrEmpty()) {
-                            val code = sid
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val fresh = suuntoApi.exchangeCode(code, clientId, clientSecret, subKey)
-                                runOnUiThread {
-                                    if (fresh != null) {
-                                        prefs.saveSuuntoToken(fresh.accessToken)
-                                        prefs.saveSuuntoRefresh(fresh.refreshToken)
-                                        appendLog("✅ 松拓登录成功"); fetchUsernameAfterLogin(DataSource.SUUNTO)
-                                    } else appendLog("⚠️ 松拓token换取失败")
-                                    loginFragment.updateStatus()
-                                }
-                            }
-                        } else appendLog("⚠️ 松拓登录失败: 未捕获到授权码或未配置凭证")
-                    }
-                    LoginWebActivity.TYPE_STRAVA, LoginWebActivity.TYPE_POLAR, LoginWebActivity.TYPE_FITBIT,
-                    LoginWebActivity.TYPE_WITHINGS, LoginWebActivity.TYPE_TRAININGPEAKS -> {
-                        // v8.2.9: P0 实验室平台 —— OAuth2 授权码 → 换 token（用户自填 clientId/secret）
-                        val ds = when (type) {
-                            LoginWebActivity.TYPE_STRAVA -> DataSource.STRAVA
-                            LoginWebActivity.TYPE_POLAR -> DataSource.POLAR
-                            LoginWebActivity.TYPE_FITBIT -> DataSource.FITBIT
-                            LoginWebActivity.TYPE_WITHINGS -> DataSource.WITHINGS
-                            else -> DataSource.TRAININGPEAKS
-                        }
-                        if (sid.length > 5) {
-                            val code = sid
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val ok = devOAuthApi.exchangeCode(ds, code)
-                                runOnUiThread {
-                                    if (ok) {
-                                        appendLog("✅ ${ds.displayName}登录成功"); fetchUsernameAfterLogin(ds)
-                                    } else appendLog("⚠️ ${ds.displayName}token换取失败（请检查凭证与scope）")
-                                    loginFragment.updateStatus()
-                                }
-                            }
-                        } else appendLog("⚠️ ${ds.displayName}登录失败: 未捕获到授权码")
-                    }
-                }
-                loginFragment.updateStatus()
-                // v7.7.4: 登录成功后刷新设置页来源/目标网格，目标立即可选，无需重启App
-                try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                // v8.2.5: 失效平台重登后清失效清单——已统一收敛到 fetchUsernameAfterLogin（所有平台登录成功公共入口）
-            }
+            if (::auth.isInitialized) auth.handleLoginResult(result.resultCode, result.data)
         } catch (e: Exception) {
             Log.e(TAG, "login result error", e)
         }
@@ -354,11 +203,15 @@ class MainActivity : AppCompatActivity() {
             devOAuthApi = com.jichi.ob.api.DevOAuth2Api(this)
             twoBuluApi = com.jichi.ob.api.TwoBuluApi(this)
             uploadEngine = UploadEngine(this)
+            appLog = com.jichi.ob.util.AppLog(this)
+            auth = com.jichi.ob.coordinator.AuthCoordinator(this)
+            syncCoordinator = com.jichi.ob.coordinator.SyncCoordinator(this)
+            navigator = com.jichi.ob.coordinator.FragmentNavigator(this)
             if (!SAVE_DIR.exists()) SAVE_DIR.mkdirs()
             if (savedInstanceState == null) {
-                initFragments()
+                navigator.initFragments()
             } else {
-                restoreFragments()
+                navigator.restoreFragments()
             }
             initFixWebView()
             requestNotificationPermission()
@@ -369,7 +222,7 @@ class MainActivity : AppCompatActivity() {
             appendLog("💾 已同步记录: ${prefs.getSyncedCount()} 条")
             // v8.2.2: 启动改轻量本地校验（不发网络请求，避免启动即撞平台风控）；
             //         网络级登录检测收敛到登录页"一键检测"按钮
-            initLoginStatesLight()
+            syncCoordinator.initLoginStatesLight()
             // v8.2.3: 会话内自动检查——延迟5s后台串行校验一次（默认开，可关；不弹窗不阻塞，失败静默）
             if (prefs.isAutoCheckLogin() && !autoCheckDone) {
                 lifecycleScope.launch(Dispatchers.IO) {
@@ -378,7 +231,7 @@ class MainActivity : AppCompatActivity() {
                         if (autoCheckDone) return@launch
                         autoCheckDone = true
                         appendLog("🔍 会话内自动检查登录态...")
-                        checkAllLogins()
+                        syncCoordinator.checkAllLogins()
                     } catch (_: Exception) {}
                 }
             }
@@ -435,712 +288,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** v8.2.9: 开发者自填 OAuth 平台登录——无凭证先弹输入框 */
-    private fun openDevOAuthLogin(ds: DataSource, loginType: String) {
-        val cid = prefs.getLabClientId(ds)
-        val csec = prefs.getLabClientSecret(ds)
-        if (cid.isNullOrEmpty() || csec.isNullOrEmpty()) {
-            showLabCredentialDialog(ds, loginType)
-        } else {
-            val url = com.jichi.ob.api.DevOAuth2Api.buildAuthUrl(ds, cid)
-            openLogin(loginType, url)
-        }
-    }
 
     /** v8.2.9: 实验室凭证输入对话框（松拓式：用户自填 clientId/clientSecret） */
-    private fun showLabCredentialDialog(ds: DataSource, loginType: String) {
-        val input = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(60, 20, 60, 0)
-        }
-        val etId = android.widget.EditText(this).apply {
-            hint = "Client ID（开发者平台申请）"
-            textSize = 14f
-        }
-        val etSec = android.widget.EditText(this).apply {
-            hint = "Client Secret（开发者平台申请）"
-            textSize = 14f
-        }
-        input.addView(etId); input.addView(etSec)
-        android.app.AlertDialog.Builder(this)
-            .setTitle("填写 ${ds.displayName} 开发者凭证")
-            .setMessage("前往 ${ds.displayName} 开发者平台自助申请（免费），填写后即可登录。凭证仅存本机。")
-            .setView(input)
-            .setPositiveButton("保存并登录") { _, _ ->
-                val id = etId.text.toString().trim()
-                val sec = etSec.text.toString().trim()
-                if (id.isNotEmpty() && sec.isNotEmpty()) {
-                    prefs.saveLabClientId(ds, id)
-                    prefs.saveLabClientSecret(ds, sec)
-                    val url = com.jichi.ob.api.DevOAuth2Api.buildAuthUrl(ds, id)
-                    openLogin(loginType, url)
-                } else {
-                    android.widget.Toast.makeText(this, "凭证不能为空", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
 
-    internal fun openPlatformLogin(ds: DataSource) {
-        when (ds) {
-            DataSource.IGPSPORT -> openLogin(LoginWebActivity.TYPE_IGPSPORT, com.jichi.ob.api.IgpsportApi.LOGIN_URL)
-            DataSource.XINGZHE -> openLogin(LoginWebActivity.TYPE_XINGZHE, com.jichi.ob.api.XingzheApi.LOGIN_URL)
-            DataSource.MAGENE -> openLogin(LoginWebActivity.TYPE_MAGENE, com.jichi.ob.api.MageneApi.LOGIN_URL)
-            DataSource.BLACKBIRD -> openLogin(LoginWebActivity.TYPE_BLACKBIRD, com.jichi.ob.api.BlackbirdApi.LOGIN_URL)
-            DataSource.GIANT -> openGiantLogin()
-            DataSource.OUTBASE -> openLogin(LoginWebActivity.TYPE_OUTBASE, com.jichi.ob.api.OutbaseApi.LOGIN_URL)
-            DataSource.GARMIN_COM -> openLogin(LoginWebActivity.TYPE_GARMIN_COM, com.jichi.ob.api.GarminApi.LOGIN_URL_COM)
-            DataSource.GARMIN_CN -> openGarminCnLogin()
-            DataSource.COROS_CN -> openLogin(LoginWebActivity.TYPE_COROS_CN, com.jichi.ob.api.CorosApi.LOGIN_URL_CN)
-            DataSource.COROS_INT -> openLogin(LoginWebActivity.TYPE_COROS_INT, com.jichi.ob.api.CorosApi.LOGIN_URL_INT)
-            DataSource.WAHOO -> openWahooLogin()
-            DataSource.MYWHOOSH -> openMywhooshLogin()
-            DataSource.ZWIFT -> openZwiftLogin()
-            DataSource.INTERVALS_ICU -> openIntervalsIcuLogin()
-            DataSource.KEEP -> openKeepLogin()
-            DataSource.CODOON -> openCodoonLogin()
-            DataSource.KOMOT -> openKomootLogin()
-            DataSource.ZEPP -> openZeppLogin()
-            DataSource.SUUNTO -> openSuuntoLogin()
-            DataSource.TWO_BULU -> openLogin(LoginWebActivity.TYPE_TWO_BULU, "https://www.2bulu.com/")
-            DataSource.STRAVA -> openDevOAuthLogin(DataSource.STRAVA, LoginWebActivity.TYPE_STRAVA)
-            DataSource.POLAR -> openDevOAuthLogin(DataSource.POLAR, LoginWebActivity.TYPE_POLAR)
-            DataSource.FITBIT -> openDevOAuthLogin(DataSource.FITBIT, LoginWebActivity.TYPE_FITBIT)
-            DataSource.WITHINGS -> openDevOAuthLogin(DataSource.WITHINGS, LoginWebActivity.TYPE_WITHINGS)
-            DataSource.TRAININGPEAKS -> openDevOAuthLogin(DataSource.TRAININGPEAKS, LoginWebActivity.TYPE_TRAININGPEAKS)
-            DataSource.BRYTON -> openLogin(LoginWebActivity.TYPE_BRYTON, com.jichi.ob.api.BrytonApi.LOGIN_URL)
-        }
-    }
+    internal fun openPlatformLogin(ds: DataSource) = auth.openPlatformLogin(ds)
 
     /** v7.4.5: Wahoo 登录——恢复WahooOAuth2Service后台自动化登录（v7.3.0验证通过的方案），SCOPES含workouts_write支持上传 */
-    internal fun openWahooLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val emailInput = android.widget.EditText(this).apply {
-            hint = "Wahoo邮箱"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            setText(prefs.getWahooEmail() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "Wahoo密码"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(emailInput)
-        layout.addView(passwordInput)
-        
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Wahoo直接登录")
-            .setMessage("后台自动完成OAuth2授权（含workouts_write上传权限）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val email = emailInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (email.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入邮箱和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveWahooEmail(email)
-                appendLog("🔐 Wahoo直接登录中...")
-                WahooOAuth2Service.debugLogCallback = { msg -> runOnUiThread { appendLog(msg) } }
-                lifecycleScope.launch(Dispatchers.IO) {
-                    // v7.5.4: 登录前先尝试复用已有token，避免每次登录都新建token导致"Too many unrevoked access tokens"上限
-                    val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
-                    val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured()) com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
-                    val savedToken = prefs.getWahooToken()
-                    val savedRefresh = prefs.getWahooRefresh()
-                    var reused: Pair<String, String>? = null
-                    if (!savedToken.isNullOrEmpty() && !clientId.isNullOrEmpty() && !clientSecret.isNullOrEmpty()) {
-                        appendLog("🔎 检测到已保存的Wahoo令牌，尝试复用（避免新建token超限）...")
-                        reused = wahooApi.getUsableTokenOrNull(savedToken, savedRefresh, clientId, clientSecret)
-                        if (reused != null) {
-                            appendLog("✅ 复用已有Wahoo令牌成功，无需重新授权")
-                        } else {
-                            appendLog("ℹ️ 已有令牌已失效，尝试撤销旧令牌后重新授权...")
-                            // v7.5.4: 用旧token撤销全部授权（即使已失效也无害），尽量清空token名额
-                            if (wahooApi.deauthorize(savedToken)) appendLog("✅ 旧Wahoo令牌已撤销")
-                            else appendLog("ℹ️ 旧令牌撤销失败（可能已失效），继续重新授权")
-                        }
-                    }
-                    if (reused != null) {
-                        prefs.saveWahooToken(reused.first)
-                        prefs.saveWahooRefresh(reused.second)
-                        appendLog("✅ Wahoo登录成功（含上传权限）")
-                        fetchUsernameAfterLogin(DataSource.WAHOO)
-                    } else {
-                        appendLog("🔐 开始Wahoo OAuth2重新授权...")
-                        val result = WahooOAuth2Service.login(email, password)
-                        if (result != null) {
-                            prefs.saveWahooToken(result.first)
-                            prefs.saveWahooRefresh(result.second)
-                            appendLog("✅ Wahoo登录成功（含上传权限）")
-                            fetchUsernameAfterLogin(DataSource.WAHOO)
-                        } else {
-                            // v7.5.4: 错误原因已在WahooOAuth2Service日志中详细展示
-                            appendLog("❌ Wahoo登录失败，详见上方日志")
-                            // v7.5.4: token数量超限时弹出针对性引导
-                            if (WahooOAuth2Service.lastError == WahooOAuth2Service.ERROR_TOKEN_LIMIT) {
-                                runOnUiThread {
-                                    androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
-                                        .setTitle("Wahoo令牌数量超限")
-                                        .setMessage("该Wahoo账号下\"鸡翅幸哲迈进OB\"的未撤销令牌已达10枚上限，无法继续登录。\n\n解决方法：\n1. 打开手机上的Wahoo官方App\n2. 进入 设置(Settings) → 已授权应用(Authorized Apps)\n3. 找到\"鸡翅幸哲迈进OB\"，点击 撤销授权(Deauthorize)\n4. 回到本应用重新登录即可")
-                                        .setPositiveButton("我知道了", null)
-                                        .show()
-                                }
-                            }
-                        }
-                    }
-                    runOnUiThread { loginFragment.updateStatus() }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openWahooLogin() = auth.openWahooLogin()
 
     /**
      * v7.5.1: 佳明中国直接登录（模拟garth库mobile SSO流程，不需要WebView）
      * 用邮箱密码直接获取OAuth2 Bearer token，调用connectapi.garmin.cn
      */
-    internal fun openGarminCnLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val emailInput = android.widget.EditText(this).apply {
-            hint = "佳明中国邮箱"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "佳明中国密码"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(emailInput)
-        layout.addView(passwordInput)
-        // v8.2.1: 手动清空风控（不依赖登录态；提示强行重登会增加冷却）
-        val clearCooldownLink = android.widget.TextView(this).apply {
-            text = "→ 清空风控冷却（登录被限流/提示24小时后重试时点此）"
-            textSize = 12f
-            setTextColor(0xFFE65100.toInt())
-            setPadding(0, 20, 0, 0)
-            isClickable = true
-            isFocusable = true
-        }
-        clearCooldownLink.setOnClickListener {
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("清空风控")
-                .setMessage("若清空风控后强行尝试登录，可能增加冷却时间，你确定清空吗？")
-                .setPositiveButton("确定清空") { _, _ ->
-                    com.jichi.ob.api.GarminApi.clearAllCooldownFor(DataSource.GARMIN_CN)
-                    android.widget.Toast.makeText(this, "佳明中国：风控冷却缓存已清空，可重新登录", android.widget.Toast.LENGTH_SHORT).show()
-                }
-                .setNegativeButton("取消", null)
-                .show()
-        }
-        layout.addView(clearCooldownLink)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("佳明中国直接登录")
-            .setMessage("后台自动完成mobile SSO+OAuth2授权（参考garth库，Bearer token调connectapi）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val email = emailInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (email.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入邮箱和密码")
-                    return@setPositiveButton
-                }
-                // v7.9.1: 佳明中国补风控检查——按账号维度（中国区走OAuth1→OAuth2，主通道GCM_ANDROID_DARK）
-                if (com.jichi.ob.api.GarminApi.isCooldown(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")) {
-                    val remain = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
-                    appendLog("❌ 该账号处于佳明中国风控冷却中，请约${remain}分钟后重试；或到登录页点击【注销】清除该账号冷却缓存后立即重登（冷却仅针对该账号）")
-                    return@setPositiveButton
-                }
-                appendLog("🔐 佳明中国直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    try {
-                        val oauth2 = GarminOAuthHelper.loginWithCredentialsCn(email, password)
-                        // 保存为diToken格式（GarminApi已支持佳明中国DI token+connectapi）
-                        val cred = JSONObject().apply {
-                            put("di_token", oauth2.accessToken)
-                            put("di_refresh_token", oauth2.refreshToken)
-                            put("di_client_id", "GCM_ANDROID_DARK")
-                            put("jwt_web", "")
-                            put("session", "")
-                            put("csrf", "")
-                            // v7.9.1: 记录账号email，便于refresh按账号维度冷却
-                            put("email", email)
-                        }.toString()
-                        runOnUiThread {
-                            prefs.saveGarminCnToken(cred)
-                            prefs.saveGarminCnCookie("")
-                            appendLog("✅ 佳明中国登录成功(mobile SSO+DI Token)")
-                            com.jichi.ob.util.GarminLoginHint.show(this@MainActivity, "佳明中国")
-                            fetchUsernameAfterLogin(DataSource.GARMIN_CN)
-                            loginFragment.updateStatus()
-                        }
-                    } catch (e: Exception) {
-                        // v7.9.1: 佳明中国429（风控）单独提示 + 写冷却
-                        val msg = e.message ?: ""
-                        if (msg.contains("429") || msg.contains("rate limit") || msg.contains("限流")) {
-                            com.jichi.ob.api.GarminApi.writeCooldownFor(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
-                            val remain = com.jichi.ob.api.GarminApi.cooldownRemainMinutes(DataSource.GARMIN_CN, email, "GCM_ANDROID_DARK")
-                            runOnUiThread {
-                                appendLog("❌ 佳明中国触发风控限流(429)，已写入冷却。该账号请约${remain}分钟后重试（冷却仅针对该账号）")
-                                loginFragment.updateStatus()
-                                showGarminLoginFailDialog("佳明中国", "触发风控限流(429)，该账号请约${remain}分钟后重试。冷却期内反复尝试会延长封禁。")
-                            }
-                        } else {
-                            runOnUiThread {
-                                appendLog("❌ 佳明中国登录失败: $msg")
-                                loginFragment.updateStatus()
-                                // v8.2.3.1: 密码错误/两步验证等失败必须弹窗提醒，不能只落日志
-                                val hint = when {
-                                    msg.contains("INVALID_USERNAME_PASSWORD") || msg.contains("invalid_username_password") || msg.contains("401") ->
-                                        "账号或密码错误，请检查后重试。"
-                                    msg.contains("MFA") || msg.contains("mfa") || msg.contains("two") || msg.contains("verify") ->
-                                        "该账号开启了两步验证，请先关闭两步验证（或使用网页版完成验证）后再登录。"
-                                    msg.contains("captcha") || msg.contains("Captcha") ->
-                                        "触发人机验证，请稍后再试或改用网页版登录。"
-                                    else -> "登录失败：$msg"
-                                }
-                                showGarminLoginFailDialog("佳明中国", hint)
-                            }
-                        }
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openGarminCnLogin() = auth.openGarminCnLogin()
 
     /** v8.3.4: 佳明登录失败统一弹窗（国内/国际风格一致）——引导文案 + 可滑动日志 + 复制/知道了 */
-    private fun showGarminLoginFailDialog(region: String, hint: String) {
-        try {
-            // v8.3.4: 先把佳明调试日志并入持久日志池（弹窗日志=运行日志页）
-            flushGarminDebugLogs()
-            // v8.3.4: 原生Dialog直接setContentView（show前设窗口参数，避免部分ROM按钮行被挤出/窗口高度异常）
-            val dialog = android.app.Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
-            val view = layoutInflater.inflate(R.layout.dialog_garmin_login, null)
-            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogTitle).text = "$region 登录失败"
-            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogGuide).text =
-                hint + "\n\n如果不确定可以将报错日志通过抖音发给「多吃两口」排查。"
-            var logTail = try {
-                // v8.3.4: 取运行日志页同源日志池（appendLog持久日志），保证窗口日志与实际日志一致
-                prefs.getPersistLogs().takeLast(18).joinToString("\n")
-            } catch (_: Exception) { "" }
-            if (logTail.isBlank()) {
-                logTail = synchronized(com.jichi.ob.api.GarminApi.debugLogs) {
-                    com.jichi.ob.api.GarminApi.debugLogs.takeLast(18).joinToString("\n")
-                }
-            }
-            view.findViewById<android.widget.TextView>(R.id.tvGarminDialogLog).text =
-                if (logTail.isNotBlank()) logTail else "（暂无佳明日志）"
-            // 致命错误场景不提供「仍然继续登陆」；普通失败同样关闭该按钮
-            view.findViewById<android.widget.TextView>(R.id.btnGarminContinue).visibility = android.view.View.GONE
-            view.findViewById<android.widget.TextView>(R.id.btnGarminCopyLog).setOnClickListener {
-                try {
-                    val cm = getSystemService(android.content.ClipboardManager::class.java)
-                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("garminLog",
-                        hint + "\n\n——— 佳明登录日志 ———\n" + (if (logTail.isNotBlank()) logTail else "（暂无佳明日志）")))
-                    android.widget.Toast.makeText(this, "日志已复制，可粘贴反馈", android.widget.Toast.LENGTH_SHORT).show()
-                } catch (_: Exception) {}
-            }
-            view.findViewById<android.widget.TextView>(R.id.btnGarminOk).setOnClickListener { dialog.dismiss() }
-            dialog.setContentView(view)
-            dialog.setCancelable(true)
-            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
-            dialog.window?.setLayout(
-                (resources.displayMetrics.widthPixels * 0.9f).toInt(),
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            dialog.show()
-        } catch (_: Exception) {}
-    }
 
     /** v7.8.0: 捷安特直接登录——账号密码原生表单直调 GiantApi（纯API，无需WebView） */
-    internal fun openGiantLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val accountInput = android.widget.EditText(this).apply {
-            hint = "捷安特账号（手机号/邮箱）"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            setText(prefs.getGiantAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "捷安特密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(accountInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录捷安特")
-            .setMessage("账号密码直接登录，支持同步上传（捷安特暂不支持下载）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val account = accountInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (account.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入捷安特账号和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveGiantAccount(account)
-                appendLog("🔐 捷安特直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = giantApi.login(account, password)
-                    runOnUiThread {
-                        if (result != null) {
-                            prefs.saveGiantToken(result.token)
-                            prefs.saveUsername(DataSource.GIANT, result.nickname)
-                            appendLog("✅ 捷安特登录成功")
-                            fetchUsernameAfterLogin(DataSource.GIANT)
-                        } else {
-                            appendLog("❌ 捷安特登录失败：账号或密码错误，请重新输入")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openGiantLogin() = auth.openGiantLogin()
 
     /** v7.8.4: MyWhoosh 直接登录——账号密码原生表单直调 MyWhooshApi（纯API，仅下载源） */
-    internal fun openMywhooshLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val accountInput = android.widget.EditText(this).apply {
-            hint = "MyWhoosh 账号（邮箱）"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            setText(prefs.getMywhooshAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "MyWhoosh 密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(accountInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 MyWhoosh")
-            .setMessage("账号密码直接登录，MyWhoosh 作为数据源（仅下载，不支持上传）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val account = accountInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (account.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入 MyWhoosh 账号和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveMywhooshAccount(account)
-                appendLog("🔐 MyWhoosh直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = mywhooshApi.login(account, password)
-                    runOnUiThread {
-                        if (result != null) {
-                            prefs.saveMywhooshToken(result.token)
-                            prefs.saveMywhooshWhooshId(result.whooshId)
-                            prefs.saveMywhooshRefreshToken(result.refreshToken)
-                            appendLog("✅ MyWhoosh登录成功")
-                            fetchUsernameAfterLogin(DataSource.MYWHOOSH)
-                        } else {
-                            appendLog("❌ MyWhoosh登录失败：账号或密码错误，请重新输入")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openMywhooshLogin() = auth.openMywhooshLogin()
 
     /** v7.8.4: Zwift 直接登录——账号密码原生表单直调 ZwiftApi（纯API，仅下载源） */
-    internal fun openZwiftLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val accountInput = android.widget.EditText(this).apply {
-            hint = "Zwift 账号（邮箱）"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            setText(prefs.getZwiftAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "Zwift 密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(accountInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 Zwift")
-            .setMessage("账号密码直接登录，Zwift 作为数据源（仅下载，不支持上传）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val account = accountInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (account.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入 Zwift 账号和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveZwiftAccount(account)
-                appendLog("🔐 Zwift直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = zwiftApi.login(account, password)
-                    runOnUiThread {
-                        if (result != null) {
-                            prefs.saveZwiftToken(result.token)
-                            prefs.saveZwiftRefreshToken(result.refreshToken)
-                            // 解析 playerId 供活动列表使用
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val pid = zwiftApi.getProfileId(result.token)
-                                runOnUiThread {
-                                    if (!pid.isNullOrBlank()) prefs.saveZwiftPlayerId(pid)
-                                    appendLog("✅ Zwift登录成功")
-                                    fetchUsernameAfterLogin(DataSource.ZWIFT)
-                                    loginFragment.updateStatus()
-                                    try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                                }
-                            }
-                        } else {
-                            appendLog("❌ Zwift登录失败：账号或密码错误，请重新输入")
-                            loginFragment.updateStatus()
-                            try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                        }
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openZwiftLogin() = auth.openZwiftLogin()
 
     /** v7.9.2: Keep 直接登录——手机号密码原生表单直调 KeepApi（纯API，仅下载源；上传走 Keep App 半自动导入） */
-    internal fun openKeepLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val accountInput = android.widget.EditText(this).apply {
-            hint = "Keep 手机号"
-            inputType = android.text.InputType.TYPE_CLASS_PHONE
-            setText(prefs.getKeepAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "Keep 密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(accountInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 Keep")
-            .setMessage("手机号密码直接登录，Keep 作为数据源（下载运动记录）；上传 Keep 需在 Keep App 内手动导入（运动→数据同步→运动数据文件去导入）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val account = accountInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (account.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入 Keep 手机号和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveKeepAccount(account)
-                appendLog("🔐 Keep直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = keepApi.login(account, password)
-                    runOnUiThread {
-                        if (result != null) {
-                            prefs.saveKeepToken(result.token)
-                            appendLog("✅ Keep登录成功")
-                            fetchUsernameAfterLogin(DataSource.KEEP)
-                        } else {
-                            appendLog("❌ Keep登录失败：账号或密码错误，请重新输入")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openKeepLogin() = auth.openKeepLogin()
 
     /** v7.9.5: 咕咚直接登录——手机号+密码（纯API，仅下载源） */
-    internal fun openCodoonLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val accountInput = android.widget.EditText(this).apply {
-            hint = "咕咚 手机号"
-            inputType = android.text.InputType.TYPE_CLASS_PHONE
-            setText(prefs.getCodoonAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "咕咚 密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(accountInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 咕咚")
-            .setMessage("手机号密码直接登录，咕咚作为数据源（下载运动记录）；咕咚官方无开放上传API，暂不支持上传到咕咚")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val account = accountInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (account.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入咕咚手机号和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveCodoonAccount(account)
-                prefs.saveCodoonPassword(password)
-                appendLog("🔐 咕咚直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = codoonApi.login(account, password)
-                    runOnUiThread {
-                        if (result != null) {
-                            prefs.saveCodoonToken(result.token)
-                            prefs.saveCodoonUserId(result.userId)
-                            appendLog("✅ 咕咚登录成功")
-                            fetchUsernameAfterLogin(DataSource.CODOON)
-                        } else {
-                            appendLog("❌ 咕咚登录失败：账号或密码错误，请重新输入")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openCodoonLogin() = auth.openCodoonLogin()
 
     /** v7.9.5: Zepp（华米）直接登录——邮箱/手机号+密码（纯API，仅下载源） */
-    internal fun openZeppLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val accountInput = android.widget.EditText(this).apply {
-            hint = "Zepp 邮箱或手机号"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            setText(prefs.getZeppAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "Zepp 密码"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(accountInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 Zepp")
-            .setMessage("使用 Zepp/小米运动 App 账号邮箱或手机号密码直接登录，Zepp 作为数据源（下载运动记录）；华米无官方开放上传API，暂不支持上传到 Zepp")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val account = accountInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (account.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入 Zepp 邮箱/手机号和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveZeppAccount(account)
-                // v8.0.1: 登录节流——华米对连续登录风控严格(429)，10 秒内禁止重复提交
-                val now = System.currentTimeMillis()
-                if (now - lastZeppLoginAttempt < 10_000) {
-                    appendLog("⚠️ Zepp 登录过于频繁，请稍等 10 秒再试（避免触发华米风控）")
-                    return@setPositiveButton
-                }
-                lastZeppLoginAttempt = now
-                appendLog("🔐 Zepp直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = zeppApi.login(account, password)
-                    runOnUiThread {
-                        if (result != null && result.appToken.isNotBlank()) {
-                            prefs.saveZeppToken(result.appToken)
-                            prefs.saveZeppUserId(result.userId)
-                            appendLog("✅ Zepp登录成功")
-                            fetchUsernameAfterLogin(DataSource.ZEPP)
-                        } else {
-                            // v8.0.1: 区分风控(429)与密码错误，不再一律提示"账号或密码错误"
-                            appendLog("❌ Zepp登录失败：${result?.error ?: "账号或密码错误，请重新输入"}")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openZeppLogin() = auth.openZeppLogin()
 
     /** v7.9.6: Komoot 直接登录——邮箱+密码（纯API Basic认证，双向：下载+上传） */
-    internal fun openKomootLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val emailInput = android.widget.EditText(this).apply {
-            hint = "Komoot 邮箱"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            setText(prefs.getKomootAccount() ?: "")
-        }
-        val passwordInput = android.widget.EditText(this).apply {
-            hint = "Komoot 密码"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-        }
-        layout.addView(emailInput)
-        layout.addView(passwordInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 Komoot")
-            .setMessage("使用 Komoot 官网注册账号的邮箱密码直接登录，Komoot 作为数据源和上传目标（双向同步）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val email = emailInput.text.toString().trim()
-                val password = passwordInput.text.toString()
-                if (email.isEmpty() || password.isEmpty()) {
-                    appendLog("⚠️ 请输入 Komoot 邮箱和密码")
-                    return@setPositiveButton
-                }
-                prefs.saveKomootAccount(email)
-                appendLog("🔐 Komoot直接登录中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = komootApi.login(email, password)
-                    runOnUiThread {
-                        if (result != null) {
-                            prefs.saveKomootToken(result.token)
-                            prefs.saveUsername(DataSource.KOMOT, result.username)
-                            appendLog("✅ Komoot登录成功")
-                            fetchUsernameAfterLogin(DataSource.KOMOT)
-                        } else {
-                            appendLog("❌ Komoot登录失败：邮箱或密码错误，请重新输入")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openKomootLogin() = auth.openKomootLogin()
 
     /**
      * v7.9.6: Suunto（松拓）登录——OAuth2 授权。
@@ -1148,681 +331,58 @@ class MainActivity : AppCompatActivity() {
      * ① 若凭证已内置/已保存 → 直接打开 WebView 授权页；
      * ② 否则先弹对话框填三凭证（仅首次）。
      */
-    internal fun openSuuntoLogin() {
-        val hasCreds = com.jichi.ob.api.SuuntoApi.isBuiltinConfigured() ||
-            (!prefs.getSuuntoClientId().isNullOrEmpty() && !prefs.getSuuntoClientSecret().isNullOrEmpty() && !prefs.getSuuntoSubscriptionKey().isNullOrEmpty())
-        if (!hasCreds) {
-            // 首次：填三凭证
-            val layout = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
-                setPadding(48, 24, 48, 24)
-            }
-            val clientIdInput = android.widget.EditText(this).apply {
-                hint = "Client ID"
-                inputType = android.text.InputType.TYPE_CLASS_TEXT
-                setText(prefs.getSuuntoClientId() ?: "")
-            }
-            val clientSecretInput = android.widget.EditText(this).apply {
-                hint = "Client Secret"
-                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                setText(prefs.getSuuntoClientSecret() ?: "")
-            }
-            val subKeyInput = android.widget.EditText(this).apply {
-                hint = "Subscription Key"
-                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                setText(prefs.getSuuntoSubscriptionKey() ?: "")
-            }
-            layout.addView(clientIdInput)
-            layout.addView(clientSecretInput)
-            layout.addView(subKeyInput)
+    internal fun openSuuntoLogin() = auth.openSuuntoLogin()
 
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("松拓开发者凭证")
-                .setMessage("在 apizone.suunto.com 免费注册开发者应用（个人申请约3-4周审批），到应用详情页复制 Client ID / Client Secret / Subscription Key 三凭证（仅首次填写，仅存本机）")
-                .setView(layout)
-                .setPositiveButton("下一步") { _, _ ->
-                    val cid = clientIdInput.text.toString().trim()
-                    val cs = clientSecretInput.text.toString().trim()
-                    val sk = subKeyInput.text.toString().trim()
-                    if (cid.isEmpty() || cs.isEmpty() || sk.isEmpty()) {
-                        appendLog("⚠️ 请完整填写松拓三个凭证")
-                        return@setPositiveButton
-                    }
-                    prefs.saveSuuntoClientId(cid)
-                    prefs.saveSuuntoClientSecret(cs)
-                    prefs.saveSuuntoSubscriptionKey(sk)
-                    launchSuuntoWebAuth(cid)
-                }
-                .setNegativeButton("取消", null)
-                .show()
-        } else {
-            val cid = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured())
-                com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_ID else prefs.getSuuntoClientId()!!
-            launchSuuntoWebAuth(cid)
-        }
-    }
-
-    private fun launchSuuntoWebAuth(clientId: String) {
-        appendLog("🔐 打开松拓授权页...")
-        openLogin(LoginWebActivity.TYPE_SUUNTO, suuntoApi.authorizeUrl(clientId))
-    }
 
     /** v7.8.5: Intervals.icu 直接登录——粘贴个人 API Key（纯API，仅上传目标） */
-    internal fun openIntervalsIcuLogin() {
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-        val keyInput = android.widget.EditText(this).apply {
-            hint = "Intervals.icu API Key"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-            setText(prefs.getIntervalsIcuKey() ?: "")
-        }
-        layout.addView(keyInput)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("登录 Intervals.icu")
-            .setMessage("在 intervals.icu 设置页底部复制你的 API Key 粘贴到这里（仅用于上传同步，Key 仅保存在本机）")
-            .setView(layout)
-            .setPositiveButton("登录") { _, _ ->
-                val apiKey = keyInput.text.toString().trim()
-                if (apiKey.isEmpty()) {
-                    appendLog("⚠️ 请输入 Intervals.icu API Key")
-                    return@setPositiveButton
-                }
-                prefs.saveIntervalsIcuKey(apiKey)
-                appendLog("🔐 Intervals.icu 校验 API Key 中...")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val ok = intervalsIcuApi.validateKey(apiKey)
-                    runOnUiThread {
-                        if (ok) {
-                            prefs.saveUsername(DataSource.INTERVALS_ICU, "Intervals.icu用户")
-                            appendLog("✅ Intervals.icu API Key 有效，登录成功")
-                            fetchUsernameAfterLogin(DataSource.INTERVALS_ICU)
-                        } else {
-                            prefs.clearCredential(DataSource.INTERVALS_ICU)
-                            appendLog("❌ Intervals.icu API Key 无效或网络异常，请重新输入")
-                        }
-                        loginFragment.updateStatus()
-                        try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    internal fun openIntervalsIcuLogin() = auth.openIntervalsIcuLogin()
 
     /** v7.2.0: Wahoo配置对话框（保留，用于用户自配置凭证） */
-    private fun openWahooConfigDialog() {
-        val savedId = prefs.getWahooClientId() ?: ""
-        val savedSecret = prefs.getWahooClientSecret() ?: ""
-
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
-        }
-
-        val etId = android.widget.EditText(this).apply {
-            hint = "Client ID"
-            setText(savedId)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-        }
-        val etSecret = android.widget.EditText(this).apply {
-            hint = "Client Secret"
-            setText(savedSecret)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-        val tvTutorial = android.widget.TextView(this).apply {
-            text = "申请沙箱教程：\n1. 打开 developers.wahooligan.com/applications\n2. 注册/登录后点击 New Application\n3. 填写名称，Redirect URI 填 http://localhost:8080\n4. Scopes 勾选 user_read、workouts_read、offline_data\n5. 提交后复制 Client ID 和 Client Secret 填入上方\n（沙箱免费，审核通过后即可使用）"
-            textSize = 11f
-            setTextColor(0xFF888888.toInt())
-            setPadding(0, 24, 0, 0)
-        }
-
-        layout.addView(etId)
-        layout.addView(etSecret)
-        layout.addView(tvTutorial)
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Wahoo 开发者凭证配置")
-            .setView(layout)
-            .setPositiveButton("保存并登录") { _, _ ->
-                val id = etId.text.toString().trim()
-                val secret = etSecret.text.toString().trim()
-                if (id.isEmpty() || secret.isEmpty()) {
-                    android.widget.Toast.makeText(this, "请填写 Client ID 和 Client Secret", android.widget.Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                prefs.saveWahooClientId(id)
-                prefs.saveWahooClientSecret(secret)
-                openLogin(LoginWebActivity.TYPE_WAHOO, wahooApi.authorizeUrl(id))
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
 
     /**
      * v8.2.2: 启动轻量登录检测——只做本地凭证校验（不发网络请求），
      * 避免启动即撞平台风控；网络级检测由登录页"一键检测"触发 checkAllLogins。
      */
     /** v8.2.3: 平台统计 + 平台日志写入（IO 线程调用；type: dl下载/ok上传成功/skip跳过/err失败） */
-    private fun recordSync(ds: DataSource, type: String, okDelta: Int = 0, skipDelta: Int = 0, failDelta: Int = 0, msg: String = "") {
-        try {
-            val cache = com.jichi.ob.util.ActivityCache.get(this)
-            cache.addPlatformStat(ds.shortName, okDelta, skipDelta, failDelta, System.currentTimeMillis())
-            if (msg.isNotEmpty()) cache.addPlatformLog(ds.shortName, type, msg)
-        } catch (_: Exception) {}
-    }
+    private fun recordSync(ds: DataSource, type: String, okDelta: Int = 0, skipDelta: Int = 0, failDelta: Int = 0, msg: String = "") = syncCoordinator.recordSync(ds, type, okDelta, skipDelta, failDelta, msg)
 
-    private fun initLoginStatesLight() {
-        val logged = DataSource.sourcePlatforms().count { prefs.isLoggedIn(it) }
-        val cacheCount = try { com.jichi.ob.util.ActivityCache.get(this).queryByPlatform("").size } catch (_: Exception) { 0 }
-        appendLog("📊 启动登录检测: $logged 个平台凭证有效（网络检测请用登录页「一键检测」）")
-        runOnUiThread {
-            loginFragment.updateStatus()
-            try { settingsFragment?.refreshLoginState() } catch (_: Exception) {}
-        }
-    }
 
     /** v8.2.2: 一键检测——网络级登录态全量校验（登录页按钮触发；onDone 返回汇总） */
-    internal fun checkAllLogins(onDone: ((valid: Int, refreshed: Int, invalid: Int) -> Unit)? = null) {
-        appendLog("🔍 登录检测中...")
-        lifecycleScope.launch(Dispatchers.IO) {
-            var valid = 0
-            var refreshed = 0
-            var invalid = 0
-            val invalidList = ArrayList<DataSource>()
-            val platforms = listOf(
-                DataSource.IGPSPORT, DataSource.XINGZHE, DataSource.MAGENE, DataSource.BLACKBIRD,
-                DataSource.BRYTON, DataSource.OUTBASE, DataSource.GARMIN_COM, DataSource.GARMIN_CN,
-                DataSource.COROS_CN, DataSource.COROS_INT, DataSource.WAHOO, DataSource.GIANT,
-                DataSource.MYWHOOSH, DataSource.ZWIFT, DataSource.INTERVALS_ICU, DataSource.KEEP,
-                DataSource.CODOON, DataSource.ZEPP, DataSource.KOMOT, DataSource.SUUNTO
-            )
-            for (ds in platforms) {
-                if (!prefs.isLoggedIn(ds)) continue  // 未登录过的跳过，不发无用请求
-                kotlinx.coroutines.delay(300)  // 间隔避免并发触发风控
-                val cred = prefs.getCredential(ds) ?: continue
-                val username = try {
-                    when (ds) {
-                        DataSource.IGPSPORT -> igpsportApi.getUsername(cred)
-                        DataSource.XINGZHE -> xingzheApi.getUsername(cred)
-                        DataSource.MAGENE -> mageneApi.getUsername(cred)
-                        DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
-                        DataSource.BRYTON -> brytonApi.getUsername(cred)
-                        DataSource.GIANT -> giantApi.getUsername(cred)
-                        DataSource.OUTBASE -> outbaseApi.getUsername(cred)
-                        DataSource.GARMIN_COM -> garminApi.getUsername(ds, cred)
-                        DataSource.GARMIN_CN -> garminApi.getUsername(ds, cred)
-                        DataSource.COROS_CN -> corosApi.getUsername(cred)
-                        DataSource.COROS_INT -> corosApi.getUsername(cred)
-                        DataSource.WAHOO -> wahooApi.getUsername(cred)
-                        DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
-                        DataSource.ZWIFT -> {
-                            val u = zwiftApi.getUsername(cred)
-                            if (u != null && zwiftApi.isTrialAccount(cred)) {
-                                appendLog("⚠️ Zwift 为试用订阅账号：可查看活动列表，但 Zwift 不提供 FIT 文件下载，需升级会员")
-                            }
-                            u
-                        }
-                        DataSource.KEEP -> keepApi.getUsername(cred)
-                        DataSource.CODOON -> codoonApi.getUsername(cred, prefs.getCodoonUserId())
-                        DataSource.ZEPP -> zeppApi.getUsername(cred)
-                        DataSource.KOMOT -> {
-                            val email = prefs.getKomootAccount()
-                            if (email.isNullOrEmpty()) null else komootApi.getUsername(email, cred)
-                        }
-                        DataSource.SUUNTO -> {
-                            val sk = suuntoSubscriptionKey()
-                            if (sk.isNullOrEmpty()) null else suuntoApi.getUsername(cred, sk)
-                        }
-                        DataSource.TWO_BULU -> "两步路用户"
-                        DataSource.STRAVA -> "Strava用户"
-                        DataSource.POLAR -> "Polar用户"
-                        DataSource.FITBIT -> "Fitbit用户"
-                        DataSource.WITHINGS -> "Withings用户"
-                        DataSource.TRAININGPEAKS -> "TrainingPeaks用户"
-                        DataSource.INTERVALS_ICU -> {
-                            // v7.8.5: API Key 有效性即登录态
-                            if (intervalsIcuApi.validateKey(cred))
-                                prefs.getUsername(DataSource.INTERVALS_ICU) ?: "Intervals.icu用户"
-                            else null
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "启动登录检测 ${ds.displayName} 异常: ${e.message}")
-                    null
-                }
-                if (!username.isNullOrBlank()) {
-                    valid++
-                    prefs.saveUsername(ds, username)
-                    // v7.6.9: 迈金JWT若快过期(<1小时)，后台主动刷新，避免同步时才401
-                    if (ds == DataSource.MAGENE) {
-                        try {
-                            val expLeft = mageneApi.getJwtExpRemainingSec(cred)
-                            if (expLeft != null && expLeft < 3600) {
-                                val refresh = prefs.getMageneRefreshToken()
-                                if (!refresh.isNullOrEmpty()) {
-                                    val newTok = mageneApi.refreshToken(refresh)
-                                    if (newTok != null && newTok != cred) {
-                                        prefs.saveCredential(ds, newTok)
-                                        prefs.saveMageneRefreshToken(refresh)
-                                        runOnUiThread { appendLog("🔄 ${ds.displayName} token将过期，已后台提前刷新") }
-                                    }
-                                }
-                            }
-                        } catch (e: Exception) { Log.w(TAG, "迈金提前刷新异常: ${e.message}") }
-                    }
-                    runOnUiThread { appendLog("✅ 登录有效: ${ds.displayName} ($username)") }
-                    continue
-                }
-                // 登录态失效 → 尝试刷新
-                val newCred = refreshCredentialOnStart(ds, cred)
-                if (newCred != null && newCred != cred) {
-                    refreshed++
-                    prefs.saveCredential(ds, newCred)
-                    // v7.6.1: 刷新后校验新token是否真实可用，输出明确成功/失败日志
-                    // v7.6.8: 迈金刷新成功即保存新token；校验失败不再提示"同步失败请重新登录"（新token已保存，
-                    //         同步时若真失效会有明确的401报错兜底，避免刷新成功却误报需重登）
-                    val verifyName = try {
-                        when (ds) {
-                            DataSource.MAGENE -> mageneApi.getUsername(newCred)
-                            DataSource.WAHOO -> wahooApi.getUsername(newCred)
-                            else -> null
-                        }
-                    } catch (e: Exception) { null }
-                    val suffix = if (verifyName.isNullOrBlank())
-                        "（已自动刷新，同步时将自动校验）"
-                    else " ✅ 登录有效 ($verifyName)"
-                    runOnUiThread { appendLog("🔄 ${ds.displayName} 登录态失效，已自动刷新$suffix") }
-                } else {
-                    invalid++
-                    invalidList.add(ds)
-                    if (ds == DataSource.WAHOO || ds == DataSource.COROS_CN || ds == DataSource.COROS_INT
-                        || ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) {
-                        // v7.6.8: Wahoo/高驰失效时【绝不】清除凭证！
-                        // Wahoo: token/refresh_token有复用价值，清除会导致重登走完整OAuth新建token触发10枚上限
-                        // 高驰: 凭证含regionId/cookie，保留后重登时WebView可复用cookie自动登录，无需重新选区域输账号
-                        // v7.9.0: 佳明DI凭证含refresh_token，失效时同样保留——同步前会ensureValidToken静默刷新，
-                        //         若refresh_token也失效（冷却期外），重登时WebView可复用cookie自动登录，无需重输账号密码
-                        runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录（已保留令牌，重登时自动复用/刷新，不会新建令牌）") }
-                    } else {
-                        prefs.clearCredential(ds)
-                        runOnUiThread { appendLog("❌ ${ds.displayName} 登录失效，请重新登录") }
-                    }
-                }
-            }
-            runOnUiThread {
-                lastInvalidPlatforms = invalidList
-                loginFragment.updateStatus()
-                appendLog("📊 登录检测完成: ${valid}有效 / ${refreshed}刷新成功 / ${invalid}失效")
-                onDone?.invoke(valid, refreshed, invalid)
-            }
-        }
-    }
+    internal fun checkAllLogins(onDone: ((valid: Int, refreshed: Int, invalid: Int) -> Unit)? = null) = syncCoordinator.checkAllLogins(onDone)
 
     /**
      * v7.5.9: 启动检测时尝试刷新失效平台的登录态
      * 仅支持有刷新机制的平台；返回 null 表示无法刷新（需重新登录）
      */
-    private suspend fun refreshCredentialOnStart(ds: DataSource, cred: String): String? = when (ds) {
-        DataSource.CODOON -> {
-            // v8.1.1: 咕咚无 refresh 端点，token 失效后用保存的账号密码自动重登（否则"登录状态记不住"）
-            val account = prefs.getCodoonAccount()
-            val password = prefs.getCodoonPassword()
-            if (account.isNullOrEmpty() || password.isNullOrEmpty()) null
-            else try {
-                val r = codoonApi.login(account, password)
-                if (r != null) {
-                    prefs.saveCodoonToken(r.token)
-                    prefs.saveCodoonUserId(r.userId)
-                    r.token
-                } else null
-            } catch (e: Exception) {
-                Log.w(TAG, "咕咚自动重登异常: ${e.message}")
-                null
-            }
-        }
-        DataSource.MAGENE -> {
-            val refresh = prefs.getMageneRefreshToken()
-            if (refresh.isNullOrEmpty()) null else mageneApi.refreshToken(refresh)
-        }
-        DataSource.WAHOO -> {
-            val refresh = prefs.getWahooRefresh()
-            val clientId = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured())
-                com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_ID else prefs.getWahooClientId()
-            val clientSecret = if (com.jichi.ob.api.WahooApi.isBuiltinConfigured())
-                com.jichi.ob.api.WahooApi.BUILTIN_CLIENT_SECRET else prefs.getWahooClientSecret()
-            if (refresh.isNullOrEmpty() || clientId.isNullOrEmpty() || clientSecret.isNullOrEmpty()) null
-            else {
-                // v7.6.0: 用getUsableTokenOrNull（先测token→失效则refresh→刷新后用新token验证撤销旧token）
-                // 刷新成功必须同时保存新access_token和新refresh_token（refresh_token是轮换令牌，旧的作废）
-                val usable = wahooApi.getUsableTokenOrNull(cred, refresh, clientId, clientSecret)
-                if (usable != null) {
-                    prefs.saveWahooToken(usable.first)
-                    prefs.saveWahooRefresh(usable.second)
-                    usable.first
-                } else null
-            }
-        }
-        DataSource.GARMIN_COM, DataSource.GARMIN_CN -> {
-            // v7.9.0: 佳明DI token静默刷新（用refresh_token，不重新SSO登录，避免撞429风控）
-            // ensureValidToken内部判断：未过期→原样返回；过期且有refresh_token→刷新返回新凭证
-            try {
-                garminApi.ensureValidToken(ds, cred)
-            } catch (e: Exception) {
-                Log.w(TAG, "佳明刷新异常: ${e.message}")
-                null
-            }
-        }
-        DataSource.ZWIFT -> {
-            // v7.8.4: Zwift refresh_token 轮换刷新
-            val refresh = prefs.getZwiftRefreshToken()
-            if (refresh.isNullOrEmpty()) null
-            else {
-                val fresh = zwiftApi.refreshToken(refresh)
-                if (fresh != null) {
-                    prefs.saveZwiftToken(fresh.first)
-                    prefs.saveZwiftRefreshToken(fresh.second)
-                    fresh.first
-                } else null
-            }
-        }
-        DataSource.MYWHOOSH -> null  // MyWhoosh 无 refresh 端点，需重新登录
-        DataSource.INTERVALS_ICU -> null  // Intervals.icu 无 refresh，需重新输入 API Key
-        DataSource.KEEP -> null  // Keep 无 refresh 端点，需重新登录
-        DataSource.CODOON -> null  // 咕咚无 refresh 端点，需重新登录
-        DataSource.ZEPP -> null  // Zepp 无 refresh 端点，需重新登录
-        DataSource.KOMOT -> {
-            // v7.9.6: Komoot token 为长期令牌，失效时用内存中的最近账号密码自动重登
-            try {
-                val fresh = komootApi.reLoginIfNeeded()
-                fresh?.token
-            } catch (e: Exception) { null }
-        }
-        DataSource.SUUNTO -> {
-            // v7.9.6: Suunto 用 refresh_token 刷新（轮换令牌，成功后需同时保存新access+refresh）
-            val refresh = prefs.getSuuntoRefresh()
-            val clientId = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_ID else prefs.getSuuntoClientId()
-            val clientSecret = if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured()) com.jichi.ob.api.SuuntoApi.BUILTIN_CLIENT_SECRET else prefs.getSuuntoClientSecret()
-            val subKey = suuntoSubscriptionKey()
-            if (refresh.isNullOrEmpty() || clientId.isNullOrEmpty() || clientSecret.isNullOrEmpty() || subKey.isNullOrEmpty()) null
-            else {
-                val fresh = suuntoApi.refreshToken(refresh, clientId, clientSecret, subKey)
-                if (fresh != null) {
-                    prefs.saveSuuntoToken(fresh.accessToken)
-                    prefs.saveSuuntoRefresh(fresh.refreshToken)
-                    fresh.accessToken
-                } else null
-            }
-        }
-        else -> null
-    }
 
     /** v7.9.6: Suunto Subscription Key（内置优先，其次用户配置） */
-    private fun suuntoSubscriptionKey(): String? =
-        if (com.jichi.ob.api.SuuntoApi.isBuiltinConfigured())
-            com.jichi.ob.api.SuuntoApi.BUILTIN_SUBSCRIPTION_KEY
-        else prefs.getSuuntoSubscriptionKey()
+    private fun suuntoSubscriptionKey(): String? = auth.suuntoSubscriptionKey()
 
-    private fun fetchUsernameAfterLogin(ds: DataSource) {
-        // v8.2.5: 所有平台登录成功的统一入口——立即从失效清单移除该平台并刷新登录卡片（此前需手动点"检测"才恢复红标）
-        if (lastInvalidPlatforms.isNotEmpty() && lastInvalidPlatforms.contains(ds)) {
-            lastInvalidPlatforms = lastInvalidPlatforms.filter { it != ds }
-            runOnUiThread { try { loginFragment.updateStatus() } catch (_: Exception) {} }
-        }
-        lifecycleScope.launch(Dispatchers.IO) {
-            val cred = prefs.getCredential(ds) ?: return@launch
-            val name = when (ds) {
-                DataSource.IGPSPORT -> igpsportApi.getUsername(cred)
-                DataSource.XINGZHE -> xingzheApi.getUsername(cred)
-                DataSource.MAGENE -> mageneApi.getUsername(cred)
-                DataSource.BLACKBIRD -> blackbirdApi.getUsername(cred)
-                DataSource.BRYTON -> brytonApi.getUsername(cred)
-                DataSource.GIANT -> giantApi.getUsername(cred)
-                DataSource.OUTBASE -> outbaseApi.getUsername(cred)
-                // v6.7.2: 佳明displayName是UUID(用户ID)，不获取不显示，直接已登录
-                DataSource.GARMIN_COM -> null
-                DataSource.GARMIN_CN -> null
-                DataSource.COROS_CN -> corosApi.getUsername(cred)
-                DataSource.COROS_INT -> corosApi.getUsername(cred)
-                DataSource.WAHOO -> wahooApi.getUsername(cred)
-                DataSource.MYWHOOSH -> mywhooshApi.getUsername(cred)
-                DataSource.ZWIFT -> {
-                    val u = zwiftApi.getUsername(cred)
-                    if (u != null && zwiftApi.isTrialAccount(cred)) {
-                        appendLog("⚠️ Zwift 为试用订阅账号：可查看活动列表，但 Zwift 不提供 FIT 文件下载，需升级会员")
-                    }
-                    u
-                }
-                DataSource.INTERVALS_ICU -> "Intervals.icu用户"
-                DataSource.KEEP -> keepApi.getUsername(cred)
-                DataSource.CODOON -> codoonApi.getUsername(cred, prefs.getCodoonUserId())
-                DataSource.ZEPP -> zeppApi.getUsername(cred)
-                DataSource.KOMOT -> {
-                    val email = prefs.getKomootAccount()
-                    if (email.isNullOrEmpty()) null else komootApi.getUsername(email, cred)
-                }
-                DataSource.SUUNTO -> suuntoApi.getUsername(cred, suuntoSubscriptionKey() ?: "")
-                DataSource.TWO_BULU -> "两步路用户"
-                DataSource.STRAVA -> "Strava用户"
-                DataSource.POLAR -> "Polar用户"
-                DataSource.FITBIT -> "Fitbit用户"
-                DataSource.WITHINGS -> "Withings用户"
-                DataSource.TRAININGPEAKS -> "TrainingPeaks用户"
-            }
-            if (name != null) {
-                prefs.saveUsername(ds, name)
-                appendLog("👤 ${ds.displayName}用户: $name")
-                runOnUiThread { loginFragment.updateStatus() }
-            }
-            // v8.2.3.4: 登录成功后询问是否预拉取最近运动记录（用户可暂不；后台执行不卡登录）
-            runOnUiThread {
-                try {
-                    if (!isFinishing && !isDestroyed) {
-                        androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
-                            .setTitle("拉取最近运动记录？")
-                            .setMessage("已登录 ${ds.displayName}。是否立即拉取最近运动记录到记录中心？\n（后台执行不影响使用；也可在批量同步时自动写入缓存）")
-                            .setPositiveButton("立即拉取") { _, _ -> preloadRecent(ds) }
-                            .setNegativeButton("暂不", null)
-                            .show()
-                    }
-                } catch (_: Exception) {}
-            }
-        }
-    }
+    private fun fetchUsernameAfterLogin(ds: DataSource) = auth.fetchUsernameAfterLogin(ds)
 
     /** v8.2.3.10: 时间归一——秒→毫秒；startTimeMs 无效时用时间字符串解析兜底；再归一次秒→毫秒 */
-    private fun normStartMs(ms: Long, timeStr: String, cache: com.jichi.ob.util.ActivityCache): Long {
-        var t = ms
-        if (t > 0 && t < 1_000_000_000_000L) t *= 1000L
-        if (t <= 0) t = cache.parseStartTimeMs(timeStr)
-        if (t > 0 && t < 1_000_000_000_000L) t *= 1000L
-        return t
-    }
+    private fun normStartMs(ms: Long, timeStr: String, cache: com.jichi.ob.util.ActivityCache): Long = syncCoordinator.normStartMs(ms, timeStr, cache)
 
     /** v8.2.5: 从平台 extra 提取干净运动类型（历史实现把 extra 原样塞进 type 列导致记录中心显示长串） */
-    private fun cleanCacheType(ds: com.jichi.ob.model.DataSource, extra: String?): String {
-        val s = extra ?: return ""
-        return when (ds) {
-            com.jichi.ob.model.DataSource.KEEP -> {  // extra="id|type"
-                val i = s.indexOf('|')
-                val t = if (i >= 0) s.substring(i + 1) else ""
-                when (t) { "running" -> "跑步"; "cycling" -> "骑行"; "hiking" -> "徒步"; "swimming" -> "游泳"; "other" -> "运动"; else -> t }
-            }
-            else -> ""  // 其余平台 extra 是下载凭证，无类型语义
-        }
-    }
+    private fun cleanCacheType(ds: com.jichi.ob.model.DataSource, extra: String?): String = syncCoordinator.cleanCacheType(ds, extra)
 
     /** v8.2.3.9: 预拉取全部运动记录元数据入库（循环分页全量；上限=缓存库单平台2000条；后台IO不卡UI；失败可见反馈） */
-    fun preloadRecent(ds: DataSource) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val n = preloadAllOf(ds)
-            if (n == 0) {
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "${ds.displayName} 暂无运动记录", Toast.LENGTH_SHORT).show()
-                    try { loginFragment.updateStatus() } catch (_: Exception) {}
-                }
-            } else if (n > 0) {
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "已拉取 $n 条 ${ds.displayName} 记录", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
+    fun preloadRecent(ds: DataSource) = syncCoordinator.preloadRecent(ds)
 
     /** v8.2.3.9: 登录页「拉取全部」——串行拉取所有已登录平台（防并发触发风控），汇总反馈 */
-    fun preloadAll() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val platforms = DataSource.entries.filter { it != DataSource.OUTBASE && prefs.isLoggedIn(it) }
-            if (platforms.isEmpty()) {
-                runOnUiThread { Toast.makeText(this@MainActivity, "暂无已登录平台", Toast.LENGTH_SHORT).show() }
-                return@launch
-            }
-            appendLog("🔄 手动拉取全部：${platforms.joinToString("、") { it.displayName }}")
-            var okCount = 0
-            var total = 0
-            for (ds in platforms) {
-                val n = try { preloadAllOf(ds) } catch (e: Exception) { -1 }
-                if (n >= 0) { okCount++; total += n }
-            }
-            appendLog("✅ 拉取完成：$okCount 个平台共 $total 条")
-            runOnUiThread {
-                Toast.makeText(this@MainActivity, "拉取完成：$okCount 个平台共 $total 条记录", Toast.LENGTH_LONG).show()
-                try { loginFragment.updateStatus() } catch (_: Exception) {}
-                try { if (::recordFragment.isInitialized) recordFragment.refresh() } catch (_: Exception) {}
-            }
-        }
-    }
+    fun preloadAll() = syncCoordinator.preloadAll()
 
     /** 单平台全量拉取核心：返回入库条数（0=无记录，-1=失败）；日志逐批输出进度 */
-    private suspend fun preloadAllOf(ds: DataSource): Int {
-        try {
-            appendLog("📥 ${ds.displayName} 预拉取全部运动记录...")
-            val all = mutableListOf<ActivityRecord>()
-            val seen = HashSet<String>()
-            var skip = 0
-            val BATCH = 200
-            val MAX = 2000 // 与缓存库单平台上限一致
-            var batches = 0
-            // v8.2.3.9: 判据修正——只有「空返回」或「id 全重复（游标未动）」才算拉完；
-            // 不再用 batch.size < BATCH（Keep 每页仅返回部分记录，不足一批不代表没有更多）
-            while (all.size < MAX && batches < 60) {
-                val batch = try {
-                    fetchActivities(ds, skip, BATCH)
-                } catch (e: Exception) {
-                    appendLog("⚠️ ${ds.displayName} 第 ${skip + 1} 条起拉取中断: ${e.message}")
-                    break
-                }
-                if (batch.isEmpty()) break
-                // 防死循环：本批 id 与已拉全部重复 → 平台游标未前进，收口
-                val before = seen.size
-                batch.forEach { seen.add(it.id) }
-                if (seen.size == before) break
-                all.addAll(batch)
-                batches++
-                appendLog("📥 ${ds.displayName} 已拉取 ${all.size} 条...")
-                skip += batch.size
-            }
-            if (all.isEmpty()) {
-                appendLog("⏳ ${ds.displayName} 暂无运动记录")
-                return 0
-            }
-            // v8.2.6: igp 列表接口不带时间 → 对时间缺失记录下载 FIT 解析时间回填（限最近30条，避免全量下载过重）
-            if (ds == com.jichi.ob.model.DataSource.IGPSPORT) {
-                val missingCount = all.count { it.startTimeMs <= 0 }
-                if (missingCount > 0) {
-                    val token = prefs.getIgpsportToken()
-                    if (!token.isNullOrEmpty()) {
-                        appendLog("⏳ iGPSPORT ${missingCount} 条无时间，下载 FIT 解析（限最近30条）...")
-                        var fixed = 0
-                        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-                        for (rec in all.filter { it.startTimeMs <= 0 }.take(30)) {
-                            try {
-                                val fit = igpsportApi.downloadFitFile(token, rec.id, rec.extra)
-                                val ms = igpsportApi.parseFitStartTimeMs(fit)
-                                if (ms > 0) {
-                                    rec.startTimeMs = ms
-                                    val idx = all.indexOf(rec)
-                                    if (idx >= 0) all[idx] = rec.copy(startTime = fmt.format(java.util.Date(ms)))
-                                    fixed++
-                                }
-                            } catch (_: Exception) {}
-                        }
-                        appendLog("✅ iGPSPORT FIT 时间回填 ${fixed}/${minOf(missingCount, 30)} 条（未回填的可单点下载后自动补）")
-                    }
-                }
-            }
-            val cache = com.jichi.ob.util.ActivityCache.get(this@MainActivity)
-            cache.upsertBatch(ds.shortName, all.map {
-                com.jichi.ob.util.ActivityCache.Entry(
-                    id = it.id,
-                    platform = ds.shortName,
-                    startTime = normStartMs(it.startTimeMs, it.startTime, cache),
-                    type = cleanCacheType(ds, it.extra),
-                    title = it.title,
-                    distanceKm = it.distance,
-                    durationSec = it.duration,
-                    filename = "",
-                    extra = it.extra ?: ""
-                )
-            })
-            // v8.2.3.10: 预拉取平台日志写入详情弹窗可见（导入/成功/失败）
-            cache.addPlatformLog(ds.shortName, "导入", "预拉取 ${all.size} 条记录入库")
-            appendLog("💾 ${ds.displayName} 已缓存 ${all.size} 条记录到记录中心")
-            runOnUiThread {
-                try { loginFragment.updateStatus() } catch (_: Exception) {}
-                try { if (::recordFragment.isInitialized) recordFragment.refresh() } catch (_: Exception) {}
-            }
-            return all.size
-        } catch (e: Exception) {
-            appendLog("⚠️ ${ds.displayName} 预拉取失败: ${e.message}")
-            return -1
-        }
-    }
 
     // v7.6.2: 日志/进度/同步态统一转发给SyncFragment
     // v8.1.3: Fragment detached 防御——后台同步/Worker 回调时页面可能已销毁，任何 UI 异常不允许冒泡崩溃
-    private val logQueue = java.util.concurrent.ConcurrentLinkedQueue<String>()
-    private var logFlushing = false
-
-    private fun appendLog(message: String) {
-        Log.i(TAG, message)
-        prefs.appendPersistLog(message)
-        // v8.5.1: 节流批量刷新，避免每条日志都runOnUiThread阻塞主线程导致其他页面空白
-        logQueue.add(message)
-        if (logFlushing) return
-        logFlushing = true
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            logFlushing = false
-            val batch = StringBuilder()
-            while (true) {
-                val line = logQueue.poll() ?: break
-                batch.append(line).append('\n')
-            }
-            if (batch.isNotEmpty()) {
-                try { syncFragment.appendLogBatch(batch.toString()) } catch (_: Exception) {}
-            }
-        }, 200)
-    }
+    private fun appendLog(message: String) = appLog.append(message)
 
     /** v8.3.5: 毫秒时间戳 → "MM-dd HH:mm"（游标日志显示） */
-    private fun fmtTime(ms: Long): String = try {
-        java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(Date(ms))
-    } catch (e: Exception) { ms.toString() }
+    private fun fmtTime(ms: Long): String = appLog.fmtTime(ms)
 
     // v6.7.5: 输出GarminApi调试日志到界面（转发SyncFragment）
-    private fun flushGarminDebugLogs() {
-        try {
-            val logs = GarminApi.debugLogs
-            synchronized(logs) {
-                if (logs.isNotEmpty()) {
-                    for (line in logs) { try { syncFragment.appendLog(line) } catch (_: Exception) {} }
-                    logs.clear()
-                }
-            }
-        } catch (_: Exception) {}
-    }
+    private fun flushGarminDebugLogs() = appLog.flushGarminDebugLogs()
 
     private fun setSyncing(syncing: Boolean) {
         AutoSyncWorker.syncing = syncing
@@ -2554,7 +1114,7 @@ class MainActivity : AppCompatActivity() {
         appendLog("⏰ 后台自动同步已关闭")
     }
 
-    private suspend fun fetchActivities(source: DataSource, skip: Int, limit: Int): List<ActivityRecord> {
+    internal suspend fun fetchActivities(source: DataSource, skip: Int, limit: Int): List<ActivityRecord> {
         var cred = prefs.getCredential(source) ?: return emptyList()
         // v6.5.3: 佳明token过期自动刷新
         if (source == DataSource.GARMIN_COM || source == DataSource.GARMIN_CN) {
@@ -2658,7 +1218,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun downloadActivity(source: DataSource, target: DataSource = DataSource.OUTBASE, record: ActivityRecord, convertMagene: Boolean = true): ByteArray? {
+    internal suspend fun downloadActivity(source: DataSource, target: DataSource = DataSource.OUTBASE, record: ActivityRecord, convertMagene: Boolean = true): ByteArray? {
         val cred = prefs.getCredential(source) ?: return null
         var data = when (source) {
             DataSource.IGPSPORT -> igpsportApi.downloadFitFile(cred, record.id, record.extra)
@@ -2767,9 +1327,7 @@ class MainActivity : AppCompatActivity() {
         return data
     }
 
-    private fun isFit(bytes: ByteArray): Boolean = bytes.size >= 14 && bytes[8] == '.'.code.toByte() && bytes[9] == 'F'.code.toByte()
-
-    /** 申请通知权限（Android 13+）*/
+    private fun isFit(bytes: ByteArray): Boolean = syncCoordinator.isFit(bytes)
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -2781,206 +1339,35 @@ class MainActivity : AppCompatActivity() {
     /** 初始化坐标转换WebView (加载magene_fix.js) */
     @SuppressLint("SetJavaScriptEnabled")
     // v7.6.2: 四页面Fragment初始化 + 底部导航切换
-    private fun initFragments() {
-        loginFragment = com.jichi.ob.ui.LoginFragment()
-        settingsFragment = com.jichi.ob.ui.SyncSettingsFragment()
-        syncFragment = com.jichi.ob.ui.SyncFragment()
-        aboutFragment = com.jichi.ob.ui.AboutFragment()
-        recordFragment = com.jichi.ob.ui.RecordCenterFragment()
-        mergeFragment = com.jichi.ob.ui.MergeFragment()
-        labLoginFragment = com.jichi.ob.ui.LabLoginFragment()
-        createTaskFragment = com.jichi.ob.ui.CreateTaskFragment()
-        try {
-            val tr = supportFragmentManager.beginTransaction()
-            tr.add(R.id.fragmentContainer, loginFragment, "login")
-            tr.add(R.id.fragmentContainer, settingsFragment, "settings").hide(settingsFragment)
-            tr.add(R.id.fragmentContainer, syncFragment, "sync").hide(syncFragment)
-            tr.add(R.id.fragmentContainer, aboutFragment, "about").hide(aboutFragment)
-            tr.add(R.id.fragmentContainer, recordFragment, "records").hide(recordFragment)
-            tr.add(R.id.fragmentContainer, mergeFragment, "merge").hide(mergeFragment)
-            tr.add(R.id.fragmentContainer, labLoginFragment, "lab").hide(labLoginFragment)
-            tr.add(R.id.fragmentContainer, createTaskFragment, "createtask").hide(createTaskFragment)
-            tr.commitNowAllowingStateLoss()
-        } catch (e: IllegalStateException) {
-            // v8.5.6: 极端情况下FragmentManager已恢复同名Fragment，回退到restore
-            Log.w(TAG, "initFragments add 冲突，改用 restore: ${e.message}")
-            restoreFragments()
-        }
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_login -> showFragment(loginFragment)
-                R.id.nav_settings -> showFragment(settingsFragment)
-                R.id.nav_sync -> showFragment(syncFragment)
-                R.id.nav_about -> showFragment(aboutFragment)
-            }
-            true
-        }
-        bottomNav.selectedItemId = R.id.nav_login
-    }
 
     /** v8.5.6: Activity重建恢复Fragment引用（不重新add，由FragmentManager自动恢复） */
-    private fun restoreFragments() {
-        loginFragment = supportFragmentManager.findFragmentByTag("login") as com.jichi.ob.ui.LoginFragment
-        settingsFragment = supportFragmentManager.findFragmentByTag("settings") as com.jichi.ob.ui.SyncSettingsFragment
-        syncFragment = supportFragmentManager.findFragmentByTag("sync") as com.jichi.ob.ui.SyncFragment
-        aboutFragment = supportFragmentManager.findFragmentByTag("about") as com.jichi.ob.ui.AboutFragment
-        recordFragment = supportFragmentManager.findFragmentByTag("records") as com.jichi.ob.ui.RecordCenterFragment
-        mergeFragment = supportFragmentManager.findFragmentByTag("merge") as com.jichi.ob.ui.MergeFragment
-        labLoginFragment = supportFragmentManager.findFragmentByTag("lab") as com.jichi.ob.ui.LabLoginFragment
-        createTaskFragment = supportFragmentManager.findFragmentByTag("createtask") as com.jichi.ob.ui.CreateTaskFragment
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_login -> showFragment(loginFragment)
-                R.id.nav_settings -> showFragment(settingsFragment)
-                R.id.nav_sync -> showFragment(syncFragment)
-                R.id.nav_about -> showFragment(aboutFragment)
-            }
-            true
-        }
-    }
 
     // v8.2.3.5: 新建任务引导——切到设置页（设置页=任务配置页，调好来源/目标/参数后点「保存为任务」）
-    fun switchToSettingsTab() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        bottomNav?.selectedItemId = R.id.nav_settings
-        Toast.makeText(this, "在设置页选好来源/目标后，点「保存为任务」", Toast.LENGTH_LONG).show()
-    }
+    fun switchToSettingsTab() = navigator.switchToSettingsTab()
 
     // v8.2.3.5: 设置页保存任务后，刷新同步页任务列表
-    fun refreshTasksFromSettings() {
-        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
-        try { settingsFragment.refreshTaskState() } catch (_: Exception) {}
-    }
+    fun refreshTasksFromSettings() = navigator.refreshTasksFromSettings()
 
     // v8.2.1: 记录中心入口（关于页横条调用；全屏覆盖页，不占底部导航高频位）
-    fun openRecordCenter() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().show(recordFragment).commit()
-        bottomNav?.visibility = android.view.View.GONE
-        toolbar?.visibility = android.view.View.GONE
-        try { recordFragment.refresh() } catch (_: Exception) {}
-    }
+    fun openRecordCenter() = navigator.openRecordCenter()
 
-    fun closeRecordCenter() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().hide(recordFragment).commit()
-        bottomNav?.visibility = android.view.View.VISIBLE
-        toolbar?.visibility = android.view.View.VISIBLE
-        // 返回关于页（记录中心入口所在页）
-        try { showFragment(aboutFragment) } catch (_: Exception) {}
-    }
+    fun closeRecordCenter() = navigator.closeRecordCenter()
 
     // v8.2.1: 实验室登录入口（关于页横条调用；独立页面，可返回，不占底部导航）
-    fun openLabLogin(platforms: List<com.jichi.ob.model.DataSource>) {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().show(labLoginFragment).commit()
-        bottomNav?.visibility = android.view.View.GONE
-        toolbar?.visibility = android.view.View.GONE
-        try { labLoginFragment.refreshStates() } catch (_: Exception) {}
-    }
+    fun openLabLogin(platforms: List<com.jichi.ob.model.DataSource>) = navigator.openLabLogin(platforms)
 
-    fun closeLabLogin() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().hide(labLoginFragment).commit()
-        bottomNav?.visibility = android.view.View.VISIBLE
-        toolbar?.visibility = android.view.View.VISIBLE
-        // 返回关于页（实验室入口所在页），并刷新登录页/设置页状态
-        try { showFragment(aboutFragment) } catch (_: Exception) {}
-        try { loginFragment.updateStatus() } catch (_: Exception) {}
-        try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
-    }
+    fun closeLabLogin() = navigator.closeLabLogin()
 
     // v8.2.2: 新建任务向导（设置页「＋新建同步任务」横条入口；全屏覆盖页，可返回）
-    fun openCreateTask() {
-        // v8.3.2: 新建任务限时体验到期（2026-10-07）——到期后点击提醒，不进入向导
-        if (System.currentTimeMillis() >= 1791302400000L) {
-            try {
-                android.app.AlertDialog.Builder(this)
-                    .setTitle("提示")
-                    .setMessage("版本过旧，需要获取更新，关注抖音:多吃两口获取更新")
-                    .setPositiveButton("知道了", null)
-                    .show()
-            } catch (_: Exception) {}
-            return
-        }
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().show(createTaskFragment).commit()
-        bottomNav?.visibility = android.view.View.GONE
-        toolbar?.visibility = android.view.View.GONE
-    }
+    fun openCreateTask() = navigator.openCreateTask()
 
-    fun closeCreateTask() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().hide(createTaskFragment).commit()
-        bottomNav?.visibility = android.view.View.VISIBLE
-        toolbar?.visibility = android.view.View.VISIBLE
-        // v8.2.3.8: 返回打开向导前的 tab（不再硬编码设置页；底部高亮与页面保持一致）
-        when (bottomNav?.selectedItemId) {
-            R.id.nav_login -> showFragment(loginFragment)
-            R.id.nav_settings -> showFragment(settingsFragment)
-            R.id.nav_about -> showFragment(aboutFragment)
-            else -> showFragment(syncFragment)
-        }
-        try { syncFragment.refreshTaskState() } catch (_: Exception) {}
-        try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
-    }
+    fun closeCreateTask() = navigator.closeCreateTask()
 
-    private fun showFragment(target: androidx.fragment.app.Fragment) {
-        val others = listOf(loginFragment, settingsFragment, syncFragment, aboutFragment, recordFragment, labLoginFragment, createTaskFragment).filter { it !== target }
-        val tr = supportFragmentManager.beginTransaction()
-        for (o in others) tr.hide(o)
-        // v8.5.6: 视图回收后show不重建→空白。包try-catch防止状态异常崩溃。
-        try {
-            when {
-                target.isDetached -> tr.attach(target)
-                target.view == null && target.isAdded -> tr.detach(target).attach(target)
-            }
-        } catch (_: Exception) {}
-        tr.show(target).commitNowAllowingStateLoss()
-        // v7.7.7: 登录页隐藏顶部Toolbar，品牌横幅顶置，页面以登录为主（一屏放下）
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        toolbar?.visibility = if (target == loginFragment) android.view.View.GONE else android.view.View.VISIBLE
-        // v7.7.4: hide/show 不触发 onResume，切到设置页时手动刷新来源/目标网格（登录/注销后即时生效，无需重启）
-        if (target == settingsFragment) {
-            try { settingsFragment.refreshLoginState() } catch (_: Exception) {}
-        }
-        // v8.2.0: 切到记录中心时强制刷新（同步后立即显示新缓存）
-        if (target == recordFragment) {
-            try { recordFragment.refresh() } catch (_: Exception) {}
-        }
-    }
 
     // ============ v7.9.7 轨迹合并：全屏覆盖页 ============
-    fun openMerge() {
-        // v8.0.0 限时体验：9月30号之前可用，系统时间过期后自动失效
-        if (!MergeTrial.isAvailable()) {
-            android.widget.Toast.makeText(this, "轨迹合并&透明贴纸 限时体验已结束", android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().show(mergeFragment).commit()
-        bottomNav?.visibility = android.view.View.GONE
-        toolbar?.visibility = android.view.View.GONE
-    }
+    fun openMerge() = navigator.openMerge()
 
-    fun closeMerge() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-        supportFragmentManager.beginTransaction().hide(mergeFragment).commit()
-        bottomNav?.visibility = android.view.View.VISIBLE
-        toolbar?.visibility = android.view.View.VISIBLE
-        // 返回同步页（合并入口所在页）
-        try { showFragment(syncFragment) } catch (_: Exception) {}
-    }
+    fun closeMerge() = navigator.closeMerge()
 
     /**
      * 合并页拉取活动列表。
@@ -2995,51 +1382,9 @@ class MainActivity : AppCompatActivity() {
      * - 无日期筛选：只拉最近 1 批（30 条），秒开；
      * - 指定日期范围：从 skip 开始翻页拉取并过滤，单次最多拉 500 条防卡，hasMore=可能还有更早记录。
      */
-    suspend fun fetchMergeActivities(source: DataSource, fromDate: String? = null, toDate: String? = null, skipStart: Int = 0): MergeFetchPage = withContext(Dispatchers.IO) {
-        val out = LinkedHashMap<String, ActivityRecord>()
-        var skip = skipStart
-        val page = 30
-        val max = 500
-        var fetched = 0
-        var lastBatchFull = false
-        try {
-            while (fetched < max) {
-                val batch = try {
-                    fetchActivities(source, skip, page)
-                } catch (e: Exception) {
-                    break
-                }
-                if (batch.isEmpty()) { lastBatchFull = false; break }
-                lastBatchFull = batch.size >= page
-                skip += batch.size; fetched += batch.size
-                if (fromDate == null && toDate == null) {
-                    for (r in batch) out[r.id] = r
-                    // v7.9.11 秒开修复：无日期筛选时只拉最近 1 批（约 30 条）
-                    break
-                }
-                for (r in batch) {
-                    val d = recDay(r.startTime)
-                    if ((fromDate == null || d >= fromDate) && (toDate == null || d <= toDate)) out[r.id] = r
-                }
-                if (batch.size < page) break
-            }
-        } catch (_: Exception) {}
-        val list = out.values.toList()
-        if (fromDate == null && toDate == null) return@withContext MergeFetchPage(list.take(page), lastBatchFull)
-        // 有日期：拉到更早记录可能仍匹配 → hasMore=还有下一页可拉（未触上限且刚拉满页）
-        MergeFetchPage(list, lastBatchFull && fetched >= max)
-    }
+    suspend fun fetchMergeActivities(source: DataSource, fromDate: String? = null, toDate: String? = null, skipStart: Int = 0): MergeFetchPage = syncCoordinator.fetchMergeActivities(source, fromDate, toDate, skipStart)
 
-    private fun recDay(startTime: String): String = startTime.take(10)
-
-    /** 合并页：下载单条轨迹原始数据（FIT/GPX） */
-    suspend fun downloadForMerge(source: DataSource, record: ActivityRecord): ByteArray? = withContext(Dispatchers.IO) {
-        try {
-            downloadActivity(source, DataSource.OUTBASE, record)
-        } catch (e: Exception) {
-            null
-        }
-    }
+    suspend fun downloadForMerge(source: DataSource, record: ActivityRecord): ByteArray? = syncCoordinator.downloadForMerge(source, record)
 
     private fun initFixWebView() {
         fixWebView = android.webkit.WebView(this)
