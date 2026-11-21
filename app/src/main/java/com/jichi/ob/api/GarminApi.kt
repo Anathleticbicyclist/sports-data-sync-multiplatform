@@ -1356,7 +1356,7 @@ class GarminApi {
                                 WebViewCompat.addWebMessageListener(wv, "jichiNative", allowed, listener)
                                 wv.evaluateJavascript(fetchJs, null)
                                 cont.invokeOnCancellation {
-                                    try { WebViewCompat.removeWebMessageListener(wv, listener) } catch (_: Exception) {}
+                                    try { WebViewCompat.removeWebMessageListener(wv, "jichiNative") } catch (_: Exception) {}
                                 }
                             }
                         }

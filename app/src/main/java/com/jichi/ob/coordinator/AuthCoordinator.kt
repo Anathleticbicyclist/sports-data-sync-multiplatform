@@ -6,11 +6,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.jichi.ob.MainActivity
+import com.jichi.ob.R
 import com.jichi.ob.api.*
 import com.jichi.ob.model.DataSource
 import com.jichi.ob.ui.LoginWebActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 /**
  * P1 Step 1: 登录认证协调器——从 MainActivity（3316 行）抽出的全部平台登录入口。
@@ -315,7 +317,7 @@ class AuthCoordinator(private val activity: MainActivity) {
             activity.appLog.flushGarminDebugLogs()
             // v8.3.4: 原生Dialog直接setContentView（show前设窗口参数，避免部分ROM按钮行被挤出/窗口高度异常）
             val dialog = android.app.Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar)
-            val view = layoutInflater.inflate(R.layout.dialog_garmin_login, null)
+            val view = activity.layoutInflater.inflate(R.layout.dialog_garmin_login, null)
             view.findViewById<android.widget.TextView>(R.id.tvGarminDialogTitle).text = "$region 登录失败"
             view.findViewById<android.widget.TextView>(R.id.tvGarminDialogGuide).text =
                 hint + "\n\n如果不确定可以将报错日志通过抖音发给「多吃两口」排查。"
@@ -334,7 +336,7 @@ class AuthCoordinator(private val activity: MainActivity) {
             view.findViewById<android.widget.TextView>(R.id.btnGarminContinue).visibility = android.view.View.GONE
             view.findViewById<android.widget.TextView>(R.id.btnGarminCopyLog).setOnClickListener {
                 try {
-                    val cm = getSystemService(android.content.ClipboardManager::class.java)
+                    val cm = activity.getSystemService(android.content.ClipboardManager::class.java)
                     cm?.setPrimaryClip(android.content.ClipData.newPlainText("garminLog",
                         hint + "\n\n——— 佳明登录日志 ———\n" + (if (logTail.isNotBlank()) logTail else "（暂无佳明日志）")))
                     android.widget.Toast.makeText(activity, "日志已复制，可粘贴反馈", android.widget.Toast.LENGTH_SHORT).show()
@@ -345,7 +347,7 @@ class AuthCoordinator(private val activity: MainActivity) {
             dialog.setCancelable(true)
             dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
             dialog.window?.setLayout(
-                (resources.displayMetrics.widthPixels * 0.9f).toInt(),
+                (activity.resources.displayMetrics.widthPixels * 0.9f).toInt(),
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             )
             dialog.show()
@@ -968,7 +970,7 @@ class AuthCoordinator(private val activity: MainActivity) {
             // v8.2.3.4: 登录成功后询问是否预拉取最近运动记录（用户可暂不；后台执行不卡登录）
             activity.runOnUiThread {
                 try {
-                    if (!isFinishing && !isDestroyed) {
+                    if (!activity.isFinishing && !activity.isDestroyed) {
                         androidx.appcompat.app.AlertDialog.Builder(activity)
                             .setTitle("拉取最近运动记录？")
                             .setMessage("已登录 ${ds.displayName}。是否立即拉取最近运动记录到记录中心？\n（后台执行不影响使用；也可在批量同步时自动写入缓存）")

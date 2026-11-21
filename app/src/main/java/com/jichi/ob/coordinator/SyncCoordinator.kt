@@ -1,6 +1,7 @@
 package com.jichi.ob.coordinator
 
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.jichi.ob.MainActivity
 import com.jichi.ob.model.ActivityRecord
@@ -336,7 +337,7 @@ class SyncCoordinator(private val activity: MainActivity) {
             activity.runOnUiThread {
                 Toast.makeText(activity, "拉取完成：$okCount 个平台共 $total 条记录", Toast.LENGTH_LONG).show()
                 try { activity.loginFragment.updateStatus() } catch (_: Exception) {}
-                try { if (::activity.recordFragment.isInitialized) activity.recordFragment.refresh() } catch (_: Exception) {}
+                try { if (activity::recordFragment.isInitialized) activity.recordFragment.refresh() } catch (_: Exception) {}
             }
         }
     }
@@ -419,7 +420,7 @@ class SyncCoordinator(private val activity: MainActivity) {
             activity.appLog.append("💾 ${ds.displayName} 已缓存 ${all.size} 条记录到记录中心")
             activity.runOnUiThread {
                 try { activity.loginFragment.updateStatus() } catch (_: Exception) {}
-                try { if (::activity.recordFragment.isInitialized) activity.recordFragment.refresh() } catch (_: Exception) {}
+                try { if (activity::recordFragment.isInitialized) activity.recordFragment.refresh() } catch (_: Exception) {}
             }
             return all.size
         } catch (e: Exception) {
