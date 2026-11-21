@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>鸡翅幸哲迈进OB · 贴纸模板引擎</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; background:transparent; overflow:hidden; }
+  #card { position:absolute; left:0; top:0; width:100%; height:100%; overflow:hidden;
+          font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+          -webkit-font-smoothing:antialiased; }
+  /* ===== 通用 ===== */
+  .abs { position:absolute; }
+  .glow-white { filter:drop-shadow(0 0 6px rgba(255,255,255,.75)) drop-shadow(0 0 14px rgba(255,255,255,.35)); }
+  .glow-orange{ filter:drop-shadow(0 0 6px rgba(252,76,2,.8))  drop-shadow(0 0 16px rgba(252,76,2,.45)); }
+  .glow-neon  { filter:drop-shadow(0 0 5px rgba(0,229,255,.9)) drop-shadow(0 0 14px rgba(255,0,200,.5)); }
+  .glow-ice   { filter:drop-shadow(0 0 6px rgba(120,220,255,.8)) drop-shadow(0 0 16px rgba(120,220,255,.4)); }
+  .wm { position:absolute; bottom:var(--wm); right:2.2%; font-size:calc(26.6px*var(--s)); letter-spacing:.12em;
+        color:rgba(255,255,255,.82); font-weight:300; opacity:.92; white-space:nowrap;
+        display:inline-flex; align-items:center; gap:.34em; }
+  .wm-dark { color:rgba(0,0,0,.75); }
+  /* v8.0.9 多品牌角标：单色矢量 glyph 跟随 currentColor 变色，保持原始比例 */
+  .wm svg { height:1.08em; width:auto; display:block; fill:currentColor; }
+  .wm .wn { font-weight:600; letter-spacing:.06em; }
+  /* v8.1.1 自定义透明 logo：等比 contain，不拉伸不变形，边界由 App 定义 */
+  .wm-img { height:calc(32px*var(--s)); width:auto; max-width:calc(220px*var(--s)); object-fit:contain; display:block; }
+  .cat { position:absolute; top:var(--topd); left:3.4%; font-size:calc(32.8px*var(--s)); letter-spacing:.06em;
+         opacity:.85; font-weight:500; white-space:nowrap; }
+  .idx { position:absolute; top:var(--topd); right:3.4%; font-size:calc(30.7px*var(--s)); opacity:.75; font-weight:400; }
+  /* ===== 轨迹 SVG ===== */
+  .track-svg { position:absolute; }
+  .elev-prof { position:absolute; }
+  .band3d { position:absolute; }
+  /* ===== 数据布局 ===== */
+  .trip { position:absolute; left:5.4%; bottom:var(--db); }
+  .trip .row { display:flex; align-items:baseline; gap:2.6%; line-height:1.04; }
+  .trip .v { font-weight:800; letter-spacing:-.01em; }
+  .trip .u { font-weight:400; opacity:.82; margin-left:.4%; }
+  .corner { position:absolute; left:4.6%; top:13.5%; }
+  .corner .row { display:flex; align-items:baseline; gap:2%; line-height:1.12; }
+  .grid { position:absolute; left:6%; right:6%; bottom:var(--db); display:grid; grid-template-columns:1fr 1fr 1fr; row-gap:5.2%; }
+  .grid .cell { display:flex; flex-direction:column; align-items:center; }
+  .grid .gv { font-weight:800; letter-spacing:-.01em; }
+  .grid .gu { font-size:calc(30.7px*var(--s)); opacity:.72; margin-top:1%; white-space:nowrap; }
+  .big { position:absolute; left:5.4%; bottom:var(--db); }
+  .big .bv { font-weight:900; letter-spacing:-.015em; line-height:.98; }
+  .big .bu { font-size:calc(32.8px*var(--s)); opacity:.75; margin-top:.8%; letter-spacing:.08em; }
+  .dual { position:absolute; left:5.4%; right:5.4%; bottom:var(--db); display:flex; justify-content:space-between; }
+  .dual .col { display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .dual .dv { font-weight:800; }
+  .dual .du { font-size:calc(31.7px*var(--s)); opacity:.7; margin-top:.6%; }
+  .bar { position:absolute; left:0; right:0; bottom:var(--db); display:flex; justify-content:space-around; padding:0 5%; }
+  .bar .col { display:flex; flex-direction:column; align-items:center; }
+  .bar .bv2 { font-weight:800; }
+  .bar .bu2 { font-size:calc(31.7px*var(--s)); opacity:.7; margin-top:.6%; }
+  .poster { position:absolute; left:5.4%; right:5.4%; bottom:var(--db); }
+  .poster .pl { font-weight:900; letter-spacing:.02em; line-height:.96; }
+  .poster .pm { margin-top:1%; font-size:calc(47.1px*var(--s)); letter-spacing:.34em; opacity:.92; font-weight:600; }
+  .poster .pfoot { display:flex; justify-content:space-between; margin-top:5.5%; }
+  .poster .pv { font-weight:700; }
+  .poster .pu { font-size:calc(29.7px*var(--s)); opacity:.72; margin-top:.4%; }
+  /* ===== 照片类数据（左中两行大字，效果图 21 透明叠加） ===== */
+  .photodata { position:absolute; left:5.4%; top:36%; z-index:5; display:flex; flex-direction:column; }
+  .photodata .row { display:flex; align-items:baseline; gap:2.6%; line-height:1.08; }
+  .photodata .v { font-weight:800; letter-spacing:-.01em; }
+  .photodata .u { font-weight:400; opacity:.82; margin-left:.4%; }
+  /* ===== 照片（v8.1.1b：大圆角 15% 更圆润饱满，参考效果图"正经圆角"） ===== */
+  .photo { position:absolute; left:50%; top:10.5%; width:60%; aspect-ratio:1/1.06; border-radius:15%;
+           transform:translateX(-50%) rotate(-4deg);
+           overflow:hidden; background:linear-gradient(145deg,#4490e8 0%,#2a5cb4 100%);
+           box-shadow:0 12px 44px rgba(0,0,0,.40), inset 0 0 0 1px rgba(255,255,255,.20);
+           display:flex; align-items:center; justify-content:center; }
+  .photo img { width:100%; height:100%; object-fit:cover; }
+  .photo .ph { color:#fff; font-size:calc(30.7px*var(--s)); opacity:.85; letter-spacing:.05em; }
+  /* ===== 背景专用 ===== */
+  .bg-stars { background:radial-gradient(ellipse at 30% 20%,#1b2240 0%,#0b0d1c 55%,#04050c 100%); }
+  .bg-neon { background:radial-gradient(ellipse at 60% 30%,#1a1033 0%,#0a0714 60%,#04030a 100%); }
+  .bg-cream { background:#f6f1e3; }
+  .bg-white { background:#ffffff; }
+  .bg-gray { background:#eceff2; }
+  .bg-ice { background:linear-gradient(165deg,#0e2a3d 0%,#123c55 55%,#0b2033 100%); }
+  .bg-purple { background:radial-gradient(ellipse at 50% 20%,#3b1d66 0%,#1c0d3a 60%,#0c0520 100%); }
+  .bg-orange { background:linear-gradient(155deg,#ff6a1a 0%,#fc4c02 45%,#d93a02 100%); }
+  .bg-warm { background:linear-gradient(155deg,#fff3e0 0%,#ffe1c2 60%,#ffd0a6 100%); }
+  .bg-map { background:linear-gradient(145deg,#101826 0%,#182338 55%,#101826 100%); }
+  .bg-sat { background:linear-gradient(150deg,#05080f 0%,#0c1626 55%,#060a12 100%); }
+  .bg-lightmap { background:linear-gradient(150deg,#eef1f4 0%,#e0e6ec 60%,#eef1f4 100%); }
+  .bg-heat { background:linear-gradient(160deg,#12090b 0%,#2a0d10 55%,#12090b 100%); }
+  .bg-dual { background:linear-gradient(90deg,#0d0f1a 0%,#0d0f1a 50%,#1a0f0d 50%,#1a0f0d 100%); }
+  .bg-annual { background:linear-gradient(165deg,#0e1428 0%,#16203c 55%,#0c1122 100%); }
+  .bg-frost { background:linear-gradient(150deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.12) 100%); backdrop-filter:blur(0); }
+  .bg-retro { background:repeating-linear-gradient(0deg,#2a1050 0 2px,#200c3e 2px 4px),radial-gradient(ellipse at 50% 30%,#4a2a7e 0%,#1c0d3a 70%); }
+  .bg-checker { background:conic-gradient(#101014 0 25%,#ffffff 0 50%,#101014 0 75%,#ffffff 0) 0 0/16.6% 16.6%; }
+  .bg-black { background:#08080a; }
+  .bg-grayline { background:linear-gradient(#e3e6ea 1px,transparent 1px),linear-gradient(90deg,#e3e6ea 1px,transparent 1px); background-size:7.2% 7.2%; background-color:#f4f6f8; }
+  .bg-contour { background:radial-gradient(circle at 30% 35%,#fdf3e7 0%,#f8e3c8 45%,#f2d4ab 100%); }
+  .bg-orangeband { background:linear-gradient(165deg,#101014 0%,#1c1a18 55%,#101014 100%); }
+  .bg-trail { background:radial-gradient(ellipse at 40% 30%,#141b30 0%,#080b16 60%,#03040a 100%); }
+  .bg-photo { background:transparent; }
+  .bg-split { background:#0d0f1a; }
+  .t-dark { color:#ffffff; } .t-black { color:#0a0a0c; } .t-cream { color:#f7f0e2; }
+  .t-neonpink { color:#ff3df0; } .t-orange { color:#fc4c02; } .t-sky { color:#57c8ff; }
+  .u-dark { color:rgba(255,255,255,.78); } .u-black { color:rgba(10,10,12,.72); }
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script>
+"use strict";
+/* ============================================================
+ * 鸡翅幸哲迈进OB · 贴纸模板引擎（单一数据源）
+ * 24 预设 / 6 分类 / 与 APP 导出 100% 同源
+ * 注入接口：
+ *   stickerBridge.render(index, data, opts)
+ *   data: {distance, duration, avgSpeed, maxSpeed, climb, hr, power, kcal, cad, alt, title, photo}
+ *   opts: {showBadge:bool, watermark:bool, trackColor:int, custom:{...}}
+ * ============================================================ */
+
+/* 示例数据（排版示意） */
+var DEMO = { distance:40.54, duration:"1:40:12", avgSpeed:24.3, maxSpeed:37.8,
+  climb:61, hr:157, power:178, kcal:845, cad:92, alt:520, title:"RIDING", photo:null };
+
+/* 24 模板定义（顺序与 StickerCore.ALL / 效果图 1:1：21-24 为照片类） */
+var T = [
+ /* ---------- 深色经典 ---------- */
+ {n:"深空橙焰", c:"深色经典", bg:"bg-stars", col:"t-dark", u:"u-dark", lay:"trip", track:"orange", glow:1},
+ {n:"黑白棋盘", c:"深色经典", bg:"bg-checker", col:"t-black", u:"u-black", lay:"trip", track:"white", glow:1},
+ {n:"霓虹夜跑", c:"深色经典", bg:"bg-neon", col:"t-neonpink", u:"u-dark", lay:"trip", track:"neon", glow:1},
+ {n:"纯黑极简", c:"深色经典", bg:"bg-black", col:"t-dark", u:"u-dark", lay:"corner", track:"white", glow:0},
+ /* ---------- 浅色极简 ---------- */
+ {n:"极简白", c:"浅色极简", bg:"bg-white", col:"t-black", u:"u-black", lay:"trip", track:"blackfine", glow:0},
+ {n:"奶油纸感", c:"浅色极简", bg:"bg-cream", col:"t-black", u:"u-black", lay:"trip", track:"blackfine", glow:0},
+ {n:"浅灰线条", c:"浅色极简", bg:"bg-grayline", col:"t-black", u:"u-black", lay:"bar", track:"grayfine", glow:0},
+ {n:"暖白海报", c:"浅色极简", bg:"bg-warm", col:"t-orange", u:"u-black", lay:"poster", track:"orange", glow:0},
+ /* ---------- 地图样式 ---------- */
+ {n:"地图网格", c:"地图样式", bg:"bg-map", col:"t-dark", u:"u-dark", lay:"bar", track:"orange", glow:1},
+ {n:"深色卫星", c:"地图样式", bg:"bg-sat", col:"t-dark", u:"u-dark", lay:"trip", track:"white", glow:1},
+ {n:"浅色地图", c:"地图样式", bg:"bg-lightmap", col:"t-black", u:"u-black", lay:"trip", track:"orange", glow:0},
+ {n:"等高线", c:"地图样式", bg:"bg-contour", col:"t-black", u:"u-black", lay:"trip", track:"orange", glow:0},
+ /* ---------- 艺术特效 ---------- */
+ {n:"速度热力", c:"艺术特效", bg:"bg-heat", col:"t-dark", u:"u-dark", lay:"trip", track:"heat", glow:0},
+ {n:"3D橙带", c:"艺术特效", bg:"bg-orangeband", col:"t-dark", u:"u-dark", lay:"trip", track:"orange", glow:1, band:1},
+ {n:"冬季3D冰蓝", c:"艺术特效", bg:"bg-ice", col:"t-dark", u:"u-dark", lay:"trip", track:"ice", glow:1, band:1},
+ {n:"光绘拖影", c:"艺术特效", bg:"bg-trail", col:"t-dark", u:"u-dark", lay:"trip", track:"phantom", glow:1},
+ /* ---------- 数据卡片 ---------- */
+ {n:"对比卡", c:"数据卡片", bg:"bg-dual", col:"t-dark", u:"u-dark", lay:"dual", track:"orange", glow:1},
+ {n:"六宫格", c:"数据卡片", bg:"bg-stars", col:"t-dark", u:"u-dark", lay:"grid", track:"orange", glow:0},
+ {n:"海报大字", c:"数据卡片", bg:"bg-orange", col:"t-dark", u:"u-dark", lay:"poster", track:"orange", glow:0},
+ {n:"复古游戏", c:"数据卡片", bg:"bg-retro", col:"t-dark", u:"u-dark", lay:"grid", track:"white", glow:0},
+ /* ---------- 照片（效果图 1:1：21-24） ---------- */
+ {n:"透明叠加", c:"照片", bg:"bg-photo", col:"t-dark", u:"u-dark", lay:"corner", track:"orange", glow:1, photo:1},
+ {n:"磨砂玻璃", c:"照片", bg:"bg-frost", col:"t-dark", u:"u-dark", lay:"bar", track:"orange", glow:1, photo:1},
+ {n:"双图拼接", c:"照片", bg:"bg-split", col:"t-dark", u:"u-dark", lay:"dual", track:"orange", glow:0, photo:2},
+ {n:"年度总结", c:"照片", bg:"bg-annual", col:"t-dark", u:"u-dark", lay:"poster", track:"orange", glow:0}
+];
+/* 编号 1..24 */
+for (var i=0;i<T.length;i++) T[i].idx=i+1;
+
+var CATS = ["深色经典","浅色极简","地图样式","艺术特效","数据卡片","照片"];
+var CAT_OF = {};
+T.forEach(function(t){ CAT_OF[t.n]=t.c; });
+
+/* ============================================================
+ * v8.0.9 多品牌角标库（index 0=鸡翅OB 文字标；1..15=品牌）
+ * 每个 glyph 为 24×24 单色矢量（fill=currentColor），保持原始比例，
+ * 颜色跟随贴纸字色（白/黑/橙/天蓝/霓虹/奶油），可随用户选择变色。
+ * ============================================================ */
+var BRANDS = [
+  {n:"鸡翅幸哲迈进OB", g:null},
+  {n:"iGPSPORT", g:'<path d="M12 3a9 9 0 0 0-9 9h2.6a6.4 6.4 0 0 1 12.8 0H21a9 9 0 0 0-9-9Zm-1 5 4.6 3.2-1.4 1.9L10 10.4Z"/>'},
+  {n:"迈金", g:'<path d="M3 21V4h3.2l5.8 9 5.8-9H21v17h-3.4v-9.6L13.4 20h-2.8L6.4 11.4V21Z"/>'},
+  {n:"行者", g:'<path d="M3 3h4.2L12 9.6 16.8 3H21l-6.6 9.2L21 21h-4.2L12 14.4 7.2 21H3l6.6-8.8Z"/>'},
+  {n:"Wahoo", g:'<path d="M2 4h3l2.6 11L10.4 4h3.2l2.8 11L19 4h3l-4 16h-3.4l-2.6-10L9.4 20H6Z"/>'},
+  {n:"佳明", g:'<path d="M12 2 22 21l-10-4.6L2 21Z"/>'},
+  {n:"Strava", g:'<path d="M14.6 2 21 14h-3.1l-3.3-6.2L11.3 14H8.2ZM8.6 9l6.4 12h-3.1l-3.3-6L5.3 21H2.2Z"/>'},
+  {n:"咕咚", g:'<path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4.2A5.8 5.8 0 0 1 17.8 12H15a3 3 0 1 0 0 .1h2.8A5.8 5.8 0 0 1 12 17.8Z"/>'},
+  {n:"黑鸟", g:'<path d="M2 5c6 1.5 9 5 10 12 1-7 4-10.5 10-12-5 2.6-7.5 4.6-9 7.4C11.5 9.6 9 7.6 2 5Z"/>'},
+  {n:"高驰", g:'<path d="M2 20 9 6.5 13 14l2.2-4L22 20Z"/>'},
+  {n:"MyWhoosh", g:'<path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4.2a5.8 5.8 0 1 1 0 11.6 5.8 5.8 0 0 1 0-11.6Z"/>'},
+  {n:"Zwift", g:'<path d="M4 3h16l-12 14h12v4H4l12-14H4Z"/>'},
+  {n:"Keep", g:'<path d="M5 3h3.4v6.4L15.4 3h4.2l-7 8.2L20 21h-4.4l-5-6.6V21H5Z"/>'},
+  {n:"Zepp", g:'<path d="M5 3h14l-11 14h11v4H4l11-14H5Z"/>'},
+  {n:"Komoot", g:'<path fill-rule="evenodd" d="M12 1.5 22.5 12 12 22.5 1.5 12ZM7 15l5-7 5 7Z"/>'},
+  {n:"松拓", g:'<path d="M12 22 2 3h20Z"/>'},
+  {n:"Outbase", g:'<path d="M3 3h6l3 9 3-9h6v3h-3.4L12 21 6.4 6H3Z"/>'},
+  {n:"自定义logo", g:"__custom__"}
+];
+function brandSvg(idx){
+  var b = BRANDS[((idx||0)+BRANDS.length)%BRANDS.length];
+  if (!b || !b.g || b.g==="__custom__") return null;
+  return '<svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+b.g+'</svg>';
+}
+
+/* ===== 轨迹 SVG 生成（始终为地图轨迹；二维海拔剖面由 makeElevProfile 独立平铺渲染） ===== */
+
+/* ===== v8.3.1: 3D 轨迹核心工具（本地渲染，无外部依赖） =====
+   单一口径归一化：Kotlin 只传原始轨迹形状（相对 x/y + 原始海拔），
+   这里一次性完成 contain → 正方形 side 投影，任何视口下轨迹适应画面、永不截断。
+   3D 投影：海拔 Z 轴 + rotateX(俯仰)/rotateY(左右) + 地面阴影 + 海拔分段着色——
+   借鉴百度地图 3D 轨迹覆盖物理念（BMFTrace3DModelOption/BMFTraceOverlay3DModelYawAxis/applyElevationOverlayColor），Canvas/SVG 本地自研 */
+function normalizeTrack(pts, boxW, boxH, pad) {
+  var minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
+  for (var i=0;i<pts.length;i++){ var p=pts[i];
+    if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; }
+  var dX = (maxX-minX)||1e-6, dY = (maxY-minY)||1e-6;
+  var availW = boxW - pad*2, availH = boxH - pad*2;
+  var scale = Math.min(availW/dX, availH/dY);
+  var offX = (boxW - dX*scale)/2, offY = (boxH - dY*scale)/2;
+  var out = [];
+  for (var i=0;i<pts.length;i++){ var p=pts[i];
+    /* y 翻转（北朝上）：屏幕 y 向下，纬度大(北)在上 */
+    out.push({ x: offX + (p.x-minX)*scale, y: offY + (maxY-p.y)*scale, z: (p.ele!=null&&!isNaN(p.ele))?p.ele:0, ox:p.x, oy:p.y });
+  }
+  return out;
+}
+function trackEleRange(pts) {
+  var mn=1e9, mx=-1e9;
+  for (var i=0;i<pts.length;i++){ if(pts[i].z<mn)mn=pts[i].z; if(pts[i].z>mx)mx=pts[i].z; }
+  if (mx-mn < 1) { mx = mn+1; }
+  return [mn, mx];
+}
+function eleColor(t, base) {
+  /* 海拔分段着色：低海拔→冷色(蓝绿)，高海拔→暖色(橙红)；t:[0,1] */
+  if (t < 0.28) return "#1E9EFF";
+  if (t < 0.5)  return "#2BB673";
+  if (t < 0.72) return "#F5A623";
+  return "#F5413B";
+}
+/* v8.3.1: 3D 投影后再自适应 contain——旋转任意角度轨迹都适应画面、永不截断（铁律）。
+   投影几何保留（海拔起伏/立体深度不变形），仅整体缩放到框内居中 */
+function fitToBox(p3, side, pad) {
+  var minX=1e9, maxX=-1e9, minY=1e9, maxY=-1e9;
+  for (var i=0;i<p3.length;i++){
+    if(p3[i].x<minX)minX=p3[i].x; if(p3[i].x>maxX)maxX=p3[i].x;
+    if(p3[i].y<minY)minY=p3[i].y; if(p3[i].y>maxY)maxY=p3[i].y;
+    var g = (p3[i].gx!=null);
+    if (g){ if(p3[i].gx<minX)minX=p3[i].gx; if(p3[i].gx>maxX)maxX=p3[i].gx;
+            if(p3[i].gy<minY)minY=p3[i].gy; if(p3[i].gy>maxY)maxY=p3[i].gy; }
+  }
+  var av = side - pad*2;
+  var scale = Math.min(av/((maxX-minX)||1e-6), av/((maxY-minY)||1e-6));
+  var cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  var out=[];
+  for (var i=0;i<p3.length;i++){
+    out.push({ x: side/2 + (p3[i].x-cx)*scale, y: side/2 + (p3[i].y-cy)*scale, z2: p3[i].z2, z: p3[i].z, znorm: p3[i].znorm,
+               gx: (p3[i].gx!=null)? side/2 + (p3[i].gx-cx)*scale : null, gy: (p3[i].gy!=null)? side/2 + (p3[i].gy-cy)*scale : null });
+  }
+  return out;
+}
+function project3D(pts, side, rx, ry) {
+  /* v8.3.2: 轨迹 xy 永不缩放（地图形状始终充满画布），海拔 Z 用自适应尺度做相对起伏。
+     旋转到任何角度都保证不截断：Z 上限按当前视角的投影余量动态计算 */
+  var cx = side/2, cy = side/2;
+  var out = [];
+  var cosY = Math.cos(ry), sinY = Math.sin(ry);
+  var cosX = Math.cos(rx), sinX = Math.sin(rx);
+  var cx0 = side*0.91*0.5;              /* 轨迹归一化后最大半宽/半高 */
+  var safeX = (side*0.53 - cx0*Math.abs(cosY)) / Math.max(Math.abs(sinY), 1e-6);
+  var safeY = (side*0.53 - cx0*Math.abs(cosX)) / Math.max(Math.abs(sinX), 1e-6);
+  var ZMAX = Math.min(side*0.38, side*Math.max(0.06, Math.min(safeX, safeY)));
+  for (var i=0;i<pts.length;i++){
+    var p = pts[i];
+    var nx = p.x - cx, ny = p.y - cy;
+    var zn = (p.znorm!=null?p.znorm:0);
+    var z = (zn - 0.5) * 2 * ZMAX;      /* 相对中心抬升，最高点+ZMAX */
+    var x1 = nx*cosY + z*sinY;
+    var z1 = -nx*sinY + z*cosY;
+    var y1 = ny*cosX - z1*sinX;
+    var z2 = ny*sinX + z1*cosX;
+    /* 垂直地面投影（z=0 代入）：轨迹在水平面的正投影，旋转时影子贴地 */
+    var gx1 = nx*cosY;
+    var gz1 = -nx*sinY;
+    var gy1 = ny*cosX - gz1*sinX;
+    out.push({ x: cx + x1, y: cy + y1, z2: z2, z: p.z, znorm: zn, gx: cx + gx1, gy: cy + gy1 });
+  }
+  /* uniform 缩放防旋转越界：轨迹仍占画布 80%+，Z 起伏保留（v8.3.2: pad 0.07 容纳丝带宽面+贝塞尔控制点外扩） */
+  return fitToBox(out, side, Math.max(side*0.08, 11));
+}
+
+/* v8.3.1: 3D 剖面曲线同色系明度渐变（保留"随高度变化"，但整体单色系像 Outbase 地形） */
+function tint3d(hex, f) {
+  var h2 = String(hex||"").replace('#','');
+  if (h2.length===6) {
+    var r=parseInt(h2.substr(0,2),16), g=parseInt(h2.substr(2,2),16), b=parseInt(h2.substr(4,2),16);
+    if (f>0){ r=r+(255-r)*f; g=g+(255-g)*f; b=b+(255-b)*f; }
+    else if (f<0){ r=r*(1+f); g=g*(1+f); b=b*(1+f); }
+    return 'rgb('+Math.round(r)+','+Math.round(g)+','+Math.round(b)+')';
+  }
+  return hex;
+}
+function makeTrack(c, t, r, b, w, h, color, glow, alpha, realPts, trackWidth) {
+  var pts = realPts && realPts.length>=2 ? realPts : [[0.06,0.62],[0.20,0.40],[0.34,0.58],[0.48,0.34],[0.62,0.56],[0.76,0.38],[0.94,0.50]];
+  var isReal = realPts && realPts.length>=2;
+  var gid = "g"+(color||"o")+(glow?"g":"n");
+  var defs = "";
+  var stroke = "#FC4C02";
+  if(color==="white") stroke="#FFFFFF";
+  else if(color==="blackfine") stroke="#0a0a0c";
+  else if(color==="grayfine") stroke="#5a636c";
+  else if(color==="neon"){ stroke="#00E5FF"; }
+  else if(color==="heat"){ stroke="#ff2d55"; }
+  else if(color==="ice"){ stroke="#78DCFF"; }
+  else if(color==="phantom"){ stroke="#8fb4ff"; }
+  var isOrange = (color==="orange");
+  if(isOrange){ defs='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="1" y2="0">'+
+    '<stop offset="0" stop-color="#FC4C02"/><stop offset="1" stop-color="#2B8CFF"/></linearGradient></defs>';
+    stroke="url(#"+gid+")"; }
+  /* v8.3.1: 3D 剖面带前壁渐变（固定 id，同一时刻单轨迹） */
+  var _mc0 = (color==="orange")?"#FC4C02":(color==="white")?"#FFFFFF":(color==="blackfine")?"#0a0a0c":(color==="grayfine")?"#5a636c":(color==="neon")?"#00E5FF":(color==="heat")?"#ff2d55":(color==="ice")?"#78DCFF":(color==="phantom")?"#8fb4ff":"#FC4C02";
+  defs += '<linearGradient id="e3df" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+_mc0+'" stop-opacity=".55"/><stop offset="1" stop-color="'+_mc0+'" stop-opacity=".22"/></linearGradient>';
+  defs += '<linearGradient id="e3db" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+_mc0+'" stop-opacity=".22"/><stop offset="1" stop-color="'+_mc0+'" stop-opacity="0"/></linearGradient>';
+  /* v8.3.2 FINAL: Outbase 式灰渐变海拔填充墙（轨迹垂直落影） */
+  defs += '<linearGradient id="wallg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c8794" stop-opacity=".42"/><stop offset="1" stop-color="#7c8794" stop-opacity=".06"/></linearGradient>';
+  var swRatios = [0.006, 0.008, 0.010, 0.013, 0.017, 0.022];
+  var twIdx = (trackWidth>=1&&trackWidth<=6) ? trackWidth-1 : 5;
+  var sw = Math.max(1.4, w*swRatios[twIdx]);
+  /* v8.3.1: 3D 与发光互斥——3D 模式强制无 glow（防组合渲染崩溃/失真） */
+  var side = Math.min(r, b);
+  var pad = Math.max(side*0.035, 4);
+  var norm = normalizeTrack(pts, side, side, pad);
+  var mode3d = !!window._tr3d;
+  /* v8.3.1: 3D 与发光互斥——3D 模式强制无 glow（防组合渲染崩溃/失真） */
+  var f = (!mode3d && glow) ? 'filter="drop-shadow(0 0 '+w*0.012+'px rgba(252,76,2,.9))"' : '';
+  var rx = (window._tr3dRx||0), ry = (window._tr3dRy||0);
+  /* 海拔归一化 [0,1]（3D 深度/着色用） */
+  var eRng = trackEleRange(norm);
+  for (var ei=0;ei<norm.length;ei++){ norm[ei].znorm = (norm[ei].z - eRng[0]) / (eRng[1]-eRng[0]); }
+  if (mode3d) {
+    norm = project3D(norm, side, rx, ry);
+  }
+  /* 平滑曲线（Catmull-Rom 转贝塞尔） */
+  function smoothD(pArr) {
+    var d = "M";
+    if (pArr.length >= 3) {
+      for (var i=0;i<pArr.length-1;i++){
+        var p0x = pArr[Math.max(0,i-1)].x, p0y = pArr[Math.max(0,i-1)].y;
+        var p1x = pArr[i].x, p1y = pArr[i].y;
+        var p2x = pArr[i+1].x, p2y = pArr[i+1].y;
+        var p3x = pArr[Math.min(pArr.length-1,i+2)].x, p3y = pArr[Math.min(pArr.length-1,i+2)].y;
+        var c1x = p1x + (p2x - p0x)/6, c1y = p1y + (p2y - p0y)/6;
+        var c2x = p2x - (p3x - p1x)/6, c2y = p2y - (p3y - p1y)/6;
+        d += (i===0 ? " "+p1x.toFixed(1)+" "+p1y.toFixed(1) : "") +
+             " C "+c1x.toFixed(1)+" "+c1y.toFixed(1)+" "+c2x.toFixed(1)+" "+c2y.toFixed(1)+" "+p2x.toFixed(1)+" "+p2y.toFixed(1);
+      }
+    } else {
+      for (var i=0;i<pArr.length;i++){
+        d += (i===0 ? " "+pArr[i].x.toFixed(1)+" "+pArr[i].y.toFixed(1) : " L "+pArr[i].x.toFixed(1)+" "+pArr[i].y.toFixed(1));
+      }
+    }
+    return d;
+  }
+  var out = '<svg class="track-svg" width="'+side+'" height="'+side+'" viewBox="0 0 '+side+' '+side+'" style="left:'+(c+(r-side)/2)+'px;top:'+(t+(b-side)/2)+'px;width:'+side+'px;height:'+side+'px">'+defs;
+  if (mode3d) {
+    /* v8.3.1: 3D = Outbase 式 3D 海拔剖面带——横轴=距离、纵轴=海拔、挤出深度、多角度旋转。
+       与"地图轨迹平面图"完全不同：立体剖面曲线 + 渐变地形填充 + 厚度挤出，可 yaw/pitch 拖拽。 */
+    var n = norm.length;
+    var bw = side*0.86, bh = side*0.60;
+    var bx0 = (side-bw)/2;
+    var byBase = side - pad*1.5;
+    /* v8.3.1 FINAL2: 3D = 立体丝带（轨迹按海拔 Z 抬起 + 带面体积 + 明暗层次 + 强投影 + 可旋转）
+       对齐 Outbase 立体轨迹质感：宽缎带（双侧扩展带面）、受光/背光分层、同色系海拔渐变、
+       垂直投影（双层渐变模拟柔和影子）、中心高光 */
+    var _mc = _mc0;
+    /* ============ v8.3.2 FINAL: 完完全全复刻 Outbase ============
+       橙线随海拔 Z 抬升 + 灰渐变垂直投影墙（轨迹垂直落到地面）+ 起终点圆点。
+       无发光、无丝带带面、无独立平面轨迹线、无高光。 */
+    /* 1) 灰渐变垂直投影带：屏幕竖直投影（不管轨迹怎么旋转，灰带始终竖直向下），对齐 Outbase */
+    function bandWall(arr, w2){
+      var out=[];
+      for (var i=0;i<arr.length;i++){
+        var i0=Math.max(0,i-1), i1=Math.min(arr.length-1,i+1);
+        var dx=arr[i1].x-arr[i0].x, dy=arr[i1].y-arr[i0].y;
+        var ln=Math.sqrt(dx*dx+dy*dy)||1;
+        var nx=-dy/ln, ny=dx/ln;
+        out.push({ ax: arr[i].x+nx*w2, ay: arr[i].y+ny*w2, bx: arr[i].x-nx*w2, by: arr[i].y-ny*w2 });
+      }
+      return out;
+    }
+    var wallW = Math.max(sw*2.6, side*0.016);   /* 灰带宽（略宽于主线） */
+    var baseY = side*0.97;                       /* 水平基线：灰带底部平直，对齐 Outbase 窗帘式填充 */
+    var wallTop = bandWall(norm, wallW);
+    var mLx=1e9, mRx=-1e9;
+    for (var i=0;i<wallTop.length;i++){ if(wallTop[i].ax<mLx)mLx=wallTop[i].ax; if(wallTop[i].ax>mRx)mRx=wallTop[i].ax; if(wallTop[i].bx<mLx)mLx=wallTop[i].bx; if(wallTop[i].bx>mRx)mRx=wallTop[i].bx; }
+    var wallD = "M"+wallTop[0].ax.toFixed(1)+" "+wallTop[0].ay.toFixed(1);
+    for (var i=1;i<wallTop.length;i++) wallD += " L"+wallTop[i].ax.toFixed(1)+" "+wallTop[i].ay.toFixed(1);
+    wallD += " L"+mRx.toFixed(1)+" "+baseY.toFixed(1)+" L"+mLx.toFixed(1)+" "+baseY.toFixed(1)+" Z";
+    out += '<path d="'+wallD+'" fill="url(#wallg)" stroke="none"/>';
+    /* 2) 主线：细橙线（对齐 Outbase 线体粗细，无渐变/无高光/无发光） */
+    out += '<path d="'+smoothD(norm)+'" fill="none" stroke="'+_mc+'" stroke-width="'+(sw*1.2).toFixed(1)+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(alpha||0.98)+'"/>';
+    /* 3) 起终点圆点 */
+    var dotR = Math.max(2.2, side*0.018);
+    out += '<circle cx="'+norm[0].x.toFixed(1)+'" cy="'+norm[0].y.toFixed(1)+'" r="'+(dotR*0.8).toFixed(1)+'" fill="#22C55E" stroke="rgba(255,255,255,.85)" stroke-width="'+(dotR*0.45).toFixed(1)+'"/>';
+    out += '<circle cx="'+norm[norm.length-1].x.toFixed(1)+'" cy="'+norm[norm.length-1].y.toFixed(1)+'" r="'+(dotR*0.8).toFixed(1)+'" fill="#EF4444" stroke="rgba(255,255,255,.85)" stroke-width="'+(dotR*0.45).toFixed(1)+'"/>';
+  } else {
+    out += '<path d="'+smoothD(norm)+'" fill="none" stroke="'+stroke+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(alpha||0.95)+'" '+f+'/>';
+    var dotR = Math.max(2.2, side*0.018);
+    var mkStart = '<circle cx="'+norm[0].x.toFixed(1)+'" cy="'+norm[0].y.toFixed(1)+'" r="'+(dotR*0.8).toFixed(1)+'" fill="#22C55E" stroke="rgba(255,255,255,.85)" stroke-width="'+(dotR*0.45).toFixed(1)+'"/>';
+    var mkEnd = '<circle cx="'+norm[norm.length-1].x.toFixed(1)+'" cy="'+norm[norm.length-1].y.toFixed(1)+'" r="'+(dotR*0.8).toFixed(1)+'" fill="#EF4444" stroke="rgba(255,255,255,.85)" stroke-width="'+(dotR*0.45).toFixed(1)+'"/>';
+    out += mkStart+mkEnd;
+  }
+  out += "</svg>";
+  return out;
+}
+
+/* ===== 二维海拔剖面（v8.1.0：平面平铺，x=里程 y=海拔，非三维）
+   设计规范：顶部最高海拔参考线 + 底部最低海拔参考线；
+   左上=最高海拔高度，左下=最低海拔高度，右上（最高线旁）=累计爬升；
+   字号大而可读，参考线浅色虚线不抢曲线 ===== */
+function makeElevProfile(c, t, r, b, w, h, data, color) {
+  var pts = data.track && data.track.length>=2 ? data.track : null;
+  if (!pts) return "";
+  var eles = pts.map(function(p){ return (p.ele!=null && p.ele!==undefined) ? p.ele : p[1]; });
+  var eMin = Math.min.apply(null, eles), eMax = Math.max.apply(null, eles);
+  var eR = (eMax-eMin)||1;
+  var lc = (color==="ice")?"#78DCFF":(color==="neon")?"#00E5FF":(color==="white")?"#FFFFFF":
+           (color==="blackfine")?"#9aa3ad":(color==="grayfine")?"#aab3bd":(color==="heat")?"#ff2d55":
+           (color==="phantom")?"#8fb4ff":"#FC4C02";
+  var topPad = b*0.30, basePad = b*0.28;      // 顶部/底部留参考线与标签空间（顶部需容纳大号标签）
+  var usable = b - topPad - basePad;
+  var xs = [], ys = [], d = "M", fd = "M";
+  for (var i=0;i<pts.length;i++){
+    var x = r*(i/(pts.length-1));                 // 横轴=里程（均匀平铺）
+    var ny = topPad + (1-(eles[i]-eMin)/eR)*usable;
+    xs.push(x); ys.push(ny);
+    d += (i===0?" ":" L")+x.toFixed(1)+" "+ny.toFixed(1);
+    fd += (i===0?" ":" L")+x.toFixed(1)+" "+ny.toFixed(1);
+  }
+  fd += " L"+xs[xs.length-1].toFixed(1)+" "+(topPad+usable).toFixed(1)+" L"+xs[0].toFixed(1)+" "+(topPad+usable).toFixed(1)+" Z";
+  var altMax = (data.altMax!=null)?data.altMax:0, altMin = (data.altMin!=null)?data.altMin:0;
+  var climb = (data.climb!=null)?data.climb:0;
+  var sw = Math.max(1.5, r*0.0042);
+  /* 可读字号：随海拔图宽度缩放，下限保证清晰 */
+  var lab = Math.max(13, r*0.024);
+  var lineY1 = topPad, lineY2 = topPad+usable;
+  var ref = '<line x1="0" y1="'+lineY1.toFixed(1)+'" x2="'+r.toFixed(1)+'" y2="'+lineY1.toFixed(1)+'" stroke="'+lc+'" stroke-width="1" stroke-dasharray="'+(lab*0.5).toFixed(1)+' '+(lab*0.4).toFixed(1)+'" opacity=".55"/>'+
+            '<line x1="0" y1="'+lineY2.toFixed(1)+'" x2="'+r.toFixed(1)+'" y2="'+lineY2.toFixed(1)+'" stroke="'+lc+'" stroke-width="1" stroke-dasharray="'+(lab*0.5).toFixed(1)+' '+(lab*0.4).toFixed(1)+'" opacity=".55"/>';
+  /* 左上=最高海拔（最高参考线上方），左下=最低海拔，右上=累计爬升（最高线上方，不会被裁） */
+  var topTxt = '<text x="'+(lab*0.18)+'" y="'+(lineY1-lab*0.42).toFixed(1)+'" text-anchor="start" font-size="'+lab+'" font-weight="800" fill="'+lc+'" style="paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:'+(lab*0.16).toFixed(1)+'">▲ '+altMax+'m</text>';
+  var botTxt = '<text x="'+(lab*0.18)+'" y="'+(lineY2+lab*0.8).toFixed(1)+'" text-anchor="start" font-size="'+lab+'" font-weight="800" fill="'+lc+'" style="paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:'+(lab*0.16).toFixed(1)+'">▼ '+altMin+'m</text>';
+  var climbTxt = '<text x="'+(r-lab*0.18).toFixed(1)+'" y="'+(lineY1-lab*0.42).toFixed(1)+'" text-anchor="end" font-size="'+(lab*0.92)+'" font-weight="700" fill="'+lc+'" style="paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:'+(lab*0.16).toFixed(1)+'">累计爬升 '+climb+'m</text>';
+  /* v8.3.1: 海拔剖面纯平面化——去掉 3D 前壁斜切/厚度底座投影（用户要求：剖面是平面铺垫，不要投影立体） */
+  var bL = topPad + usable;
+  return '<svg class="elev-prof" width="'+r+'" height="'+b+'" viewBox="0 0 '+r+' '+b+'" style="left:'+c+'px;top:'+t+'px;width:'+r+'px;height:'+b+'px">'+
+    '<defs>'+
+      '<linearGradient id="elf" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0" stop-color="'+lc+'" stop-opacity=".30"/>'+
+        '<stop offset="1" stop-color="'+lc+'" stop-opacity=".02"/></linearGradient>'+
+    '</defs>'+
+    ref+
+    '<path d="'+fd+'" fill="url(#elf)"/>'+
+    '<path d="'+d+'" fill="none" stroke="'+lc+'" stroke-width="'+(sw*1.7).toFixed(1)+'" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>'+
+    topTxt+botTxt+climbTxt+'</svg>';
+}
+
+/* ===== 主渲染（渲染到任意容器，W/H 显式指定——预览/导出同源） ===== */
+function renderTo(el, idx, data, opts, W, H) {
+  data = data || {};
+  var tpl = T[idx-1] || T[0];
+  if (opts && opts.bg) tpl = Object.assign({}, tpl, {bg: opts.bg});
+  if (opts && opts.track) tpl = Object.assign({}, tpl, {track: opts.track});
+  if (opts && opts.layout) tpl = Object.assign({}, tpl, {lay: opts.layout});
+  if (opts && opts.text) tpl = Object.assign({}, tpl, {col: opts.text, u: opts.textU || opts.text});
+  /* v8.0.7 比例系统：宽度基准缩放（字号/轨迹随宽），画布高度随 1:1/3:4/9:16；
+     数据区底距恒定（--db），轨迹高度自适应填满，永不压字 */
+  var aspect = opts.aspect || "1:1";
+  var s = W/1024;
+  var dbPx  = 0.092*1024*s;  // 数据区距底（v8.0.9: 加大，杜绝大号数字贴底/裁切）
+  var dhFactor = (tpl.lay==="poster")?0.30:(tpl.lay==="trip")?0.30:(tpl.lay==="grid")?0.28:(tpl.lay==="big")?0.26:((tpl.lay==="bar"||tpl.lay==="dual")?0.20:0.205);
+  var dhPx  = dhFactor*1024*s; // 数据区高度（v8.1.0: 按布局取，与 Kotlin 同口径，杜绝数据溢出盖轨迹/海拔）
+  var gapPx = 0.030*1024*s;  // 轨迹与数据安全间隙
+  var topd  = 0.034*1024*s;  // 角标/页码距顶
+  el.style.setProperty("--db", dbPx+"px");
+  el.style.setProperty("--topd", topd+"px");
+  el.style.setProperty("--wm", Math.max(8*s, dbPx*0.32)+"px");
+  el.style.setProperty("--s", s);
+  var d = {
+    distance: (data.distance!=null)?data.distance:DEMO.distance,
+    duration: data.duration||DEMO.duration,
+    avgSpeed: (data.avgSpeed!=null)?data.avgSpeed:DEMO.avgSpeed,
+    maxSpeed: (data.maxSpeed!=null)?data.maxSpeed:DEMO.maxSpeed,
+    climb: (data.climb!=null)?data.climb:DEMO.climb,
+    hr: (data.hr!=null)?data.hr:DEMO.hr,
+    power:(data.power!=null)?data.power:DEMO.power,
+    kcal:(data.kcal!=null)?data.kcal:DEMO.kcal,
+    cad:(data.cad!=null)?data.cad:DEMO.cad,
+    alt:(data.alt!=null)?data.alt:DEMO.alt,
+    title: data.title||DEMO.title,
+    photo: data.photo||null
+  };
+  opts = opts||{};
+  var showBadge = (opts.showBadge!==false);
+  var showWm = (opts.watermark!==false);
+  var noBg = (opts.transparentBg===true);
+  var showData = (opts.dataLayer!==false);
+  var showGlow = (opts.glow!==false);
+  var showBand = (opts.show3dBand!==false);
+  var showTrack = (opts.showTrack!==false);   // v8.0.9 轨迹显示开关
+  var trackWidth = opts.trackWidth||3;
+  /* v8.3.1: 3D 轨迹模式开关 + 旋转角（平面/3D 二选一，3D=海拔Z+可旋转）
+     set3DMode/set3DRotate 已直接改 window 全局；这里仅当 opts 显式携带时覆盖，
+     避免交互设置被整卡重渲染（renderTo 用旧 opts）覆盖回平面/旧角 */
+  if (opts.track3d!=null) window._tr3d = (opts.track3d===true);
+  if (opts.track3dRx!=null) window._tr3dRx = opts.track3dRx;
+  if (opts.track3dRy!=null) window._tr3dRy = opts.track3dRy;
+  var tcol = opts.trackColor; /* 0-7 覆盖 */
+
+  /* 分类颜色文本 */
+  var colCls = tpl.col, uCls = tpl.u;
+
+  /* 背景 */
+  var bgCls = tpl.bg;
+  var html = noBg ? '' : '<div class="abs '+bgCls+'" style="left:0;top:0;width:100%;height:100%"></div>';
+
+  /* 照片类 */
+  if (tpl.photo===1) {
+    html += '<div class="photo" style="border-radius:'+(0.10*1024*s).toFixed(1)+'px;">'+(d.photo?'<img src="'+d.photo+'">':'<span class="ph">照片</span>')+'</div>';
+  } else if (tpl.photo===2) {
+    /* 双图拼接：顶部横条，不倾斜，柔和大圆角 */
+    /* v8.1.1c: 照片正圆角（rx=ry 固定像素半径，随画布等比缩放；不用百分比——非正方形上百分比=椭圆角） */
+    html += '<div class="photo" style="left:3.5%;right:3.5%;top:6.5%;width:93%;aspect-ratio:16/9;transform:none;border-radius:'+(0.08*1024*s).toFixed(1)+'px;">'+(d.photo?'<img src="'+d.photo+'">':'<span class="ph">照片</span>')+'</div>';
+  }
+
+  /* v8.0.9: 数据区高度按布局给系数（按各布局真实字号/行数算足，杜绝轨迹框下侵、3D带压数据、底部裁切） */
+  var dhFactor = (tpl.lay==="poster") ? 0.30
+    : (tpl.lay==="trip") ? 0.30
+    : (tpl.lay==="grid") ? 0.28
+    : (tpl.lay==="big") ? 0.26
+    : (tpl.lay==="bar"||tpl.lay==="dual") ? 0.20 : 0.205;
+  dhPx = dhFactor*1024*s;
+  /* 轨迹（照片/纯数据类同样画；showTrack=false 时不画） */
+  var trackColor = tcol!=null ? ["orange","white","blackfine","grayfine","neon","heat","ice","phantom"][tcol%8] : tpl.track;
+  var topY = 0.115*1024*s;                      // 轨迹顶
+  /* v8.1.0: 二维海拔剖面（showBand）：独立平铺折线图，位于轨迹与数据之间，轨迹保持地图轨迹 */
+  var hasEle = !!(showBand && data.track && data.track.length>=2);
+  var eh = hasEle ? Math.max(0.15*H, 120*s) : 0;   // 海拔图高度：足够容纳参考线+大号标签（v8.1.1）
+  var trH = Math.max(0.30*1024*s, H - topY - dbPx - dhPx - gapPx - eh); // 轨迹高度自适应（长画布更高）
+  var tr = {top: topY, left: 0.04*W, w: 0.92*W, h: trH};
+  if (showTrack) html += makeTrack(tr.left, tr.top, tr.w, tr.h, W, H, trackColor, showGlow, 0.95, data.track, trackWidth);
+  if (hasEle) html += makeElevProfile(0.04*W, topY+trH+gapPx*0.55, 0.92*W, eh, W, H, data, trackColor);
+
+  /* 水印（左上分类·模板名 + 右上页码）：由"水印"开关控制 */
+  if (showWm) {
+    html += '<div class="cat '+colCls+'" style="opacity:.85">'+tpl.c+'·'+tpl.n+'</div>';
+    html += '<div class="idx '+colCls+'" style="opacity:.7">'+tpl.idx+'/24</div>';
+  }
+
+  /* 数据布局（数据层关闭时整段跳过，轨迹/水印仍渲染） */
+  if (showData) {
+  var fmtD = (Math.round(d.distance*10)/10);
+  var fmtV = (Math.round(d.avgSpeed*10)/10);
+  var fmtMaxV = (Math.round((d.maxSpeed||0)*10)/10);
+  var fmtH = (Math.round(d.hr));
+  var fmtP = (Math.round(d.power));
+  var fmtCl = (Math.round(d.climb));
+  var fmtK = (Math.round(d.kcal||0));
+  var fmtCad = (Math.round(d.cad||0));
+  var fmtAlt = (Math.round(d.alt||0));
+
+  /* v8.0.9: 数据项动态化——用户勾选哪些就展示哪些（id:1距离2时长3均速4最大速5爬升6心率7功率8卡路里9踏频10海拔） */
+  var itemIds = (data.items && data.items.length>=2) ? data.items : [1,3,2,5,6];
+  function iv(id){
+    switch(id){
+      case 1: return {v:fmtD,u:"km",l:"距离"};
+      case 2: return {v:d.duration,u:"",l:"时长"};
+      case 3: return {v:fmtV,u:"km/h",l:"均速"};
+      case 4: return {v:fmtMaxV,u:"km/h",l:"最大速度"};
+      case 5: return {v:fmtCl,u:"m",l:"爬升"};
+      case 6: return {v:(fmtH>0?fmtH:"—"),u:"bpm",l:"心率"};
+      case 7: return {v:(fmtP>0?fmtP:"—"),u:"W",l:"功率"};
+      case 8: return {v:(fmtK>0?fmtK:"—"),u:"kcal",l:"卡路里"};
+      case 9: return {v:(fmtCad>0?fmtCad:"—"),u:"rpm",l:"踏频"};
+      case 10:return {v:(fmtAlt>0?fmtAlt:"—"),u:"m",l:"海拔"};
+      default: return {v:"—",u:"",l:""};
+    }
+  }
+  function lu(it){ return it.l + (it.u?(" "+it.u):""); }
+
+  /* 照片类：左中两行大字（效果图 21 透明叠加），取前 2 项 */
+  if (tpl.photo===1) {
+    var p2 = itemIds.slice(0,2);
+    html += '<div class="photodata">'+
+      p2.map(function(id,k){ var it=iv(id); return '<div class="row"><span class="v '+colCls+'" style="font-size:'+((k===0?97.280:76.800)*s)+'px;">'+it.v+'</span>'+(it.u?'<span class="u '+uCls+'" style="font-size:'+((k===0?36.864:32.768)*s)+'px;">'+it.u+'</span>':'')+'</div>'; }).join('')+
+      '</div>';
+  } else if (tpl.lay==="trip") {
+    var rows = itemIds.slice(0,3).map(iv);
+    var vf = 0.085, uf = 0.032;
+    html += '<div class="trip">';
+    rows.forEach(function(it){ html += '<div class="row"><span class="v '+colCls+'" style="font-size:'+(vf*1024*s)+'px;">'+it.v+'</span>'+(it.u?'<span class="u '+uCls+'" style="font-size:'+(uf*1024*s)+'px;">'+it.u+'</span>':'')+'</div>'; });
+    html += '</div>';
+  } else if (tpl.lay==="corner") {
+    var rows2 = itemIds.slice(0,3).map(iv);
+    html += '<div class="corner">';
+    rows2.forEach(function(it){ html += '<div class="row"><span class="v '+colCls+'" style="font-size:'+(57.344*s)+'px;">'+it.v+'</span>'+(it.u?'<span class="u '+uCls+'" style="font-size:'+(28.672*s)+'px;">'+it.u+'</span>':'')+'</div>'; });
+    html += '</div>';
+  } else if (tpl.lay==="grid") {
+    var cells = itemIds.slice(0,6).map(iv);
+    html += '<div class="grid">';
+    cells.forEach(function(it){ html += '<div class="cell"><span class="gv '+colCls+'" style="font-size:'+(67.584*s)+'px;">'+it.v+'</span><span class="gu '+uCls+'">'+lu(it)+'</span></div>'; });
+    html += '</div>';
+  } else if (tpl.lay==="big") {
+    var it0 = iv(itemIds[0]);
+    html += '<div class="big"><div class="bv '+colCls+'" style="font-size:'+(153.600*s)+'px;">'+it0.v+'</div>'+
+      '<div class="bu '+uCls+'">'+lu(it0).toUpperCase()+' · '+d.title+'</div></div>';
+  } else if (tpl.lay==="dual") {
+    var d3 = itemIds.slice(0,3).map(iv);
+    html += '<div class="dual">'+
+      d3.map(function(it){ return '<div class="col"><span class="dv '+colCls+'" style="font-size:'+(76.800*s)+'px;">'+it.v+'</span><span class="du '+uCls+'">'+lu(it)+'</span></div>'; }).join('')+
+      '</div>';
+  } else if (tpl.lay==="bar") {
+    var b4 = itemIds.slice(0,4).map(iv);
+    html += '<div class="bar">'+
+      b4.map(function(it){ return '<div class="col"><span class="bv2 '+colCls+'" style="font-size:'+(63.488*s)+'px;">'+it.v+'</span><span class="bu2 '+uCls+'">'+lu(it)+'</span></div>'; }).join('')+
+      '</div>';
+  } else if (tpl.lay==="poster") {
+    var p0 = iv(itemIds[0]);
+    var pf = itemIds.slice(1,4).map(iv);
+    /* v8.0.9: 大字装饰标签跟随 items[0]（选爬升显示ELEVATION，选距离显示KILOMETERS…），杜绝语义错乱 */
+    function posterTag(id){
+      switch(id){
+        case 1: return "KILOMETERS";
+        case 2: return "DURATION";
+        case 3: return "AVG SPEED";
+        case 4: return "MAX SPEED";
+        case 5: return "ELEVATION";
+        case 6: return "HEART RATE";
+        case 7: return "POWER";
+        case 8: return "CALORIES";
+        case 9: return "CADENCE";
+        case 10: return "ALTITUDE";
+        default: return "";
+      }
+    }
+    var pmText = tpl.n==="海报大字" ? posterTag(itemIds[0]) : (tpl.n==="年度总结" ? "年度总结" : d.title);
+    var subText = tpl.n==="海报大字" ? d.title : "";
+    html += '<div class="poster">'+
+      '<div class="pl '+colCls+'" style="font-size:'+(tpl.n==="海报大字"||tpl.n==="年度总结"?174.08*s:133.12*s)+'px;">'+p0.v+(p0.u?'<span style="font-size:.32em;font-weight:600;opacity:.75;margin-left:.12em;">'+p0.u+'</span>':'')+'</div>'+
+      (pmText? '<div class="pm '+uCls+'" style="font-size:'+(40.96*s)+'px;letter-spacing:.2em;margin-top:1%;">'+pmText+'</div>':'')+
+      (subText? '<div class="pm '+uCls+'" style="font-size:'+(34.82*s)+'px;letter-spacing:.18em;margin-top:.6%;">'+subText+'</div>':'')+
+      '<div class="pfoot">'+
+      pf.map(function(it){ return '<div><div class="pv '+colCls+'" style="font-size:'+(55.3*s)+'px;">'+it.v+'</div><div class="pu '+uCls+'">'+lu(it)+'</div></div>'; }).join('')+
+      '</div></div>';
+  }
+  }
+
+  /* 角标（用户定义的"角标"= 右下品牌角标：brand=0 鸡翅文字；brand>=1 品牌矢量 logo；brand=17 自定义透明logo） */
+  if (showBadge) {
+    var brand = opts.brand||0;
+    var bUrl = opts.badgeUrl;   // 自定义透明 logo（App 注入 base64 data URI）
+    if (brand===17 && bUrl) {
+      html += '<div class="wm" style="opacity:.95"><img class="wm-img" src="'+bUrl+'" alt=""/></div>';
+    } else {
+      var bSvg = brandSvg(brand);
+      if (bSvg) {
+        var bInfo = BRANDS[brand];
+        html += '<div class="wm '+colCls+'" style="opacity:.92">'+bSvg+'<span class="wn">'+bInfo.n+'</span></div>';
+      } else {
+        var wmCls = (tpl.bg==="bg-white"||tpl.bg==="bg-cream"||tpl.bg==="bg-warm"||tpl.bg==="bg-lightmap"||tpl.bg==="bg-grayline"||tpl.bg==="bg-contour"||tpl.bg==="bg-checker"||tpl.bg==="bg-photo") ? "wm-dark" : "";
+        html += '<div class="wm '+wmCls+'" style="color:'+(wmCls?'rgba(0,0,0,.72)':'rgba(255,255,255,.82)')+'">鸡翅幸哲迈进OB</div>';
+      }
+    }
+  }
+
+  el.innerHTML = html;
+  /* 强制 reflow：确保 layout/paint 完成后再被序列化/截图 */
+  void el.offsetHeight;
+  /* 重渲染后恢复手势变换（限定本容器内，避免预览/导出容器互相干扰） */
+  setTransformIn(el, _tx, _ty, _ts, _tr, _tt);
+}
+
+/* 预览入口：渲染到 #card（尺寸=WebView 视口） */
+function render(idx, data, opts) {
+  window.__curRender = [idx, data, opts];
+  var card = document.getElementById("card");
+  opts = opts||{};
+  /* v8.1.4c: card 严格等于 aspect 比例（1:1/3:4/9:16），根治预览视窗与画布不匹配——
+     预览所见 = 等比画布，导出同比例同源，100% 所见即所得 */
+  var aspect = opts.aspect || "1:1";
+  var ratio = aspect==="3:4" ? 4/3 : aspect==="9:16" ? 16/9 : 1;
+  var vw = card.clientWidth||0;
+  if (!vw) { setTimeout(function(){ render(idx, data, opts); }, 50); return; }
+  /* v8.2.7: contain 兜底——长画布（3:4/9:16）高度超过 WebView 视口时同步收窄宽度，
+     保证整卡完整可见不被视口裁剪（轨迹不"截断"）；基准取 window.innerHeight（视口高，
+     不随 card 自身高度被覆盖而变化），App 端已按可视区等比设置预览卡时此处自然不触发 */
+  var vh = window.innerHeight || card.clientHeight || 0;
+  var W = Math.min(vw, vh>0 ? Math.round(vh/ratio) : vw);
+  W = Math.max(W, 1);
+  var H = Math.round(W*ratio);
+  if (Math.abs((card.clientHeight||0)-H) > 1) {
+    card.style.height = H+"px";
+    setTimeout(function(){ render(idx, data, opts); }, 30);
+    return;
+  }
+  renderTo(card, idx, data, opts, W, H);
+}
+/* 回报当前画布实际渲染尺寸（CSS 视口口径），供 App 端投影/位移换算同源 */
+function getCardSize() { var card=document.getElementById("card"); return {w:card.clientWidth||0, h:card.clientHeight||0}; }
+
+/* 轨迹手势变换（App 手势 → HTML 轨迹 transform，预览/导出同源）
+   v8.1.0: 前仰/后仰用 CSS 3D（perspective + rotateX），GPU 合成，不逐点计算不卡顿 */
+var _tx = 0, _ty = 0, _ts = 1, _tr = 0, _tt = 0;
+function setTransformIn(scope, dx, dy, sc, rot, tilt) {
+  _tx = dx||0; _ty = dy||0; _ts = sc||1; _tr = rot||0;
+  _tt = (tilt!=null && tilt!==undefined) ? tilt : _tt;
+  var svg = scope.querySelector(".track-svg");
+  if (svg) {
+    var cx = svg.clientWidth/2, cy = svg.clientHeight/2;
+    /* v8.1.1c: 透视距离固定 1100px（不再随视口缩放）——预览(350)与导出(372) CSS 视口不同，
+       旧公式 persp=1100*clientWidth/1024 使两端 rotateX 压缩强度不一致（导出"前仰压缩"感更强）。
+       固定后预览=导出俯仰视觉完全同源 */
+    var persp = 1100;
+    svg.style.transformOrigin = cx+"px "+cy+"px";
+    svg.style.transform = "perspective("+persp.toFixed(0)+"px) translate("+_tx+"px,"+_ty+"px) rotateZ("+_tr+"deg) rotateX("+_tt+"deg) scale("+_ts+")";
+  }
+}
+function setTransform(dx, dy, sc, rot, tilt) { setTransformIn(document, dx, dy, sc, rot, tilt); }
+function getTransform() { return {dx:_tx, dy:_ty, scale:_ts, rot:_tr, tilt:_tt}; }
+
+/* ============================================================
+ * v8.1.2 终极导出：canvas 2D 渲染引擎（完全脱离 WebView 截图管线）
+ * 预览(HTML/CSS)与导出(canvas)共用同一套布局公式（s/dbPx/dhPx/topY/tr…），
+ * 文本用 measureText 精确测量 → 导出 = 预览所见，尺寸 100% 可控，透明保留。
+ * ============================================================ */
+function paintBg(ctx, bgCls, W, H) {
+  var g;
+  function rad(cx, cy, r0, r1, stops) {
+    g = ctx.createRadialGradient(cx*W, cy*H, r0, cx*W, cy*H, r1*Math.max(W,H));
+    stops.forEach(function(st){ g.addColorStop(st[0], st[1]); });
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  }
+  function lin(x0,y0,x1,y1,stops){
+    g = ctx.createLinearGradient(x0*W,y0*H,x1*W,y1*H);
+    stops.forEach(function(st){ g.addColorStop(st[0], st[1]); });
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  }
+  switch (bgCls) {
+    case "bg-stars":   rad(0.30,0.20,0,0.85,[[0,"#1b2240"],[0.55,"#0b0d1c"],[1,"#04050c"]]); break;
+    case "bg-neon":    rad(0.60,0.30,0,0.85,[[0,"#1a1033"],[0.60,"#0a0714"],[1,"#04030a"]]); break;
+    case "bg-cream":   ctx.fillStyle="#f6f1e3"; ctx.fillRect(0,0,W,H); break;
+    case "bg-white":   ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,W,H); break;
+    case "bg-gray":    ctx.fillStyle="#eceff2"; ctx.fillRect(0,0,W,H); break;
+    case "bg-ice":     lin(0.10,1.0,0.95,0.05,[[0,"#0e2a3d"],[0.55,"#123c55"],[1,"#0b2033"]]); break;
+    case "bg-purple":  rad(0.50,0.20,0,0.85,[[0,"#3b1d66"],[0.60,"#1c0d3a"],[1,"#0c0520"]]); break;
+    case "bg-orange":  lin(0.05,1.0,0.95,0.05,[[0,"#ff6a1a"],[0.45,"#fc4c02"],[1,"#d93a02"]]); break;
+    case "bg-warm":    lin(0.05,1.0,0.95,0.05,[[0,"#fff3e0"],[0.60,"#ffe1c2"],[1,"#ffd0a6"]]); break;
+    case "bg-map":     lin(0.15,0,0.85,1,[[0,"#101826"],[0.55,"#182338"],[1,"#101826"]]); break;
+    case "bg-sat":     lin(0.10,0,0.90,1,[[0,"#05080f"],[0.55,"#0c1626"],[1,"#060a12"]]); break;
+    case "bg-lightmap":lin(0.10,0,0.90,1,[[0,"#eef1f4"],[0.60,"#e0e6ec"],[1,"#eef1f4"]]); break;
+    case "bg-heat":    lin(0.05,1.0,0.95,0,[[0,"#12090b"],[0.55,"#2a0d10"],[1,"#12090b"]]); break;
+    case "bg-dual":    lin(0,0,1,0,[[0,"#0d0f1a"],[0.50,"#0d0f1a"],[0.50,"#1a0f0d"],[1,"#1a0f0d"]]); break;
+    case "bg-annual":  lin(0.10,1.0,0.90,0,[[0,"#0e1428"],[0.55,"#16203c"],[1,"#0c1122"]]); break;
+    case "bg-frost":   ctx.clearRect(0,0,W,H); break;
+    case "bg-retro": {
+      rad(0.50,0.30,0,0.85,[[0,"#4a2a7e"],[0.70,"#1c0d3a"],[1,"#120829"]]);
+      var pat = document.createElement("canvas"); pat.width=4; pat.height=4;
+      var pc = pat.getContext("2d"); pc.fillStyle="#2a1050"; pc.fillRect(0,0,4,2); pc.fillStyle="#200c3e"; pc.fillRect(0,2,4,2);
+      var p = ctx.createPattern(pat,"repeat"); ctx.fillStyle=p||"#2a1050"; ctx.fillRect(0,0,W,H);
+      break; }
+    case "bg-checker": {
+      ctx.fillStyle="#101014"; ctx.fillRect(0,0,W,H);
+      var pat2 = document.createElement("canvas"); pat2.width=W/6; pat2.height=W/6;
+      var pc2 = pat2.getContext("2d"); pc2.fillStyle="#ffffff";
+      pc2.fillRect(0,0,pat2.width/2,pat2.height/2); pc2.fillRect(pat2.width/2,pat2.height/2,pat2.width/2,pat2.height/2);
+      var p2 = ctx.createPattern(pat2,"repeat"); ctx.fillStyle=p2||"#ffffff"; ctx.fillRect(0,0,W,H);
+      break; }
+    case "bg-black":   ctx.fillStyle="#08080a"; ctx.fillRect(0,0,W,H); break;
+    case "bg-grayline": {
+      ctx.fillStyle="#f4f6f8"; ctx.fillRect(0,0,W,H);
+      ctx.strokeStyle="#e3e6ea"; ctx.lineWidth=1;
+      var step = W*0.072;
+      ctx.beginPath();
+      for (var x=0;x<=W;x+=step){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+      for (var y=0;y<=H;y+=step){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+      ctx.stroke();
+      break; }
+    case "bg-contour": rad(0.30,0.35,0,0.85,[[0,"#fdf3e7"],[0.45,"#f8e3c8"],[1,"#f2d4ab"]]); break;
+    case "bg-orangeband": lin(0.10,1.0,0.90,0,[[0,"#101014"],[0.55,"#1c1a18"],[1,"#101014"]]); break;
+    case "bg-trail":   rad(0.40,0.30,0,0.85,[[0,"#141b30"],[0.60,"#080b16"],[1,"#03040a"]]); break;
+    case "bg-photo":   ctx.clearRect(0,0,W,H); break;
+    default: ctx.clearRect(0,0,W,H);
+  }
+}
+
+function fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt){
+  switch(id){
+    case 1: return {v:fmtD,u:"km"};
+    case 2: return {v:d.duration,u:""};
+    case 3: return {v:fmtV,u:"km/h"};
+    case 4: return {v:fmtMaxV,u:"km/h"};
+    case 5: return {v:fmtCl,u:"m"};
+    case 6: return {v:(fmtH>0?fmtH:"—"),u:"bpm"};
+    case 7: return {v:(fmtP>0?fmtP:"—"),u:"W"};
+    case 8: return {v:(fmtK>0?fmtK:"—"),u:"kcal"};
+    case 9: return {v:(fmtCad>0?fmtCad:"—"),u:"rpm"};
+    case 10:return {v:(fmtAlt>0?fmtAlt:"—"),u:"m"};
+    default:return {v:"—",u:""};
+  }
+}
+function lu(it){ return it.l + (it.u?(" "+it.u):""); }
+function luId(id){ switch(id){
+  case 1:return "距离 km"; case 2:return "时长"; case 3:return "均速 km/h";
+  case 4:return "最大速度 km/h"; case 5:return "爬升 m"; case 6:return "心率 bpm";
+  case 7:return "功率 W"; case 8:return "卡路里 kcal"; case 9:return "踏频 rpm"; case 10:return "海拔 m";
+  default:return ""; } }
+function posterTagId(id){ switch(id){
+  case 1:return "KILOMETERS"; case 2:return "DURATION"; case 3:return "AVG SPEED";
+  case 4:return "MAX SPEED"; case 5:return "ELEVATION"; case 6:return "HEART RATE";
+  case 7:return "POWER"; case 8:return "CALORIES"; case 9:return "CADENCE"; case 10:return "ALTITUDE";
+  default:return ""; } }
+
+/* 文本绘制：x=左侧（start），返回右端 x */
+function drawText(ctx, text, x, baselineY, fontSize, weight, color, anchor, letterSpacing) {
+  if (text==null || text==="") return x;
+  ctx.save();
+  ctx.font = (weight||400)+" "+(fontSize.toFixed(2))+"px -apple-system,BlinkMacSystemFont,'PingFang SC','HarmonyOS Sans SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif";
+  ctx.fillStyle = color||"#fff";
+  if (letterSpacing) {
+    // 逐字绘制实现 letter-spacing（SVG/HTML letter-spacing 等价）
+    var ls = letterSpacing*fontSize;
+    var cx = x;
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    for (var i=0;i<text.length;i++){
+      ctx.fillText(text[i], cx, baselineY);
+      cx += ctx.measureText(text[i]).width + ls;
+    }
+    return cx - ls;
+  }
+  ctx.textAlign = anchor||"start";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, baselineY);
+  ctx.restore();
+  return x + (anchor==="start" ? ctx.measureText(text).width : 0);
+}
+function measureW(ctx, text, fontSize, weight) {
+  ctx.save();
+  ctx.font = (weight||400)+" "+(fontSize.toFixed(2))+"px -apple-system,BlinkMacSystemFont,'PingFang SC','HarmonyOS Sans SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif";
+  var w = ctx.measureText(text).width;
+  ctx.restore();
+  return w;
+}
+function textH(ctx, text, fontSize, weight) {
+  ctx.save();
+  ctx.font = (weight||400)+" "+(fontSize.toFixed(2))+"px -apple-system,BlinkMacSystemFont,'PingFang SC','HarmonyOS Sans SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif";
+  var m = ctx.measureText(text);
+  ctx.restore();
+  return {a: m.actualBoundingBoxAscent||fontSize*0.8, d: m.actualBoundingBoxDescent||fontSize*0.2, w: m.width};
+}
+
+function renderCanvas(wPx, hPx, idx, data, opts) {
+  data = data || {};
+  var tpl = T[idx-1] || T[0];
+  opts = opts||{};
+  if (opts.bg) tpl = Object.assign({}, tpl, {bg: opts.bg});
+  if (opts.track) tpl = Object.assign({}, tpl, {track: opts.track});
+  if (opts.layout) tpl = Object.assign({}, tpl, {lay: opts.layout});
+  if (opts.text) tpl = Object.assign({}, tpl, {col: opts.text, u: opts.textU || opts.text});
+  var W = wPx, H = hPx;
+  var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  var ctx = cv.getContext("2d");
+  /* v8.1.2b: roundRect polyfill（老 WebView 缺失时用 arcTo 画正圆角 rx=ry） */
+  function rr(c, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w/2, h/2));
+    if (c.roundRect) { c.roundRect(x, y, w, h, r); return; }
+    c.moveTo(x+r, y);
+    c.arcTo(x+w, y, x+w, y+h, r);
+    c.arcTo(x+w, y+h, x, y+h, r);
+    c.arcTo(x, y+h, x, y, r);
+    c.arcTo(x, y, x+w, y, r);
+    c.closePath();
+  }
+  ctx.clearRect(0,0,W,H);
+  var noBg = (opts.transparentBg===true);
+  var bgCls = tpl.bg;
+  if (!noBg) paintBg(ctx, bgCls, W, H);
+
+  /* —— 布局参数（与 renderTo 完全同源） —— */
+  var aspect = opts.aspect || "1:1";
+  var s = W/1024;
+  var dbPx  = 0.092*1024*s;
+  var dhFactor = (tpl.lay==="poster")?0.30:(tpl.lay==="trip")?0.30:(tpl.lay==="grid")?0.28:(tpl.lay==="big")?0.26:((tpl.lay==="bar"||tpl.lay==="dual")?0.20:0.205);
+  var dhPx  = dhFactor*1024*s;
+  var gapPx = 0.030*1024*s;
+  var topd  = 0.034*1024*s;
+  var showBadge = (opts.showBadge!==false);
+  var showWm = (opts.watermark!==false);
+  var showData = (opts.dataLayer!==false);
+  var showGlow = (opts.glow!==false);
+  var showBand = (opts.show3dBand!==false);
+  var showTrack = (opts.showTrack!==false);
+  var trackWidth = opts.trackWidth||3;
+  var tcol = opts.trackColor;
+  var trackColor = tcol!=null ? ["orange","white","blackfine","grayfine","neon","heat","ice","phantom"][tcol%8] : tpl.track;
+  var topY = 0.115*1024*s;
+  var hasEle = !!(showBand && data.track && data.track.length>=2);
+  var eh = hasEle ? Math.max(0.15*H, 120*s) : 0;
+  var trH = Math.max(0.30*1024*s, H - topY - dbPx - dhPx - gapPx - eh);
+  var tr = {top: topY, left: 0.04*W, w: 0.92*W, h: trH};
+  var colCls = tpl.col, uCls = tpl.u;
+  var tColor = (tpl.col==="t-black") ? "#0a0a0c" : (tpl.col==="t-cream") ? "#f7f0e2"
+    : (tpl.col==="t-neonpink") ? "#ff3df0" : (tpl.col==="t-orange") ? "#fc4c02"
+    : (tpl.col==="t-sky") ? "#57c8ff" : "#ffffff";
+  var uColor = (tpl.u==="u-black") ? "rgba(10,10,12,.72)" : "rgba(255,255,255,.78)";
+
+  /* —— 数据 —— */
+  var d = {
+    distance: (data.distance!=null)?data.distance:DEMO.distance,
+    duration: data.duration||DEMO.duration,
+    avgSpeed: (data.avgSpeed!=null)?data.avgSpeed:DEMO.avgSpeed,
+    maxSpeed: (data.maxSpeed!=null)?data.maxSpeed:DEMO.maxSpeed,
+    climb: (data.climb!=null)?data.climb:DEMO.climb,
+    hr: (data.hr!=null)?data.hr:DEMO.hr,
+    power:(data.power!=null)?data.power:DEMO.power,
+    kcal:(data.kcal!=null)?data.kcal:DEMO.kcal,
+    cad:(data.cad!=null)?data.cad:DEMO.cad,
+    alt:(data.alt!=null)?data.alt:DEMO.alt,
+    title: data.title||DEMO.title,
+    photo: data.photo||null
+  };
+  var fmtD = (Math.round(d.distance*10)/10);
+  var fmtV = (Math.round(d.avgSpeed*10)/10);
+  var fmtMaxV = (Math.round((d.maxSpeed||0)*10)/10);
+  var fmtH = (Math.round(d.hr));
+  var fmtP = (Math.round(d.power));
+  var fmtCl = (Math.round(d.climb));
+  var fmtK = (Math.round(d.kcal||0));
+  var fmtCad = (Math.round(d.cad||0));
+  var fmtAlt = (Math.round(d.alt||0));
+  var itemIds = (data.items && data.items.length>=2) ? data.items : [1,3,2,5,6];
+
+  /* —— 照片类（双图拼接/单图）：画在轨迹【之前】，轨迹压照片（与 HTML 预览 DOM 顺序一致） —— */
+  if (tpl.photo===1 || tpl.photo===2) {
+    var ph;
+    if (tpl.photo===1) {
+      ph = {x: W*0.20, y: H*0.105, w: W*0.60, h: W*0.60/1.06, rot: -4};
+    } else {
+      ph = {x: W*0.035, y: H*0.065, w: W*0.93, h: W*0.93*9/16, rot: 0};
+    }
+    var rad = (tpl.photo===1) ? 0.10*1024*s : 0.08*1024*s;
+    ctx.save();
+    ctx.translate(ph.x+ph.w/2, ph.y+ph.h/2);
+    ctx.rotate(ph.rot*Math.PI/180);
+    ctx.translate(-(ph.x+ph.w/2), -(ph.y+ph.h/2));
+    if (d.photo) {
+      /* 柔和阴影（多层递减羽化，模拟预览 box-shadow:0 12px 44px rgba(0,0,0,.40)） */
+      ctx.save();
+      var shLayers = [[7,.05],[5,.08],[3,.12],[1.5,.18]];
+      for (var si=0; si<shLayers.length; si++){
+        var off=shLayers[si][0], al=shLayers[si][1];
+        ctx.fillStyle = "rgba(0,0,0,"+al+")";
+        ctx.beginPath(); rr(ctx, ph.x-off, ph.y-off, ph.w+off*2, ph.h+off*2, rad+off); ctx.fill();
+      }
+      ctx.restore();
+      ctx.save();
+      /* 圆角裁剪（与预览 CSS border-radius 一致；roundRect 缺失时走 arcTo polyfill） */
+      ctx.beginPath(); rr(ctx, ph.x, ph.y, ph.w, ph.h, rad); ctx.clip();
+      var im = (window.__photoCache && window.__photoCache[d.photo]) || new Image();
+      if (!im.complete && !im.src) im.src = d.photo;
+      if (im.complete && im.naturalWidth>0) {
+        /* object-fit:cover：按源图比例裁剪适配目标框，杜绝拉伸变形 */
+        var iw=im.naturalWidth, ih=im.naturalHeight;
+        var sc = Math.max(ph.w/iw, ph.h/ih);
+        var cw = ph.w/sc, ch = ph.h/sc;
+        ctx.drawImage(im, (iw-cw)/2, (ih-ch)/2, cw, ch, ph.x, ph.y, ph.w, ph.h);
+      } else { ctx.fillStyle = "#2a5cb4"; ctx.fillRect(ph.x,ph.y,ph.w,ph.h); }
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath(); rr(ctx, ph.x, ph.y, ph.w, ph.h, rad); ctx.strokeStyle="rgba(255,255,255,.25)"; ctx.lineWidth=1; ctx.stroke(); ctx.restore();
+    } else {
+      ctx.fillStyle = "#2a5cb4";
+      ctx.beginPath(); rr(ctx, ph.x, ph.y, ph.w, ph.h, rad); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      ctx.font = "400 "+(30.7*s).toFixed(2)+"px sans-serif";
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText("照片", ph.x+ph.w/2, ph.y+ph.h/2);
+    }
+    ctx.restore();
+  }
+
+  /* —— 轨迹（canvas path；2D 变换：rotate/scale/俯仰 y 压缩/平移，与预览 transform 同源） —— */
+  if (showTrack) {
+    var pts = data.track && data.track.length>=2 ? data.track : [[0.06,0.62],[0.20,0.40],[0.34,0.58],[0.48,0.34],[0.62,0.56],[0.76,0.38],[0.94,0.50]];
+    var isReal = data.track && data.track.length>=2;
+    ctx.save();
+    /* transform：translate(dx,dy) rotateZ(rot) rotateX(tilt) scale(sc)，原点=轨迹中心（与 HTML transform-origin 一致） */
+    var cxm = tr.left + tr.w/2 + (_tx||0), cym = tr.top + tr.h/2 + (_ty||0);
+    ctx.translate(cxm, cym);
+    ctx.rotate((_tr||0)*Math.PI/180);
+    var tiltRad = ((_tt!=null?_tt:0))*Math.PI/180;
+    ctx.scale((_ts||1), (_ts||1)*Math.cos(tiltRad));
+    /* v8.3.2 修复导出偏移：轨迹坐标 0..trackSide 中心化到原点（此前误用 tr 中心，轨迹被画到右下） */
+    ctx.translate(-Math.min(tr.w, tr.h)/2, -Math.min(tr.w, tr.h)/2);
+    var strokeC = "#FC4C02";
+    if (trackColor==="white") strokeC="#FFFFFF";
+    else if (trackColor==="blackfine") strokeC="#0a0a0c";
+    else if (trackColor==="grayfine") strokeC="#5a636c";
+    else if (trackColor==="neon") strokeC="#00E5FF";
+    else if (trackColor==="heat") strokeC="#ff2d55";
+    else if (trackColor==="ice") strokeC="#78DCFF";
+    else if (trackColor==="phantom") strokeC="#8fb4ff";
+    var swRatios = [0.006, 0.008, 0.010, 0.013, 0.017, 0.022];
+    var twIdx = (trackWidth>=1&&trackWidth<=6) ? trackWidth-1 : 5;
+    var sw = Math.max(1.4, W*swRatios[twIdx]);
+    /* v8.3.1: 与预览 makeTrack 同源——单口径归一化（HTML 一处完成）+ 3D 投影 */
+    var trackSide = Math.min(tr.w, tr.h);
+    var trackPad = Math.max(trackSide*0.035, 4);
+    var normPts = [];
+    var _raw = [];
+    for (var i=0;i<pts.length;i++){
+      _raw.push({ x: pts[i][ isReal ? "x" : 0 ], y: pts[i][ isReal ? "y" : 1 ], ele: pts[i].ele!=null ? pts[i].ele : 0 });
+    }
+    normPts = normalizeTrack(_raw, trackSide, trackSide, trackPad);
+    var _eRng = trackEleRange(normPts);
+    for (var i=0;i<normPts.length;i++){ normPts[i].znorm = (normPts[i].z - _eRng[0]) / (_eRng[1]-_eRng[0]); }
+    var _mode3d = !!window._tr3d;
+    var _rx = (window._tr3dRx||0), _ry = (window._tr3dRy||0);
+    var _cx = [], _cy = [];
+    for (var i=0;i<normPts.length;i++){
+      _cx.push(normPts[i].x); _cy.push(normPts[i].y);
+    }
+    if (_mode3d) {
+      /* v8.3.2 FINAL: 复刻 Outbase（Canvas 版，与预览 SVG 同源）——橙线海拔抬升 + 灰渐变垂直投影墙，无发光/无丝带/无平面轨迹线 */
+      normPts = project3D(normPts, trackSide, _rx, _ry);
+      var _mc = (trackColor==="orange")?"#FC4C02":(trackColor==="white")?"#FFFFFF":(trackColor==="blackfine")?"#0a0a0c":(trackColor==="grayfine")?"#5a636c":(trackColor==="neon")?"#00E5FF":(trackColor==="heat")?"#ff2d55":(trackColor==="ice")?"#78DCFF":(trackColor==="phantom")?"#8fb4ff":"#FC4C02";
+      /* 1) 灰渐变垂直投影带：屏幕竖直投影（任何角度都竖向），对齐 Outbase */
+      ctx.save();
+      function bandWall2(arr, w2){
+        var out=[];
+        for (var i=0;i<arr.length;i++){
+          var i0=Math.max(0,i-1), i1=Math.min(arr.length-1,i+1);
+          var dx=arr[i1].x-arr[i0].x, dy=arr[i1].y-arr[i0].y;
+          var ln=Math.sqrt(dx*dx+dy*dy)||1;
+          var nx=-dy/ln, ny=dx/ln;
+          out.push({ ax: arr[i].x+nx*w2, ay: arr[i].y+ny*w2, bx: arr[i].x-nx*w2, by: arr[i].y-ny*w2 });
+        }
+        return out;
+      }
+      var _wminY=1e9, _wmaxY=-1e9;
+      var _mY3=-1e9;
+      for (var i=0;i<normPts.length;i++){ if (normPts[i].y<_wminY)_wminY=normPts[i].y; if (normPts[i].y>_mY3)_mY3=normPts[i].y; }
+      var _wy0 = trackSide*0.97;
+      _wmaxY = _wy0;
+      var _wgrad = ctx.createLinearGradient(0, _wminY, 0, _wmaxY);
+      _wgrad.addColorStop(0, "rgba(124,135,148,.32)");
+      _wgrad.addColorStop(1, "rgba(124,135,148,.04)");
+      var wallW2 = Math.max(sw*2.6, trackSide*0.016);
+      var baseY2 = trackSide*0.97;
+      var wt2 = bandWall2(normPts, wallW2);
+      var mLx2=1e9, mRx2=-1e9;
+      for (var i=0;i<wt2.length;i++){ if(wt2[i].ax<mLx2)mLx2=wt2[i].ax; if(wt2[i].ax>mRx2)mRx2=wt2[i].ax; if(wt2[i].bx<mLx2)mLx2=wt2[i].bx; if(wt2[i].bx>mRx2)mRx2=wt2[i].bx; }
+      ctx.beginPath();
+      ctx.moveTo(wt2[0].ax, wt2[0].ay);
+      for (var i=1;i<wt2.length;i++) ctx.lineTo(wt2[i].ax, wt2[i].ay);
+      ctx.lineTo(mRx2, baseY2);
+      ctx.lineTo(mLx2, baseY2);
+      ctx.closePath();
+      ctx.fillStyle = _wgrad;
+      ctx.fill();
+      ctx.restore();
+      /* 2) 主线：细橙线（对齐 Outbase，无渐变/无高光/无发光） */
+      ctx.save();
+      ctx.beginPath();
+      for (var i=0;i<normPts.length;i++){ if (i===0) ctx.moveTo(normPts[i].x, normPts[i].y); else ctx.lineTo(normPts[i].x, normPts[i].y); }
+      ctx.strokeStyle = _mc; ctx.lineWidth = sw*1.2; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.globalAlpha = 1;
+      ctx.stroke();
+      ctx.restore();
+      /* 7) 起终点 */
+      var dotR3 = Math.max(2.2, trackSide*0.018);
+      ctx.beginPath();
+      ctx.arc(normPts[0].x, normPts[0].y, dotR3*0.8, 0, Math.PI*2);
+      ctx.fillStyle = "#22C55E"; ctx.fill();
+      ctx.lineWidth = dotR3*0.45; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(normPts[normPts.length-1].x, normPts[normPts.length-1].y, dotR3*0.8, 0, Math.PI*2);
+      ctx.fillStyle = "#EF4444"; ctx.fill();
+      ctx.lineWidth = dotR3*0.45; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke();
+    } else {
+      ctx.beginPath();
+      if (pts.length >= 3) {
+        for (var i=0;i<_cx.length-1;i++){
+          var q0x = _cx[Math.max(0,i-1)], q0y = _cy[Math.max(0,i-1)];
+          var q1x = _cx[i], q1y = _cy[i];
+          var q2x = _cx[i+1], q2y = _cy[i+1];
+          var q3x = _cx[Math.min(_cx.length-1,i+2)], q3y = _cy[Math.min(_cy.length-1,i+2)];
+          var t1x = q1x + (q2x - q0x)/6, t1y = q1y + (q2y - q0y)/6;
+          var t2x = q2x - (q3x - q1x)/6, t2y = q2y - (q3y - q1y)/6;
+          if (i===0) ctx.moveTo(q1x, q1y);
+          ctx.bezierCurveTo(t1x, t1y, t2x, t2y, q2x, q2y);
+        }
+      } else {
+        for (var i=0;i<_cx.length;i++){
+          if (i===0) ctx.moveTo(_cx[i], _cy[i]); else ctx.lineTo(_cx[i], _cy[i]);
+        }
+      }
+      if (trackColor==="orange") {
+        /* v8.5.8: 渐变必须在当前transform后的用户空间创建——归一化坐标0..trackSide，
+           此前用屏幕坐标tr.left+tr.w*p.x在transform后计算，被矩阵二次变换导致渐变退化纯色 */
+        var lg = ctx.createLinearGradient(0, 0, trackSide, 0);
+        lg.addColorStop(0,"#FC4C02"); lg.addColorStop(1,"#2B8CFF");
+      }
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      if (showGlow && trackColor!=="blackfine" && trackColor!=="grayfine") {
+        ctx.save();
+        ctx.globalAlpha = 0.42;
+        ctx.strokeStyle = "#FC4C02";
+        ctx.lineWidth = sw*1.5;
+        ctx.stroke();
+        ctx.globalAlpha = 0.16;
+        ctx.lineWidth = sw*2.6;
+        ctx.stroke();
+        ctx.globalAlpha = 0.06;
+        ctx.lineWidth = sw*4.2;
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = lg || strokeC;
+      ctx.lineWidth = sw;
+      ctx.stroke();
+      var dotR = Math.max(2.2, trackSide*0.018);
+      ctx.beginPath();
+      ctx.arc(_cx[0], _cy[0], dotR*0.8, 0, Math.PI*2);
+      ctx.fillStyle = "#22C55E"; ctx.fill();
+      ctx.lineWidth = dotR*0.45; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(_cx[_cx.length-1], _cy[_cx.length-1], dotR*0.8, 0, Math.PI*2);
+      ctx.fillStyle = "#EF4444"; ctx.fill();
+      ctx.lineWidth = dotR*0.45; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* —— 二维海拔剖面（与 makeElevProfile 同源公式） —— */
+  if (hasEle) {
+    var epts = data.track;
+    var eles = epts.map(function(p){ return (p.ele!=null && p.ele!==undefined) ? p.ele : p[1]; });
+    var eMin = Math.min.apply(null, eles), eMax = Math.max.apply(null, eles);
+    var eR = (eMax-eMin)||1;
+    var elc = (trackColor==="ice")?"#78DCFF":(trackColor==="neon")?"#00E5FF":(trackColor==="white")?"#FFFFFF":
+             (trackColor==="blackfine")?"#9aa3ad":(trackColor==="grayfine")?"#aab3bd":(trackColor==="heat")?"#ff2d55":
+             (trackColor==="phantom")?"#8fb4ff":"#FC4C02";
+    var ex = 0.04*W, ew = 0.92*W, et = topY+trH+gapPx*0.55, eh2 = eh;
+    var topPad = eh2*0.30, basePad = eh2*0.28;
+    var usable = eh2 - topPad - basePad;
+    var lab = Math.max(13, ew*0.024);
+    ctx.save();
+    ctx.beginPath();
+    var px0=0, py0=0;
+    for (var ei=0;ei<epts.length;ei++){
+      var px = ex + ew*(ei/(epts.length-1));
+      var py = et + topPad + (1-(eles[ei]-eMin)/eR)*usable;
+      if (ei===0){ px0=px; py0=py; ctx.moveTo(px,py); } else ctx.lineTo(px,py);
+    }
+    /* v8.3.1: 海拔剖面纯平面化——去掉 3D 厚度底座/前壁斜切投影（用户要求：剖面平面铺垫，不要投影） */
+    ctx.strokeStyle = elc; ctx.lineWidth = Math.max(1.5, ew*0.0042)*1.7;
+    ctx.lineCap="round"; ctx.lineJoin="round"; ctx.globalAlpha=0.95;
+    ctx.stroke();
+    /* 填充 */
+    ctx.lineTo(px0, et+topPad+usable); ctx.lineTo(px0, py0); ctx.closePath();
+    var fg = ctx.createLinearGradient(0, et, 0, et+eh2);
+    fg.addColorStop(0, elc+"55"); fg.addColorStop(1, elc+"05");
+    ctx.fillStyle = fg; ctx.fill();
+    /* 参考线 */
+    ctx.globalAlpha = 0.55; ctx.setLineDash([lab*0.5, lab*0.4]);
+    ctx.strokeStyle = elc; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ex, et+topPad); ctx.lineTo(ex+ew, et+topPad); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex, et+topPad+usable); ctx.lineTo(ex+ew, et+topPad+usable); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    var altMax = (data.altMax!=null)?data.altMax:0, altMin = (data.altMin!=null)?data.altMin:0;
+    var climbV = (data.climb!=null)?data.climb:0;
+    var _fw = "800";
+    ctx.font = _fw+" "+(lab.toFixed(2))+"px sans-serif";
+    ctx.textBaseline = "alphabetic";
+    ctx.lineWidth = lab*0.16; ctx.strokeStyle = "rgba(0,0,0,.6)";
+    ctx.strokeText("▲ "+altMax+"m", ex+lab*0.18, et+topPad-lab*0.42);
+    ctx.fillStyle = elc; ctx.fillText("▲ "+altMax+"m", ex+lab*0.18, et+topPad-lab*0.42);
+    ctx.strokeText("▼ "+altMin+"m", ex+lab*0.18, et+topPad+usable+lab*0.8);
+    ctx.fillText("▼ "+altMin+"m", ex+lab*0.18, et+topPad+usable+lab*0.8);
+    ctx.font = "700 "+(lab*0.92).toFixed(2)+"px sans-serif";
+    var ct = "累计爬升 "+climbV+"m";
+    var cw = measureW(ctx, ct, lab*0.92, 700);
+    ctx.strokeText(ct, ex+ew-lab*0.18-cw, et+topPad-lab*0.42);
+    ctx.fillText(ct, ex+ew-lab*0.18-cw, et+topPad-lab*0.42);
+    ctx.restore();
+  }
+
+  /* —— 水印：左上分类·模板名 + 右上页码 —— */
+  if (showWm) {
+    ctx.save();
+    ctx.textAlign="start"; ctx.textBaseline="alphabetic";
+    var catText = tpl.c+"·"+tpl.n;
+    var catF = 32.8*s;
+    drawText(ctx, catText, W*0.034, topd + textH(ctx,catText,catF,500).a, catF, 500, tColor);
+    ctx.textAlign="end";
+    var idxF = 30.7*s;
+    drawText(ctx, tpl.idx+"/24", W*0.966, topd + textH(ctx,tpl.idx+"/24",idxF,400).a, idxF, 400, tColor, "end");
+    ctx.restore();
+  }
+
+  /* —— 数据布局（与 renderTo 各 lay 分支同源） —— */
+  if (showData) {
+    ctx.save();
+    if (tpl.photo===1) {
+      /* photodata：左中两行大字 */
+      var p2 = itemIds.slice(0,2);
+      var py0 = H*0.36;
+      for (var pi=0; pi<p2.length; pi++){
+        var it2 = fmtVal(p2[pi], d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt);
+        var vf2 = (pi===0?97.280:76.800)*s, uf2 = (pi===0?36.864:32.768)*s;
+        var bl = py0 + textH(ctx, it2.v, vf2, 800).a;
+        drawText(ctx, it2.v, W*0.054, bl, vf2, 800, tColor);
+        if (it2.u) drawText(ctx, it2.u, W*0.054 + measureW(ctx,it2.v,vf2,800) + 0.026*W, bl, uf2, 400, uColor);
+        py0 += textH(ctx, it2.v, vf2, 800).a + textH(ctx, it2.v, vf2, 800).d + 0.026*W*0.35;
+      }
+    } else if (tpl.lay==="trip") {
+      var rows = itemIds.slice(0,3).map(function(id){ return fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt); });
+      var vf = 0.085*1024*s, uf = 0.032*1024*s;
+      var rowH = vf*1.04;
+      var base = H - dbPx;
+      for (var ri=rows.length-1; ri>=0; ri--){
+        var it = rows[ri];
+        var th = textH(ctx, it.v, vf, 800);
+        var bl = base - th.d;
+        drawText(ctx, it.v, W*0.054, bl, vf, 800, tColor);
+        if (it.u) drawText(ctx, it.u, W*0.054 + measureW(ctx,it.v,vf,800) + 0.026*W, bl, uf, 400, uColor);
+        base -= rowH;
+      }
+    } else if (tpl.lay==="corner") {
+      var rows2 = itemIds.slice(0,3).map(function(id){ return fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt); });
+      var vf2 = 57.344*s, uf2 = 28.672*s;
+      var rowH2 = vf2*1.12;
+      var top0 = H*0.135 + textH(ctx, rows2[0].v, vf2, 800).a;
+      for (var ci=0; ci<rows2.length; ci++){
+        var itc = rows2[ci];
+        drawText(ctx, itc.v, W*0.046, top0, vf2, 800, tColor);
+        if (itc.u) drawText(ctx, itc.u, W*0.046 + measureW(ctx,itc.v,vf2,800) + 0.02*W, top0, uf2, 400, uColor);
+        top0 += rowH2;
+      }
+    } else if (tpl.lay==="grid") {
+      var cells = itemIds.slice(0,6).map(function(id){ return fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt); });
+      var gv = 67.584*s, gu = 30.7*s;
+      var gleft = 0.06*W, gright = 0.94*W, gcolW = (gright-gleft)/3;
+      /* v8.3.4: 对齐 DOM .grid 四行布局（值行1→标签行1→值行2→标签行2）。
+         此前 Canvas 只画两行：第二行把 gi>=3 的值与 gi<3 的标签画在同一 baseline → 值/标签重叠 */
+      var guH = textH(ctx, "0", gu, 400);
+      var gvH = textH(ctx, "0", gv, 800);
+      var rowGap = 0.030*H;
+      var unitBase2 = H - dbPx - guH.d;                                   // 行4 标签
+      var valBase2  = unitBase2 - guH.a - guH.d - rowGap - gvH.d;         // 行3 值
+      var unitBase1 = valBase2  - gvH.a - gvH.d - rowGap - guH.d;         // 行2 标签
+      var valBase1  = unitBase1 - guH.a - guH.d - rowGap - gvH.d;         // 行1 值
+      for (var gi=0; gi<cells.length; gi++){
+        var gx = gleft + gcolW*(gi%3) + gcolW/2;
+        var rowIdx = Math.floor(gi/3);
+        var itg = cells[gi];
+        ctx.textAlign="center";
+        drawText(ctx, itg.v, gx, rowIdx===0 ? valBase1 : valBase2, gv, 800, tColor, "center");
+        var lbl = luId(itemIds[gi]);
+        ctx.textAlign="center";
+        drawText(ctx, lbl, gx, rowIdx===0 ? unitBase1 : unitBase2, gu, 400, uColor, "center");
+      }
+    } else if (tpl.lay==="big") {
+      var it0 = fmtVal(itemIds[0], d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt);
+      var bv = 153.6*s, bu = 32.8*s;
+      var bvh = textH(ctx, it0.v, bv, 900);
+      var buH = textH(ctx, "0", bu, 400);
+      /* v8.3.4: 对齐 DOM .big（bv 值在上、bu 标签在下，margin-top:.8%）。此前 Canvas 值贴底、标签在值上方（顺序颠倒） */
+      var lblBaseBig = H - dbPx - buH.d;
+      var gapBig = 0.1*(bv+bu) + 0.008*W; /* v8.3.4: 对齐 DOM .big .bu margin-top:.8% + 行高溢出——值在上、标签在下 */
+      var bl = lblBaseBig - buH.a - buH.d - gapBig - bvh.d;
+      drawText(ctx, it0.v, W*0.054, bl, bv, 900, tColor);
+      var lblB = luId(itemIds[0]).toUpperCase() + " · " + d.title;
+      drawText(ctx, lblB, W*0.054, lblBaseBig, bu, 400, uColor);
+    } else if (tpl.lay==="dual") {
+      var d3 = itemIds.slice(0,3).map(function(id){ return fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt); });
+      var dv = 76.8*s, du = 31.7*s;
+      var wTotal = 0.892*W;
+      var ws = d3.map(function(it){ return Math.max(measureW(ctx,it.v,dv,800), measureW(ctx,luId(itemIds[d3.indexOf(it)]),du,400)); });
+      var gapD = Math.max(0, (wTotal - ws[0]-ws[1]-ws[2])/2);
+      var x0 = W*0.054;
+      var duH = textH(ctx, "0", du, 400);
+      var lblBaseD = H - dbPx - duH.d;
+      var gapD2 = 0.1*(dv+du) + 0.006*W; /* v8.3.4: 对齐 DOM .dual .du margin-top:.6% + 行高溢出——值在上、标签在下 */
+      for (var di=0; di<3; di++){
+        var colC = x0 + ws[di]/2;
+        var itd = d3[di];
+        var thd = textH(ctx, itd.v, dv, 800);
+        ctx.textAlign="center";
+        drawText(ctx, itd.v, colC, lblBaseD - duH.a - duH.d - gapD2 - thd.d, dv, 800, tColor, "center");
+        ctx.textAlign="center";
+        drawText(ctx, luId(itemIds[di]), colC, lblBaseD, du, 400, uColor, "center");
+        x0 += ws[di] + gapD;
+      }
+    } else if (tpl.lay==="bar") {
+      var b4 = itemIds.slice(0,4).map(function(id){ return fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt); });
+      var bv2 = 63.488*s, bu2 = 31.7*s;
+      var innerW = 0.90*W;
+      var ws4 = b4.map(function(it){ return Math.max(measureW(ctx,it.v,bv2,800), measureW(ctx,luId(itemIds[b4.indexOf(it)]),bu2,400)); });
+      var gapB = Math.max(0, (innerW - ws4[0]-ws4[1]-ws4[2]-ws4[3])/4);
+      var xb = W*0.05 + gapB;
+      var bu2H = textH(ctx, "0", bu2, 400);
+      var lblBaseB = H - dbPx - bu2H.d;
+      var gapB2 = 0.1*(bv2+bu2) + 0.006*W; /* v8.3.4: 对齐 DOM .bar .bu2 margin-top:.6% + 行高溢出——值在上、标签在下 */
+      for (var bi=0; bi<4; bi++){
+        var colCb = xb + ws4[bi]/2;
+        var itb = b4[bi];
+        var thb = textH(ctx, itb.v, bv2, 800);
+        ctx.textAlign="center";
+        drawText(ctx, itb.v, colCb, lblBaseB - bu2H.a - bu2H.d - gapB2 - thb.d, bv2, 800, tColor, "center");
+        ctx.textAlign="center";
+        drawText(ctx, luId(itemIds[bi]), colCb, lblBaseB, bu2, 400, uColor, "center");
+        xb += ws4[bi] + gapB;
+      }
+    } else if (tpl.lay==="poster") {
+      var p0 = fmtVal(itemIds[0], d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt);
+      var pf = itemIds.slice(1,4).map(function(id){ return fmtVal(id, d, fmtD, fmtV, fmtMaxV, fmtH, fmtP, fmtCl, fmtK, fmtCad, fmtAlt); });
+      var pl = (tpl.n==="海报大字"||tpl.n==="年度总结") ? 174.08*s : 133.12*s;
+      var pmF = 40.96*s;
+      var pvh = textH(ctx, p0.v, pl, 900);
+      var pv = 55.3*s, pu = 29.7*s;
+      /* v8.2.8: 顺序与预览 DOM（pl→pm→pfoot，从上到下）完全同源——
+         pfoot 贴底（bottom:--db），pm 居中，pl 大字在顶。
+         此前 canvas 把 pm 画在 pl 上方（plBase 先算 pl 再上推 pm），
+         导致导出数据区内部顺序/位置与预览不一致（"导出偏移"根因） */
+      /* v8.3.4: 补 DOM 同源的 subText（海报大字=d.title 标题行，如"骑行·01-20"）——
+         Canvas 此前漏渲染该行，导致导出缺标题 + 数据区整体上移、值/标签贴死（"字体缺失/数据单位重合/位置错位"同根因） */
+      var pfootTop = H - dbPx - textH(ctx,"0",pu,400).d - textH(ctx,"0",pv,700).a - textH(ctx,"0",pv,700).d - 0.055*pl;
+      var pmText = tpl.n==="海报大字" ? posterTagId(itemIds[0]) : (tpl.n==="年度总结" ? "年度总结" : d.title);
+      var subText = tpl.n==="海报大字" ? (d.title||"") : "";
+      var subF = 34.82*s;
+      var plBase;
+      if (subText) {
+        /* DOM 顺序：pl → pm(1%) → subText(0.6%) → pfoot（从上到下）
+           Canvas 底部锚定：subText 紧贴 pfoot，pm 在其上，pl 在顶 */
+        var subBase = pfootTop - textH(ctx,"0",subF,400).d - 0.006*pl - textH(ctx,"0",subF,400).a;
+        drawText(ctx, subText, W*0.054, subBase, subF, 400, uColor, "start", 0.18);
+        var pmBase = subBase - textH(ctx,"0",pmF,600).a - textH(ctx,"0",pmF,600).d - 0.01*pl - textH(ctx,"0",pmF,600).a;
+        drawText(ctx, pmText, W*0.054, pmBase, pmF, 600, uColor, "start", 0.2);
+        plBase = pmBase - pvh.a - pvh.d - 0.02*pl;
+      } else if (pmText) {
+        var pmBase = pfootTop - textH(ctx,"0",pmF,600).a - textH(ctx,"0",pmF,600).d - 0.01*pl - textH(ctx,"0",pmF,600).a;
+        drawText(ctx, pmText, W*0.054, pmBase, pmF, 600, uColor, "start", 0.2);
+        plBase = pmBase - pvh.a - pvh.d - 0.02*pl;
+      } else {
+        plBase = pfootTop - pvh.a - pvh.d - 0.02*pl;
+      }
+      drawText(ctx, p0.v, W*0.054, plBase, pl, 900, tColor);
+      if (p0.u) drawText(ctx, p0.u, W*0.054 + measureW(ctx,p0.v,pl,900) + pl*0.12, plBase, pl*0.32, 600, tColor);
+      /* pfoot 3 项 space-between；v8.3.4: 值/标签间隙对齐 DOM（.pu margin-top:.4% + 行高上下各0.1em溢出）——
+         此前仅 0.004*W，海报大字导出值/标签被压在一起（"单位和数字之间压缩"） */
+      var puGap = 0.1*(pv+pu) + 0.004*W;
+      var wsP = pf.map(function(it){ return Math.max(measureW(ctx,it.v,pv,700), measureW(ctx,luId(itemIds[pf.indexOf(it)+1]),pu,400)); });
+      var wTotalP = 0.892*W;
+      var gapP = Math.max(0, (wTotalP - wsP[0]-wsP[1]-wsP[2])/2);
+      var xp = W*0.054;
+      for (var ppi=0; ppi<pf.length; ppi++){
+        var itp = pf[ppi];
+        ctx.textAlign="center";
+        drawText(ctx, itp.v, xp + wsP[ppi]/2, pfootTop + textH(ctx,itp.v,pv,700).a, pv, 700, tColor, "center");
+        ctx.textAlign="center";
+        drawText(ctx, luId(itemIds[ppi+1]), xp + wsP[ppi]/2, pfootTop + textH(ctx,itp.v,pv,700).a + textH(ctx,itp.v,pv,700).d + puGap + textH(ctx,"0",pu,400).a, pu, 400, uColor, "center");
+        xp += wsP[ppi] + gapP;
+      }
+    }
+    ctx.restore();
+  }
+
+  /* —— 角标（右下品牌） —— */
+  if (showBadge) {
+    ctx.save();
+    var brand = opts.brand||0;
+    var wmF = 26.6*s;
+    var wmBase = H - dbPx*0.32;
+    var wmRight = W*0.978;
+    if (brand===17 && opts.badgeUrl) {
+      var himg = new Image(); himg.src = opts.badgeUrl;
+      var hh = 32*s, hw = hh;
+      if (himg.complete && himg.naturalWidth>0) {
+        hw = hh * himg.naturalWidth/himg.naturalHeight;
+        if (hw > 220*s) { hw = 220*s; hh = hw * himg.naturalHeight/himg.naturalWidth; }
+        ctx.drawImage(himg, wmRight-hw, wmBase-hh, hw, hh);
+      } else {
+        drawText(ctx, "logo", wmRight-measureW(ctx,"logo",wmF,400), wmBase, wmF, 400, tColor);
+      }
+    } else if (brand!==0 && brand<BRANDS.length && BRANDS[brand] && BRANDS[brand].g) {
+      var bs = brandSvg(brand);
+      if (bs) {
+        var im2 = new Image();
+        im2.src = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">'+BRANDS[brand].g+'</svg>');
+        var ih = wmF*1.08, iw = ih;
+        if (im2.complete && im2.naturalWidth>0) { iw = ih * im2.naturalWidth/im2.naturalHeight; }
+        var label = BRANDS[brand].n;
+        var labelW = measureW(ctx, label, wmF, 600);
+        var totalW = iw + wmF*0.34 + labelW;
+        var xStart = wmRight - totalW;
+        ctx.drawImage(im2, xStart, wmBase-ih, iw, ih);
+        drawText(ctx, label, xStart+iw+wmF*0.34, wmBase, wmF, 600, tColor);
+      } else {
+        drawText(ctx, BRANDS[brand].n, wmRight-measureW(ctx,BRANDS[brand].n,wmF,600), wmBase, wmF, 600, tColor);
+      }
+    } else {
+      var txt = "鸡翅幸哲迈进OB";
+      var wmCls = (tpl.bg==="bg-white"||tpl.bg==="bg-cream"||tpl.bg==="bg-warm"||tpl.bg==="bg-lightmap"||tpl.bg==="bg-grayline"||tpl.bg==="bg-contour"||tpl.bg==="bg-checker"||tpl.bg==="bg-photo");
+      drawText(ctx, txt, wmRight-measureW(ctx,txt,wmF,300), wmBase, wmF, 300, wmCls?"rgba(0,0,0,.75)":"rgba(255,255,255,.82)");
+    }
+    ctx.restore();
+  }
+  return cv;
+}
+
+/* ===== JS 端 PNG 导出（v8.1.2 终极方案：完全脱离 WebView 截图管线） =====
+ * 原理：离屏容器固定 wPx×hPx 渲染（与预览共用 renderTo 同源）→ SVG+foreignObject 序列化（含 <style>）
+ *       → Image 加载 → canvas.drawImage → toDataURL('image/png')。
+ * 尺寸 100% 可控、坐标 100% 精确、透明背景保留；不依赖 capturePicture/render/draw 任何截图 API。
+ * 完成后：window.__expReady="1" / __expChunks=base64 分片(64KB) / __expTotal=总长 / __expErr="";
+ * 若注入 OBExport 接口则直接分片推送。 */
+window.__photoCache = {};
+function _exp0(wPx, hPx, idx, data, opts) {
+  try {
+    var cv = renderCanvas(wPx, hPx, idx, data, opts);
+    var b64 = cv.toDataURL("image/png").split(",")[1];
+    var CS = 32768, chunks = [];
+    for (var i=0;i<b64.length;i+=CS) chunks.push(b64.substring(i,i+CS));
+    window.__expChunks = chunks; window.__expTotal = b64.length;
+    window.__expReady = "1"; window.__expErr = "";
+    if (window.OBExport) {
+      for (var j=0;j<chunks.length;j++) window.OBExport.onChunk(j, chunks[j]);
+      window.OBExport.onDone(b64.length);
+    }
+  } catch(e) { window.__expErr = String(e); window.__expReady = "1"; }
+}
+function exportPng(wPx, hPx, idx, data, opts) {
+  var ph = (data && data.photo);
+  if (ph && !window.__photoCache[ph]) {
+    var im = new Image();
+    window.__photoCache[ph] = im;
+    im.onload = function(){ _exp0(wPx, hPx, idx, data, opts); };
+    im.onerror = function(){ _exp0(wPx, hPx, idx, data, opts); };
+    im.src = ph;
+    return;
+  }
+  _exp0(wPx, hPx, idx, data, opts);
+}
+
+/* v8.3.1: 3D 轨迹交互——拖拽旋转（rx=俯仰 ry=左右）+ 模式切换 + 复位 */
+function set3DRotate(rx, ry) {
+  if (rx!=null) window._tr3dRx = rx;
+  if (ry!=null) window._tr3dRy = ry;
+  var card = document.getElementById("card");
+  if (card) { var cur = window.__curRender; if (cur) render(cur[0], cur[1], cur[2]); }
+}
+function set3DMode(on, rx, ry) {
+  window._tr3d = !!on;
+  if (rx!=null) window._tr3dRx = rx;
+  if (ry!=null) window._tr3dRy = ry;
+  var card = document.getElementById("card");
+  if (card) { var cur = window.__curRender; if (cur) render(cur[0], cur[1], cur[2]); }
+}
+window.stickerBridge = { render: render, renderTo: renderTo, exportPng: exportPng, setTransform: setTransform, getTransform: getTransform, getCardSize: getCardSize, set3DRotate: set3DRotate, set3DMode: set3DMode, templates: T, cats: CATS, catOf: CAT_OF };
+</script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数据中心</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--card:#161b22;--card2:#1c2128;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;--accent:#FC4C02;--blue:#2B8CFF;--green:#16A34A;--red:#E04A4A}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:13px;line-height:1.5;-webkit-tap-highlight-color:transparent;padding-bottom:30px}
+.page{display:none;max-width:480px;margin:0 auto;padding:0 12px}
+.page.active{display:block}
+.navbar{position:sticky;top:0;background:var(--bg);z-index:10;max-width:480px;margin:0 auto;padding:12px 12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.navbar h1{font-size:16px;font-weight:700;flex:1;text-align:center}
+.view-tabs{display:flex;gap:6px;padding:10px 0}
+.vtab{flex:1;text-align:center;padding:6px 0;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer}
+.vtab.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.type-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+.type-chip{flex-shrink:0;padding:5px 12px;border-radius:14px;background:var(--card);border:1px solid var(--border);color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap}
+.type-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+.stat-box .lb{color:var(--text2);font-size:11px}
+.stat-box .vl{font-size:21px;font-weight:700;line-height:1.3}
+.stat-box .vl small{font-size:11px;color:var(--text2);font-weight:400}
+.stat-box .dt{font-size:10px;color:var(--text3);margin-top:2px}
+.st{font-size:13px;font-weight:600;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.st .more{font-size:11px;color:var(--accent);cursor:pointer;font-weight:400}
+.hm-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;overflow-x:auto}
+.hm-grid{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:2px;width:max-content}
+.hm-cell{width:10px;height:10px;border-radius:2px;background:#21262d;cursor:pointer}
+.hm-legend{display:flex;align-items:center;gap:3px;justify-content:flex-end;margin-top:6px;font-size:10px;color:var(--text3)}
+.hm-legend .hm-cell{width:9px;height:9px;cursor:default}
+.mcard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.mcard .mr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.mcard .ml{font-size:12px;font-weight:600}
+.mcard .mv{font-size:11px;color:var(--text2)}
+.pbar{height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:var(--accent);border-radius:3px}
+.dbars{display:flex;align-items:flex-end;gap:2px;height:60px;margin-top:8px}
+.dbar{flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;opacity:.8;cursor:pointer}
+.dlabs{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:3px}
+.pb-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.pb-row .pl .plb{font-size:12px;color:var(--text2)}
+.pb-row .pl .pld{font-size:10px;color:var(--text3)}
+.pb-row .pv{font-size:15px;font-weight:700;color:var(--accent)}
+.search{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;margin-bottom:8px}
+.search::placeholder{color:var(--text3)}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.chip{padding:4px 10px;border-radius:12px;background:var(--card);border:1px solid var(--border);color:var(--text2);font-size:10px;cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.group-hd{font-size:11px;color:var(--text2);padding:10px 4px 6px;display:flex;justify-content:space-between}
+.group-hd .gs{color:var(--accent);font-weight:600}
+.rec{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:6px;cursor:pointer}
+.rec-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.rec-title{font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec-dist{font-size:15px;font-weight:700;color:var(--accent);margin-left:8px}
+.rec-meta{font-size:10px;color:var(--text2);display:flex;gap:8px;flex-wrap:wrap}
+.rec-file{font-size:10px;color:var(--text3);margin-top:3px}
+.dup-tag{display:inline-block;background:var(--red);color:#fff;font-size:9px;padding:0 4px;border-radius:4px;margin-left:4px}
+.type-tag{display:inline-block;background:var(--card2);color:var(--text2);font-size:9px;padding:1px 5px;border-radius:3px;margin-right:4px}
+.empty{text-align:center;color:var(--text3);padding:30px 0;font-size:12px}
+.toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#30363d;color:#fff;padding:7px 18px;border-radius:18px;font-size:12px;opacity:0;transition:.2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+.loading{text-align:center;color:var(--text2);padding:40px 0;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="navbar"><h1 id="navTitle">数据中心</h1></div>
+
+<div class="page active" id="page-overview">
+  <div class="view-tabs">
+    <div class="vtab active" data-t="overview">总览</div>
+    <div class="vtab" data-t="year">年度</div>
+    <div class="vtab" data-t="month">月度</div>
+    <div class="vtab" data-t="pb">PB</div>
+    <div class="vtab" data-t="records">记录</div>
+  </div>
+  <div class="type-row" id="typeRow">
+    <div class="type-chip active" data-ty="cycling">骑行</div>
+    <div class="type-chip" data-ty="running">跑步</div>
+    <div class="type-chip" data-ty="hike">徒步</div>
+    <div class="type-chip" data-ty="all">全部</div>
+  </div>
+  <div id="overviewContent"><div class="loading">加载中...</div></div>
+</div>
+
+<div class="page" id="page-year"><div id="yearContent"></div></div>
+<div class="page" id="page-month"><div id="monthContent"></div></div>
+<div class="page" id="page-pb"><div id="pbContent"></div></div>
+<div class="page" id="page-records"><div id="recordsContent"></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var ALL=[];
+var curType="cycling";
+var curYear=new Date().getFullYear();
+var curMonth=new Date().getMonth();
+
+function getData(){
+  try{
+    var json=window.AndroidBridge.getActivities();
+    ALL=JSON.parse(json);
+  }catch(e){ALL=[]}
+}
+function filtered(){
+  if(curType==="all")return ALL;
+  return ALL.filter(function(r){return r.type===curType});
+}
+function fmtNum(n){return Math.round(n).toLocaleString()}
+function fmtDur(s){var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h>0?h+"h"+String(m).padStart(2,"0")+"m":m+"m"}
+function typeName(t){return{cycling:"骑行",running:"跑步",hike:"徒步",indoorcycling:"室内骑行",indoorrunning:"室内跑"}[t]||t}
+function dateKey(tsMs){var d=new Date(tsMs);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+
+// ===== 总览 =====
+function renderOverview(){
+  var data=filtered();
+  var totalDist=data.reduce(function(a,b){return a+b.dist},0);
+  var totalDur=data.reduce(function(a,b){return a+b.dur},0);
+  var days={};data.forEach(function(r){days[dateKey(r.tsMs)]=1});
+  var dayCount=Object.keys(days).length;
+  // 今年
+  var yData=data.filter(function(r){return new Date(r.tsMs).getFullYear()===curYear});
+  var yDist=yData.reduce(function(a,b){return a+b.dist},0);
+  var yDur=yData.reduce(function(a,b){return a+b.dur},0);
+  // 连续天数
+  var streak=0;var today=new Date();
+  for(var i=0;i<365;i++){
+    var d=new Date(today);d.setDate(d.getDate()-i);
+    if(days[d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()])streak++;
+    else if(i>0)break;
+  }
+  document.getElementById("overviewContent").innerHTML=
+    '<div class="stat-grid">'+
+      '<div class="stat-box"><div class="lb">总里程</div><div class="vl">'+fmtNum(totalDist)+'<small> km</small></div><div class="dt">今年 +'+fmtNum(yDist)+' km</div></div>'+
+      '<div class="stat-box"><div class="lb">总时长</div><div class="vl">'+fmtNum(totalDur/3600)+'<small> h</small></div><div class="dt">今年 +'+fmtNum(yDur/3600)+' h</div></div>'+
+      '<div class="stat-box"><div class="lb">运动次数</div><div class="vl">'+data.length+'<small> 次</small></div><div class="dt">今年 '+yData.length+' 次</div></div>'+
+      '<div class="stat-box"><div class="lb">运动天数</div><div class="vl">'+dayCount+'<small> 天</small></div><div class="dt" style="color:var(--green)">连续 '+streak+' 天</div></div>'+
+    '</div>'+
+    '<div class="st">年度热力图 <span class="more" onclick="switchTab(\'year\')">详情 →</span></div>'+
+    '<div class="hm-card"><div class="hm-grid" id="hmBrief"></div></div>'+
+    '<div class="st">本月 <span class="more" onclick="switchTab(\'month\')">详情 →</span></div>'+
+    renderMonthCard(data)+
+    '<div class="st">个人最佳 <span class="more" onclick="switchTab(\'pb\')">详情 →</span></div>'+
+    renderPBList(data,3);
+  genHeatmap("hmBrief",data,26);
+}
+
+// ===== 热力图 =====
+function genHeatmap(elId,data,weeks){
+  var el=document.getElementById(elId);if(!el)return;el.innerHTML="";
+  var dayDist={};
+  data.forEach(function(r){var k=dateKey(r.tsMs);dayDist[k]=(dayDist[k]||0)+r.dist});
+  var maxD=Math.max.apply(null,Object.keys(dayDist).map(function(k){return dayDist[k]}).concat([1]));
+  var now=new Date();
+  var start=new Date(now);start.setDate(start.getDate()-weeks*7);
+  for(var w=0;w<weeks;w++){
+    for(var d=0;d<7;d++){
+      var dt=new Date(start);dt.setDate(dt.getDate()+w*7+d);
+      var k=dt.getFullYear()+"-"+(dt.getMonth()+1)+"-"+dt.getDate();
+      var v=dayDist[k];var c=document.createElement("div");c.className="hm-cell";
+      if(v){var ratio=v/maxD;c.style.background=ratio>0.6?"#39d353":ratio>0.35?"#26a641":ratio>0.15?"#006d32":"#0e4429"}
+      c.onclick=function(){switchTab("month")};
+      el.appendChild(c);
+    }
+  }
+}
+
+// ===== 月卡片 =====
+function renderMonthCard(data){
+  var mData=data.filter(function(r){var d=new Date(r.tsMs);return d.getFullYear()===curYear&&d.getMonth()===curMonth});
+  var mDist=mData.reduce(function(a,b){return a+b.dist},0);
+  var goal=500;
+  var html='<div class="mcard"><div class="mr"><span class="ml">'+(curMonth+1)+'月 里程</span><span class="mv">'+fmtNum(mDist)+' / '+goal+' km</span></div><div class="pbar"><div class="pfill" style="width:'+Math.min(100,mDist/goal*100)+'%"></div></div></div>';
+  html+='<div class="mcard"><div class="mr"><span class="ml">最近30天</span><span class="mv">'+mData.length+' 次</span></div><div class="dbars" id="barsBrief"></div><div class="dlabs"><span>1日</span><span>15日</span><span>30日</span></div></div>';
+  setTimeout(function(){genBars("barsBrief",data,30)},50);
+  return html;
+}
+function genBars(elId,data,n){
+  var el=document.getElementById(elId);if(!el)return;el.innerHTML="";
+  var dayDist={};data.forEach(function(r){var d=new Date(r.tsMs);dayDist[d.getDate()]=(dayDist[d.getDate()]||0)+r.dist});
+  var maxV=Math.max.apply(null,Object.keys(dayDist).map(function(k){return dayDist[k]}).concat([1]));
+  for(var i=1;i<=n;i++){
+    var b=document.createElement("div");b.className="dbar";
+    b.style.height=Math.max(2,(dayDist[i]||0)/maxV*55)+"px";
+    b.onclick=function(){switchTab("records")};
+    el.appendChild(b);
+  }
+}
+
+// ===== PB =====
+function getPBs(data){
+  var maxDist={v:0,r:null},maxDur={v:0,r:null},maxSpeed={v:0,r:null};
+  data.forEach(function(r){
+    if(r.dist>maxDist.v){maxDist.v=r.dist;maxDist.r=r}
+    if(r.dur>maxDur.v){maxDur.v=r.dur;maxDur.r=r}
+    var spd=r.dur>0?r.dist/(r.dur/3600):0;
+    if(spd>maxSpeed.v){maxSpeed.v=spd;maxSpeed.r=r}
+  });
+  return [
+    {lb:"最远距离",v:maxDist.v.toFixed(1)+" km",r:maxDist.r},
+    {lb:"最长时间",v:fmtDur(maxDur.v),r:maxDur.r},
+    {lb:"最高均速",v:maxSpeed.v.toFixed(1)+" km/h",r:maxSpeed.r}
+  ];
+}
+function renderPBList(data,limit){
+  var pbs=getPBs(data);if(limit)pbs=pbs.slice(0,limit);
+  var html='<div class="pb-list">';
+  pbs.forEach(function(p){
+    var d=p.r?new Date(p.r.tsMs):null;
+    html+='<div class="pb-row"><div class="pl"><div class="plb">'+p.lb+'</div><div class="pld">'+(d?d.toLocaleDateString():"")+'</div></div><div class="pv">'+p.v+'</div></div>';
+  });
+  return html+'</div>';
+}
+
+// ===== 年度页 =====
+function renderYear(){
+  var data=filtered();
+  var html='<div class="st">'+curYear+' 年热力图</div><div class="hm-card"><div class="hm-grid" id="hmFull"></div><div class="hm-legend">少<div class="hm-cell" style="background:#21262d"></div><div class="hm-cell" style="background:#0e4429"></div><div class="hm-cell" style="background:#006d32"></div><div class="hm-cell" style="background:#26a641"></div><div class="hm-cell" style="background:#39d353"></div>多</div></div>';
+  html+='<div class="st">月度明细</div>';
+  for(var m=0;m<12;m++){
+    var md=data.filter(function(r){var d=new Date(r.tsMs);return d.getFullYear()===curYear&&d.getMonth()===m});
+    var mdDist=md.reduce(function(a,b){return a+b.dist},0);
+    html+='<div class="mcard" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px">'+(m+1)+'月</span><span style="font-weight:600;color:var(--accent)">'+fmtNum(mdDist)+' km · '+md.length+'次</span></div>';
+  }
+  document.getElementById("yearContent").innerHTML=html;
+  genHeatmap("hmFull",data,53);
+}
+
+// ===== 月度页 =====
+function renderMonth(){
+  var data=filtered();
+  var mData=data.filter(function(r){var d=new Date(r.tsMs);return d.getFullYear()===curYear&&d.getMonth()===curMonth});
+  var mDist=mData.reduce(function(a,b){return a+b.dist},0);
+  var mDur=mData.reduce(function(a,b){return a+b.dur},0);
+  var days={};mData.forEach(function(r){days[dateKey(r.tsMs)]=1});
+  var html='<div class="st">'+(curMonth+1)+'月 详情</div>';
+  html+='<div class="mcard"><div class="mr"><span class="ml">月目标 500 km</span><span class="mv" style="color:var(--accent)">'+Math.round(mDist/500*100)+'%</span></div><div class="pbar"><div class="pfill" style="width:'+Math.min(100,mDist/500*100)+'%"></div></div></div>';
+  html+='<div class="mcard"><div class="mr"><span class="ml">每日里程</span><span class="mv">'+mData.length+' 次</span></div><div class="dbars" id="barsMonth" style="height:90px"></div><div class="dlabs"><span>1日</span><span>10日</span><span>20日</span><span>30日</span></div></div>';
+  html+='<div class="stat-grid"><div class="stat-box"><div class="lb">本月里程</div><div class="vl">'+fmtNum(mDist)+'<small> km</small></div></div><div class="stat-box"><div class="lb">本月时长</div><div class="vl">'+fmtNum(mDur/3600)+'<small> h</small></div></div><div class="stat-box"><div class="lb">本月次数</div><div class="vl">'+mData.length+'<small> 次</small></div></div><div class="stat-box"><div class="lb">运动天数</div><div class="vl">'+Object.keys(days).length+'<small> 天</small></div></div></div>';
+  document.getElementById("monthContent").innerHTML=html;
+  setTimeout(function(){genBars("barsMonth",data,30)},50);
+}
+
+// ===== PB页 =====
+function renderPB(){
+  document.getElementById("pbContent").innerHTML='<div class="st">个人最佳</div>'+renderPBList(filtered());
+}
+
+// ===== 记录列表 =====
+function renderRecords(){
+  var data=filtered();
+  var html='<div class="st">全部记录 <span style="font-size:11px;color:var(--text3)">'+data.length+' 条</span></div>';
+  html+='<input class="search" id="recSearch" type="text" placeholder="搜索标题 / 平台" oninput="filterRecords()">';
+  html+='<div class="chips"><div class="chip on" data-g="date">按日期</div><div class="chip" data-g="platform">按平台</div></div>';
+  html+='<div id="recList"></div>';
+  document.getElementById("recordsContent").innerHTML=html;
+  document.querySelectorAll("#recordsContent .chip").forEach(function(c){
+    c.onclick=function(){
+      document.querySelectorAll("#recordsContent .chip").forEach(function(x){x.classList.remove("on")});
+      c.classList.add("on");filterRecords(c.dataset.g);
+    };
+  });
+  filterRecords("date");
+}
+function filterRecords(groupBy){
+  var q=document.getElementById("recSearch").value.toLowerCase();
+  var data=filtered().filter(function(r){
+    if(q&&r.title.toLowerCase().indexOf(q)<0&&r.platform.toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  var groups={};
+  data.forEach(function(r){
+    var k=groupBy==="platform"?r.platform:r.ts.slice(0,10);
+    if(!groups[k])groups[k]=[];groups[k].push(r);
+  });
+  var el=document.getElementById("recList");el.innerHTML="";
+  if(data.length===0){el.innerHTML='<div class="empty">无匹配记录</div>';return}
+  Object.keys(groups).reverse().forEach(function(gk){
+    var items=groups[gk];
+    var sum=items.reduce(function(a,b){return a+b.dist},0);
+    var hd=document.createElement("div");hd.className="group-hd";
+    hd.innerHTML="<span>"+gk+"</span><span class='gs'>"+items.length+"条 · "+sum.toFixed(1)+"km</span>";
+    el.appendChild(hd);
+    items.forEach(function(r){
+      var d=document.createElement("div");d.className="rec";
+      d.innerHTML='<div class="rec-top"><span class="rec-title"><span class="type-tag">'+typeName(r.type)+'</span>'+r.title+'</span><span class="rec-dist">'+r.dist.toFixed(1)+' km</span></div><div class="rec-meta"><span>'+r.ts+'</span><span>'+r.platform+'</span><span>'+fmtDur(r.dur)+'</span></div><div class="rec-file">'+(r.file&&r.file.length?"● 本地文件已保存":"未下载到本地")+'</div>';
+      d.onclick=function(){toast(r.title)};
+      el.appendChild(d);
+    });
+  });
+}
+
+// ===== Tab切换 =====
+function switchTab(t){
+  document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active")});
+  document.getElementById("page-"+t).classList.add("active");
+  document.querySelectorAll(".vtab").forEach(function(b){b.classList.toggle("active",b.dataset.t===t)});
+  var titles={overview:"数据中心",year:"年度统计",month:"月度详情",pb:"个人最佳",records:"运动记录"};
+  document.getElementById("navTitle").textContent=titles[t];
+  if(t==="year")renderYear();
+  if(t==="month")renderMonth();
+  if(t==="pb")renderPB();
+  if(t==="records")renderRecords();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".vtab").forEach(function(b){
+  b.onclick=function(){switchTab(b.dataset.t)};
+});
+document.querySelectorAll(".type-chip").forEach(function(c){
+  c.onclick=function(){
+    document.querySelectorAll(".type-chip").forEach(function(x){x.classList.remove("active")});
+    c.classList.add("active");curType=c.dataset.ty;
+    renderOverview();
+  };
+});
+
+function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("show")},1500)}
+
+// 初始化
+getData();
+renderOverview();
+</script>
+</body>
+</html>
