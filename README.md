@@ -1,3 +1,5 @@
+[English](README_EN.md) | 中文
+
 # 🚴 鸡翅幸哲迈进OB(开发体验版)
 
 <p align="center"><img src="app_icon/app_icon_512.png" width="128" alt="App图标"/></p>
@@ -11,6 +13,8 @@
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Strava / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入；Strava 仅作上传目标）。
+
+An Android workout-data migration tool that syncs workout records (FIT/GPX) across **iGPSPORT (China / International) / Xingzhe / Magene / Blackbird / Giant / Outbase / Intervals.icu / Garmin International / Garmin China / COROS China / Strava / Wahoo / MyWhoosh / Zwift / Keep / Codoon / Zepp / Komoot / Suunto / Bryton / CyCity** — twenty-one platforms in total. It supports transfers between China and international regions (Bryton now supports download; MyWhoosh, Zwift, Codoon and Zepp are download-only data sources; Intervals.icu supports workout-plan download and pushing to iGPSPORT/Bryton; Keep supports download as a data source plus semi-automatic guided import for upload; Strava is upload-only).
 
 > 📋 版本更新日志已移至文末：[📋 更新日志](#-更新日志)
 
