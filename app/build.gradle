@@ -72,6 +72,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    // P1: 本地单元测试跑在 android.jar 桩上，android.util.Log 默认会抛
+    // RuntimeException("Stub!")；FitTimeFixer/GpxTimeFixer 各路径都调 Log，
+    // 不开此项新增的单测在 CI 里无法运行。只影响 test，不影响打包。
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     kotlinOptions {
         jvmTarget = '17'
     }
