@@ -1,7 +1,6 @@
 package com.jichi.ob.ui;
 
 import android.net.Uri;
-import kotlin.Metadata;
 import kotlin.ResultKt;
 import kotlin.Unit;
 import kotlin.coroutines.Continuation;
@@ -15,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.Dispatchers;
 
 /* compiled from: MergeFragment.kt */
-@Metadata(d1 = {"\u0000\n\n\u0000\n\u0002\u0010\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u00020\u0001*\u00020\u0002H\n"}, d2 = {"<anonymous>", "", "Lkotlinx/coroutines/CoroutineScope;"}, k = 3, mv = {2, 2, 0}, xi = 48)
 @DebugMetadata(c = "com.jichi.ob.ui.MergeFragment$logoPicker$1$1", f = "MergeFragment.kt", i = {}, l = {748}, m = "invokeSuspend", n = {}, s = {})
 /* loaded from: classes.dex */
 final class MergeFragment$logoPicker$1$1 extends SuspendLambda implements Function2<CoroutineScope, Continuation<? super Unit>, Object> {

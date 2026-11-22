@@ -3,7 +3,6 @@ package com.jichi.ob.ui;
 import android.net.Uri;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import kotlin.Metadata;
 import kotlin.ResultKt;
 import kotlin.Unit;
 import kotlin.coroutines.Continuation;
@@ -16,7 +15,6 @@ import kotlin.jvm.functions.Function2;
 import kotlinx.coroutines.CoroutineScope;
 
 /* compiled from: MergeFragment.kt */
-@Metadata(d1 = {"\u0000\n\n\u0000\n\u0002\u0010\u0012\n\u0002\u0018\u0002\u0010\u0000\u001a\u0004\u0018\u00010\u0001*\u00020\u0002H\n"}, d2 = {"<anonymous>", "", "Lkotlinx/coroutines/CoroutineScope;"}, k = 3, mv = {2, 2, 0}, xi = 48)
 @DebugMetadata(c = "com.jichi.ob.ui.MergeFragment$filePicker$1$1$b$1", f = "MergeFragment.kt", i = {}, l = {}, m = "invokeSuspend", n = {}, s = {})
 /* loaded from: classes.dex */
 final class MergeFragment$filePicker$1$1$b$1 extends SuspendLambda implements Function2<CoroutineScope, Continuation<? super byte[]>, Object> {

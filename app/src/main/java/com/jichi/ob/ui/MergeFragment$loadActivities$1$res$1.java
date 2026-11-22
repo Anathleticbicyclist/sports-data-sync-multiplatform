@@ -3,7 +3,6 @@ package com.jichi.ob.ui;
 import androidx.fragment.app.FragmentActivity;
 import com.jichi.ob.MainActivity;
 import com.jichi.ob.model.DataSource;
-import kotlin.Metadata;
 import kotlin.ResultKt;
 import kotlin.Unit;
 import kotlin.coroutines.Continuation;
@@ -16,7 +15,6 @@ import kotlinx.coroutines.CoroutineScope;
 import kotlinx.coroutines.Dispatchers;
 
 /* compiled from: MergeFragment.kt */
-@Metadata(d1 = {"\u0000\n\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u0004\u0018\u00010\u0001*\u00020\u0002H\n"}, d2 = {"<anonymous>", "Lcom/jichi/ob/MainActivity$MergeFetchPage;", "Lkotlinx/coroutines/CoroutineScope;"}, k = 3, mv = {2, 2, 0}, xi = 48)
 @DebugMetadata(c = "com.jichi.ob.ui.MergeFragment$loadActivities$1$res$1", f = "MergeFragment.kt", i = {}, l = {981}, m = "invokeSuspend", n = {}, s = {})
 /* loaded from: classes.dex */
 final class MergeFragment$loadActivities$1$res$1 extends SuspendLambda implements Function2<CoroutineScope, Continuation<? super MainActivity.MergeFetchPage>, Object> {
@@ -42,8 +40,7 @@ final class MergeFragment$loadActivities$1$res$1 extends SuspendLambda implement
     }
 
     /* compiled from: MergeFragment.kt */
-    @Metadata(d1 = {"\u0000\n\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u0004\u0018\u00010\u0001*\u00020\u0002H\n"}, d2 = {"<anonymous>", "Lcom/jichi/ob/MainActivity$MergeFetchPage;", "Lkotlinx/coroutines/CoroutineScope;"}, k = 3, mv = {2, 2, 0}, xi = 48)
-    @DebugMetadata(c = "com.jichi.ob.ui.MergeFragment$loadActivities$1$res$1$1", f = "MergeFragment.kt", i = {}, l = {982}, m = "invokeSuspend", n = {}, s = {})
+        @DebugMetadata(c = "com.jichi.ob.ui.MergeFragment$loadActivities$1$res$1$1", f = "MergeFragment.kt", i = {}, l = {982}, m = "invokeSuspend", n = {}, s = {})
     /* renamed from: com.jichi.ob.ui.MergeFragment$loadActivities$1$res$1$1, reason: invalid class name */
     static final class AnonymousClass1 extends SuspendLambda implements Function2<CoroutineScope, Continuation<? super MainActivity.MergeFetchPage>, Object> {
         final /* synthetic */ DataSource $src;

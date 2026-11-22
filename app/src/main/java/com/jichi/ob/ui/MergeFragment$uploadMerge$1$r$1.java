@@ -4,7 +4,6 @@ import com.jichi.ob.api.UploadEngine;
 import com.jichi.ob.model.ActivityRecord;
 import com.jichi.ob.model.DataSource;
 import java.io.File;
-import kotlin.Metadata;
 import kotlin.ResultKt;
 import kotlin.Unit;
 import kotlin.coroutines.Continuation;
@@ -16,7 +15,6 @@ import kotlin.jvm.functions.Function2;
 import kotlinx.coroutines.CoroutineScope;
 
 /* compiled from: MergeFragment.kt */
-@Metadata(d1 = {"\u0000\n\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u00020\u0001*\u00020\u0002H\n"}, d2 = {"<anonymous>", "Lcom/jichi/ob/api/UploadEngine$UploadResult;", "Lkotlinx/coroutines/CoroutineScope;"}, k = 3, mv = {2, 2, 0}, xi = 48)
 @DebugMetadata(c = "com.jichi.ob.ui.MergeFragment$uploadMerge$1$r$1", f = "MergeFragment.kt", i = {}, l = {1691}, m = "invokeSuspend", n = {}, s = {})
 /* loaded from: classes.dex */
 final class MergeFragment$uploadMerge$1$r$1 extends SuspendLambda implements Function2<CoroutineScope, Continuation<? super UploadEngine.UploadResult>, Object> {
