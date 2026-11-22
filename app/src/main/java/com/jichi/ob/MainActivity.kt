@@ -1,14 +1,21 @@
 package com.jichi.ob
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -42,6 +49,7 @@ import com.jichi.ob.model.DataSource
 import com.jichi.ob.model.UploadSupport
 import com.jichi.ob.ui.LoginWebActivity
 import com.jichi.ob.util.PrefsManager
+import com.jichi.ob.util.TrialLicense
 import com.jichi.ob.util.FileNameGenerator
 import com.jichi.ob.util.UpdateChecker
 import kotlinx.coroutines.CompletableDeferred
@@ -419,6 +427,16 @@ class MainActivity : AppCompatActivity() {
         if (notLoggedIn.isNotEmpty()) {
             Toast.makeText(this, "请先登录${notLoggedIn.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
         }
+        // v9.6.9: 一对多同步（targets.size > 1）开始前验体验码；一对一不验。
+        // 没验过时弹框并返回，验证成功后自动重跑 startSync（pendingOpenAfterTrial）。
+        if (targets.size > 1) {
+            pendingOpenAfterTrial = ::startSync
+            if (checkTrialFeature()) {
+                pendingOpenAfterTrial = null
+            } else {
+                return
+            }
+        }
         prefs.setLastSource(source.shortName)
         prefs.setLastTargets(targets.map { it.shortName })
         val targetNames = targets.joinToString("、") { it.displayName }
@@ -653,6 +671,16 @@ class MainActivity : AppCompatActivity() {
         val notLoggedTgt = targets.filter { it != DataSource.KEEP && !prefs.isLoggedIn(it) }
         if (notLoggedTgt.isNotEmpty()) {
             Toast.makeText(this, "请先登录${notLoggedTgt.joinToString { it.displayName }}", Toast.LENGTH_SHORT).show(); return
+        }
+        // v9.6.9: 一对多任务（targets.size > 1）开始前验体验码；一对一不验。
+        // 没验过时弹框并返回，验证成功后自动重跑 runTask（pendingOpenAfterTrial）。
+        if (targets.size > 1) {
+            pendingOpenAfterTrial = { runTask(task) }
+            if (checkTrialFeature()) {
+                pendingOpenAfterTrial = null
+            } else {
+                return
+            }
         }
         appendLog("━━━━━━━━━━━━━━━━━━━━━━")
         appendLog("📦 任务开始: ${task.name}（${sources.size}来源 × ${targets.size}目标）")
@@ -1368,6 +1396,174 @@ class MainActivity : AppCompatActivity() {
     fun openMerge() = navigator.openMerge()
 
     fun closeMerge() = navigator.closeMerge()
+
+    // ============ v9.6.9 体验码门禁（功能级）============
+    // 以下函数从 v9.6.8 APK 反编译还原（jadx 无坏代码标记，smali 已核对）。
+    // 用户定下的规矩：体验码只在原来几个功能入口验码（合并、新建任务、一对多同步），
+    // 有码能用、没码不能用；App 本身能点进去、原 UI 不动；不加开屏门禁、不改返回逻辑。
+    private var trialLicense: TrialLicense? = null
+    var pendingOpenAfterTrial: (() -> Unit)? = null
+    private var trialDialog: Dialog? = null
+
+    private fun getTrialLicense(): TrialLicense {
+        if (trialLicense == null) trialLicense = TrialLicense(this)
+        return trialLicense!!
+    }
+
+    /**
+     * 功能级门禁（APK 原件）。首次使用（从未验证通过）弹“加入内测”框；许可过期弹“续期”框；
+     * 已验证返回 true。验证成功后自动执行 pendingOpenAfterTrial。
+     */
+    fun checkTrialFeature(): Boolean {
+        val license = getTrialLicense()
+        if (license.isFirstUse()) {
+            showTrialDialog(license, isFirstUse = true)
+            return false
+        }
+        if (license.isAllowed()) return true
+        showTrialDialog(license, isFirstUse = false)
+        return false
+    }
+
+    /** 功能入口验码后执行：先记下待办，再验码；验过直接执行，没验过弹框、验证成功后自动执行待办。 */
+    fun checkTrialAndRun(action: () -> Unit): Boolean {
+        pendingOpenAfterTrial = action
+        if (checkTrialFeature()) {
+            pendingOpenAfterTrial = null
+            action()
+            return true
+        }
+        return false
+    }
+
+    /**
+     * 体验码弹窗（APK 原件，功能级）。可点“暂不使用”关掉，只是对应功能打不开，
+     * 主界面照常用；不藏按钮、不禁返回、不 finish。
+     */
+    private fun showTrialDialog(license: TrialLicense, isFirstUse: Boolean) {
+        val deviceId = license.getDeviceId()
+        val view = layoutInflater.inflate(R.layout.dialog_trial, null)
+        val dialog = Dialog(this, android.R.style.Theme_Translucent_NoTitleBar)
+        trialDialog = dialog
+        dialog.setContentView(view)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(0))
+        // jadx 原文：addFlags(Integer.MIN_VALUE)，即 FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS。
+        dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        dialog.window?.statusBarColor = 0
+        dialog.window?.navigationBarColor = 0
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.85).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        val tvIcon = view.findViewById<TextView>(R.id.tvIcon)
+        val tvTitle = view.findViewById<TextView>(R.id.tvTitle)
+        val tvSubtitle = view.findViewById<TextView>(R.id.tvSubtitle)
+        val layoutFeatures = view.findViewById<LinearLayout>(R.id.layoutFeatures)
+        val layoutDevice = view.findViewById<LinearLayout>(R.id.layoutDevice)
+        val tvDeviceId = view.findViewById<TextView>(R.id.tvDeviceId)
+        val btnCopy = view.findViewById<TextView>(R.id.btnCopy)
+        val tvInputLabel = view.findViewById<TextView>(R.id.tvInputLabel)
+        val etKey = view.findViewById<EditText>(R.id.etKey)
+        val btnPrimary = view.findViewById<TextView>(R.id.btnPrimary)
+        val btnSecondary = view.findViewById<TextView>(R.id.btnSecondary)
+        tvDeviceId.text = deviceId
+        if (isFirstUse) {
+            tvIcon.text = "🎉"
+            tvTitle.text = "加入内测体验计划"
+            tvSubtitle.text = "「新建任务 · 运行任务」正在内测中\n该功能不收取任何费用，需输入体验码继续使用"
+            layoutFeatures.visibility = View.VISIBLE
+            layoutDevice.visibility = View.VISIBLE
+            tvInputLabel.visibility = View.VISIBLE
+            tvInputLabel.text = "输入体验码（复制上方设备ID，到抖音群中飞书问卷中填写体验码获取）"
+            etKey.visibility = View.VISIBLE
+            etKey.hint = "P008-XXXXXX 或 LIFE-XXXXXX"
+            btnPrimary.text = "验证并继续"
+            btnPrimary.setOnClickListener {
+                val input = etKey.text.toString().trim()
+                if (input.isEmpty()) {
+                    Toast.makeText(this, "请先复制设备ID，关注抖音「多吃两口」主页抖音群获取体验码", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                if (license.verifyKey(input)) {
+                    showLicenseInfo(license)
+                    dialog.dismiss()
+                    pendingOpenAfterTrial?.invoke()
+                    pendingOpenAfterTrial = null
+                } else {
+                    Toast.makeText(this, "体验码错误", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            tvIcon.text = "🔑"
+            tvTitle.text = "内测体验续期"
+            tvSubtitle.text = "体验周期已到，将设备ID发送至抖音群获取体验码\n该功能不收取任何费用"
+            layoutFeatures.visibility = View.GONE
+            layoutDevice.visibility = View.VISIBLE
+            tvInputLabel.visibility = View.VISIBLE
+            tvInputLabel.text = "输入体验码"
+            etKey.visibility = View.VISIBLE
+            btnPrimary.text = "验证并继续体验"
+            btnPrimary.setOnClickListener {
+                if (license.verifyKey(etKey.text.toString().trim())) {
+                    showLicenseInfo(license)
+                    dialog.dismiss()
+                    pendingOpenAfterTrial?.invoke()
+                    pendingOpenAfterTrial = null
+                } else {
+                    Toast.makeText(this, "体验码错误或已过期", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        btnCopy.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("device_id", deviceId))
+            Toast.makeText(this, "设备ID已复制", Toast.LENGTH_SHORT).show()
+        }
+        btnSecondary.visibility = View.VISIBLE
+        btnSecondary.text = "暂不使用"
+        btnSecondary.setOnClickListener { dialog.dismiss() }
+        dialog.setOnDismissListener { trialDialog = null }
+        dialog.show()
+    }
+
+    private fun showLicenseInfo(license: TrialLicense) {
+        AlertDialog.Builder(this)
+            .setTitle("体验码验证成功")
+            .setMessage("许可证类型：${license.getLicenseType()}\n有效期至：${license.getLicenseExpiry()}")
+            .setPositiveButton("确定", null)
+            .show()
+    }
+
+    /** 关于页入口（APK 原件）：查看许可证类型/有效期、输入或更新体验码。 */
+    fun showLicenseInfoDialog() {
+        val license = getTrialLicense()
+        val licenseType = license.getLicenseType()
+        val licenseExpiry = license.getLicenseExpiry()
+        val deviceId = license.getDeviceId()
+        AlertDialog.Builder(this)
+            .setTitle("体验许可证")
+            .setMessage("设备ID：$deviceId\n（长按可复制）\n\n许可证类型：$licenseType\n有效期至：$licenseExpiry")
+            .setPositiveButton("输入/更新体验码") { _, _ ->
+                val editText = EditText(this)
+                editText.hint = "P003-XXXXXX 或 LIFE-XXXXXX"
+                AlertDialog.Builder(this)
+                    .setTitle("输入体验码")
+                    .setView(editText)
+                    .setPositiveButton("验证") { _, _ ->
+                        if (license.verifyKey(editText.text.toString().trim())) {
+                            showLicenseInfo(license)
+                        } else {
+                            Toast.makeText(this, "体验码错误", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            }
+            .setNeutralButton("复制设备ID") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("device_id", deviceId))
+                Toast.makeText(this, "设备ID已复制", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
 
     /**
      * 合并页拉取活动列表。
