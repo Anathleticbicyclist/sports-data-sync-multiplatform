@@ -69,11 +69,6 @@ class HeatmapView(context: Context) : View(context) {
             invalidate()
         }
 
-    /** [vectorOverlayEnabled] 的 Java 友好写法。 */
-    fun setVectorOverlayEnabled(enabled: Boolean) {
-        vectorOverlayEnabled = enabled
-    }
-
     /** 矢量细线的画笔：2dp 粗、抗锯齿、半透明亮色（白色，alpha 200）。 */
     private val vectorPaint = Paint().apply {
         isAntiAlias = true
