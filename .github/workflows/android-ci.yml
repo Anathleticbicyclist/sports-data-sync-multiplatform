@@ -1,0 +1,63 @@
+# Android CI（P1 首次落地）
+#
+# 跑在 ubuntu-latest + JDK 17（与 app/build.gradle 的 JavaVersion 17 / AGP 8.13 一致）。
+# Wahoo 凭证：build.gradle 在 local.properties 缺失时把
+# WAHOO_CLIENT_ID/SECRET 置为空串，照样能编译；空凭证只影响 Wahoo 登录，
+# 其余 20 个平台不受影响，App 能正常打开、正常同步。
+# 想让 CI 编出来的 APK 也能登 Wahoo，就在仓库 Settings → Secrets and
+# variables → Actions 里加两个 Secrets：WAHOO_CLIENT_ID、WAHOO_CLIENT_SECRET，
+# CI 会在编译前把它们写进 local.properties（只存在编译机上，不进仓库、不进日志）。
+#
+# 注意：本仓库定义了 dev/hw 两个 product flavor，AGP 只生成按 flavor 区分的
+# 单元测试任务（testDevDebugUnitTest / testHwDebugUnitTest），不存在不带 flavor
+# 的 testDebugUnitTest 任务；assembleDebug 仍是聚合任务，可一次构建两个 flavor。
+name: Android CI
+
+on:
+  # 仅手动触发：app/src/main/java 是 9.6.9 APK 的反编译参考树（模型层仍是 9.6.8），
+  # 直接编译必然失败；出包请走 smali_source + apktool，详见 源码说明.md。
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Write Wahoo credentials from secrets (if configured)
+        env:
+          WAHOO_CLIENT_ID: ${{ secrets.WAHOO_CLIENT_ID }}
+          WAHOO_CLIENT_SECRET: ${{ secrets.WAHOO_CLIENT_SECRET }}
+        run: |
+          if [ -n "$WAHOO_CLIENT_ID" ] && [ -n "$WAHOO_CLIENT_SECRET" ]; then
+            printf 'wahoo_client_id=%s\nwahoo_client_secret=%s\n' "$WAHOO_CLIENT_ID" "$WAHOO_CLIENT_SECRET" > local.properties
+            echo "local.properties written from secrets (Wahoo login enabled)"
+          else
+            echo "No Wahoo secrets configured; building with empty Wahoo credentials (Wahoo login unavailable, all other platforms unaffected)"
+          fi
+
+      - name: Build debug APKs
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew testDevDebugUnitTest testHwDebugUnitTest --stacktrace
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: |
+            app/build/test-results/
+            app/build/reports/tests/
+          if-no-files-found: ignore

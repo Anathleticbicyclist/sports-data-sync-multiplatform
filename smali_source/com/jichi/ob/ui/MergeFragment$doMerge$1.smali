@@ -559,6 +559,20 @@
     check-cast v3, [B
 
     if-eqz v3, :cond_b
+    move-object/from16 v16, v1
+
+    move-object/from16 v1, v3
+
+    move-object/from16 v0, p0
+
+    iget-object v0, v0, Lcom/jichi/ob/ui/MergeFragment$doMerge$1;->this$0:Lcom/jichi/ob/ui/MergeFragment;
+
+    iget-object v0, v0, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
+
+    invoke-interface {v0, v1}, Ljava/util/List;->add(Ljava/lang/Object;)Z
+
+    move-object/from16 v1, v16
+
 
     .line 1157
     array-length v0, v3
@@ -1133,6 +1147,24 @@
     iget-object v2, v1, Lcom/jichi/ob/ui/MergeFragment$doMerge$1;->this$0:Lcom/jichi/ob/ui/MergeFragment;
 
     invoke-static {v2, v0}, Lcom/jichi/ob/ui/MergeFragment;->access$setMergedResult$p(Lcom/jichi/ob/ui/MergeFragment;Lcom/jichi/ob/merge/TrackMerger$MergedResult;)V
+
+    # r10: 贴纸/总时长用 session 计时，不用 elapsed
+    iget-object v3, v2, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
+
+    invoke-static {v3}, Lcom/jichi/ob/merge/SessionMetaReader;->summarize(Ljava/util/List;)Lcom/jichi/ob/merge/MergeMetrics;
+
+    move-result-object v3
+
+    if-eqz v3, :cond_r10
+
+    invoke-virtual {v3}, Lcom/jichi/ob/merge/MergeMetrics;->getTotalTimerSec()J
+
+    move-result-wide v4
+
+    invoke-virtual {v0, v4, v5}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->setTotalDurationSec(J)V
+
+    :cond_r10
+
 
     .line 1203
     iget-object v2, v1, Lcom/jichi/ob/ui/MergeFragment$doMerge$1;->this$0:Lcom/jichi/ob/ui/MergeFragment;

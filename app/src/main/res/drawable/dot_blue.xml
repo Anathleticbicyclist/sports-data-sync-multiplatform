@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 注意：本文件为按用法重建的近似值。原文件在仓库 HEAD 与 apktool 导出里都找不到，
+     dialog_trial.xml 引用了它；若缺失，弹窗 inflate 会直接崩溃。
+     用途：功能列表前的 5dp 蓝色圆点；放回后请对照旧版截图确认。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/primary" />
+</shape>

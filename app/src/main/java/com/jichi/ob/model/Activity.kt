@@ -17,6 +17,8 @@ data class ActivityRecord(
 
 enum class DataSource(val displayName: String, val shortName: String) {
     IGPSPORT("iGPSPORT", "igp"),
+    // v9.6.x: 内置浏览器直连通道（与官方 API 通道区分）
+    IGPSPORT_INT("iGPSPORT国际", "igpen"),
     XINGZHE("行者", "xz"),
     MAGENE("迈金", "mg"),
     BLACKBIRD("黑鸟单车", "bb"),
@@ -104,6 +106,7 @@ enum class UploadSupport(val available: Boolean, val note: String) {
         fun fromDataSource(ds: DataSource): UploadSupport = when (ds) {
             DataSource.OUTBASE -> OUTBASE
             DataSource.IGPSPORT -> IGPSPORT
+            DataSource.IGPSPORT_INT -> IGPSPORT
             DataSource.XINGZHE -> XINGZHE
             DataSource.MAGENE -> MAGENE
             DataSource.BLACKBIRD -> BLACKBIRD

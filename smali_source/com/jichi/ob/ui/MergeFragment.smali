@@ -374,6 +374,8 @@
 
 .field private mergeTitle:Landroid/widget/TextView;
 
+.field public mergeSegBytes:Ljava/util/List;
+
 .field private mergedResult:Lcom/jichi/ob/merge/TrackMerger$MergedResult;
 
 .field private pageLoading:Z
@@ -3620,6 +3622,12 @@
 .method private final doMerge()V
     .locals 11
 
+    new-instance v0, Ljava/util/ArrayList;
+
+    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
+
+    iput-object v0, p0, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
+
     .line 1139
     iget-object v4, p0, Lcom/jichi/ob/ui/MergeFragment;->source:Lcom/jichi/ob/model/DataSource;
 
@@ -4491,47 +4499,13 @@
 
     .line 1503
     :try_start_0
-    sget-object v6, Lcom/jichi/ob/GpxToFitConverter;->INSTANCE:Lcom/jichi/ob/GpxToFitConverter;
+    iget-object v6, v1, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
 
-    invoke-virtual {v3}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getPoints()Ljava/util/List;
+    invoke-static {v6}, Lcom/jichi/ob/merge/SessionMetaReader;->summarize(Ljava/util/List;)Lcom/jichi/ob/merge/MergeMetrics;
 
-    move-result-object v7
+    move-result-object v6
 
-    invoke-virtual {v3}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getSport()I
-
-    move-result v8
-
-    invoke-virtual {v3}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getTotalDistanceKm()D
-
-    move-result-wide v9
-
-    const/16 v2, 0x3e8
-
-    int-to-double v11, v2
-
-    mul-double v15, v9, v11
-
-    invoke-virtual {v3}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getAscentM()D
-
-    move-result-wide v17
-
-    invoke-virtual {v3}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getDescentM()D
-
-    move-result-wide v19
-
-    const/16 v21, 0x3c
-
-    const/16 v22, 0x0
-
-    const-wide/16 v9, 0x0
-
-    const-wide/16 v11, 0x0
-
-    const/4 v13, 0x0
-
-    const/4 v14, 0x0
-
-    invoke-static/range {v6 .. v22}, Lcom/jichi/ob/GpxToFitConverter;->convertPoints$default(Lcom/jichi/ob/GpxToFitConverter;Ljava/util/List;IDJIIDDDILjava/lang/Object;)[B
+    invoke-static {v3, v5, v6}, Lcom/jichi/ob/merge/MergeFitWriter;->build(Lcom/jichi/ob/merge/TrackMerger$MergedResult;Ljava/lang/String;Lcom/jichi/ob/merge/MergeMetrics;)[B
 
     move-result-object v2
 
@@ -4601,6 +4575,10 @@
     move-result-object v3
 
     invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-static {v3}, Lcom/jichi/ob/util/FileNameGenerator;->brandSuffix(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v3
 
@@ -9071,6 +9049,9 @@
 
 .method private final processLocalFiles(Ljava/util/List;Ljava/util/List;)V
     .locals 8
+    # r13: 记录中心合并路径把原始字节挂到字段，供 SessionMetaReader/写出器用
+    iput-object p2, p0, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
+
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -11574,47 +11555,13 @@
     .line 1480
     :cond_1
     :try_start_0
-    sget-object v6, Lcom/jichi/ob/GpxToFitConverter;->INSTANCE:Lcom/jichi/ob/GpxToFitConverter;
+    iget-object v6, v1, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
 
-    invoke-virtual {v2}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getPoints()Ljava/util/List;
+    invoke-static {v6}, Lcom/jichi/ob/merge/SessionMetaReader;->summarize(Ljava/util/List;)Lcom/jichi/ob/merge/MergeMetrics;
 
-    move-result-object v7
+    move-result-object v6
 
-    invoke-virtual {v2}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getSport()I
-
-    move-result v8
-
-    invoke-virtual {v2}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getTotalDistanceKm()D
-
-    move-result-wide v9
-
-    const/16 v5, 0x3e8
-
-    int-to-double v11, v5
-
-    mul-double v15, v9, v11
-
-    invoke-virtual {v2}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getAscentM()D
-
-    move-result-wide v17
-
-    invoke-virtual {v2}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->getDescentM()D
-
-    move-result-wide v19
-
-    const/16 v21, 0x3c
-
-    const/16 v22, 0x0
-
-    const-wide/16 v9, 0x0
-
-    const-wide/16 v11, 0x0
-
-    const/4 v13, 0x0
-
-    const/4 v14, 0x0
-
-    invoke-static/range {v6 .. v22}, Lcom/jichi/ob/GpxToFitConverter;->convertPoints$default(Lcom/jichi/ob/GpxToFitConverter;Ljava/util/List;IDJIIDDDILjava/lang/Object;)[B
+    invoke-static {v2, v3, v6}, Lcom/jichi/ob/merge/MergeFitWriter;->build(Lcom/jichi/ob/merge/TrackMerger$MergedResult;Ljava/lang/String;Lcom/jichi/ob/merge/MergeMetrics;)[B
 
     move-result-object v2
     :try_end_0
@@ -11638,6 +11585,10 @@
     move-result-object v6
 
     invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object v6
+
+    invoke-static {v6}, Lcom/jichi/ob/util/FileNameGenerator;->brandSuffix(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object v6
 

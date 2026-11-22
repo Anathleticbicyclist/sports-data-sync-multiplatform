@@ -52,7 +52,7 @@ java -jar apktool.jar b v917_decoded -o output.apk
 # 签名（devRelease）
 zipalign -f 4 output.apk output_aligned.apk
 apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
-  --ks-pass pass:jichiobdev2026 --key-pass pass:jichiobdev2026 \
+  --ks-pass pass:YOUR_KEYSTORE_PASSWORD --key-pass pass:YOUR_KEYSTORE_PASSWORD \
   --out jichi-ob-dev-9.2.2.apk output_aligned.apk
 ```
 
@@ -323,3 +323,33 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 ### 验证
 - 白名单：资源 11 + smali 修改 23 + 新增 2，逐项在位；清单外文件 0 改动、0 删除。
 - 模拟器两次冷启动进 MainActivity 无 FATAL；成品包反编逐方法核对全 PASS。
+
+---
+
+## v9.6.9 改动清单（2026-11）
+
+### 新增文件
+1. `api/FitDeviceFixer.smali`（含 `$Def.smali`、`$Def-IA.smali`）：佳明设备伪装重写——修正消息头标志位（0x80 压缩时间戳 / 0x40 定义消息）、16 项 nibble 表 CRC、0x20 开发者字段跳过，另补大端（arch=1）多字节读写。
+2. `merge/MergeFitWriter.smali`：多日合并 FIT 写出器，逐条记录的 distance 按段号累加 offsetBefore，lap 距离/计时直填源段 session 原值。
+3. `merge/MergeMetrics.smali`：合并指标聚合，新增 segStartSec / segDistM / segTimerSec 与 segIndexOf / offsetBefore。
+4. `merge/SessionMetaReader.smali`（含 `$1`）：按段读取 session 的 start / total_distance / total_timer_time。
+5. `merge/StickerPatch.smali`：贴纸统计直取六段 session 原值，短路 TrackPreviewView.computeStats() 的点列重算。
+
+### 修改文件
+1. `api/GarminApi.smali`：7277/7279/7285/7291 四处由 `FitDeviceFaker` 改指 `FitDeviceFixer`（isAlreadyGarmin / fake）。
+2. `merge/TrackMerger.smali`：mergeSegments 去掉 90 秒截断与段间时间戳重建，v21 直接用原始 getTs()（六圈按段起点切分）。
+3. `ui/MergeFragment.smali`（含 `$processLocalFiles$1`、`$doMerge$1`）：`processLocalFiles` 入口 `iput-object p2 -> mergeSegBytes`；`$processLocalFiles$1` 插入 summarize 与 setTotalDurationSec。
+4. `MainActivity.smali:1071`：APP_VERSION → `v9.6.9`。
+5. `res/values/strings.xml`：app_name `鸡翅幸哲迈进OB(开发体验版)`、launcher_name `迈向Ob`。
+6. `res/layout/fragment_about.xml`：关于页最近三条日志（9.6.9/9.6.8/9.6.7），9.6.9 末段含「优化上传佳明伪装」；热力图文案删去 1-5 档表述。
+7. `util/FileNameGenerator.smali`：品牌后缀 `_From_MaixiangOb`（大写字母唯一字面串）。
+
+### 脱敏
+- `util/TrialLicense.smali` 三处门禁盐值 → `GATE_SALT_PLACEHOLDER`。
+- `BuildConfig.smali` 与 `api/WahooApi.smali` 的 Wahoo client id / secret → `YOUR_WAHOO_CLIENT_ID` / `YOUR_WAHOO_CLIENT_SECRET`。
+- 从源码重编需在 `local.properties`（已 gitignore）注入真实 Wahoo 凭证与门禁盐值。
+
+### 验证
+- r21 devRelease 包 8,319,150 字节，证书 SHA-256 9b61509f72bf9481251bb2feda2ab1cd54c6acb43951aef57052224a6e368ba6，装机冷启动无 FATAL。
+- 六段合并 OBMERGE：timer=117010.0 cal=20397 dist=940202.15625 max=14.920999526977539 map=116272；record 116801、首点 speed 5.361；六 lap 距离/计时与源段一致，合计 117010。
+- 贴纸 3/4 页实测 940.2 km / 28.9 km/h / 32:30:10。

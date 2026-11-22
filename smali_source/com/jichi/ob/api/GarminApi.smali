@@ -166,7 +166,7 @@
 
 .field public static final LOGIN_URL_CN:Ljava/lang/String; = "https://sso.garmin.cn/portal/sso/zh-CN/sign-in?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.cn%2Fapp"
 
-.field public static final LOGIN_URL_COM:Ljava/lang/String; = "https://sso.garmin.com/sso/signin?clientId=GarminConnect&service=https%3A%2F%2Fconnect.garmin.com%2Fmodern%2F"
+.field public static final LOGIN_URL_COM:Ljava/lang/String; = "https://www.garmin.com/zh-CN/account/"
 
 .field private static final NATIVE_API_UA:Ljava/lang/String; = "GCM-Android-5.23"
 
@@ -223,16 +223,6 @@
 .field private static volatile sharedWebViewReady:Z
 
 .field private static volatile webViewLoading:Z
-
-# v9.5.6: 上传/取数提速——凭证解析缓存（同一批量同步内 cred 字符串复用，避免每条活动重复 JSON 解析）
-.field private static volatile lastParsedCred:Ljava/lang/String;
-
-.field private static volatile lastParsedSession:Lcom/jichi/ob/api/GarminApi$GarminSession;
-
-# v9.5.6: Cookie 注入缓存——WebView 已注入过同一 cred+host 时跳过重复 setCookie/flush
-.field private static volatile lastInjectedCookieCred:Ljava/lang/String;
-
-.field private static volatile lastInjectedCookieHost:Ljava/lang/String;
 
 
 # instance fields
@@ -419,7 +409,7 @@
 
     move-result-object v0
 
-    const-wide/16 v1, 0x78
+    const-wide/16 v1, 0x1e
 
     .line 250
     sget-object v3, Ljava/util/concurrent/TimeUnit;->SECONDS:Ljava/util/concurrent/TimeUnit;
@@ -428,7 +418,7 @@
 
     move-result-object v0
 
-    const-wide/16 v1, 0x12c
+    const-wide/16 v1, 0x1e
 
     .line 251
     sget-object v3, Ljava/util/concurrent/TimeUnit;->SECONDS:Ljava/util/concurrent/TimeUnit;
@@ -443,8 +433,6 @@
     invoke-virtual {v0, v1}, Lokhttp3/OkHttpClient$Builder;->followRedirects(Z)Lokhttp3/OkHttpClient$Builder;
 
     move-result-object v0
-
-    # 对齐哇桥：不再强制 HTTP/1.1，使用 OkHttp 默认协议 [HTTP_2, HTTP/1_1]，以通过 Cloudflare
 
     .line 254
     invoke-virtual {v0}, Lokhttp3/OkHttpClient$Builder;->build()Lokhttp3/OkHttpClient;
@@ -819,7 +807,7 @@
 .end method
 
 .method private final apiHeaders(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;)Ljava/util/Map;
-    .locals 3
+    .locals 4
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -837,6 +825,8 @@
     invoke-direct {p0, p2}, Lcom/jichi/ob/api/GarminApi;->parseCredential(Ljava/lang/String;)Lcom/jichi/ob/api/GarminApi$GarminSession;
 
     move-result-object p2
+
+    move-object v3, p1
 
     const/16 v0, 0xa
 
@@ -914,10 +904,9 @@
 
     aput-object p1, v0, v1
 
-    # 对齐哇桥中国版：补齐浏览器同域请求头，帮助通过 Cloudflare
     const-string v1, "Accept-Language"
 
-    const-string v2, "zh-CN,zh;q=0.9,en;q=0.8"
+    const-string/jumbo v2, "zh-CN,zh;q=0.9,en;q=0.8"
 
     invoke-static {v1, v2}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
 
@@ -939,7 +928,7 @@
 
     aput-object v1, v0, v2
 
-    const-string v1, "x-app-ver"
+    const-string/jumbo v1, "x-app-ver"
 
     const-string v2, "5.23.0.33d"
 
@@ -992,9 +981,45 @@
 
     move-result-object p1
 
-    if-eqz p2, :cond_3
+    if-eqz p2, :cond_5
 
     .line 857
+    :try_start_0
+    invoke-static {}, Landroid/webkit/CookieManager;->getInstance()Landroid/webkit/CookieManager;
+
+    move-result-object v0
+
+    sget-object v1, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
+
+    if-ne v3, v1, :cond_2
+
+    const-string v1, "https://connect.garmin.cn"
+
+    goto :goto_2
+
+    :cond_2
+    const-string v1, "https://connect.garmin.com"
+
+    :goto_2
+    invoke-virtual {v0, v1}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v0
+
+    if-eqz v0, :cond_3
+
+    invoke-interface {v0}, Ljava/lang/CharSequence;->length()I
+
+    move-result v1
+
+    if-lez v1, :cond_3
+
+    const-string v1, "Cookie"
+
+    invoke-interface {p1, v1, v0}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+
+    goto :goto_3
+
+    :cond_3
     invoke-virtual {p2}, Lcom/jichi/ob/api/GarminApi$GarminSession;->getCookies()Ljava/lang/String;
 
     move-result-object v0
@@ -1005,7 +1030,7 @@
 
     move-result v0
 
-    if-lez v0, :cond_2
+    if-lez v0, :cond_4
 
     const-string v0, "Cookie"
 
@@ -1014,9 +1039,15 @@
     move-result-object v1
 
     invoke-interface {p1, v0, v1}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+    :catch_0
+    nop
 
     .line 858
-    :cond_2
+    :cond_4
+    :goto_3
     invoke-virtual {p2}, Lcom/jichi/ob/api/GarminApi$GarminSession;->getCsrf()Ljava/lang/String;
 
     move-result-object v0
@@ -1027,7 +1058,7 @@
 
     move-result v0
 
-    if-lez v0, :cond_3
+    if-lez v0, :cond_5
 
     const-string v0, "connect-csrf-token"
 
@@ -1037,242 +1068,8 @@
 
     invoke-interface {p1, v0, p2}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 
-    :cond_3
+    :cond_5
     return-object p1
-.end method
-
-.method private final refreshCsrfToken(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-    .locals 8
-
-    new-instance v0, Lokhttp3/Request$Builder;
-
-    invoke-direct {v0}, Lokhttp3/Request$Builder;-><init>()V
-
-    invoke-virtual {v0, p1}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
-
-    move-result-object v0
-
-    const-string v1, "Accept"
-
-    const-string v2, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-
-    invoke-virtual {v0, v1, v2}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
-
-    move-result-object v0
-
-    if-eqz p2, :cond_no_cookie
-
-    const-string v1, "Cookie"
-
-    invoke-virtual {v0, v1, p2}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
-
-    move-result-object v0
-
-    :cond_no_cookie
-    invoke-virtual {v0}, Lokhttp3/Request$Builder;->build()Lokhttp3/Request;
-
-    move-result-object v0
-
-    iget-object v1, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
-
-    invoke-virtual {v1, v0}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
-
-    move-result-object v1
-
-    invoke-interface {v1}, Lokhttp3/Call;->execute()Lokhttp3/Response;
-
-    move-result-object v1
-
-    invoke-virtual {v1}, Lokhttp3/Response;->code()I
-
-    move-result v2
-
-    const/16 v3, 0xc8
-
-    if-eq v2, v3, :cond_ok
-
-    invoke-virtual {v1}, Lokhttp3/Response;->close()V
-
-    const/4 v0, 0x0
-
-    return-object v0
-
-    :cond_ok
-    invoke-virtual {v1}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
-
-    move-result-object v2
-
-    if-nez v2, :cond_has_body
-
-    invoke-virtual {v1}, Lokhttp3/Response;->close()V
-
-    const/4 v0, 0x0
-
-    return-object v0
-
-    :cond_has_body
-    invoke-virtual {v2}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
-
-    move-result-object v3
-
-    invoke-virtual {v1}, Lokhttp3/Response;->close()V
-
-    const-string v4, "<meta[^>]+name=[\"']csrf-token[\"'][^>]+content=[\"']([^\"']+)[\"']"
-
-    invoke-static {v4}, Ljava/util/regex/Pattern;->compile(Ljava/lang/String;)Ljava/util/regex/Pattern;
-
-    move-result-object v4
-
-    invoke-virtual {v4, v3}, Ljava/util/regex/Pattern;->matcher(Ljava/lang/CharSequence;)Ljava/util/regex/Matcher;
-
-    move-result-object v4
-
-    invoke-virtual {v4}, Ljava/util/regex/Matcher;->find()Z
-
-    move-result v5
-
-    if-eqz v5, :cond_regex2
-
-    const/4 v6, 0x1
-
-    invoke-virtual {v4, v6}, Ljava/util/regex/Matcher;->group(I)Ljava/lang/String;
-
-    move-result-object v7
-
-    goto :cond_got
-
-    :cond_regex2
-    const-string v4, "<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']csrf-token[\"']"
-
-    invoke-static {v4}, Ljava/util/regex/Pattern;->compile(Ljava/lang/String;)Ljava/util/regex/Pattern;
-
-    move-result-object v4
-
-    invoke-virtual {v4, v3}, Ljava/util/regex/Pattern;->matcher(Ljava/lang/CharSequence;)Ljava/util/regex/Matcher;
-
-    move-result-object v4
-
-    invoke-virtual {v4}, Ljava/util/regex/Matcher;->find()Z
-
-    move-result v5
-
-    if-eqz v5, :cond_none
-
-    const/4 v6, 0x1
-
-    invoke-virtual {v4, v6}, Ljava/util/regex/Matcher;->group(I)Ljava/lang/String;
-
-    move-result-object v7
-
-    goto :cond_got
-
-    :cond_none
-    const/4 v0, 0x0
-
-    return-object v0
-
-    :cond_got
-    if-eqz v7, :cond_none
-
-    invoke-virtual {v7}, Ljava/lang/String;->trim()Ljava/lang/String;
-
-    move-result-object v0
-
-    return-object v0
-.end method
-
-.method public final executeActivitiesWithCsrfRetry(Lokhttp3/Request;Lcom/jichi/ob/model/DataSource;)Lokhttp3/Response;
-    .locals 7
-
-    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
-
-    invoke-virtual {v0, p1}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
-
-    move-result-object v0
-
-    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
-
-    move-result-object v1
-
-    invoke-virtual {v1}, Lokhttp3/Response;->code()I
-
-    move-result v2
-
-    const/16 v3, 0x193
-
-    if-ne v2, v3, :cond_return
-
-    invoke-virtual {v1}, Lokhttp3/Response;->close()V
-
-    const-string v3, "Cookie"
-
-    invoke-virtual {p1, v3}, Lokhttp3/Request;->header(Ljava/lang/String;)Ljava/lang/String;
-
-    move-result-object v3
-
-    sget-object v4, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
-
-    if-ne p2, v4, :cond_com
-
-    const-string v4, "https://connect.garmin.cn"
-
-    goto :cond_root
-
-    :cond_com
-    const-string v4, "https://connect.garmin.com"
-
-    :cond_root
-    invoke-direct {p0, v4, v3}, Lcom/jichi/ob/api/GarminApi;->refreshCsrfToken(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-
-    move-result-object v5
-
-    if-nez v5, :cond_retry
-
-    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
-
-    invoke-virtual {v0, p1}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
-
-    move-result-object v0
-
-    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
-
-    move-result-object v1
-
-    return-object v1
-
-    :cond_retry
-    invoke-virtual {p1}, Lokhttp3/Request;->newBuilder()Lokhttp3/Request$Builder;
-
-    move-result-object v6
-
-    const-string v0, "connect-csrf-token"
-
-    invoke-virtual {v6, v0, v5}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
-
-    move-result-object v6
-
-    const-string v0, "X-CSRF-TOKEN"
-
-    invoke-virtual {v6, v0, v5}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
-
-    move-result-object v6
-
-    invoke-virtual {v6}, Lokhttp3/Request$Builder;->build()Lokhttp3/Request;
-
-    move-result-object v6
-
-    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
-
-    invoke-virtual {v0, v6}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
-
-    move-result-object v0
-
-    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
-
-    move-result-object v1
-
-    :cond_return
-    return-object v1
 .end method
 
 .method private final collectCookies(Lokhttp3/Response;Ljava/util/Map;)V
@@ -1768,7 +1565,7 @@
 
     move-result-object p1
 
-    if-eqz p1, :cookie_branch
+    if-eqz p1, :cond_0
 
     new-instance v1, Ljava/lang/StringBuilder;
 
@@ -1794,36 +1591,36 @@
 
     aput-object p1, v0, v1
 
-    goto :after_auth
+    goto :goto_1
 
-    :cookie_branch
+    :cond_0
     invoke-static {}, Landroid/webkit/CookieManager;->getInstance()Landroid/webkit/CookieManager;
 
     move-result-object v2
 
     sget-object v1, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p2, v1, :com_cookie
+    if-ne p2, v1, :cond_1
 
     const-string v1, "https://connect.garmin.cn"
 
-    goto :get_cookie
+    goto :goto_0
 
-    :com_cookie
+    :cond_1
     const-string v1, "https://connect.garmin.com"
 
-    :get_cookie
+    :goto_0
     invoke-virtual {v2, v1}, Landroid/webkit/CookieManager;->getCookie(Ljava/lang/String;)Ljava/lang/String;
 
     move-result-object p1
 
-    if-nez p1, :have_cookie
+    if-nez p1, :cond_2
 
     invoke-virtual {v3}, Lcom/jichi/ob/api/GarminApi$GarminSession;->getCookies()Ljava/lang/String;
 
     move-result-object p1
 
-    :have_cookie
+    :cond_2
     const-string v1, "Cookie"
 
     invoke-static {v1, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
@@ -1834,9 +1631,8 @@
 
     aput-object p1, v0, v1
 
-    :after_auth
-
     .line 866
+    :goto_1
     const-string p1, "User-Agent"
 
     const-string v1, "GCM-Android-5.23"
@@ -1902,16 +1698,16 @@
     .line 871
     sget-object p1, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p2, p1, :cond_0
+    if-ne p2, p1, :cond_3
 
     const-string/jumbo p1, "zh-CN"
 
-    goto :goto_0
+    goto :goto_2
 
-    :cond_0
+    :cond_3
     const-string p1, "en"
 
-    :goto_0
+    :goto_2
     const-string v1, "X-Lang"
 
     invoke-static {v1, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
@@ -1938,16 +1734,16 @@
     .line 873
     sget-object p1, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p2, p1, :cond_1
+    if-ne p2, p1, :cond_4
 
     const-string p1, "connectapi.garmin.cn"
 
-    goto :goto_1
+    goto :goto_3
 
-    :cond_1
+    :cond_4
     const-string p1, "connectapi.garmin.com"
 
-    :goto_1
+    :goto_3
     const-string v1, "DI-Backend"
 
     invoke-static {v1, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
@@ -1961,16 +1757,16 @@
     .line 874
     sget-object p1, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
 
-    if-ne p2, p1, :cond_2
+    if-ne p2, p1, :cond_5
 
     const-string/jumbo p1, "zh-CN,zh;q=0.9"
 
-    goto :goto_2
+    goto :goto_4
 
-    :cond_2
+    :cond_5
     const-string p1, "en-US,en;q=0.9"
 
-    :goto_2
+    :goto_4
     const-string p2, "Accept-Language"
 
     invoke-static {p2, p1}, Lkotlin/TuplesKt;->to(Ljava/lang/Object;Ljava/lang/Object;)Lkotlin/Pair;
@@ -2990,31 +2786,7 @@
 .end method
 
 .method private final injectCookies(Ljava/lang/String;Ljava/lang/String;)V
-    .locals 13
-
-    # v9.5.6: 同一 cred+host 已注入过则跳过（批量上传/取数时不再每条都重注入全部 cookie）
-    if-eqz p1, :inject_start
-
-    sget-object v0, Lcom/jichi/ob/api/GarminApi;->lastInjectedCookieHost:Ljava/lang/String;
-
-    invoke-virtual {p2, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v0
-
-    if-eqz v0, :inject_start
-
-    sget-object v0, Lcom/jichi/ob/api/GarminApi;->lastInjectedCookieCred:Ljava/lang/String;
-
-    invoke-virtual {p1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-    move-result v0
-
-    if-eqz v0, :inject_start
-
-    return-void
-
-    :inject_start
-    move-object v12, p1
+    .locals 12
 
     .line 968
     invoke-direct {p0, p1}, Lcom/jichi/ob/api/GarminApi;->parseCredential(Ljava/lang/String;)Lcom/jichi/ob/api/GarminApi$GarminSession;
@@ -3218,11 +2990,6 @@
     .line 980
     :cond_3
     invoke-virtual {v0}, Landroid/webkit/CookieManager;->flush()V
-
-    # v9.5.6: 记录本次注入的 cred+host，后续同批同步可直接跳过
-    sput-object v12, Lcom/jichi/ob/api/GarminApi;->lastInjectedCookieCred:Ljava/lang/String;
-
-    sput-object p2, Lcom/jichi/ob/api/GarminApi;->lastInjectedCookieHost:Ljava/lang/String;
 
     return-void
 .end method
@@ -4689,13 +4456,6 @@
     .locals 1
 
     .line 726
-    if-eqz p1, :not_null
-
-    const/4 p1, 0x0
-
-    return-object p1
-
-    :not_null
     move-object v0, p1
 
     check-cast v0, Ljava/lang/CharSequence;
@@ -4704,38 +4464,21 @@
 
     move-result v0
 
-    if-nez v0, :non_empty
+    if-nez v0, :cond_0
 
     const/4 p1, 0x0
 
     return-object p1
 
     .line 727
-    :non_empty
-    # v9.5.6: 同一批量同步内 cred 字符串实例不变，引用相等即可命中缓存
-    sget-object v0, Lcom/jichi/ob/api/GarminApi;->lastParsedCred:Ljava/lang/String;
-
-    if-ne v0, p1, :parse
-
-    sget-object v0, Lcom/jichi/ob/api/GarminApi;->lastParsedSession:Lcom/jichi/ob/api/GarminApi$GarminSession;
-
-    if-eqz v0, :hit
-
-    :parse
+    :cond_0
     sget-object v0, Lcom/jichi/ob/api/GarminApi$GarminSession;->Companion:Lcom/jichi/ob/api/GarminApi$GarminSession$Companion;
 
     invoke-virtual {v0, p1}, Lcom/jichi/ob/api/GarminApi$GarminSession$Companion;->fromJson(Ljava/lang/String;)Lcom/jichi/ob/api/GarminApi$GarminSession;
 
-    move-result-object v0
+    move-result-object p1
 
-    sput-object p1, Lcom/jichi/ob/api/GarminApi;->lastParsedCred:Ljava/lang/String;
-
-    sput-object v0, Lcom/jichi/ob/api/GarminApi;->lastParsedSession:Lcom/jichi/ob/api/GarminApi$GarminSession;
-
-    return-object v0
-
-    :hit
-    return-object v0
+    return-object p1
 .end method
 
 .method private final prepareWebView(Ljava/lang/String;Lcom/jichi/ob/model/DataSource;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -4847,7 +4590,7 @@
 
     move v2, v12
 
-    const-wide/16 v6, 0xfa
+    const-wide/16 v6, 0x1f4
 
     goto/16 :goto_b
 
@@ -5301,8 +5044,7 @@
     if-eqz v2, :cond_a
 
     :cond_8
-    # v9.5.6: 轮询间隔 500ms→250ms（总超时不变：20×250ms=5s）
-    const/16 v2, 0x14
+    const/16 v2, 0xa
 
     if-ge v13, v2, :cond_a
 
@@ -5355,7 +5097,7 @@
 
     iput v2, v3, Lcom/jichi/ob/api/GarminApi$prepareWebView$1;->label:I
 
-    const-wide/16 v6, 0xfa
+    const-wide/16 v6, 0x1f4
 
     invoke-static {v6, v7, v3}, Lkotlinx/coroutines/DelayKt;->delay(JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 
@@ -5388,7 +5130,7 @@
     :cond_a
     int-to-double v1, v13
 
-    const-wide/high16 v3, 0x3fd0000000000000L    # 0.25
+    const-wide/high16 v3, 0x3fe0000000000000L    # 0.5
 
     mul-double/2addr v1, v3
 
@@ -5661,8 +5403,7 @@
     if-eqz v2, :cond_12
 
     :cond_10
-    # v9.5.6: 轮询间隔 500ms→250ms（总超时不变：60×250ms=15s）
-    const/16 v2, 0x3c
+    const/16 v2, 0x1e
 
     if-ge v1, v2, :cond_12
 
@@ -5705,7 +5446,7 @@
 
     iput v2, v3, Lcom/jichi/ob/api/GarminApi$prepareWebView$1;->label:I
 
-    const-wide/16 v6, 0xfa
+    const-wide/16 v6, 0x1f4
 
     invoke-static {v6, v7, v3}, Lkotlinx/coroutines/DelayKt;->delay(JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 
@@ -5764,6 +5505,146 @@
     move-result-object p0
 
     return-object p0
+.end method
+
+.method private final refreshCsrfToken(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    .locals 8
+
+    new-instance v0, Lokhttp3/Request$Builder;
+
+    invoke-direct {v0}, Lokhttp3/Request$Builder;-><init>()V
+
+    invoke-virtual {v0, p1}, Lokhttp3/Request$Builder;->url(Ljava/lang/String;)Lokhttp3/Request$Builder;
+
+    move-result-object v0
+
+    const-string v1, "Accept"
+
+    const-string/jumbo v2, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+
+    invoke-virtual {v0, v1, v2}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
+
+    move-result-object v0
+
+    if-eqz p2, :cond_0
+
+    const-string v1, "Cookie"
+
+    invoke-virtual {v0, v1, p2}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
+
+    move-result-object v0
+
+    :cond_0
+    invoke-virtual {v0}, Lokhttp3/Request$Builder;->build()Lokhttp3/Request;
+
+    move-result-object v0
+
+    iget-object v1, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
+
+    invoke-virtual {v1, v0}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
+
+    move-result-object v1
+
+    invoke-interface {v1}, Lokhttp3/Call;->execute()Lokhttp3/Response;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Lokhttp3/Response;->code()I
+
+    move-result v2
+
+    const/16 v3, 0xc8
+
+    if-eq v2, v3, :cond_1
+
+    invoke-virtual {v1}, Lokhttp3/Response;->close()V
+
+    const/4 v0, 0x0
+
+    return-object v0
+
+    :cond_1
+    invoke-virtual {v1}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
+
+    move-result-object v2
+
+    if-nez v2, :cond_2
+
+    invoke-virtual {v1}, Lokhttp3/Response;->close()V
+
+    const/4 v0, 0x0
+
+    return-object v0
+
+    :cond_2
+    invoke-virtual {v2}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v1}, Lokhttp3/Response;->close()V
+
+    const-string v4, "<meta[^>]+name=[\"\']csrf-token[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']"
+
+    invoke-static {v4}, Ljava/util/regex/Pattern;->compile(Ljava/lang/String;)Ljava/util/regex/Pattern;
+
+    move-result-object v4
+
+    invoke-virtual {v4, v3}, Ljava/util/regex/Pattern;->matcher(Ljava/lang/CharSequence;)Ljava/util/regex/Matcher;
+
+    move-result-object v4
+
+    invoke-virtual {v4}, Ljava/util/regex/Matcher;->find()Z
+
+    move-result v5
+
+    if-eqz v5, :cond_3
+
+    const/4 v6, 0x1
+
+    invoke-virtual {v4, v6}, Ljava/util/regex/Matcher;->group(I)Ljava/lang/String;
+
+    move-result-object v7
+
+    goto :goto_0
+
+    :cond_3
+    const-string v4, "<meta[^>]+content=[\"\']([^\"\']+)[\"\'][^>]+name=[\"\']csrf-token[\"\']"
+
+    invoke-static {v4}, Ljava/util/regex/Pattern;->compile(Ljava/lang/String;)Ljava/util/regex/Pattern;
+
+    move-result-object v4
+
+    invoke-virtual {v4, v3}, Ljava/util/regex/Pattern;->matcher(Ljava/lang/CharSequence;)Ljava/util/regex/Matcher;
+
+    move-result-object v4
+
+    invoke-virtual {v4}, Ljava/util/regex/Matcher;->find()Z
+
+    move-result v5
+
+    if-eqz v5, :cond_4
+
+    const/4 v6, 0x1
+
+    invoke-virtual {v4, v6}, Ljava/util/regex/Matcher;->group(I)Ljava/lang/String;
+
+    move-result-object v7
+
+    goto :goto_0
+
+    :cond_4
+    const/4 v0, 0x0
+
+    return-object v0
+
+    :goto_0
+    if-eqz v7, :cond_4
+
+    invoke-virtual {v7}, Ljava/lang/String;->trim()Ljava/lang/String;
+
+    move-result-object v0
+
+    return-object v0
 .end method
 
 .method private final resolveGarminTime(Lorg/json/JSONObject;)Ljava/lang/String;
@@ -5894,12 +5775,11 @@
 .method private final unzipFit([B)[B
     .locals 7
 
-    # 前置裸 FIT 检测：header 至少 12 字节，且 offset 8..11 为完整魔数 ".FIT"(0x2e 0x46 0x49 0x54)
     array-length v1, p1
 
     const/16 v2, 0xc
 
-    if-lt v1, v2, :cond_go_zip
+    if-lt v1, v2, :cond_0
 
     const/16 v1, 0x8
 
@@ -5907,7 +5787,7 @@
 
     const/16 v2, 0x2e
 
-    if-ne v1, v2, :cond_go_zip
+    if-ne v1, v2, :cond_0
 
     const/16 v1, 0x9
 
@@ -5915,7 +5795,7 @@
 
     const/16 v2, 0x46
 
-    if-ne v1, v2, :cond_go_zip
+    if-ne v1, v2, :cond_0
 
     const/16 v1, 0xa
 
@@ -5923,7 +5803,7 @@
 
     const/16 v2, 0x49
 
-    if-ne v1, v2, :cond_go_zip
+    if-ne v1, v2, :cond_0
 
     const/16 v1, 0xb
 
@@ -5931,11 +5811,11 @@
 
     const/16 v2, 0x54
 
-    if-ne v1, v2, :cond_go_zip
+    if-ne v1, v2, :cond_0
 
     return-object p1
 
-    :cond_go_zip
+    :cond_0
     const/4 v0, 0x0
 
     .line 1508
@@ -5965,7 +5845,7 @@
     move-result-object v3
 
     :goto_0
-    if-eqz v3, :cond_2
+    if-eqz v3, :cond_3
 
     .line 1511
     invoke-virtual {v3}, Ljava/util/zip/ZipEntry;->getName()Ljava/lang/String;
@@ -5984,7 +5864,7 @@
 
     move-result v3
 
-    if-eqz v3, :cond_1
+    if-eqz v3, :cond_2
 
     .line 1512
     new-instance v3, Ljava/io/ByteArrayOutputStream;
@@ -6004,7 +5884,7 @@
 
     const/4 v6, -0x1
 
-    if-eq v5, v6, :cond_0
+    if-eq v5, v6, :cond_1
 
     const/4 v6, 0x0
 
@@ -6013,7 +5893,7 @@
     goto :goto_1
 
     .line 1516
-    :cond_0
+    :cond_1
     invoke-virtual {v3}, Ljava/io/ByteArrayOutputStream;->toByteArray()[B
 
     move-result-object v2
@@ -6028,7 +5908,7 @@
     return-object v2
 
     .line 1518
-    :cond_1
+    :cond_2
     :try_start_3
     invoke-virtual {v2}, Ljava/util/zip/ZipInputStream;->closeEntry()V
 
@@ -6042,7 +5922,7 @@
     goto :goto_0
 
     .line 1508
-    :cond_2
+    :cond_3
     :try_start_4
     invoke-static {v1, v0}, Lkotlin/io/CloseableKt;->closeFinally(Ljava/io/Closeable;Ljava/lang/Throwable;)V
     :try_end_4
@@ -6050,7 +5930,7 @@
 
     sget-object v4, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
-    const-string v5, "unzipFit: ZIP内无.fit条目，返回null"
+    const-string/jumbo v5, "unzipFit: ZIP\u5185\u65e0.fit\u6761\u76ee\uff0c\u8fd4\u56denull"
 
     invoke-virtual {v4, v5}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
@@ -6080,7 +5960,7 @@
 
     const/16 v2, 0xe
 
-    if-lt v1, v2, :cond_3
+    if-lt v1, v2, :cond_4
 
     const/16 v1, 0x8
 
@@ -6088,7 +5968,7 @@
 
     const/16 v2, 0x2e
 
-    if-ne v1, v2, :cond_3
+    if-ne v1, v2, :cond_4
 
     const/16 v1, 0x9
 
@@ -6096,14 +5976,14 @@
 
     const/16 v2, 0x46
 
-    if-ne v1, v2, :cond_3
+    if-ne v1, v2, :cond_4
 
     goto :goto_2
 
-    :cond_3
+    :cond_4
     sget-object v4, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
-    const-string v5, "unzipFit: 非FIT魔数或数据无效，返回null"
+    const-string/jumbo v5, "unzipFit: \u975eFIT\u9b54\u6570\u6216\u6570\u636e\u65e0\u6548\uff0c\u8fd4\u56denull"
 
     invoke-virtual {v4, v5}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
@@ -6113,26 +5993,72 @@
     return-object p1
 .end method
 
-.method public static final synthetic access$uploadActivityOnceCookiePost(Lcom/jichi/ob/api/GarminApi;Lcom/jichi/ob/model/DataSource;Ljava/lang/String;[BLjava/lang/String;)Ljava/lang/String;
-    .locals 0
+.method private final uploadActivityOnce(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;[BLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+    .locals 8
+    .annotation system Ldalvik/annotation/Signature;
+        value = {
+            "(",
+            "Lcom/jichi/ob/model/DataSource;",
+            "Ljava/lang/String;",
+            "[B",
+            "Ljava/lang/String;",
+            "Lkotlin/coroutines/Continuation<",
+            "-",
+            "Ljava/lang/String;",
+            ">;)",
+            "Ljava/lang/Object;"
+        }
+    .end annotation
 
     invoke-direct {p0, p1, p2, p3, p4}, Lcom/jichi/ob/api/GarminApi;->uploadActivityOnceCookiePost(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;[BLjava/lang/String;)Ljava/lang/String;
 
-    move-result-object p0
+    move-result-object v0
 
-    return-object p0
+    if-eqz v0, :cond_0
+
+    const-string v1, "__RETRY_WEBVIEW__"
+
+    invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+
+    move-result v1
+
+    if-nez v1, :cond_0
+
+    return-object v0
+
+    .line 1551
+    :cond_0
+    invoke-static {}, Lkotlinx/coroutines/Dispatchers;->getIO()Lkotlinx/coroutines/CoroutineDispatcher;
+
+    move-result-object v0
+
+    check-cast v0, Lkotlin/coroutines/CoroutineContext;
+
+    new-instance v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;
+
+    const/4 v7, 0x0
+
+    move-object v2, p0
+
+    move-object v4, p1
+
+    move-object v3, p2
+
+    move-object v5, p3
+
+    move-object v6, p4
+
+    invoke-direct/range {v1 .. v7}, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;-><init>(Lcom/jichi/ob/api/GarminApi;Ljava/lang/String;Lcom/jichi/ob/model/DataSource;[BLjava/lang/String;Lkotlin/coroutines/Continuation;)V
+
+    check-cast v1, Lkotlin/jvm/functions/Function2;
+
+    invoke-static {v0, v1, p5}, Lkotlinx/coroutines/BuildersKt;->withContext(Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+
+    move-result-object p1
+
+    return-object p1
 .end method
 
-# ==================== v9.5.6: 佳明中国/国际 Web 登录态上传提速 ====================
-# 背景：网页登录(v9.5.4+)得到的佳明凭证只含 cookie/csrf 会话，没有 DI token，
-# 因此 uploadActivityOnce 原先只能走 WebView 内的 JS fetch（页面准备+base64 注入+500ms 轮询），
-# 单条往往 5~15 秒。web 参考实现(garmin-browser.mjs)证明该上传其实就是一次
-# POST /gc-api/upload-service/upload/（credentials:include + csrf 头）。
-# 这里用同一套 Cookie/CSRF 头直接发起单次 OkHttp POST，不经过 WebView、不重载页面。
-# 返回约定：
-#   null                → 上传成功（与旧分支一致）
-#   "__RETRY_WEBVIEW__" → 本路径不可用（无会话/401/403/HTML 挑战），调用方回退原 WebView 链路
-#   其它字符串          → 明确的失败原因（文案与旧 OkHttp 兜底分支一致）
 .method private final uploadActivityOnceCookiePost(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;[BLjava/lang/String;)Ljava/lang/String;
     .locals 11
     .annotation system Ldalvik/annotation/Signature;
@@ -6151,13 +6077,19 @@
 
     move-result-object v0
 
-    if-nez v0, :cond_sess
+    if-nez v0, :cond_0
+
+    sget-object v1, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
+
+    const-string v2, "[cookie POST] parseCredential NULL"
+
+    invoke-virtual {v1, v2}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
     const-string v0, "__RETRY_WEBVIEW__"
 
     return-object v0
 
-    :cond_sess
+    :cond_0
     invoke-direct {p0, p1}, Lcom/jichi/ob/api/GarminApi;->gcApiHost(Lcom/jichi/ob/model/DataSource;)Ljava/lang/String;
 
     move-result-object v0
@@ -6262,12 +6194,12 @@
 
     move-result-object v1
 
-    :goto_hdr
+    :goto_0
     invoke-interface {v1}, Ljava/util/Iterator;->hasNext()Z
 
     move-result v4
 
-    if-eqz v4, :cond_hdr
+    if-eqz v4, :cond_1
 
     invoke-interface {v1}, Ljava/util/Iterator;->next()Ljava/lang/Object;
 
@@ -6291,9 +6223,9 @@
 
     move-result-object v2
 
-    goto :goto_hdr
+    goto :goto_0
 
-    :cond_hdr
+    :cond_1
     check-cast v3, Lokhttp3/RequestBody;
 
     invoke-virtual {v2, v3}, Lokhttp3/Request$Builder;->post(Lokhttp3/RequestBody;)Lokhttp3/Request$Builder;
@@ -6304,7 +6236,7 @@
 
     move-result-object v1
 
-    :try_start_up
+    :try_start_0
     iget-object v2, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
 
     invoke-virtual {v2, v1}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
@@ -6321,31 +6253,31 @@
 
     const-string v9, ""
 
-    if-eqz v2, :cond_body_done
+    if-eqz v2, :cond_2
 
     invoke-virtual {v2}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
 
     move-result-object v2
 
-    if-eqz v2, :cond_body_done
+    if-eqz v2, :cond_2
 
     move-object v9, v2
 
-    :cond_body_done
+    :cond_2
     invoke-virtual {v1}, Lokhttp3/Response;->code()I
 
     move-result v10
 
     invoke-virtual {v1}, Lokhttp3/Response;->close()V
-    :try_end_up
-    .catch Ljava/io/IOException; {:try_start_up .. :try_end_up} :catch_up_io
-    .catch Ljava/lang/Exception; {:try_start_up .. :try_end_up} :catch_up_e
+    :try_end_0
+    .catch Ljava/io/IOException; {:try_start_0 .. :try_end_0} :catch_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_1
 
     sget-object v0, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
     new-instance v1, Ljava/lang/StringBuilder;
 
-    const-string v2, "upload cookie HTTP "
+    const-string/jumbo v2, "upload cookie HTTP "
 
     invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6375,27 +6307,26 @@
 
     invoke-virtual {v0, v1}, Lcom/jichi/ob/api/GarminApi$Companion;->addDebugLog(Ljava/lang/String;)V
 
-    # HTML（Cloudflare 挑战/登录页）一律视为本路径不可用，回退 WebView
     const-string v0, "<"
 
     invoke-virtual {v9, v0}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
 
     move-result v0
 
-    if-eqz v0, :up_retry
+    if-eqz v0, :cond_8
 
     const/16 v0, 0xc8
 
-    if-gt v0, v10, :up_not2xx
+    if-gt v0, v10, :cond_3
 
     const/16 v0, 0xca
 
-    if-ge v0, v10, :up_success
+    if-ge v0, v10, :cond_b
 
-    :up_not2xx
+    :cond_3
     const/16 v0, 0x199
 
-    if-eq v10, v0, :up_not409
+    if-eq v10, v0, :cond_5
 
     const-string v0, "Duplicate Activity"
 
@@ -6403,16 +6334,16 @@
 
     move-result v0
 
-    if-eqz v0, :up_409_conflict
+    if-eqz v0, :cond_4
 
-    const-string v0, "重复活动(已在佳明存在)"
+    const-string/jumbo v0, "\u91cd\u590d\u6d3b\u52a8(\u5df2\u5728\u4f73\u660e\u5b58\u5728)"
 
     return-object v0
 
-    :up_409_conflict
+    :cond_4
     new-instance v0, Ljava/lang/StringBuilder;
 
-    const-string v1, "佳明上传冲突 HTTP 409: "
+    const-string/jumbo v1, "\u4f73\u660e\u4e0a\u4f20\u51b2\u7a81 HTTP 409: "
 
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6432,49 +6363,50 @@
 
     return-object v0
 
-    :up_not409
+    :cond_5
     const/16 v0, 0x190
 
-    if-eq v10, v0, :up_not400
+    if-eq v10, v0, :cond_6
 
-    goto :up_reject
+    goto :goto_2
 
-    :up_not400
+    :cond_6
     const/16 v0, 0x19f
 
-    if-ne v10, v0, :up_reject
+    if-ne v10, v0, :cond_10
 
     const/16 v0, 0x191
 
-    if-eq v10, v0, :up_not401
+    if-eq v10, v0, :cond_7
 
-    goto :up_retry
+    goto :goto_1
 
-    :up_not401
+    :cond_7
     const/16 v0, 0x193
 
-    if-eq v10, v0, :up_not403
+    if-eq v10, v0, :cond_9
 
-    :up_retry
+    :cond_8
+    :goto_1
     const-string v0, "__RETRY_WEBVIEW__"
 
     return-object v0
 
-    :up_not403
+    :cond_9
     const-string v0, "<"
 
     invoke-virtual {v9, v0}, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
 
     move-result v0
 
-    if-nez v0, :up_fail
+    if-nez v0, :cond_a
 
-    goto :up_retry
+    goto :goto_1
 
-    :up_fail
+    :cond_a
     new-instance v0, Ljava/lang/StringBuilder;
 
-    const-string v1, "佳明上传失败 HTTP "
+    const-string/jumbo v1, "\u4f73\u660e\u4e0a\u4f20\u5931\u8d25 HTTP "
 
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6504,16 +6436,14 @@
 
     return-object v0
 
-    :up_success
-    # 2xx：与旧 WebView 分支一致——重复标记优先；正文含活动 ID 才算确认成功；
-    # 否则报“上传返回”失败（结果未确认，不静默当成功）。
+    :cond_b
     const-string v0, "Duplicate Activity"
 
     invoke-virtual {v9, v0}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
 
     move-result v0
 
-    if-eqz v0, :up_success_dup
+    if-eqz v0, :cond_f
 
     const-string v0, "\"id\""
 
@@ -6521,42 +6451,42 @@
 
     move-result v0
 
-    if-nez v0, :up_success_aid
+    if-nez v0, :cond_c
 
     const/4 v0, 0x0
 
     return-object v0
 
-    :up_success_aid
+    :cond_c
     const-string v0, "\"activityId\""
 
     invoke-virtual {v9, v0}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
 
     move-result v0
 
-    if-nez v0, :up_success_uid
+    if-nez v0, :cond_d
 
     const/4 v0, 0x0
 
     return-object v0
 
-    :up_success_uid
+    :cond_d
     const-string v0, "\"uploadId\""
 
     invoke-virtual {v9, v0}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
 
     move-result v0
 
-    if-nez v0, :up_success_unconfirmed
+    if-nez v0, :cond_e
 
     const/4 v0, 0x0
 
     return-object v0
 
-    :up_success_unconfirmed
+    :cond_e
     new-instance v0, Ljava/lang/StringBuilder;
 
-    const-string v1, "佳明上传返回: "
+    const-string/jumbo v1, "\u4f73\u660e\u4e0a\u4f20\u8fd4\u56de: "
 
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6576,15 +6506,16 @@
 
     return-object v0
 
-    :up_success_dup
-    const-string v0, "重复活动(已在佳明存在)"
+    :cond_f
+    const-string/jumbo v0, "\u91cd\u590d\u6d3b\u52a8(\u5df2\u5728\u4f73\u660e\u5b58\u5728)"
 
     return-object v0
 
-    :up_reject
+    :cond_10
+    :goto_2
     new-instance v0, Ljava/lang/StringBuilder;
 
-    const-string v1, "佳明拒绝该文件(HTTP "
+    const-string/jumbo v1, "\u4f73\u660e\u62d2\u7edd\u8be5\u6587\u4ef6(HTTP "
 
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6614,14 +6545,14 @@
 
     return-object v0
 
-    :catch_up_io
+    :catch_0
     move-exception v0
 
     sget-object v1, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
     new-instance v2, Ljava/lang/StringBuilder;
 
-    const-string v3, "upload cookie 连接错误: "
+    const-string/jumbo v3, "upload cookie \u8fde\u63a5\u9519\u8bef: "
 
     invoke-direct {v2, v3}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6641,7 +6572,7 @@
 
     new-instance v1, Ljava/lang/StringBuilder;
 
-    const-string v2, "佳明上传异常(连接错误): "
+    const-string/jumbo v2, "\u4f73\u660e\u4e0a\u4f20\u5f02\u5e38(\u8fde\u63a5\u9519\u8bef): "
 
     invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6659,14 +6590,14 @@
 
     return-object v0
 
-    :catch_up_e
+    :catch_1
     move-exception v0
 
     sget-object v1, Lcom/jichi/ob/api/GarminApi;->Companion:Lcom/jichi/ob/api/GarminApi$Companion;
 
     new-instance v2, Ljava/lang/StringBuilder;
 
-    const-string v3, "upload cookie 异常: "
+    const-string/jumbo v3, "upload cookie \u5f02\u5e38: "
 
     invoke-direct {v2, v3}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6686,7 +6617,7 @@
 
     new-instance v1, Ljava/lang/StringBuilder;
 
-    const-string v2, "佳明上传异常: "
+    const-string/jumbo v2, "\u4f73\u660e\u4e0a\u4f20\u5f02\u5e38: "
 
     invoke-direct {v1, v2}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
 
@@ -6703,55 +6634,6 @@
     move-result-object v0
 
     return-object v0
-.end method
-
-.method private final uploadActivityOnce(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;[BLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-    .locals 8
-    .annotation system Ldalvik/annotation/Signature;
-        value = {
-            "(",
-            "Lcom/jichi/ob/model/DataSource;",
-            "Ljava/lang/String;",
-            "[B",
-            "Ljava/lang/String;",
-            "Lkotlin/coroutines/Continuation<",
-            "-",
-            "Ljava/lang/String;",
-            ">;)",
-            "Ljava/lang/Object;"
-        }
-    .end annotation
-
-    .line 1551
-    invoke-static {}, Lkotlinx/coroutines/Dispatchers;->getIO()Lkotlinx/coroutines/CoroutineDispatcher;
-
-    move-result-object v0
-
-    check-cast v0, Lkotlin/coroutines/CoroutineContext;
-
-    new-instance v1, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;
-
-    const/4 v7, 0x0
-
-    move-object v2, p0
-
-    move-object v4, p1
-
-    move-object v3, p2
-
-    move-object v5, p3
-
-    move-object v6, p4
-
-    invoke-direct/range {v1 .. v7}, Lcom/jichi/ob/api/GarminApi$uploadActivityOnce$2;-><init>(Lcom/jichi/ob/api/GarminApi;Ljava/lang/String;Lcom/jichi/ob/model/DataSource;[BLjava/lang/String;Lkotlin/coroutines/Continuation;)V
-
-    check-cast v1, Lkotlin/jvm/functions/Function2;
-
-    invoke-static {v0, v1, p5}, Lkotlinx/coroutines/BuildersKt;->withContext(Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-
-    move-result-object p1
-
-    return-object p1
 .end method
 
 .method private final uploadBinaryViaWebView(Ljava/lang/String;[BLjava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -7050,6 +6932,100 @@
     return-object p1
 .end method
 
+.method public final executeActivitiesWithCsrfRetry(Lokhttp3/Request;Lcom/jichi/ob/model/DataSource;)Lokhttp3/Response;
+    .locals 7
+
+    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
+
+    invoke-virtual {v0, p1}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
+
+    move-result-object v0
+
+    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
+
+    move-result-object v1
+
+    invoke-virtual {v1}, Lokhttp3/Response;->code()I
+
+    move-result v2
+
+    const/16 v3, 0x193
+
+    if-ne v2, v3, :cond_2
+
+    invoke-virtual {v1}, Lokhttp3/Response;->close()V
+
+    const-string v3, "Cookie"
+
+    invoke-virtual {p1, v3}, Lokhttp3/Request;->header(Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v3
+
+    sget-object v4, Lcom/jichi/ob/model/DataSource;->GARMIN_CN:Lcom/jichi/ob/model/DataSource;
+
+    if-ne p2, v4, :cond_0
+
+    const-string v4, "https://connect.garmin.cn"
+
+    goto :goto_0
+
+    :cond_0
+    const-string v4, "https://connect.garmin.com"
+
+    :goto_0
+    invoke-direct {p0, v4, v3}, Lcom/jichi/ob/api/GarminApi;->refreshCsrfToken(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+
+    move-result-object v5
+
+    if-nez v5, :cond_1
+
+    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
+
+    invoke-virtual {v0, p1}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
+
+    move-result-object v0
+
+    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
+
+    move-result-object v1
+
+    return-object v1
+
+    :cond_1
+    invoke-virtual {p1}, Lokhttp3/Request;->newBuilder()Lokhttp3/Request$Builder;
+
+    move-result-object v6
+
+    const-string v0, "connect-csrf-token"
+
+    invoke-virtual {v6, v0, v5}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
+
+    move-result-object v6
+
+    const-string v0, "X-CSRF-TOKEN"
+
+    invoke-virtual {v6, v0, v5}, Lokhttp3/Request$Builder;->header(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
+
+    move-result-object v6
+
+    invoke-virtual {v6}, Lokhttp3/Request$Builder;->build()Lokhttp3/Request;
+
+    move-result-object v6
+
+    iget-object v0, p0, Lcom/jichi/ob/api/GarminApi;->client:Lokhttp3/OkHttpClient;
+
+    invoke-virtual {v0, v6}, Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
+
+    move-result-object v0
+
+    invoke-interface {v0}, Lokhttp3/Call;->execute()Lokhttp3/Response;
+
+    move-result-object v1
+
+    :cond_2
+    return-object v1
+.end method
+
 .method public final getActivities(Lcom/jichi/ob/model/DataSource;Ljava/lang/String;IILkotlin/coroutines/Continuation;)Ljava/lang/Object;
     .locals 8
     .annotation system Ldalvik/annotation/Signature;
@@ -7297,33 +7273,31 @@
         }
     .end annotation
 
-    # === v9.4.1: 第三方FIT传佳明前自动伪装为Garmin设备，修复HTTP 412 ===
-    :try_start_fake
-    sget-object v0, Lcom/jichi/ob/api/FitDeviceFaker;->INSTANCE:Lcom/jichi/ob/api/FitDeviceFaker;
+    :try_start_0
+    sget-object v0, Lcom/jichi/ob/api/FitDeviceFixer;->INSTANCE:Lcom/jichi/ob/api/FitDeviceFixer;
 
-    invoke-virtual {v0, p3}, Lcom/jichi/ob/api/FitDeviceFaker;->isAlreadyGarmin([B)Z
+    invoke-virtual {v0, p3}, Lcom/jichi/ob/api/FitDeviceFixer;->isAlreadyGarmin([B)Z
 
     move-result v1
 
-    if-nez v1, :cond_fake_skip
+    if-nez v1, :cond_0
 
-    sget-object v0, Lcom/jichi/ob/api/FitDeviceFaker;->INSTANCE:Lcom/jichi/ob/api/FitDeviceFaker;
+    sget-object v0, Lcom/jichi/ob/api/FitDeviceFixer;->INSTANCE:Lcom/jichi/ob/api/FitDeviceFixer;
 
     const/4 v1, 0x1
 
     const/4 v2, 0x0
 
-    invoke-virtual {v0, p3, v1, v2}, Lcom/jichi/ob/api/FitDeviceFaker;->fake([BZI)[B
+    invoke-virtual {v0, p3, v1, v2}, Lcom/jichi/ob/api/FitDeviceFixer;->fake([BZI)[B
 
     move-result-object p3
+    :try_end_0
+    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
-    :cond_fake_skip
-    :try_end_fake
-    .catch Ljava/lang/Exception; {:try_start_fake .. :try_end_fake} :catch_fake
+    :cond_0
+    goto :goto_0
 
-    goto :goto_fake_done
-
-    :catch_fake
+    :catch_0
     move-exception v0
 
     const-string v1, "JichiOB"
@@ -7332,7 +7306,7 @@
 
     invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v3, "v9.4.1 FIT伪装异常,用原文件上传: "
+    const-string/jumbo v3, "v9.4.1 FIT\u4f2a\u88c5\u5f02\u5e38,\u7528\u539f\u6587\u4ef6\u4e0a\u4f20: "
 
     invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -7350,10 +7324,8 @@
 
     invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
 
-    :goto_fake_done
-    # === end v9.4.1 ===
-
     .line 1533
+    :goto_0
     invoke-static {}, Lkotlinx/coroutines/Dispatchers;->getIO()Lkotlinx/coroutines/CoroutineDispatcher;
 
     move-result-object v0

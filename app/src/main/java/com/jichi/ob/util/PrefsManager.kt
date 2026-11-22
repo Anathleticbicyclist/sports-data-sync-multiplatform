@@ -295,6 +295,7 @@ class PrefsManager(context: Context) {
     // ===== 通用：按平台获取凭证 =====
     fun getCredential(ds: DataSource): String? = when (ds) {
         DataSource.IGPSPORT -> getIgpsportToken()
+        DataSource.IGPSPORT_INT -> getIgpsportToken()
         DataSource.XINGZHE -> getXingzheSessionId()
         DataSource.MAGENE -> getMageneToken()
         DataSource.BLACKBIRD -> getBlackbirdCookie()
@@ -321,6 +322,7 @@ class PrefsManager(context: Context) {
     fun saveCredential(ds: DataSource, cred: String) {
         when (ds) {
             DataSource.IGPSPORT -> saveIgpsportToken(cred)
+            DataSource.IGPSPORT_INT -> saveIgpsportToken(cred)
             DataSource.XINGZHE -> saveXingzheSessionId(cred)
             DataSource.MAGENE -> saveMageneToken(cred)
             DataSource.BLACKBIRD -> saveBlackbirdCookie(cred)
@@ -349,6 +351,7 @@ class PrefsManager(context: Context) {
         val e = prefs.edit()
         when (ds) {
             DataSource.IGPSPORT -> e.remove("igpsport_token")
+            DataSource.IGPSPORT_INT -> e.remove("igpsport_token")
             DataSource.XINGZHE -> e.remove("xingzhe_session_id")
             DataSource.MAGENE -> { e.remove("magene_token"); e.remove("magene_refresh_token") }
             DataSource.BLACKBIRD -> e.remove("blackbird_cookie")
@@ -376,6 +379,7 @@ class PrefsManager(context: Context) {
     }
     fun isLoggedIn(ds: DataSource): Boolean = when (ds) {
         DataSource.IGPSPORT -> isIgpsportLoggedIn()
+        DataSource.IGPSPORT_INT -> isIgpsportLoggedIn()
         DataSource.XINGZHE -> isXingzheLoggedIn()
         DataSource.MAGENE -> isMageneLoggedIn()
         DataSource.BLACKBIRD -> isBlackbirdLoggedIn()
@@ -578,6 +582,9 @@ class PrefsManager(context: Context) {
     /** v8.2.3: 会话内自动检查登录态开关（默认开） */
     fun isAutoCheckLogin(): Boolean = prefs.getBoolean(KEY_AUTO_CHECK, true)
     fun setAutoCheckLogin(b: Boolean) = prefs.edit().putBoolean(KEY_AUTO_CHECK, b).apply()
+
+    /** v9.6.9: 临时码表深色模式（APK 原值：始终返回 "system"，跟随系统） */
+    fun getDarkMode(): String = "system"
 
     fun clearAll() = prefs.edit().clear().apply()
 }

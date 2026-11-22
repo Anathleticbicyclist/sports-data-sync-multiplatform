@@ -318,6 +318,7 @@ class LoginFragment : Fragment() {
 
     private fun dotRes(ds: DataSource): Int = when (ds) {
         DataSource.IGPSPORT -> R.drawable.bg_dot_igp
+        DataSource.IGPSPORT_INT -> R.drawable.bg_dot_igp
         DataSource.XINGZHE -> R.drawable.bg_dot_xingzhe
         DataSource.MAGENE -> R.drawable.bg_dot_magene
         DataSource.BLACKBIRD -> R.drawable.bg_dot_blackbird
@@ -668,6 +669,7 @@ class LoginFragment : Fragment() {
     /** v7.7.3: DataSource → LoginWebActivity登录类型映射（注销清WebView登录态用） */
     private fun DataSource.toLoginType(): String = when (this) {
         DataSource.IGPSPORT -> LoginWebActivity.TYPE_IGPSPORT
+        DataSource.IGPSPORT_INT -> LoginWebActivity.TYPE_IGPSPORT
         DataSource.XINGZHE -> LoginWebActivity.TYPE_XINGZHE
         DataSource.MAGENE -> LoginWebActivity.TYPE_MAGENE
         DataSource.BLACKBIRD -> LoginWebActivity.TYPE_BLACKBIRD

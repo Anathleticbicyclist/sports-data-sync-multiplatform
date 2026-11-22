@@ -133,7 +133,7 @@
 
 .field private final totalDistanceKm:D
 
-.field private final totalDurationSec:J
+.field private totalDurationSec:J
 
 
 # direct methods
@@ -965,6 +965,21 @@
     iget-wide v0, p0, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->totalDistanceKm:D
 
     return-wide v0
+.end method
+
+.method public final setTotalDurationSec(J)V
+    .locals 4
+
+    const-wide/16 v0, 0x0
+
+    cmp-long v2, p1, v0
+
+    if-lez v2, :cond_0
+
+    iput-wide p1, p0, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->totalDurationSec:J
+
+    :cond_0
+    return-void
 .end method
 
 .method public final getTotalDurationSec()J

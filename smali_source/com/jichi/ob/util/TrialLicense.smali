@@ -73,7 +73,7 @@
 
 .field private static final PREFS_NAME:Ljava/lang/String; = "jichi_ob_trial"
 
-.field private static final SALT:Ljava/lang/String; = "v2ayxaeva3r8i066gkvnxq8iq9iel2tf"
+.field private static final SALT:Ljava/lang/String; = "GATE_SALT_PLACEHOLDER"
 
 .field private static final TAG:Ljava/lang/String; = "TrialLicense"
 
@@ -1029,7 +1029,7 @@
 
     move-result-object v5
 
-    const-string v6, "LIFEv2ayxaeva3r8i066gkvnxq8iq9iel2tf"
+    const-string v6, "LIFEGATE_SALT_PLACEHOLDER"
 
     invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -1122,7 +1122,7 @@
 
     move-result-object v3
 
-    const-string/jumbo v5, "v2ayxaeva3r8i066gkvnxq8iq9iel2tf"
+    const-string/jumbo v5, "GATE_SALT_PLACEHOLDER"
 
     invoke-virtual {v3, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 

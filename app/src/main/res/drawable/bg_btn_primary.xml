@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 注意：本文件为按用法重建的近似值。原文件在仓库 HEAD 与 apktool 导出里都找不到，
+     dialog_trial.xml 引用了它；若缺失，弹窗 inflate 会直接崩溃。
+     样式：主色圆角按钮，与 App 主色 #2B8CFF 一致；放回后请对照旧版截图确认。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/primary" />
+    <corners android:radius="10dp" />
+</shape>

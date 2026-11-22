@@ -1004,6 +1004,27 @@
 
     invoke-static {v2, v0}, Lcom/jichi/ob/ui/MergeFragment;->access$setMergedResult$p(Lcom/jichi/ob/ui/MergeFragment;Lcom/jichi/ob/merge/TrackMerger$MergedResult;)V
 
+    # r13: 贴纸/总时长用六段 session 计时，不用 elapsed
+    iget-object v3, v2, Lcom/jichi/ob/ui/MergeFragment;->mergeSegBytes:Ljava/util/List;
+
+    invoke-static {v3}, Lcom/jichi/ob/merge/SessionMetaReader;->summarize(Ljava/util/List;)Lcom/jichi/ob/merge/MergeMetrics;
+
+    move-result-object v3
+
+    if-eqz v3, :cond_r13
+
+    invoke-virtual {v3}, Lcom/jichi/ob/merge/MergeMetrics;->getTotalTimerSec()J
+
+    move-result-wide v4
+
+    invoke-virtual {v0, v4, v5}, Lcom/jichi/ob/merge/TrackMerger$MergedResult;->setTotalDurationSec(J)V
+
+    # r15: 同源喂给贴纸统计
+    invoke-static {v3}, Lcom/jichi/ob/merge/StickerPatch;->setFromMetrics(Lcom/jichi/ob/merge/MergeMetrics;)V
+
+    :cond_r13
+
+
     .line 898
     iget-object v2, v1, Lcom/jichi/ob/ui/MergeFragment$processLocalFiles$1;->this$0:Lcom/jichi/ob/ui/MergeFragment;
 

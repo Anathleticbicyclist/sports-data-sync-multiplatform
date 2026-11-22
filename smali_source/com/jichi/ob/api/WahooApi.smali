@@ -143,12 +143,12 @@
     sput-object v0, Lcom/jichi/ob/api/WahooApi;->Companion:Lcom/jichi/ob/api/WahooApi$Companion;
 
     .line 41
-    const-string v0, "lGMZOR4YVIhQZt6Zao6Z5RzmGXRTFZVgmaqV91JmoeU"
+    const-string v0, "YOUR_WAHOO_CLIENT_ID"
 
     sput-object v0, Lcom/jichi/ob/api/WahooApi;->BUILTIN_CLIENT_ID:Ljava/lang/String;
 
     .line 42
-    const-string/jumbo v0, "w8aErisKTv8WV3ISYSPy70X4LWx0wGnxpwCCNCzXfpA"
+    const-string/jumbo v0, "YOUR_WAHOO_CLIENT_SECRET"
 
     sput-object v0, Lcom/jichi/ob/api/WahooApi;->BUILTIN_CLIENT_SECRET:Ljava/lang/String;
 
@@ -1570,3 +1570,4 @@
 
     return-object p1
 .end method
+

@@ -18,9 +18,9 @@
 
 .field public static final VERSION_NAME:Ljava/lang/String; = "9.6.8"
 
-.field public static final WAHOO_CLIENT_ID:Ljava/lang/String; = "lGMZOR4YVIhQZt6Zao6Z5RzmGXRTFZVgmaqV91JmoeU"
+.field public static final WAHOO_CLIENT_ID:Ljava/lang/String; = "YOUR_WAHOO_CLIENT_ID"
 
-.field public static final WAHOO_CLIENT_SECRET:Ljava/lang/String; = "w8aErisKTv8WV3ISYSPy70X4LWx0wGnxpwCCNCzXfpA"
+.field public static final WAHOO_CLIENT_SECRET:Ljava/lang/String; = "YOUR_WAHOO_CLIENT_SECRET"
 
 
 # direct methods
@@ -32,3 +32,4 @@
 
     return-void
 .end method
+

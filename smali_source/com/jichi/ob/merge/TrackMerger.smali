@@ -783,17 +783,9 @@
 
     move-result-wide v21
 
-    sub-long v6, v21, v17
 
     move-wide/from16 v18, v15
 
-    const-wide/16 v14, 0x5a
-
-    invoke-static {v6, v7, v14, v15}, Lkotlin/ranges/RangesKt;->coerceAtMost(JJ)J
-
-    move-result-wide v6
-
-    add-long v21, v8, v6
 
     .line 114
     invoke-virtual/range {v20 .. v20}, Lcom/jichi/ob/GpxToFitConverter$TrackPoint;->getTs()J

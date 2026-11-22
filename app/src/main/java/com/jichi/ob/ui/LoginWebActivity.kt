@@ -68,7 +68,7 @@ class LoginWebActivity : AppCompatActivity() {
         const val RESULT_LOGIN_TYPE = "login_type"
         const val RESULT_EXTRA = "extra"  // 迈金refresh_token / Outbase网关cookie
  
-        private const val MOBILE_UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+        internal const val MOBILE_UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
         private const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
         /**
@@ -155,20 +155,20 @@ class LoginWebActivity : AppCompatActivity() {
         }
     }
  
-    private lateinit var webView: WebView
-    private lateinit var progressBar: ProgressBar
+    internal lateinit var webView: WebView
+    internal lateinit var progressBar: ProgressBar
     private var loginType = TYPE_XINGZHE
-    private var detected = false
+    internal var detected = false
     private var igpReloadCount = 0  // v7.6.0: iGPSPORT token校验失败重载计数(限2次)
-    private var igpHttpErrorCount = 0  // v7.7.3: iGPSPORT HTTP错误自动重载计数(限1次)
+    internal var igpHttpErrorCount = 0  // v7.7.3: iGPSPORT HTTP错误自动重载计数(限1次)
     private var pendingClean = false       // v7.7.3: 该平台未登录(刚注销)时，首次加载后清理残留登录态再重载
     private var pendingCleanDone = false   // v7.7.3: 清理是否已执行
     private val urlHistory = mutableListOf<String>()  // v7.1.7: URL历史记录，用于调试Wahoo授权码捕获
     private val verifying = AtomicBoolean(false)
-    private var checkCount = 0
+    internal var checkCount = 0
     private var lastReportedLoginError: String? = null  // v8.3.4: 佳明WebView页面错误去重（同一错误只弹一次）
  
-    private val checkRunnable = object : Runnable {
+    internal val checkRunnable = object : Runnable {
         override fun run() {
             if (!detected && !isFinishing) {
                 detectLogin()
@@ -176,6 +176,9 @@ class LoginWebActivity : AppCompatActivity() {
             }
         }
     }
+    // iGPSPORT 原生登录处理器（六个方法已抽至 IgpsportLoginHandler，本类仅保留同名委托）。
+    private val igpLoginHandler = IgpsportLoginHandler(this)
+
  
     @SuppressLint("SetJavaScriptEnabled")
 
@@ -706,253 +709,26 @@ class LoginWebActivity : AppCompatActivity() {
      * 接口: SendVerificationCode(type:1, username) → login/phone(phone, code, appId)
      * 已在生产验证: 发验证码/登录/拉活动列表全链路可用（2026-09）
      */
-    private fun setupIgpNativeLogin() {
-        val igpLayout = findViewById<android.widget.LinearLayout>(R.id.igpSmsLoginLayout)
-        igpLayout.visibility = android.view.View.VISIBLE
-        findViewById<android.view.View>(R.id.btnConfirmLogin)?.visibility = android.view.View.GONE
-        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
-        toolbar.title = "登录 iGPSPORT"
-
-        // v8.0.0: 底部"使用网页登录"按钮 → 切换 WebView 登录（兜底，收不到验证码/验证码失败时使用）
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpWebFallback)?.setOnClickListener {
-            switchToIgpWebLogin()
-        }
-        // v8.0.0: WebView 登录底部"切换回验证码登录"按钮
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpBackToSms)?.setOnClickListener {
-            switchBackToIgpSms()
-        }
-
-        val etPhone = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpPhone)
-        val etCode = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)
-        val btnSend = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)
-        val btnLogin = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpLogin)
-        val tvStatus = findViewById<android.widget.TextView>(R.id.tvIgpStatus)
-
-        // 发送验证码
-        btnSend.setOnClickListener {
-            val phone = etPhone.text?.toString()?.trim() ?: ""
-            if (phone.length != 11 || !phone.all { it.isDigit() }) {
-                tvStatus.text = "请输入正确的11位手机号"
-                return@setOnClickListener
-            }
-            btnSend.isEnabled = false
-            tvStatus.text = "正在发送验证码..."
-            lifecycleScope.launch(Dispatchers.IO) {
-                val ok = sendIgpSmsCode(phone)
-                runOnUiThread {
-                    if (ok) {
-                        tvStatus.text = "✅ 验证码已发送，请查看手机短信"
-                        startIgpCountdown(btnSend)
-                    } else {
-                        btnSend.isEnabled = true
-                        tvStatus.text = "❌ 发送失败，请稍后重试（注意发送频率限制，勿频繁点击）"
-                    }
-                }
-            }
-        }
-
-        // 验证码登录
-        btnLogin.setOnClickListener {
-            val phone = etPhone.text?.toString()?.trim() ?: ""
-            val code = etCode.text?.toString()?.trim() ?: ""
-            if (phone.length != 11 || !phone.all { it.isDigit() }) { tvStatus.text = "请输入正确的11位手机号"; return@setOnClickListener }
-            if (code.length != 6) { tvStatus.text = "请输入6位验证码"; return@setOnClickListener }
-            btnLogin.isEnabled = false
-            btnLogin.text = "登录中..."
-            tvStatus.text = "正在登录..."
-            lifecycleScope.launch(Dispatchers.IO) {
-                val token = loginIgpBySms(phone, code)
-                runOnUiThread {
-                    if (token != null) {
-                        Log.i(TAG, "✅ iGPSPORT 原生验证码登录成功 len=${token.length}")
-                        try { PrefsManager(this@LoginWebActivity).saveIgpsportToken(token) } catch (_: Exception) {}
-                        detected = true
-                        setResult(Activity.RESULT_OK, Intent()
-                            .putExtra(RESULT_TOKEN, token)
-                            .putExtra(RESULT_LOGIN_TYPE, TYPE_IGPSPORT))
-                        finish()
-                    } else {
-                        btnLogin.isEnabled = true
-                        btnLogin.text = "登录"
-                        tvStatus.text = "❌ 登录失败：验证码错误或已过期，请重新获取后重试"
-                    }
-                }
-            }
-        }
-    }
+    private fun setupIgpNativeLogin() = igpLoginHandler.setupIgpNativeLogin()
 
     /** v8.0.0: iGPSPORT 从原生验证码登录切换到 WebView 登录（兜底，用户收不到验证码时使用） */
-    private fun switchToIgpWebLogin() {
-        if (isFinishing || detected) return
-        try {
-            findViewById<android.widget.LinearLayout>(R.id.igpSmsLoginLayout)?.visibility = android.view.View.GONE
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpBackToSms)?.visibility = android.view.View.VISIBLE
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.visibility = android.view.View.VISIBLE
-            // 原生分支提前return，此处补注册"确认登录"按钮（网页登录完成后的手动确认）
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.setOnClickListener {
-                confirmManualLogin()
-            }
-            findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.VISIBLE
-            setupIgpWebView()
-            // v8.5.8: 无条件彻底清除IGP登录态（cookie+localStorage+cache），确保不自动登录旧账号
-            try {
-                clearPlatformWebLogin(TYPE_IGPSPORT, wipeAllCookies = true)
-                // 清WebView HTTP缓存
-                webView.clearCache(true)
-                webView.clearHistory()
-            } catch (_: Exception) {}
-            checkCount = 0
-            detected = false
-            // 等cookie清除完成再加载URL，避免旧cookie导致自动登录
-            webView.postDelayed({
-                try { webView.loadUrl(com.jichi.ob.api.IgpsportApi.LOGIN_URL) } catch (_: Exception) {}
-            }, 500)
-            webView.post(checkRunnable)
-        } catch (e: Exception) {
-            Log.e(TAG, "switchToIgpWebLogin 失败", e)
-            android.widget.Toast.makeText(this, "网页登录打开失败：${e.message}", android.widget.Toast.LENGTH_LONG).show()
-        }
-    }
+    private fun switchToIgpWebLogin() = igpLoginHandler.switchToIgpWebLogin()
 
     /** v8.0.0: 从 WebView 网页登录切回原生验证码登录（双向切换） */
-    private fun switchBackToIgpSms() {
-        if (isFinishing) return
-        try {
-            detected = false
-            webView.removeCallbacks(checkRunnable)
-            findViewById<android.widget.LinearLayout>(R.id.webLoginContainer)?.visibility = android.view.View.GONE
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpBackToSms)?.visibility = android.view.View.GONE
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConfirmLogin)?.visibility = android.view.View.GONE
-            // 重置验证码输入与倒计时状态，方便重新输入
-            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpPhone)?.text?.clear()
-            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)?.text?.clear()
-            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etIgpCode)?.isEnabled = true
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpLogin)?.isEnabled = true
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpLogin)?.text = "登录"
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)?.isEnabled = true
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnIgpSendCode)?.text = "发送验证码"
-            findViewById<android.widget.TextView>(R.id.tvIgpStatus)?.text = ""
-            findViewById<android.widget.LinearLayout>(R.id.igpSmsLoginLayout)?.visibility = android.view.View.VISIBLE
-        } catch (e: Exception) {
-            Log.e(TAG, "switchBackToIgpSms 失败", e)
-        }
-    }
+    private fun switchBackToIgpSms() = igpLoginHandler.switchBackToIgpSms()
 
     /** v8.0.0: iGPSPORT WebView 兜底登录的 WebView 初始化（与主流程同款设置：移动UA/允许Cookie/错误自动重载/崩溃恢复） */
     @SuppressLint("SetJavaScriptEnabled")
-    private fun setupIgpWebView() {
-        progressBar = findViewById(R.id.progressBar)
-        webView = findViewById(R.id.webView)
-        webView.visibility = android.view.View.VISIBLE
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            @Suppress("DEPRECATION")
-            databaseEnabled = true
-            allowContentAccess = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            userAgentString = MOBILE_UA
-        }
-        // 允许第三方cookie（登录页跨域写入/读取登录态）
-        CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                progressBar.visibility = android.view.View.VISIBLE
-                Log.d(TAG, "[igp] PageStarted: $url")
-            }
-            override fun onPageFinished(view: WebView?, url: String?) {
-                progressBar.visibility = android.view.View.GONE
-                checkCount++
-                Log.d(TAG, "[igp] PageFinished #$checkCount: $url")
-                if (checkCount == 1) webView.post(checkRunnable)
-            }
-            // v7.7.3: IGP登录页HTTP错误(403/404等)自动重载一次，规避旧内核下偶发加载失败
-            override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: android.webkit.WebResourceResponse?) {
-                val code = errorResponse?.statusCode ?: 0
-                if (!detected && igpHttpErrorCount < 1 && code in listOf(403, 404, 500, 502, 503)) {
-                    igpHttpErrorCount++
-                    Log.w(TAG, "[igp] HTTP $code，自动重载登录页")
-                    view?.postDelayed({ runOnUiThread { try { view.reload() } catch (_: Exception) {} } }, 500)
-                }
-            }
-            override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
-                Log.e(TAG, "[igp] WebView渲染进程崩溃: reason=${detail?.didCrash()}")
-                runOnUiThread {
-                    android.widget.Toast.makeText(this@LoginWebActivity, "页面渲染异常，正在重试...", android.widget.Toast.LENGTH_SHORT).show()
-                    view?.let { wv -> try { wv.stopLoading(); wv.clearHistory(); wv.reload() } catch (_: Exception) {} }
-                }
-                return true
-            }
-        }
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                progressBar.progress = newProgress
-            }
-        }
-    }
+    private fun setupIgpWebView() = igpLoginHandler.setupIgpWebView()
 
     /** 发送IGP短信验证码 */
-    private fun sendIgpSmsCode(phone: String): Boolean {
-        return try {
-            val client = okhttp3.OkHttpClient.Builder().connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS).build()
-            val body = """{"type":1,"username":"$phone"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
-            val req = okhttp3.Request.Builder()
-                .url("https://prod.zh.igpsport.com/service/auth/account/SendVerificationCode")
-                .post(body)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14) Chrome/131.0.0.0 Mobile")
-                .build()
-            val resp = client.newCall(req).execute()
-            val bodyStr = resp.body?.string() ?: ""
-            val json = org.json.JSONObject(bodyStr)
-            Log.i(TAG, "sendIgpSmsCode: ${json.optString("message", "ok")} code=${json.optInt("code", -1)}")
-            json.optInt("code", -1) == 0
-        } catch (e: Exception) { Log.e(TAG, "sendIgpSmsCode 异常", e); false }
-    }
+    private fun sendIgpSmsCode(phone: String): Boolean = igpLoginHandler.sendIgpSmsCode(phone)
 
     /** IGP验证码登录，返回纯JWT（不带Bearer前缀，与WebView提取格式一致） */
-    private fun loginIgpBySms(phone: String, code: String): String? {
-        return try {
-            val client = okhttp3.OkHttpClient.Builder().connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS).build()
-            val body = """{"phone":"$phone","code":"$code","appId":"igpsport-web"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
-            val req = okhttp3.Request.Builder()
-                .url("https://prod.zh.igpsport.com/service/auth/account/login/phone")
-                .post(body)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14) Chrome/131.0.0.0 Mobile")
-                .build()
-            val resp = client.newCall(req).execute()
-            val bodyStr = resp.body?.string() ?: ""
-            val json = org.json.JSONObject(bodyStr)
-            if (json.optInt("code", -1) == 0) {
-                val token = json.optJSONObject("data")?.optString("access_token", "") ?: ""
-                if (token.isNotEmpty()) token else null
-            } else {
-                Log.w(TAG, "loginIgpBySms 失败: ${json.optString("message", bodyStr.take(100))}")
-                null
-            }
-        } catch (e: Exception) { Log.e(TAG, "loginIgpBySms 异常", e); null }
-    }
+    private fun loginIgpBySms(phone: String, code: String): String? = igpLoginHandler.loginIgpBySms(phone, code)
 
     /** 发送验证码按钮60s倒计时 */
-    private fun startIgpCountdown(btn: com.google.android.material.button.MaterialButton) {
-        btn.isEnabled = false
-        var remain = 60
-        val runnable = object : Runnable {
-            override fun run() {
-                remain--
-                if (remain <= 0) {
-                    btn.isEnabled = true
-                    btn.text = "发送验证码"
-                } else {
-                    btn.text = "${remain}s"
-                    btn.postDelayed(this, 1000)
-                }
-            }
-        }
-        btn.post(runnable)
-    }
+    private fun startIgpCountdown(btn: com.google.android.material.button.MaterialButton) = igpLoginHandler.startIgpCountdown(btn)
 
     private fun detectLogin() {
         if (detected || isFinishing) return
@@ -1388,7 +1164,7 @@ class LoginWebActivity : AppCompatActivity() {
     }
 
     /** 手动确认登录: 用户点击按钮后捕获当前凭证 */
-    private fun confirmManualLogin() {
+    internal fun confirmManualLogin() {
         if (detected) return
         detected = true
         val cm = CookieManager.getInstance()

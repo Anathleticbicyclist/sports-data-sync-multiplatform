@@ -93,99 +93,43 @@ class GarminApi {
         private val mainHandler = Handler(Looper.getMainLooper())
 
         // ===== v7.9.0: 佳明 429 风控冷却（24小时）=====
-        // v7.9.1: 冷却按【clientId × email】组合维度——
-        //   ① 换 clientId 登录不被拦（佳明限流实为 clientId×email 组合，换通道即可绕开"每天只能登一次"）
-        //   ② 同一 clientId 下切换账号也不被拦（不同 email 互不影响）
-        private const val COOLDOWN_MS = 24 * 60 * 60 * 1000L
-        private const val PREFS_COOLDOWN = "garmin_cooldown"
-        @Volatile private var appContext: Context? = null
-        fun setAppContext(ctx: Context) { appContext = ctx.applicationContext }
+        // 实现已抽到 GarminCooldown（同包 internal object）；此处仅保留委托，对外签名不变。
+        // 调用方（MainActivity / LoginFragment / LoginWebActivity / AutoSyncWorker）无需改动。
+        fun setAppContext(ctx: Context) = GarminCooldown.setAppContext(ctx)
 
-        // 佳明 SSO 登录通道（clientId × serviceUrl）——实测多通道可绕开单通道429限流
-        // 国际版：GCM_IOS_DARK(默认) / GCM_ANDROID_DARK / GCM_ANDROID_LIGHT / GarminConnect 均可登录
-        private data class SsoChannel(val clientId: String, val serviceUrl: String)
-        private val SSO_CHANNELS_COM = arrayOf(
-            SsoChannel("GCM_IOS_DARK", "https://mobile.integration.garmin.com/gcm/ios"),
-            SsoChannel("GCM_ANDROID_DARK", "https://mobile.integration.garmin.com/gcm/android"),
-            SsoChannel("GCM_ANDROID_LIGHT", "https://mobile.integration.garmin.com/gcm/android"),
-            SsoChannel("GarminConnect", "https://connect.garmin.com/modern/")
-        )
-        private val SSO_CHANNELS_CN = arrayOf(
-            SsoChannel("GCM_ANDROID_DARK", "https://mobile.integration.garmin.cn/gcm/android"),
-            SsoChannel("GCM_IOS_DARK", "https://mobile.integration.garmin.cn/gcm/ios")
-        )
-
-        // 冷却key：clientId为空→区域维度；email为空→clientId维度；都有→clientId×email维度
-        private fun cooldownKey(ds: DataSource, email: String?, clientId: String?) =
-            if (!email.isNullOrBlank() && !clientId.isNullOrBlank()) {
-                val tag = if (ds == DataSource.GARMIN_CN) "cn" else "com"
-                "garmin_${tag}_cooldown_${clientId.hashCode()}_${email.hashCode()}"
-            } else if (!clientId.isNullOrBlank()) {
-                val tag = if (ds == DataSource.GARMIN_CN) "cn" else "com"
-                "garmin_${tag}_cooldown_${clientId.hashCode()}"
-            } else {
-                if (ds == DataSource.GARMIN_CN) "garmin_cn_cooldown_until" else "garmin_com_cooldown_until"
-            }
-        private fun readCooldown(ds: DataSource, email: String?, clientId: String?): Long {
-            val ctx = appContext ?: return 0
-            return ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE).getLong(cooldownKey(ds, email, clientId), 0)
-        }
-        private fun writeCooldown(ds: DataSource, email: String?, clientId: String?) {
-            val ctx = appContext ?: return
-            ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
-                .edit().putLong(cooldownKey(ds, email, clientId), System.currentTimeMillis() + COOLDOWN_MS).apply()
-        }
         /** 供外部写冷却（MainActivity中国区429路径用），按clientId×email记录。
          *  v8.2.1: 保留风控冷却（防封号），用户在"清除登录"时手动清缓存解除误拦截 */
-        fun writeCooldownFor(ds: DataSource, email: String, clientId: String? = null) {
-            writeCooldown(ds, email, clientId)
-        }
+        fun writeCooldownFor(ds: DataSource, email: String, clientId: String? = null) =
+            GarminCooldown.writeCooldownFor(ds, email, clientId)
+
+        // 实例方法 loginMobile / loginOAuth1 / refreshDiToken 内部写冷却仍走此私有入口。
+        private fun writeCooldown(ds: DataSource, email: String?, clientId: String?) =
+            GarminCooldown.writeCooldown(ds, email, clientId)
+
         /** v8.1.9: 清除账号冷却缓存（登录成功后调用；覆盖安装保留的旧冷却缓存会导致"24小时后登录"误拦截，
-         *  分身/新装无缓存可正常登录，说明服务端无硬限，本地缓存可安全清除） */
-        fun clearCooldownFor(ds: DataSource, email: String) {
-            try {
-                val ctx = appContext ?: return
-                val prefs = ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
-                val ed = prefs.edit()
-                ed.remove(cooldownKey(ds, null, null))            // 区域维度
-                ed.remove(cooldownKey(ds, email, null))           // email维度
-                ed.remove(cooldownKey(ds, email, "oauth1"))       // OAuth1通道
-                SSO_CHANNELS_COM.forEach { ed.remove(cooldownKey(ds, email, it.clientId)) }
-                SSO_CHANNELS_CN.forEach { ed.remove(cooldownKey(ds, email, it.clientId)) }
-                ed.apply()
-                addDebugLog("clearCooldownFor: 已清除账号[$email]冷却缓存")
-            } catch (_: Exception) {}
-        }
+         * 分身/新装无缓存可正常登录，说明服务端无硬限，本地缓存可安全清除） */
+        fun clearCooldownFor(ds: DataSource, email: String) =
+            GarminCooldown.clearCooldownFor(ds, email)
+
         /** v8.2.1: 手动清空该区域【全部】冷却缓存（不依赖登录态；未登录也能一键解除误拦截） */
-        fun clearAllCooldownFor(ds: DataSource) {
-            try {
-                val ctx = appContext ?: return
-                val prefs = ctx.getSharedPreferences(PREFS_COOLDOWN, Context.MODE_PRIVATE)
-                val prefix = if (ds == DataSource.GARMIN_CN) "garmin_cn_" else "garmin_com_"
-                val ed = prefs.edit()
-                prefs.all.keys.filter { it.startsWith(prefix) }.forEach { ed.remove(it) }
-                ed.apply()
-                addDebugLog("clearAllCooldownFor: 已清空[${ds.shortName}]全部冷却缓存(${prefs.all.size} 键)")
-            } catch (_: Exception) {}
-        }
+        fun clearAllCooldownFor(ds: DataSource) =
+            GarminCooldown.clearAllCooldownFor(ds)
+
         /** 是否处于佳明429风控冷却期；email为空时回退区域维度，clientId为空时回退email维度 */
         fun isCooldown(ds: DataSource, email: String? = null, clientId: String? = null): Boolean =
-            System.currentTimeMillis() < readCooldown(ds, email, clientId)
+            GarminCooldown.isCooldown(ds, email, clientId)
+
         /** 该账号在该区域【所有通道】是否都处于冷却（供UI提示：全冷却才提示，任一可用即放行） */
-        fun isAllChannelsCooldown(ds: DataSource, email: String?): Boolean {
-            val channels = if (ds == DataSource.GARMIN_CN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
-            return channels.all { isCooldown(ds, email, it.clientId) }
-        }
+        fun isAllChannelsCooldown(ds: DataSource, email: String?): Boolean =
+            GarminCooldown.isAllChannelsCooldown(ds, email)
+
         /** 冷却剩余时间（分钟），供UI提示 */
-        fun cooldownRemainMinutes(ds: DataSource, email: String? = null, clientId: String? = null): Long {
-            val remain = readCooldown(ds, email, clientId) - System.currentTimeMillis()
-            return if (remain > 0) remain / 60000 else 0
-        }
+        fun cooldownRemainMinutes(ds: DataSource, email: String? = null, clientId: String? = null): Long =
+            GarminCooldown.cooldownRemainMinutes(ds, email, clientId)
+
         /** 该账号在该区域任一通道的剩余冷却（用于提示最长冷却） */
-        fun cooldownRemainAnyMinutes(ds: DataSource, email: String?): Long {
-            val channels = if (ds == DataSource.GARMIN_CN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
-            return channels.maxOfOrNull { cooldownRemainMinutes(ds, email, it.clientId) } ?: 0
-        }
+        fun cooldownRemainAnyMinutes(ds: DataSource, email: String?): Long =
+            GarminCooldown.cooldownRemainAnyMinutes(ds, email)
 
         var enableDebugLogs = false
         val debugLogs = mutableListOf<String>()
@@ -243,13 +187,16 @@ class GarminApi {
     // v7.6.0: 强制HTTP/1.1，修复佳明中国偶发"Required SETTINGS preface not received"
     // 根因：OkHttp默认HTTPS协商HTTP/2，佳明中国服务器HTTP/2握手不稳定，偶发连接层IOException
     // HTTP/1.1对multipart上传无任何影响（佳明一次一条串行上传）
-    private val client = OkHttpClient.Builder()
+    internal val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(300, TimeUnit.SECONDS)
         .followRedirects(true)
         .protocols(listOf(okhttp3.Protocol.HTTP_1_1))
         .build()
+
+    // 健康数据（v8.3.5）实现在 GarminWellnessApi；此处仅持有实例并委托，调用方无需改动。
+    private val wellnessApi = GarminWellnessApi(this)
 
     fun initWebView(context: Context) = initSharedWebView(context)
 
@@ -264,7 +211,7 @@ class GarminApi {
      */
     suspend fun loginMobile(email: String, password: String, isCN: Boolean = false): String? = withContext(Dispatchers.IO) {
         try {            val ds = if (isCN) DataSource.GARMIN_CN else DataSource.GARMIN_COM
-            val channels = if (isCN) SSO_CHANNELS_CN else SSO_CHANNELS_COM
+            val channels = if (isCN) GarminCooldown.SSO_CHANNELS_CN else GarminCooldown.SSO_CHANNELS_COM
             val ssoOrigin = if (isCN) "https://sso.garmin.cn" else "https://sso.garmin.com"
             val locale = if (isCN) "zh-CN" else "en-US"
             val loginUrl = if (isCN) SSO_LOGIN_URL_CN else SSO_LOGIN_URL_COM
@@ -666,7 +613,7 @@ class GarminApi {
         null
     }
 
-    private data class GarminSession(
+    internal data class GarminSession(
         val cookies: String,
         val csrf: String,
         val diToken: String = "",
@@ -720,7 +667,7 @@ class GarminApi {
         }
     }
 
-    private fun parseCredential(cred: String): GarminSession? {
+    internal fun parseCredential(cred: String): GarminSession? {
         if (cred.isEmpty()) return null
         return GarminSession.fromJson(cred)
     }
@@ -808,14 +755,14 @@ class GarminApi {
         refreshDiToken(ds, cred) ?: cred
     }
 
-    private fun gcApiHost(ds: DataSource): String =
+    internal fun gcApiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) "https://connect.garmin.cn/gc-api" else "https://connect.garmin.com/gc-api"
 
     // 国际版/中国版DI token用connectapi（不经过Cloudflare）
-    private fun connectApiHost(ds: DataSource): String =
+    internal fun connectApiHost(ds: DataSource): String =
         if (ds == DataSource.GARMIN_CN) CONNECT_API_HOST_CN else CONNECT_API_HOST_COM
 
-    private fun apiHeaders(ds: DataSource, cred: String): Map<String, String> {
+    internal fun apiHeaders(ds: DataSource, cred: String): Map<String, String> {
         val sess = parseCredential(cred)
         val h = mutableMapOf(
             "User-Agent" to "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UQ1A.240205.004; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.230 Mobile Safari/537.36",
@@ -845,7 +792,7 @@ class GarminApi {
     )
 
     // v8.1.9: connectapi 直连 header 选择——OAuth1（佳速通同款）优先，其次 DI Bearer
-    private fun connectHeaders(sess: GarminSession, ds: DataSource, url: String, method: String = "GET"): Map<String, String> {
+    internal fun connectHeaders(sess: GarminSession, ds: DataSource, url: String, method: String = "GET"): Map<String, String> {
         if (sess.oauthToken.isNotEmpty()) {
             return mapOf(
                 "Authorization" to oauth1AuthHeader(method, url, sess.oauthToken, sess.oauthTokenSecret),
@@ -1409,7 +1356,7 @@ class GarminApi {
                                 WebViewCompat.addWebMessageListener(wv, "jichiNative", allowed, listener)
                                 wv.evaluateJavascript(fetchJs, null)
                                 cont.invokeOnCancellation {
-                                    try { WebViewCompat.removeWebMessageListener(wv, listener) } catch (_: Exception) {}
+                                    try { WebViewCompat.removeWebMessageListener(wv, "jichiNative") } catch (_: Exception) {}
                                 }
                             }
                         }
@@ -1561,102 +1508,16 @@ class GarminApi {
     }
 
     // ==================== v8.3.5: Wellness 健康数据同步（步数/睡眠/HRV/压力）====================
+    // 实现已移至 GarminWellnessApi；此处仅保留同名委托（签名不变，调用方无需改动）。
+    /** 下载指定日期的 wellness 原始数据（zip 原样返回，由调用方解压）。实现见 GarminWellnessApi。 */
+    suspend fun downloadWellnessZip(ds: DataSource, cred: String, date: String): ByteArray? =
+        wellnessApi.downloadWellnessZip(ds, cred, date)
 
     /**
-     * 下载指定日期的 wellness 原始数据（zip 原样返回，由调用方解压）。
-     * 参考 dailysync-rev：GET {GC_API}/download-service/files/wellness/{yyyy-MM-dd}
-     */
-    suspend fun downloadWellnessZip(ds: DataSource, cred: String, date: String): ByteArray? = withContext(Dispatchers.IO) {
-        try {
-            val sess = parseCredential(cred)
-            // 优先 DI/OAuth1 直连 connectapi（与 getActivities/downloadFit 一致）
-            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
-                val url = "${connectApiHost(ds)}/download-service/files/wellness/$date"
-                val req = Request.Builder().url(url).apply {
-                    connectHeaders(sess, ds, url).forEach { (k, v) -> addHeader(k, v) }
-                    addHeader("Accept", "*/*")
-                }.get().build()
-                client.newCall(req).execute().use { resp ->
-                    addDebugLog("downloadWellness DI: HTTP ${resp.code} date=$date")
-                    if (resp.code != 200) {
-                        addDebugLog("downloadWellness DI失败: ${resp.body?.string()?.take(120)}")
-                        return@withContext null
-                    }
-                    return@withContext resp.body?.bytes()
-                }
-            }
-            // 兜底：gc-api + OkHttp
-            val url = "${gcApiHost(ds)}/download-service/files/wellness/$date"
-            val headers = apiHeaders(ds, cred).toMutableMap()
-            headers["Accept"] = "*/*"
-            val req = Request.Builder().url(url).apply { headers.forEach { (k, v) -> addHeader(k, v) } }.get().build()
-            client.newCall(req).execute().use { resp ->
-                if (resp.code != 200) { addDebugLog("downloadWellness OkHttp HTTP ${resp.code}"); return@withContext null }
-                resp.body?.bytes()
-            }
-        } catch (e: Exception) {
-            addDebugLog("downloadWellness异常: ${e.message}")
-            null
-        }
-    }
-
-    /**
-     * 上传健康数据 FIT 文件。
+     * 上传健康数据 FIT 文件。实现见 GarminWellnessApi。
      * 返回：null=成功；"重复(已在佳明存在)"；"需绑定健康设备(419)"；其他错误字符串
      */
-    suspend fun uploadWellnessFit(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val sess = parseCredential(cred)
-            if ((ds == DataSource.GARMIN_COM || ds == DataSource.GARMIN_CN) && (sess?.oauthToken?.isNotEmpty() == true || sess?.diToken?.isNotEmpty() == true)) {
-                val url = "${connectApiHost(ds)}/upload-service/upload"
-                val body = MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
-                    .build()
-                val req = Request.Builder().url(url).apply {
-                    connectHeaders(sess, ds, url, "POST").forEach { (k, v) -> addHeader(k, v) }
-                    addHeader("Accept", "application/json")
-                }.post(body).build()
-                client.newCall(req).execute().use { resp ->
-                    val result = resp.body?.string() ?: ""
-                    addDebugLog("uploadWellness DI: HTTP ${resp.code}, result=${result.take(160)}")
-                    return@withContext when (resp.code) {
-                        200, 201, 202 -> null
-                        409 -> if (result.contains("Duplicate Wellness", true) || result.contains("Duplicate Activity", true))
-                            "重复(已在佳明存在)" else "佳明健康上传冲突 HTTP 409: ${result.take(100)}"
-                        419 -> "需绑定健康设备(419)"
-                        400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
-                        else -> "佳明健康上传失败 HTTP ${resp.code}: ${result.take(100)}"
-                    }
-                }
-            }
-            // 兜底：gc-api + OkHttp
-            val url = "${gcApiHost(ds)}/upload-service/upload/"
-            val body = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("file", fileName, data.toRequestBody("application/octet-stream".toMediaType()))
-                .build()
-            val headers = apiHeaders(ds, cred).toMutableMap()
-            headers["Accept"] = "application/json"
-            val req = Request.Builder().url(url).apply { headers.forEach { (k, v) -> addHeader(k, v) } }.post(body).build()
-            client.newCall(req).execute().use { resp ->
-                val result = resp.body?.string() ?: ""
-                addDebugLog("uploadWellness OkHttp HTTP ${resp.code}: ${result.take(160)}")
-                when (resp.code) {
-                    200, 201, 202 -> null
-                    409 -> if (result.contains("Duplicate Wellness", true) || result.contains("Duplicate Activity", true))
-                        "重复(已在佳明存在)" else "佳明健康上传冲突 HTTP 409: ${result.take(100)}"
-                    419 -> "需绑定健康设备(419)"
-                    400, 415 -> "佳明拒绝该文件(HTTP ${resp.code}): ${result.take(150)}"
-                    else -> "佳明健康上传失败 HTTP ${resp.code}: ${result.take(100)}"
-                }
-            }
-        } catch (e: java.io.IOException) {
-            addDebugLog("uploadWellness连接错误: ${e.message}")
-            "佳明健康上传异常(连接错误): ${e.message}"
-        } catch (e: Exception) {
-            addDebugLog("uploadWellness异常: ${e.message}")
-            "佳明健康上传异常: ${e.message}"
-        }
-    }
+    suspend fun uploadWellnessFit(ds: DataSource, cred: String, data: ByteArray, fileName: String): String? =
+        wellnessApi.uploadWellnessFit(ds, cred, data, fileName)
+
 }

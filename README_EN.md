@@ -9,7 +9,7 @@ English | [中文](README.md)
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.6.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.6.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 An Android workout-data migration tool that syncs workout records (FIT/GPX) across **iGPSPORT (China / International) / Xingzhe / Magene / Blackbird / Giant / Outbase / Intervals.icu / Garmin International / Garmin China / COROS China / Strava / Wahoo / MyWhoosh / Zwift / Keep / Codoon / Zepp / Komoot / Suunto / Bryton / CyCity** — twenty-one platforms in total. It supports transfers between China and international regions (Bryton now supports download; MyWhoosh, Zwift, Codoon and Zepp are download-only data sources; Intervals.icu supports workout-plan download and pushing to iGPSPORT/Bryton; Keep supports download as a data source plus semi-automatic guided import for upload; Strava is upload-only).
@@ -26,13 +26,13 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 |------|---------|
 | App name | JiChi XingZhe MaiJin OB (Dev Experience Edition) |
 | Package name | `com.jichi.ob.dev` |
-| Current version | v9.6.8 |
+| Current version | v9.6.9 |
 | Minimum system | Android 8.0 (API 26) |
 | Target system | Android 16 (API 36) |
 | Language | Kotlin |
 | Stable edition download | [Download the stable edition](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase) (for daily use, the stable edition is recommended — it is more stable) |
-| Dev edition download | [v9.6.8 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.8/jichi-ob-dev-9.6.8.apk) |
-| APK stored in this repo | [鸡翅幸哲迈进OB-v9.6.8.apk](鸡翅幸哲迈进OB-v9.6.8.apk) (a backup download that does not go through Releases) |
+| Dev edition download | [v9.6.9 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.9/jichi-ob-dev-9.6.9.apk) (APK ships only as a Release asset; no installer is stored in the repo) |
+| Source layout | `smali_source` (the smali tree actually used to build v9.6.9) + `app/src/main/java` (decompiled Java/Kotlin reference tree — complete, but **not gradle-buildable**; see `源码说明.md`) |
 | User manual | [v9.5.5 Complete User Manual (PDF, 81 pages)](docs/manual-v9.5.5.pdf) |
 | Contact us | [Join the Outbase club](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f) (report issues, test new features, and chat with the maintainer) |
 
@@ -61,7 +61,7 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 | Login | Brand banner at the top; one-tap login check (a check button plus an auto-check login status switch); a dedicated Outbase section; logged-in platforms (8) shown as cards with upload/download counts, which can be re-logged-in; four tabs at the bottom |
 | Data sync settings | Data source (single choice), sync targets (multiple choices allowed, Keep marked as semi-automatic import); a note showing how many hidden sources/targets there are; sliders for sync count and skip count; three Magene coordinate GCJ-02 → WGS-84 switches (Qiniu Cloud — recommended off, fit_content — recommended on, local folder conversion) |
 | Sync | Sync task cards (multiple sources × multiple targets, runnable, with automatic incremental sync), create task; statistics card (success / skipped / failed); background auto-sync (check interval 15 minutes, WorkManager resumes across reboots); start sync, stop / test / copy / clear memory; run log (latest 3 entries shown in the foreground, with full log, pause scrolling and clear options) |
-| About | Version info and check for updates; Record Center, track merge & transparent stickers, heatmap, temporary bike computer, lab entry; what's new in this update (v9.5.7); open-source, free, and tip/support info |
+| About | Version info and check for updates; Record Center, track merge & transparent stickers, heatmap, temporary bike computer, lab entry; what's new in this update (v9.6.9); open-source, free, and tip/support info |
 
 > **Full UI redesign since v7.7.7**: a flat, fresh and modern design style (following modern mobile design language), with the main colour unified as sky blue `#2B8CFF` and a consistent style across all four pages; the platform brand-colour dots are a design highlight (on the settings page, the dot lights up in the corresponding brand colour when selected).
 
@@ -434,6 +434,11 @@ Welcome to the developer club — chat, test and give feedback with the maintain
 
 ---
 ## 📋 Changelog
+
+### v9.6.9
+- Multi-day track merge rebuilt: distance, timer, ascent and calories come from each segment's original device values, auto-laps per day, and the merged FIT can be uploaded straight back to the source platforms
+- New temporary bike-computer page: GPS, speed, altitude and Bluetooth sensors, exporting FIT / GPX
+- Record Center heatmap optimised; fixed third-party FIT uploads to Garmin International (device header / CRC / big-endian reads, HTTP 412)
 
 ### v9.6.8
 - Fixed a serious auto-login crash bug (platform expiry, no network, or unreachable platforms caused a looping crash that prevented the app from starting)
