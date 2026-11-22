@@ -104,8 +104,8 @@ public final class MergeFragment extends Fragment {
     private TextView btnExportGpx;
     private TextView btnExportSticker;
     private TextView btnMergeDone;
-    private MaterialButton btnMergeNext;
-    private MaterialButton btnSaveMerge;
+    MaterialButton btnMergeNext;
+    MaterialButton btnSaveMerge;
     private TextView btnSticker3d;
     private TextView btnSticker3dBand;
     private TextView btnSticker3dMode;
@@ -125,32 +125,32 @@ public final class MergeFragment extends Fragment {
     private TextView btnStickerTransparent;
     private TextView btnStickerWatermark;
     private TextView btnStickerWidth;
-    private MaterialButton btnUploadMerge;
+    MaterialButton btnUploadMerge;
     private LinearLayout categoryTabRow;
-    private boolean comboOverride;
+    boolean comboOverride;
     private LinearLayout comboPanel;
     private boolean comboPanelOpen;
     private final ActivityResultLauncher<String[]> filePicker;
-    private String fromDate;
+    String fromDate;
     private GridLayout gridMergeSource;
     private GridLayout gridMergeStats;
     private GridLayout gridMergeUpload;
-    private boolean listHasMore;
-    private boolean localMode;
+    boolean listHasMore;
+    boolean localMode;
     private final ActivityResultLauncher<String> logoPicker;
     private MergeAdapter mergeAdapter;
     private TextView mergeStepHint;
     private TextView mergeTitle;
-    private TrackMerger.MergedResult mergedResult;
-    private boolean pageLoading;
-    private int pageSkip;
+    TrackMerger.MergedResult mergedResult;
+    boolean pageLoading;
+    int pageSkip;
     private final ActivityResultLauncher<String> photoPicker;
-    private PrefsManager prefs;
-    private TrackPreviewView previewTrack;
-    private boolean rangeMode;
+    PrefsManager prefs;
+    TrackPreviewView previewTrack;
+    boolean rangeMode;
     private RecyclerView rvMergeList;
     private File savedFile;
-    private DataSource source;
+    DataSource source;
     private View stepPreview;
     private View stepResult;
     private View stepSelect;
@@ -162,21 +162,21 @@ public final class MergeFragment extends Fragment {
     private TextView stickerTemplateName;
     private int stickerTextMode;
     private int templateIdx;
-    private String toDate;
-    private TextView tvMergeHint;
+    String toDate;
+    TextView tvMergeHint;
     private TextView tvMergeResultFile;
     private TextView tvMergeResultPath;
-    private TextView tvMergeResultTitle;
+    TextView tvMergeResultTitle;
     private TextView tvMergeSelected;
-    private final LinkedHashSet<Integer> selectedIndexes = new LinkedHashSet<>();
-    private int rangeAnchor = -1;
+    final LinkedHashSet<Integer> selectedIndexes = new LinkedHashSet<>();
+    int rangeAnchor = -1;
     private boolean badgeOn = true;
-    private final Set<StickerCore.StickerBg> photoBgs = SetsKt.setOf((Object[]) new StickerCore.StickerBg[]{StickerCore.StickerBg.PHOTO_OVERLAY, StickerCore.StickerBg.FROSTED, StickerCore.StickerBg.PHOTO_SPLIT});
+    final Set<StickerCore.StickerBg> photoBgs = SetsKt.setOf((Object[]) new StickerCore.StickerBg[]{StickerCore.StickerBg.PHOTO_OVERLAY, StickerCore.StickerBg.FROSTED, StickerCore.StickerBg.PHOTO_SPLIT});
     private boolean sticker3d = true;
     private int stickerLineMode = 2;
     private List<Integer> stickerItems = CollectionsKt.toMutableList((Collection) StickerCore.INSTANCE.getITEM_DEFAULT());
-    private final LinkedHashSet<String> selectedUploadTags = new LinkedHashSet<>();
-    private List<ActivityRecord> allRecords = CollectionsKt.emptyList();
+    final LinkedHashSet<String> selectedUploadTags = new LinkedHashSet<>();
+    List<ActivityRecord> allRecords = CollectionsKt.emptyList();
     private String lastErr = "";
 
     /* renamed from: dp$delegate, reason: from kotlin metadata */
@@ -292,11 +292,53 @@ public final class MergeFragment extends Fragment {
         To view partially-correct add '--show-bad-code' argument
     */
     public final void editSummaryStats() {
-        /*
-            Method dump skipped, instructions count: 357
-            To view this dump add '--comments-level debug' option
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.jichi.ob.ui.MergeFragment.editSummaryStats():void");
+        // 方法体按 9.6.8 原版意图重写：旧反编译结果此处是反编译器复制粘贴坏了的
+        // （对话框建了两遍、同一批输入框重复加进布局、str/str2 可能未赋值），
+        // 按“四个输入框 + 一个对话框 + 保存走 editSummaryStats$lambda$9”的原意写干净。
+        Context ctx = requireContext();
+        LinearLayout layout = new LinearLayout(ctx);
+        layout.setOrientation(1);
+        layout.setPadding(56, 24, 56, 8);
+        TrackPreviewView preview = this.previewTrack;
+        if (preview == null) {
+            Intrinsics.throwUninitializedPropertyAccessException("previewTrack");
+            preview = null;
+        }
+        StickerCore.SummaryStats stats = preview.getSummaryStats();
+        final EditText countEt = new EditText(ctx);
+        countEt.setHint("次数（如 12）");
+        countEt.setInputType(2);
+        countEt.setTextSize(15.0f);
+        countEt.setText(stats != null ? Integer.valueOf(stats.getCount()).toString() : "");
+        countEt.setPadding(0, 8, 0, 8);
+        final EditText kmEt = new EditText(ctx);
+        kmEt.setHint("总里程 km（如 126.5）");
+        kmEt.setInputType(8194);
+        kmEt.setTextSize(15.0f);
+        kmEt.setText(stats != null ? String.format(Locale.US, "%.1f", Double.valueOf(stats.getTotalKm())) : "");
+        kmEt.setPadding(0, 8, 0, 8);
+        final EditText minEt = new EditText(ctx);
+        minEt.setHint("总时长 分钟（如 458）");
+        minEt.setInputType(2);
+        minEt.setTextSize(15.0f);
+        minEt.setText(stats != null ? String.valueOf(stats.getTotalSec() / 60) : "");
+        minEt.setPadding(0, 8, 0, 8);
+        final EditText ascEt = new EditText(ctx);
+        ascEt.setHint("总爬升 m（如 1520）");
+        ascEt.setInputType(2);
+        ascEt.setTextSize(15.0f);
+        ascEt.setText(stats != null ? String.format(Locale.US, "%.0f", Double.valueOf(stats.getTotalAscentM())) : "");
+        ascEt.setPadding(0, 8, 0, 8);
+        layout.addView(countEt);
+        layout.addView(kmEt);
+        layout.addView(minEt);
+        layout.addView(ascEt);
+        new AlertDialog.Builder(ctx).setTitle("录入往期数据").setMessage("用于「累计对比 / 双栏 / 年度总结」模板的右侧累计数据，按月/年手输即可").setView(layout).setPositiveButton("保存", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                MergeFragment.editSummaryStats$lambda$9(countEt, kmEt, minEt, ascEt, MergeFragment.this, dialogInterface, i);
+            }
+        }).setNegativeButton("清除", (DialogInterface.OnClickListener) null).show();
     }
 
     /* JADX INFO: Access modifiers changed from: private */
@@ -2155,19 +2197,40 @@ public final class MergeFragment extends Fragment {
         private final int ascentM;
         private final int descentM;
         private final List<GpxToFitConverter.TrackPoint> points;
+        // v9.6.9: 每段 session / file_id 原值（计时、卡路里、厂商/产品/序列号），随段传给合并。
+        private final long timerSec;
+        private final int totalCalories;
+        private final int manufacturer;
+        private final int product;
+        private final long serialNumber;
 
         /* JADX WARN: Multi-variable type inference failed */
-        public static /* synthetic */ ParseResult copy$default(ParseResult parseResult, List list, int i, int i2, int i3, Object obj) {
-            if ((i3 & 1) != 0) {
+        public static /* synthetic */ ParseResult copy$default(ParseResult parseResult, List list, int i, int i2, long j, int i3, int i4, int i5, long j2, int i6, Object obj) {
+            if ((i6 & 1) != 0) {
                 list = parseResult.points;
             }
-            if ((i3 & 2) != 0) {
+            if ((i6 & 2) != 0) {
                 i = parseResult.ascentM;
             }
-            if ((i3 & 4) != 0) {
+            if ((i6 & 4) != 0) {
                 i2 = parseResult.descentM;
             }
-            return parseResult.copy(list, i, i2);
+            if ((i6 & 8) != 0) {
+                j = parseResult.timerSec;
+            }
+            if ((i6 & 16) != 0) {
+                i3 = parseResult.totalCalories;
+            }
+            if ((i6 & 32) != 0) {
+                i4 = parseResult.manufacturer;
+            }
+            if ((i6 & 64) != 0) {
+                i5 = parseResult.product;
+            }
+            if ((i6 & 128) != 0) {
+                j2 = parseResult.serialNumber;
+            }
+            return parseResult.copy(list, i, i2, j, i3, i4, i5, j2);
         }
 
         public final List<GpxToFitConverter.TrackPoint> component1() {
@@ -2184,9 +2247,34 @@ public final class MergeFragment extends Fragment {
             return this.descentM;
         }
 
-        public final ParseResult copy(List<GpxToFitConverter.TrackPoint> points, int ascentM, int descentM) {
+        /* renamed from: component4, reason: from getter */
+        public final long getTimerSec() {
+            return this.timerSec;
+        }
+
+        /* renamed from: component5, reason: from getter */
+        public final int getTotalCalories() {
+            return this.totalCalories;
+        }
+
+        /* renamed from: component6, reason: from getter */
+        public final int getManufacturer() {
+            return this.manufacturer;
+        }
+
+        /* renamed from: component7, reason: from getter */
+        public final int getProduct() {
+            return this.product;
+        }
+
+        /* renamed from: component8, reason: from getter */
+        public final long getSerialNumber() {
+            return this.serialNumber;
+        }
+
+        public final ParseResult copy(List<GpxToFitConverter.TrackPoint> points, int ascentM, int descentM, long timerSec, int totalCalories, int manufacturer, int product, long serialNumber) {
             Intrinsics.checkNotNullParameter(points, "points");
-            return new ParseResult(points, ascentM, descentM);
+            return new ParseResult(points, ascentM, descentM, timerSec, totalCalories, manufacturer, product, serialNumber);
         }
 
         public boolean equals(Object other) {
@@ -2197,26 +2285,31 @@ public final class MergeFragment extends Fragment {
                 return false;
             }
             ParseResult parseResult = (ParseResult) other;
-            return Intrinsics.areEqual(this.points, parseResult.points) && this.ascentM == parseResult.ascentM && this.descentM == parseResult.descentM;
+            return Intrinsics.areEqual(this.points, parseResult.points) && this.ascentM == parseResult.ascentM && this.descentM == parseResult.descentM && this.timerSec == parseResult.timerSec && this.totalCalories == parseResult.totalCalories && this.manufacturer == parseResult.manufacturer && this.product == parseResult.product && this.serialNumber == parseResult.serialNumber;
         }
 
         public int hashCode() {
-            return (((this.points.hashCode() * 31) + Integer.hashCode(this.ascentM)) * 31) + Integer.hashCode(this.descentM);
+            return (((((((((((((this.points.hashCode() * 31) + Integer.hashCode(this.ascentM)) * 31) + Integer.hashCode(this.descentM)) * 31) + Long.hashCode(this.timerSec)) * 31) + Integer.hashCode(this.totalCalories)) * 31) + Integer.hashCode(this.manufacturer)) * 31) + Integer.hashCode(this.product)) * 31) + Long.hashCode(this.serialNumber);
         }
 
         public String toString() {
-            return "ParseResult(points=" + this.points + ", ascentM=" + this.ascentM + ", descentM=" + this.descentM + ")";
+            return "ParseResult(points=" + this.points + ", ascentM=" + this.ascentM + ", descentM=" + this.descentM + ", timerSec=" + this.timerSec + ", totalCalories=" + this.totalCalories + ", manufacturer=" + this.manufacturer + ", product=" + this.product + ", serialNumber=" + this.serialNumber + ")";
         }
 
-        public ParseResult(List<GpxToFitConverter.TrackPoint> points, int i, int i2) {
+        public ParseResult(List<GpxToFitConverter.TrackPoint> points, int i, int i2, long j, int i3, int i4, int i5, long j2) {
             Intrinsics.checkNotNullParameter(points, "points");
             this.points = points;
             this.ascentM = i;
             this.descentM = i2;
+            this.timerSec = j;
+            this.totalCalories = i3;
+            this.manufacturer = i4;
+            this.product = i5;
+            this.serialNumber = j2;
         }
 
-        public /* synthetic */ ParseResult(List list, int i, int i2, int i3, DefaultConstructorMarker defaultConstructorMarker) {
-            this(list, (i3 & 2) != 0 ? 0 : i, (i3 & 4) != 0 ? 0 : i2);
+        public /* synthetic */ ParseResult(List list, int i, int i2, long j, int i3, int i4, int i5, long j2, int i6, DefaultConstructorMarker defaultConstructorMarker) {
+            this(list, (i6 & 2) != 0 ? 0 : i, (i6 & 4) != 0 ? 0 : i2, (i6 & 8) != 0 ? 0L : j, (i6 & 16) != 0 ? 0 : i3, (i6 & 32) != 0 ? 255 : i4, (i6 & 64) != 0 ? 1 : i5, (i6 & 128) != 0 ? 0L : j2);
         }
 
         public final int getAscentM() {
@@ -2229,6 +2322,26 @@ public final class MergeFragment extends Fragment {
 
         public final List<GpxToFitConverter.TrackPoint> getPoints() {
             return this.points;
+        }
+
+        public final long getTimerSec() {
+            return this.timerSec;
+        }
+
+        public final int getTotalCalories() {
+            return this.totalCalories;
+        }
+
+        public final int getManufacturer() {
+            return this.manufacturer;
+        }
+
+        public final int getProduct() {
+            return this.product;
+        }
+
+        public final long getSerialNumber() {
+            return this.serialNumber;
         }
     }
 
@@ -2250,7 +2363,7 @@ public final class MergeFragment extends Fragment {
                     return null;
                 }
                 if (!parse.getPoints().isEmpty()) {
-                    return new ParseResult(parse.getPoints(), parse.getAscentM(), parse.getDescentM());
+                    return new ParseResult(parse.getPoints(), parse.getAscentM(), parse.getDescentM(), parse.getTimerSec(), parse.getTotalCalories(), parse.getManufacturer(), parse.getProduct(), parse.getSerialNumber());
                 }
                 this.lastErr = "FIT 无有效轨迹点（" + bytes.length + " 字节）";
                 return null;
@@ -2260,7 +2373,7 @@ public final class MergeFragment extends Fragment {
                 this.lastErr = "GPX 无有效轨迹点（" + bytes.length + " 字节）";
                 return null;
             }
-            return new ParseResult(parseGpxBytes, 0, 0, 6, null);
+            return new ParseResult(parseGpxBytes, 0, 0, 0L, 0, 255, 1, 0L);
         } catch (Exception e) {
             this.lastErr = "解析异常：" + e.getMessage();
             return null;
@@ -2339,11 +2452,55 @@ public final class MergeFragment extends Fragment {
         To view partially-correct add '--show-bad-code' argument
     */
     public final int platformColor(java.lang.String r2) {
-        /*
-            Method dump skipped, instructions count: 422
-            To view this dump add '--comments-level debug' option
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.jichi.ob.ui.MergeFragment.platformColor(java.lang.String):int");
+        // 方法体按 9.6.8 原版恢复（smali 核对）。
+        // 旧反编译结果里 "cs" / "cscn" / "gm" / "gcn" 四个 case 是空的——那是反编译器
+        // 丢了共享返回块：smali 里 "cs" 与 "cscn" 都走 coros_red，"gm" 与 "gcn" 都走
+        // garmin_blue；其余分支与旧反编译一致；未知 tag 返回主色。
+        // 另：旧反编译的 switch 末尾缺 return（空 case 直接 break 出 switch 后无返回，
+        // 原样照搬编不过），此处用字符串 switch + default 返回主色，等价于原版的兜底分支。
+        String tag = r2;
+        switch (tag) {
+            case "bb":
+                return color(R.color.blackbird_green);
+            case "br":
+                return color(R.color.bryton_red);
+            case "cd":
+                return color(R.color.codoon_green);
+            case "cs":
+            case "cscn":
+                return color(R.color.coros_red);
+            case "gt":
+                return color(R.color.giant_blue);
+            case "kp":
+                return color(R.color.keep_yellow);
+            case "kt":
+                return color(R.color.komoot_red);
+            case "mg":
+                return color(R.color.magene_blue);
+            case "gm":
+            case "gcn":
+                return color(R.color.garmin_blue);
+            case "mw":
+                return color(R.color.mywhoosh_orange);
+            case "ob":
+                return color(R.color.outbase_orange);
+            case "su":
+                return color(R.color.suunto_blue);
+            case "wo":
+                return color(R.color.wahoo_red);
+            case "xz":
+                return color(R.color.xingzhe_blue);
+            case "zf":
+                return color(R.color.zwift_purple);
+            case "zp":
+                return color(R.color.zepp_blue);
+            case "icu":
+                return color(R.color.intervals_icu_orange);
+            case "igp":
+                return color(R.color.igp_green);
+            default:
+                return color(R.color.primary);
+        }
     }
 
     /* JADX INFO: Access modifiers changed from: package-private */
@@ -3147,11 +3304,72 @@ public final class MergeFragment extends Fragment {
         To view partially-correct add '--show-bad-code' argument
     */
     public final void refreshStickerChips() {
-        /*
-            Method dump skipped, instructions count: 1560
-            To view this dump add '--comments-level debug' option
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.jichi.ob.ui.MergeFragment.refreshStickerChips():void");
+        // 方法体按 9.6.8 原版恢复（jadx 旧反编译结果 + smali 核对）。
+        // 旧反编译结果此处有两处失真，已按 smali 改回：
+        // ① 后半段（照片文案起的整段设色代码）在旧反编译里被复制了一份、其中一份是空壳，
+        //    实际只跑一遍；② 颜色条件旧反编译多处写反了——smali 的原意是“偏离默认态才高亮
+        //    主色”：背景≠深空、轨迹≠橙渐变、布局≠三栏、字色≠白、数据≠默认、位置≠0 时主色，
+        //    发光仅在非 3D 且开启时主色；海拔/透明/数据层/水印/往期是开启时主色。
+        // 照片文案的条件旧反编译也写反了：有 overlayBitmap 才显示“已选择”。
+        int templateCount = StickerCore.StickerTemplates.INSTANCE.getALL().size();
+        if (this.templateIdx >= 0) {
+            StickerCore.StickerTemplate template = StickerCore.StickerTemplates.INSTANCE.getALL().get(this.templateIdx);
+            this.stickerCardTitle.setText(template.getCategory() + " · " + template.getName());
+            updateBadgeVisibility();
+            this.stickerCardPage.setText((this.templateIdx + 1) + "/" + templateCount);
+            this.stickerTemplateName.setText((this.templateIdx + 1) + "/" + templateCount);
+        } else {
+            this.stickerCardTitle.setText("自定义组合");
+            updateBadgeVisibility();
+            this.stickerCardPage.setText("C/" + templateCount);
+            this.stickerTemplateName.setText("自定义组合 · " + StickerCore.StickerTemplates.INSTANCE.getCOMBO_COUNT() + " 种");
+        }
+        this.btnStickerBadge.setText(this.badgeOn ? "角标:开" : "角标:关");
+        this.btnStickerBadge.setTextColor(color(this.badgeOn ? R.color.primary : R.color.text_secondary));
+        TrackPreviewView preview = this.previewTrack;
+        if (preview == null) {
+            Intrinsics.throwUninitializedPropertyAccessException("previewTrack");
+            preview = null;
+        }
+        this.btnStickerTrack.setText(preview.getTrackOn() ? "轨迹:平面" : "轨迹:关");
+        this.btnStickerTrack.setTextColor(color(preview.getTrackOn() ? R.color.primary : R.color.text_secondary));
+        this.btnStickerBrand.setText(preview.getBrandIdx() == TrackPreviewView.BRAND_CUSTOM ? "角标:自定义" : "角标:鸡翅OB");
+        this.btnStickerBrand.setTextColor(color(preview.getBrandIdx() == TrackPreviewView.BRAND_CUSTOM ? R.color.primary : R.color.text_secondary));
+        this.btnStickerStyle.setText("背景:" + preview.getBgType().getKey());
+        this.btnSticker3d.setText(trackLabel(preview.getTrackType()));
+        this.btnStickerColor.setText("布局:" + preview.getLayoutType().getKey());
+        this.btnStickerTextColor.setText("字色:" + preview.getTextType().getKey());
+        this.btnStickerItems.setText("数据:" + this.stickerItems.size() + "项");
+        this.btnStickerPos.setText("位置:" + TrackPreviewView.INSTANCE.getPosNames().get(this.stickerPos));
+        this.btnStickerWidth.setText("粗细:" + TrackPreviewView.trackWidthNames[preview.getTrackWidth()]);
+        this.btnStickerWidth.setTextColor(color(preview.getTrackWidth() != 3 ? R.color.primary : R.color.text_secondary));
+        this.btnStickerGlow.setText(preview.getTrack3d() ? "发光:3D关" : (preview.getGlowOn() ? "发光:开" : "发光:关"));
+        this.btnSticker3dBand.setText(preview.getShow3dBand() ? "海拔:开" : "海拔:关");
+        this.btnStickerTransparent.setText(preview.getTransparentBg() ? "透明:开" : "透明:关");
+        this.btnStickerDataLayer.setText(preview.getDataLayerOn() ? "数据层:开" : "数据层:关");
+        this.btnStickerWatermark.setText(preview.getWatermarkOn() ? "水印:开" : "水印:关");
+        StickerCore.SummaryStats stats = preview.getSummaryStats();
+        this.btnStickerSummary.setText(stats != null ? "往期数据:" + stats.getCount() + "次 · " + stats.fmtKm() + "km" : "往期数据:未填（点击录入）");
+        if (preview.getOverlayBitmap() != null) {
+            this.btnStickerPhoto.setText("🖼️ 照片:已选择 · " + (this.photoBgs.contains(preview.getBgType()) ? "当前背景生效中" : "点此切换照片背景"));
+        } else {
+            this.btnStickerPhoto.setText("🖼️ 选照片:未选择（透明叠加/磕磕玻璃/拼图拼接用）");
+        }
+        int primary = color(R.color.primary);
+        int secondary = color(R.color.text_secondary);
+        this.btnStickerStyle.setTextColor(preview.getBgType() != StickerCore.StickerBg.DEEP_SPACE ? primary : secondary);
+        this.btnSticker3d.setTextColor(preview.getTrackType() != StickerCore.StickerTrack.ORANGE_GRAD ? primary : secondary);
+        this.btnStickerColor.setTextColor(preview.getLayoutType() != StickerCore.StickerLayout.TRIPLE ? primary : secondary);
+        this.btnStickerTextColor.setTextColor(preview.getTextType() != StickerCore.StickerText.WHITE ? primary : secondary);
+        this.btnStickerItems.setTextColor(!Intrinsics.areEqual(this.stickerItems, StickerCore.INSTANCE.getITEM_DEFAULT()) ? primary : secondary);
+        this.btnStickerPos.setTextColor(this.stickerPos != 0 ? primary : secondary);
+        this.btnStickerGlow.setTextColor(!preview.getTrack3d() && preview.getGlowOn() ? primary : secondary);
+        this.btnSticker3dBand.setTextColor(preview.getShow3dBand() ? primary : secondary);
+        this.btnStickerTransparent.setTextColor(preview.getTransparentBg() ? primary : secondary);
+        this.btnStickerDataLayer.setTextColor(preview.getDataLayerOn() ? primary : secondary);
+        this.btnStickerWatermark.setTextColor(preview.getWatermarkOn() ? primary : secondary);
+        this.btnStickerSummary.setTextColor(stats != null ? primary : secondary);
+        preview.invalidate();
     }
 
     private final void buildBgChips() {
@@ -3249,7 +3467,10 @@ public final class MergeFragment extends Fragment {
             file.mkdirs();
         }
         try {
-            byte[] convertPoints$default = GpxToFitConverter.convertPoints$default(GpxToFitConverter.INSTANCE, mergedResult.getPoints(), mergedResult.getSport(), Degrees.MIN_VALUE, 0L, 0, 0, mergedResult.getTotalDistanceKm() * 1000, mergedResult.getAscentM(), mergedResult.getDescentM(), 60, null);
+            // v9.6.9: 合并骑行 sub_sport 传 7（road），跑步 2、徒步 3；计时/lap/设备信息/卡路里随 MergeInfo 传给转换器。
+            int subSport = mergedResult.getSport() == 2 ? 7 : (mergedResult.getSport() == 1 ? 2 : (mergedResult.getSport() == 17 ? 3 : 0));
+            GpxToFitConverter.MergeInfo mergeInfo = new GpxToFitConverter.MergeInfo(mergedResult.getTotalDurationSec(), mergedResult.getLapStartIndices(), mergedResult.getLapAscents(), mergedResult.getLapDescents(), mergedResult.getManufacturer(), mergedResult.getProduct(), mergedResult.getSerialNumber(), mergedResult.getTotalCalories());
+            byte[] convertPoints$default = GpxToFitConverter.convertPoints$default(GpxToFitConverter.INSTANCE, mergedResult.getPoints(), mergedResult.getSport(), Degrees.MIN_VALUE, 0L, subSport, 0, mergedResult.getTotalDistanceKm() * 1000, mergedResult.getAscentM(), mergedResult.getDescentM(), mergeInfo, 44, null);
             File file2 = new File(file, mergeFileName + ".fit");
             try {
                 FilesKt.writeBytes(file2, convertPoints$default);
@@ -3299,7 +3520,10 @@ public final class MergeFragment extends Fragment {
         String mergeFileName = mergeFileName();
         try {
             if (exportFit) {
-                buildGpx = GpxToFitConverter.convertPoints$default(GpxToFitConverter.INSTANCE, mergedResult.getPoints(), mergedResult.getSport(), Degrees.MIN_VALUE, 0L, 0, 0, mergedResult.getTotalDistanceKm() * 1000, mergedResult.getAscentM(), mergedResult.getDescentM(), 60, null);
+                // v9.6.9: 同 saveMerge——sub_sport 按运动类型传，计时/lap/设备信息/卡路里随 MergeInfo 传给转换器。
+                int subSport = mergedResult.getSport() == 2 ? 7 : (mergedResult.getSport() == 1 ? 2 : (mergedResult.getSport() == 17 ? 3 : 0));
+                GpxToFitConverter.MergeInfo mergeInfo = new GpxToFitConverter.MergeInfo(mergedResult.getTotalDurationSec(), mergedResult.getLapStartIndices(), mergedResult.getLapAscents(), mergedResult.getLapDescents(), mergedResult.getManufacturer(), mergedResult.getProduct(), mergedResult.getSerialNumber(), mergedResult.getTotalCalories());
+                buildGpx = GpxToFitConverter.convertPoints$default(GpxToFitConverter.INSTANCE, mergedResult.getPoints(), mergedResult.getSport(), Degrees.MIN_VALUE, 0L, subSport, 0, mergedResult.getTotalDistanceKm() * 1000, mergedResult.getAscentM(), mergedResult.getDescentM(), mergeInfo, 44, null);
             } else {
                 buildGpx = TrackMerger.INSTANCE.buildGpx(mergedResult, "merged-" + TrackMerger.INSTANCE.sportName(mergedResult.getSport()));
             }
