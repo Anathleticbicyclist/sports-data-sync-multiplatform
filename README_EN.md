@@ -9,7 +9,7 @@ English | [中文](README.md)
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.6.8-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.6.9-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 An Android workout-data migration tool that syncs workout records (FIT/GPX) across **iGPSPORT (China / International) / Xingzhe / Magene / Blackbird / Giant / Outbase / Intervals.icu / Garmin International / Garmin China / COROS China / Strava / Wahoo / MyWhoosh / Zwift / Keep / Codoon / Zepp / Komoot / Suunto / Bryton / CyCity** — twenty-one platforms in total. It supports transfers between China and international regions (Bryton now supports download; MyWhoosh, Zwift, Codoon and Zepp are download-only data sources; Intervals.icu supports workout-plan download and pushing to iGPSPORT/Bryton; Keep supports download as a data source plus semi-automatic guided import for upload; Strava is upload-only).
@@ -26,13 +26,13 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 |------|---------|
 | App name | JiChi XingZhe MaiJin OB (Dev Experience Edition) |
 | Package name | `com.jichi.ob.dev` |
-| Current version | v9.6.8 |
+| Current version | v9.6.9 |
 | Minimum system | Android 8.0 (API 26) |
 | Target system | Android 16 (API 36) |
 | Language | Kotlin |
 | Stable edition download | [Download the stable edition](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase) (for daily use, the stable edition is recommended — it is more stable) |
-| Dev edition download | [v9.6.8 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.8/jichi-ob-dev-9.6.8.apk) |
-| APK stored in this repo | [鸡翅幸哲迈进OB-v9.6.8.apk](鸡翅幸哲迈进OB-v9.6.8.apk) (a backup download that does not go through Releases) |
+| Dev edition download | [v9.6.9 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.9/jichi-ob-dev-9.6.9.apk) |
+| APK stored in this repo | [鸡翅幸哲迈进OB-v9.6.9.apk](鸡翅幸哲迈进OB-v9.6.9.apk) (a backup download that does not go through Releases) |
 | User manual | [v9.5.5 Complete User Manual (PDF, 81 pages)](docs/manual-v9.5.5.pdf) |
 | Contact us | [Join the Outbase club](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f) (report issues, test new features, and chat with the maintainer) |
 
@@ -434,6 +434,13 @@ Welcome to the developer club — chat, test and give feedback with the maintain
 
 ---
 ## 📋 Changelog
+
+### v9.6.9
+- P1 code cleanup: MainActivity, GarminApi and LoginWebActivity split into smaller modules; merge / create-task files restored; automated build (CI) added
+- Merge data fixes: time is no longer compressed (total time is the sum of each segment's timer time); distance / speed / ascent now use the device's own recorded values instead of recomputation; 6 laps written, one per day; file_id copied from the source file
+- Heatmap thin lines: line width adjustable, thinner by default
+- Temporary bike computer restored
+- Experience-code gate: merge, create task and one-to-many sync now check the experience code — usable with a code, blocked without one
 
 ### v9.6.8
 - Fixed a serious auto-login crash bug (platform expiry, no network, or unreachable platforms caused a looping crash that prevented the app from starting)
