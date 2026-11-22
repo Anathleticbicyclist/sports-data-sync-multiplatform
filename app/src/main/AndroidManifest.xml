@@ -10,6 +10,18 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- v9.6.9: 临时码表（定位/蓝牙/传感器） -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
  
     <application
         android:allowBackup="true"
@@ -44,6 +56,48 @@
             android:name=".ui.LoginWebActivity"
             android:label="登录"
             android:theme="@style/Theme.JichiOB" />
+
+        <!-- v9.6.9: 热力图与临时码表（9.6.8 原有入口） -->
+        <activity
+            android:name="com.jichi.ob.heatmap.HeatmapActivity"
+            android:exported="true"
+            android:label="热力图"
+            android:theme="@style/Theme.JichiOB" />
+        <activity
+            android:name="com.jichi.bikecomputer.MainActivity"
+            android:exported="true"
+            android:label="临时码表"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.JichiOB" />
+        <activity
+            android:name="com.jichi.bikecomputer.BikeActivity"
+            android:exported="false"
+            android:keepScreenOn="true"
+            android:label="临时码表"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.JichiOB" />
+        <activity
+            android:name="com.jichi.bikecomputer.SensorActivity"
+            android:exported="false"
+            android:label="传感器"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.JichiOB" />
+        <activity
+            android:name="com.jichi.bikecomputer.DisplayActivity"
+            android:exported="false"
+            android:label="显示设置"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.JichiOB" />
+        <activity
+            android:name="com.jichi.bikecomputer.HistoryActivity"
+            android:exported="false"
+            android:label="历史记录"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.JichiOB" />
+        <service
+            android:name="com.jichi.bikecomputer.BikeService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
