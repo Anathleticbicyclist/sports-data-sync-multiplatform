@@ -62,6 +62,7 @@ import kotlin.text.Charsets;
 import kotlin.text.StringsKt;
 import kotlinx.coroutines.DebugKt;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /* compiled from: TrackPreviewView.kt */
@@ -1068,11 +1069,69 @@ public final class TrackPreviewView extends FrameLayout {
         To view partially-correct add '--show-bad-code' argument
     */
     public boolean onTouchEvent(android.view.MotionEvent r9) {
-        /*
-            Method dump skipped, instructions count: 297
-            To view this dump add '--comments-level debug' option
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.jichi.ob.ui.TrackPreviewView.onTouchEvent(android.view.MotionEvent):boolean");
+        // 方法体按 9.6.8 原版恢复（jadx 旧反编译结果）。仅贴纸预览模式下拦截触摸：
+        // 单指拖动转 3D 视角，双指旋转/俯仰，其余交给缩放与手势识别器。
+        MotionEvent event = r9;
+        Intrinsics.checkNotNullParameter(event, "event");
+        if (!this.stickerPreview) {
+            return super.onTouchEvent(event);
+        }
+        float f = getResources().getDisplayMetrics().density;
+        int actionMasked = event.getActionMasked();
+        if (actionMasked == 0) {
+            this.twoFinger = false;
+            this.lastTouchX = event.getX();
+            this.lastTouchY = event.getY();
+        } else if (actionMasked == 1) {
+            this.twoFinger = false;
+        } else if (actionMasked == 2) {
+            if (this.track3d && !this.twoFinger) {
+                float x = event.getX() - this.lastTouchX;
+                float y = event.getY() - this.lastTouchY;
+                float f2 = 1.5f * f;
+                if (Math.abs(x) > f2 || Math.abs(y) > f2) {
+                    float f3 = f * 360.0f;
+                    setTrack3dRy(RangesKt.coerceIn(this.track3dRy + (x / f3), -0.9f, 0.9f));
+                    setTrack3dRx(RangesKt.coerceIn(this.track3dRx + (y / f3), -0.15f, 1.1f));
+                    this.lastTouchX = event.getX();
+                    this.lastTouchY = event.getY();
+                    push3D();
+                }
+                return true;
+            }
+            if (this.twoFinger && event.getPointerCount() >= 2) {
+                float fAngleOf = angleOf(event);
+                float f4 = fAngleOf - this.twoStartAngle;
+                if (f4 > 180.0f) {
+                    f4 -= 360.0f;
+                }
+                if (f4 < -180.0f) {
+                    f4 += 360.0f;
+                }
+                if (Math.abs(f4) > 2.0f) {
+                    this.rotation = (this.rotation + f4) % 360.0f;
+                    this.twoStartAngle = fAngleOf;
+                    pushTransform();
+                }
+                float y2 = (event.getY(0) + event.getY(1)) / 2.0f;
+                float f5 = y2 - this.twoStartMidY;
+                if (Math.abs(f5) > 2.0f * f) {
+                    this.tiltX = RangesKt.coerceIn(this.tiltX + (f5 / (f * 6.0f)), -70.0f, 70.0f);
+                    this.twoStartMidY = y2;
+                    pushTransform();
+                }
+            }
+        } else if (actionMasked == 5) {
+            if (event.getPointerCount() >= 2) {
+                this.twoFinger = true;
+                this.twoStartAngle = angleOf(event);
+                this.twoStartMidY = (event.getY(0) + event.getY(1)) / 2.0f;
+            }
+        }
+        // 3（取消）/ 6（抬起一指）：无额外处理，直接走下面的手势识别器。
+        this.scaleDetector.onTouchEvent(event);
+        this.gestureDetector.onTouchEvent(event);
+        return true;
     }
 
     public final void applyPosMode() {
@@ -3127,7 +3186,7 @@ public final class TrackPreviewView extends FrameLayout {
             return TuplesKt.to(Float.valueOf(1024.0f), Float.valueOf(1024.0f));
         }
         Pair<Float, Float> pair = TuplesKt.to(Float.valueOf(RangesKt.coerceAtLeast(this.cssW, 300.0f)), Float.valueOf(RangesKt.coerceAtLeast(this.cssH, 300.0f)));
-        return (pair.getFirst().floatValue() <= 0.0f || pair.getSecond().floatValue() <= 0.0f) ? TuplesKt.to(Float.valueOf(Math.max(r0.getWidth(), 300)), Float.valueOf(Math.max(r0.getHeight(), 300))) : pair;
+        return (pair.getFirst().floatValue() <= 0.0f || pair.getSecond().floatValue() <= 0.0f) ? TuplesKt.to(Float.valueOf(Math.max(this.web.getWidth(), 300)), Float.valueOf(Math.max(this.web.getHeight(), 300))) : pair;
     }
 
     @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
@@ -3237,11 +3296,147 @@ public final class TrackPreviewView extends FrameLayout {
         To view partially-correct add '--show-bad-code' argument
     */
     private final java.lang.String buildRenderJs() {
-        /*
-            Method dump skipped, instructions count: 826
-            To view this dump add '--comments-level debug' option
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.jichi.ob.ui.TrackPreviewView.buildRenderJs():java.lang.String");
+        // 方法体按 9.6.8 原版恢复（jadx 旧反编译结果）。
+        // 旧反编译里三个比例分支（3:4 / 9:16 / 默认）的重复尾巴是反编译器复制粘贴的产物，
+        // 此处合并为一份；altMax/altMin 的 (Iterable<Double>) 强转是反编译错误，实为 Float。
+        // 调用方不处理 JSONException，此处转 RuntimeException 抛出，与 Kotlin 原版
+        // （受检异常不强制捕获）的运行时行为一致。
+        try {
+            StickerCore.TrackStats stats = computeStats();
+            JSONObject data = new JSONObject();
+            Object dist = this.dataOverrides.get(MonitoringReader.DISTANCE_STRING);
+            if (dist == null) {
+                dist = Double.valueOf(round1(stats.getDistKm()));
+            }
+            data.put(MonitoringReader.DISTANCE_STRING, dist);
+            Object duration = this.dataOverrides.get(TypedValues.TransitionType.S_DURATION);
+            if (duration == null) {
+                duration = formatDuration(stats.getDurationSec());
+            }
+            data.put(TypedValues.TransitionType.S_DURATION, duration);
+            Object avgSpeed = this.dataOverrides.get("avgSpeed");
+            if (avgSpeed == null) {
+                avgSpeed = Double.valueOf(round1(stats.getAvgSpeedKmh()));
+            }
+            data.put("avgSpeed", avgSpeed);
+            Object maxSpeed = this.dataOverrides.get("maxSpeed");
+            if (maxSpeed == null) {
+                maxSpeed = Double.valueOf(round1(stats.getMaxSpeedKmh()));
+            }
+            data.put("maxSpeed", maxSpeed);
+            Object climb = this.dataOverrides.get("climb");
+            if (climb == null) {
+                climb = Long.valueOf(Math.round(stats.getAscentM()));
+            }
+            data.put("climb", climb);
+            Object hr = this.dataOverrides.get("hr");
+            if (hr == null) {
+                hr = Integer.valueOf(stats.getAvgHr());
+            }
+            data.put("hr", hr);
+            Object power = this.dataOverrides.get("power");
+            if (power == null) {
+                power = Integer.valueOf(stats.getAvgPower());
+            }
+            data.put("power", power);
+            Object kcal = this.dataOverrides.get("kcal");
+            if (kcal == null) {
+                kcal = Integer.valueOf(stats.getCaloriesKcal());
+            }
+            data.put("kcal", kcal);
+            Object cad = this.dataOverrides.get("cad");
+            if (cad == null) {
+                cad = Integer.valueOf(stats.getAvgCad());
+            }
+            data.put("cad", cad);
+            Object alt = this.dataOverrides.get("alt");
+            if (alt == null) {
+                alt = Long.valueOf(Math.round(stats.getAscentM()));
+            }
+            data.put("alt", alt);
+            String title = this.titleOverride;
+            if (title == null) {
+                title = "RIDING";
+            }
+            data.put("title", title);
+            ArrayList<Float> eles = new ArrayList<>(CollectionsKt.collectionSizeOrDefault(this.points, 10));
+            for (GpxToFitConverter.TrackPoint p : this.points) {
+                eles.add(Float.valueOf((float) p.getEle()));
+            }
+            ArrayList<Float> positiveEles = new ArrayList<>();
+            for (Float e : eles) {
+                if (e.floatValue() > 0.0f) {
+                    positiveEles.add(e);
+                }
+            }
+            if (!positiveEles.isEmpty()) {
+                Object altMax = this.dataOverrides.get("altMax");
+                if (altMax == null) {
+                    altMax = Integer.valueOf(Math.round(CollectionsKt.maxOrThrow(positiveEles)));
+                }
+                data.put("altMax", altMax);
+                Object altMin = this.dataOverrides.get("altMin");
+                if (altMin == null) {
+                    altMin = Integer.valueOf(Math.round(CollectionsKt.minOrThrow(positiveEles)));
+                }
+                data.put("altMin", altMin);
+            }
+            JSONArray itemsJson = new JSONArray();
+            for (Integer item : this.items) {
+                itemsJson.put(item.intValue());
+            }
+            data.put("items", itemsJson);
+            Bitmap bitmap = this.overlayBitmap;
+            if (bitmap != null) {
+                String photo = bitmapToDataUrl(bitmap);
+                if (photo == null) {
+                    photo = "";
+                }
+                data.put("photo", photo);
+            }
+            float w = renderSize().component1().floatValue();
+            float h;
+            if (Intrinsics.areEqual(this.aspect, "3:4")) {
+                h = 4.0f * w / 3.0f;
+            } else if (Intrinsics.areEqual(this.aspect, "9:16")) {
+                h = 16.0f * w / 9.0f;
+            } else {
+                h = w;
+            }
+            JSONArray track = buildTrackJson(w, h);
+            if (track != null) {
+                data.put("track", track);
+            }
+            Pair<String, String> text = htmlText(this.textType);
+            JSONObject opts = new JSONObject();
+            opts.put("showBadge", this.badgeOn);
+            opts.put("watermark", !this.watermarkOn && this.dataLayerOn);
+            opts.put("trackColor", trackColorIdx());
+            opts.put("aspect", this.aspect);
+            opts.put("bg", htmlBg(this.bgType));
+            opts.put("track", htmlTrack(this.trackType));
+            opts.put("layout", htmlLayout(this.layoutType));
+            opts.put("text", text.component1());
+            opts.put("textU", text.component2());
+            opts.put("transparentBg", this.transparentBg);
+            opts.put("dataLayer", this.dataLayerOn);
+            opts.put("glow", this.glowOn);
+            opts.put("show3dBand", this.show3dBand);
+            opts.put("trackWidth", this.trackWidth);
+            opts.put("track3d", this.track3d);
+            opts.put("track3dRx", Float.valueOf(this.track3dRx));
+            opts.put("track3dRy", Float.valueOf(this.track3dRy));
+            opts.put("showTrack", this.trackOn);
+            opts.put("brand", this.brandIdx);
+            if (this.brandIdx == BRAND_CUSTOM && this.badgeUrl != null) {
+                opts.put("badgeUrl", this.badgeUrl);
+            }
+            int templateIdx = this.useTemplate ? templateIdxFor() : 1;
+            this.templateIndex = templateIdx;
+            return "stickerBridge.render(" + templateIdx + ", " + data + ", " + opts + ");";
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private final String buildRenderPayload(int wPx, int hPx) {
