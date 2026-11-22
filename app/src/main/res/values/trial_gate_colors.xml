@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 体验码弹窗用到的颜色。trial_hint 在仓库 HEAD 的 colors.xml 里没有，
+     原值见 apktool 导出 smali_source/res/values/colors.xml（#ffcccccc）。 -->
+<resources>
+    <color name="trial_hint">#CCCCCC</color>
+    <!-- btn_text_on_primary：APK 原值，dialog_trial 里主按钮文字色，分支 colors.xml 里没有 -->
+    <color name="btn_text_on_primary">#FFFFFFFF</color>
+</resources>

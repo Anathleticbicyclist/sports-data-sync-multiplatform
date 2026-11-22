@@ -53,4 +53,17 @@
     <color name="overlay_scrim">#80000000</color>
     <color name="sticker_text">#FFFFFF</color>
     <color name="stroke_blue">#2B8CFF</color>
+    <color name="bc_accent">#ff2e7d32</color>
+    <color name="bc_accent_dark">#ff1b5e20</color>
+    <color name="bc_bg">#fff5f7fa</color>
+    <color name="bc_card">#ffffffff</color>
+    <color name="bc_cream">#ffffe9d6</color>
+    <color name="bc_danger">#ffc62828</color>
+    <color name="bc_divider">#ffe5e7eb</color>
+    <color name="bc_orange">#fff97316</color>
+    <color name="bc_speed_color">#ff1565c0</color>
+    <color name="bc_text_primary">#ff1b2129</color>
+    <color name="bc_text_secondary">#ff6b7280</color>
+    <color name="bc_warning">#fff59e0b</color>
+    <color name="bc_white">#ffffffff</color>
 </resources>
