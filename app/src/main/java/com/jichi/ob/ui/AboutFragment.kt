@@ -85,6 +85,9 @@ class AboutFragment : Fragment() {
         view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardMerge)?.setOnClickListener {
             try { (activity as? com.jichi.ob.MainActivity)?.openMerge() } catch (_: Exception) {}
         }
+        // v9.6.9: 热力图与临时码表入口（9.6.8 原有卡片；入口类内部已做试用校验与异常 Toast）
+        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardHeatmap)?.setOnClickListener(com.jichi.ob.heatmap.HeatmapEntryClick())
+        view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardBikeComputer)?.setOnClickListener(com.jichi.bikecomputer.BikeComputerEntryClick())
         view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardLabLogin)?.setOnClickListener {
             // v8.2.1: 实验室独立页面（松拓/Zepp/百锐腾登录，可返回）
             try { (activity as? com.jichi.ob.MainActivity)?.openLabLogin(com.jichi.ob.model.DataSource.labLoginPlatforms()) } catch (_: Exception) {}

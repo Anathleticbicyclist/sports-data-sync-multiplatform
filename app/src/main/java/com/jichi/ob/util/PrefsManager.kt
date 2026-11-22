@@ -579,5 +579,8 @@ class PrefsManager(context: Context) {
     fun isAutoCheckLogin(): Boolean = prefs.getBoolean(KEY_AUTO_CHECK, true)
     fun setAutoCheckLogin(b: Boolean) = prefs.edit().putBoolean(KEY_AUTO_CHECK, b).apply()
 
+    /** v9.6.9: 临时码表深色模式（APK 原值：始终返回 "system"，跟随系统） */
+    fun getDarkMode(): String = "system"
+
     fun clearAll() = prefs.edit().clear().apply()
 }

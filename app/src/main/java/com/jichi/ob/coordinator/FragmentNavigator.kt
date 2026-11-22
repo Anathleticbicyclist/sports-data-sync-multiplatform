@@ -7,7 +7,6 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.jichi.ob.MainActivity
-import com.jichi.ob.MergeTrial
 import com.jichi.ob.R
 import com.jichi.ob.model.DataSource
 
@@ -144,17 +143,12 @@ class FragmentNavigator(private val activity: MainActivity) {
     // v8.2.2: 新建任务向导（设置页「＋新建同步任务」横条入口；全屏覆盖页，可返回）
 
     internal fun openCreateTask() {
-        // v8.3.2: 新建任务限时体验到期（2026-10-07）——到期后点击提醒，不进入向导
-        if (System.currentTimeMillis() >= 1791302400000L) {
-            try {
-                android.app.AlertDialog.Builder(activity)
-                    .setTitle("提示")
-                    .setMessage("版本过旧，需要获取更新，关注抖音:多吃两口获取更新")
-                    .setPositiveButton("知道了", null)
-                    .show()
-            } catch (_: Exception) {}
-            return
-        }
+        // v9.6.9: 2026-10-07 日期拦截已删，改走体验码门禁（用户选方案 A）；
+        // 有码进向导，没码弹体验码框（可点“暂不使用”关掉，主界面照常用）。
+        activity.checkTrialAndRun { openCreateTaskInternal() }
+    }
+
+    private fun openCreateTaskInternal() {
         val bottomNav = activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         val toolbar = activity.findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         activity.supportFragmentManager.beginTransaction().show(activity.createTaskFragment).commit()
@@ -207,11 +201,13 @@ class FragmentNavigator(private val activity: MainActivity) {
     // ============ v7.9.7 轨迹合并：全屏覆盖页 ============
 
     internal fun openMerge() {
-        // v8.0.0 限时体验：9月30号之前可用，系统时间过期后自动失效
-        if (!MergeTrial.isAvailable()) {
-            android.widget.Toast.makeText(activity, "轨迹合并&透明贴纸 限时体验已结束", android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
+        // v9.6.9: MergeTrial 日期限制已废除（2026-09-30 已过），合并改走体验码门禁；
+        // 与 v9.6.8 APK 行为一致（checkTrialFeature + pendingOpenAfterTrial），
+        // 有码进合并页，没码弹体验码框（可点“暂不使用”关掉，主界面照常用）。
+        activity.checkTrialAndRun { openMergeInternal() }
+    }
+
+    private fun openMergeInternal() {
         val bottomNav = activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
         val toolbar = activity.findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         activity.supportFragmentManager.beginTransaction().show(activity.mergeFragment).commit()
