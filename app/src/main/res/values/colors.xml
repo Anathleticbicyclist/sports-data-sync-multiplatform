@@ -66,4 +66,6 @@
     <color name="bc_text_secondary">#ff6b7280</color>
     <color name="bc_warning">#fff59e0b</color>
     <color name="bc_white">#ffffffff</color>
+    <!-- stroke_blue_strong：APK 原值，验码对话框 bg_dialog_rounded.xml 描边用，CI 第 4 轮报缺失后补回 -->
+    <color name="stroke_blue_strong">#ffc9dff7</color>
 </resources>
