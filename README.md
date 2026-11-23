@@ -39,7 +39,7 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 
 > 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
 
-> 🧩 源码说明（重要）：`smali_source/` 是 v9.6.9 实际出包源（apktool 回编即得本 Release 的 APK）；`app/src/main/java/` 是 9.6.9 APK 的 Java/Kotlin 反编译参考树，文件已补齐（118 个，含合并、新建任务、体验码、热力图、临时码表），但**不能直接 gradle 编译**——它是反编译产物，且模型层仍是 9.6.8 版本。详见 [源码说明.md](源码说明.md)。体验码盐值为 `GATE_SALT_PLACEHOLDER`、Wahoo 开发者凭证为占位符，使用前请替换成你自己的。
+> 🧩 源码说明（重要）：`smali_source/` 是 v9.6.9 实际出包源（apktool 回编即得本 Release 的 APK）；`app/src/main/java/` 是 9.6.9 APK 的 Java/Kotlin 反编译参考树，文件已补齐（118 个，含合并、新建任务、体验码、热力图、临时码表），但**不能直接 gradle 编译**——它是反编译产物，且模型层仍是 9.6.8 版本。详见 [源码说明.md](源码说明.md)。
 
 ---
 

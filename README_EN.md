@@ -32,7 +32,7 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 | Language | Kotlin |
 | Stable edition download | [Download the stable edition](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase) (for daily use, the stable edition is recommended — it is more stable) |
 | Dev edition download | [v9.6.9 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.9/jichi-ob-dev-9.6.9.apk) (APK ships only as a Release asset; no installer is stored in the repo) |
-| Source layout | `smali_source` (the smali tree actually used to build v9.6.9) + `app/src/main/java` (decompiled Java/Kotlin reference tree — complete, but **not gradle-buildable**; see `源码说明.md`). The trial-code salt is `GATE_SALT_PLACEHOLDER` and the Wahoo developer credentials are placeholders — replace them with your own before use. |
+| Source layout | `smali_source` (the smali tree actually used to build v9.6.9) + `app/src/main/java` (decompiled Java/Kotlin reference tree — complete, but **not gradle-buildable**; see `源码说明.md`). |
 | User manual | [v9.5.5 Complete User Manual (PDF, 81 pages)](docs/manual-v9.5.5.pdf) |
 | Contact us | [Join the Outbase club](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f) (report issues, test new features, and chat with the maintainer) |
 
