@@ -189,7 +189,11 @@ final class LoginPageStore: ObservableObject {
             }
             let ok: Bool
             if Self.webCredentialPlatforms.contains(ds) {
-                ok = LoginStore.isLoggedIn(ds) || (await platform.isLoggedIn())
+                if LoginStore.isLoggedIn(ds) {
+                    ok = true
+                } else {
+                    ok = await platform.isLoggedIn()
+                }
             } else {
                 ok = await platform.isLoggedIn()
             }

@@ -340,7 +340,7 @@ private struct ReuploadSheet: View {
     private func startReupload() {
         let targets = uploadableTargets.filter { selectedTargets.contains($0.rawValue) }
         guard !targets.isEmpty else { return }
-        let run = { Task { await performReupload(targets: targets) } }
+        let run = { _ = Task { await performReupload(targets: targets) } }
         if targets.count > 1 {
             license.checkTrialAndRun(run)
         } else {
