@@ -16,6 +16,8 @@ extension Color {
 struct ContentView: View {
     @StateObject private var engine = SyncEngine()
     @StateObject private var license = TrialLicense()
+    @StateObject private var updateChecker = UpdateCheckerStore()
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         TabView {
@@ -46,7 +48,40 @@ struct ContentView: View {
         .tint(.brandBlue)
         .environmentObject(engine)
         .environmentObject(license)
+        .environmentObject(updateChecker)
         // 体验码弹窗挂在根视图：只在功能入口验码时弹出，绝不在启动时弹。
         .trialDialog(license: license)
+        // 启动时静默查一次更新：24 小时内同版本不重复打扰，只有新版才弹窗（安卓 MainActivity 同款）。
+        .task {
+            await updateChecker.check(force: false)
+        }
+        // 检查更新弹窗（手动检查和静默检查共用这一个）。
+        .alert(item: $updateChecker.prompt) { prompt in
+            switch prompt {
+            case .message(let text):
+                return Alert(
+                    title: Text("检查更新"),
+                    message: Text(text),
+                    dismissButton: .cancel(Text("知道了"))
+                )
+            case .available(let version, let notes, let downloadURL):
+                var text = "经检查更新，开源项目「鸡翅幸哲迈进OB(开发体验版)」最新版本为 \(version)\n你的当前版本为 v\(UpdateCheckerStore.currentVersion)\n\n检测到新版本，建议更新"
+                if !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    text += "：\n\n更新内容：\n\(notes.trimmingCharacters(in: .whitespacesAndNewlines).prefix(400))"
+                } else {
+                    text += "。"
+                }
+                return Alert(
+                    title: Text("发现新版本 \(version)"),
+                    message: Text(text),
+                    primaryButton: .default(Text("去更新")) {
+                        if let url = URL(string: downloadURL) {
+                            openURL(url)
+                        }
+                    },
+                    secondaryButton: .cancel(Text("稍后"))
+                )
+            }
+        }
     }
 }

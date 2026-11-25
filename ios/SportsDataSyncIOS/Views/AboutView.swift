@@ -20,6 +20,7 @@ import SwiftUI
 struct AboutView: View {
 @EnvironmentObject private var engine: SyncEngine
 @EnvironmentObject private var license: TrialLicense
+@EnvironmentObject private var updateChecker: UpdateCheckerStore
 
 @State private var navigateToMerge = false
 @State private var navigateToHeatmap = false
@@ -27,7 +28,6 @@ struct AboutView: View {
 @State private var showChangelog = false
 @State private var showCredentials = false
 @State private var showDisclaimer = false
-@State private var updateMessage: String?
 
 private static let projectURL = URL(string: "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform")!
 private static let releaseURL = URL(string: "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/tag/v9.6.9")!
@@ -52,14 +52,6 @@ aboutTextSection
 Button("知道了", role: .cancel) {}
 } message: {
 Text(disclaimerText)
-}
-.alert("检查更新", isPresented: Binding(
-get: { updateMessage != nil},
-set: { if !$0 { updateMessage = nil}}
-)) {
-Button("知道了", role: .cancel) {}
-} message: {
-Text(updateMessage ?? "")
 }
 }
 
@@ -129,11 +121,10 @@ license.dialog = TrialDialogState(isFirstUse: license.isFirstUse)
 // MARK: 更新
 private var updateSection: some View {
 Section("更新") {
-Button("检查更新") {
-// 真机检查更新：打开 GitHub Release 页比对版本号。
-// 直连检查接口待接入，当前先提示用户去 Release 页看。
-updateMessage = "当前版本 9.6.9。最新版请到 GitHub Release 页查看（直连检查待接入）。"
+Button(updateChecker.isChecking ? "正在检查…" : "检查更新") {
+Task { await updateChecker.check(force: true) }
 }
+.disabled(updateChecker.isChecking)
 Link("GitHub 项目主页", destination: Self.projectURL)
 Link("v9.6.9 Release 页", destination: Self.releaseURL)
 Button("本次更新") { showChangelog = true}
@@ -153,6 +144,31 @@ Text("凭证本来就不在仓库里，空着也能用其他平台。填了只�
 private var aboutTextSection: some View {
 Section {
 Button("开源免费与赞赏") { showDisclaimer = true}
+// 赞赏码：安卓原图原样搬过来（reward_wechat.png / reward_alipay.png），不要改图。
+HStack(alignment: .top) {
+Spacer()
+VStack(spacing: 2) {
+Image("reward_wechat")
+.resizable()
+.scaledToFit()
+.frame(width: 150, height: 150)
+Text("微信赞赏码")
+.font(.caption2).foregroundStyle(.secondary)
+}
+Spacer()
+VStack(spacing: 2) {
+Image("reward_alipay")
+.resizable()
+.scaledToFit()
+.frame(width: 130, height: 130)
+Text("支付宝收款码")
+.font(.caption2).foregroundStyle(.secondary)
+}
+Spacer()
+}
+Text("本项目完全开源免费，您的赞赏将支持后续功能迭代与问题修复")
+.font(.caption).foregroundStyle(.secondary)
+.multilineTextAlignment(.center)
 Text("本软件完全免费。赞赏自愿、无偿，不构成购买，不附带售后义务。")
 .font(.caption).foregroundStyle(.secondary)
 Text("本软件与 iGPSPORT、迈金、黑鸟单车、行者、捷安特、高驰、佳明、Wahoo、Outbase 等平台，以及 OneLap、Strava、Intervals.icu 等，均无任何隶属、合作、授权或背书关系，并非上述任一平台的官方出品。")

@@ -179,7 +179,7 @@ private struct ActivityDetailSheet: View {
                 Section("基本信息") {
                     detailRow("标题", activity.title)
                     detailRow("平台", activity.platformDisplayName)
-                    detailRow("开始时间", activity.startDate.formatted(date: .abbreviated, time: .short))
+                    detailRow("开始时间", activity.startDate.formatted(date: .abbreviated, time: .shortened))
                     detailRow("运动类型", activity.sportType)
                     detailRow("本地文件", activity.fileName)
                 }

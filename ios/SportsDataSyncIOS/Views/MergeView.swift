@@ -165,9 +165,10 @@ struct MergeView: View {
                 distanceKm: totalDistance, durationSec: totalDuration,
                 date: selectedActivities.first?.startDate ?? Date(),
                 activityCount: selectedActivities.count)
-            let image = await MainActor.run { sticker.renderedImage() }
+            let renderedSticker = await MainActor.run { sticker.renderedImage() }
             await MainActor.run {
                 busy = false
+                stickerImage = renderedSticker
                 mergedGPXURL = gpxURL
                 mergedFITURL = fitURL
                 var text = "已合并 \(sorted.count) 个轨迹点，总距离 \(String(format: "%.2f", totalDistance)) 公里，总时长 \(formattedDuration(totalDuration))。"

@@ -503,7 +503,7 @@ private struct FullLogSheet: View {
                         }
                         .padding()
                     }
-                    .onChange(of: engine.logs.count) { _ in
+                    .onChange(of: engine.logs.count) { _, _ in
                         guard !pauseScroll, let last = engine.logs.last else { return }
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                     }

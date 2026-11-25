@@ -99,6 +99,11 @@ struct LoginView: View {
     @State private var webLoginPlatform: DataSource?
     @State private var formLoginPlatform: DataSource?
     @State private var showOutbase = false
+    // OAuth 会话和弹出锚点要由本页持有：ASWebAuthenticationSession 的
+    // presentationContextProvider 是弱引用，临时对象会立刻释放导致登录弹不出来，
+    // 会话本身也必须留着，否则开始后就被释放。
+    @State private var authSession: ASWebAuthenticationSession?
+    @State private var authContext = OAuthPresentationContext()
 
     var body: some View {
         ScrollView {
@@ -256,8 +261,9 @@ struct LoginView: View {
                 await MainActor.run { store.loggedIn[ds.rawValue] = ok }
             }
         }
-        session.presentationContextProvider = OAuthPresentationContext()
+        session.presentationContextProvider = authContext
         session.prefersEphemeralWebBrowserSession = false
+        authSession = session
         session.start()
     }
 
