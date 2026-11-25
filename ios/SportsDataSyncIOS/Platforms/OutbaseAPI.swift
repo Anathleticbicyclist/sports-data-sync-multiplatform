@@ -130,8 +130,14 @@ struct OutbaseAPI: PlatformAPI {
                (json["message"] as? String) == "SUCCESS" {
                 cdnOk = true
             } else {
-                let em = (try? JSONSerialization.jsonObject(with: cdnData) as? [String: Any])?["em"] as? String
-                    ?? String(data: cdnData, encoding: .utf8)?.prefix(80) ?? ""
+                let em: String
+                if let emValue = (try? JSONSerialization.jsonObject(with: cdnData) as? [String: Any])?["em"] as? String {
+                    em = emValue
+                } else if let body = String(data: cdnData, encoding: .utf8) {
+                    em = String(body.prefix(80))
+                } else {
+                    em = ""
+                }
                 lastDetail = "CDN 直连失败：\(em)"
             }
         } catch {

@@ -67,7 +67,7 @@ struct XingzheAPI: PlatformAPI {
                 throw PlatformError.authFailed("行者登录已过期，请重新登录")
             }
             guard http.statusCode == 200 else {
-                throw PlatformError.network("行者 HTTP \(http.statusCode)：\(String(data: data, encoding: .utf8)?.prefix(200) ?? "")")
+                throw PlatformError.network("行者 HTTP \(http.statusCode)：\(String(String(data: data, encoding: .utf8)?.prefix(200) ?? ""))")
             }
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   (json["code"] as? Int) == 0 else {

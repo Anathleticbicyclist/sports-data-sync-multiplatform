@@ -368,7 +368,7 @@ private final class CorosEngine {
             || (stsJson["result"] as? String) == "0000"
             || (stsJson["status"] as? String) == "ok"
         guard stsOk else {
-            throw PlatformError.network("高驰 OSS STS 失败：\(String(data: stsData, encoding: .utf8)?.prefix(150) ?? "")")
+            throw PlatformError.network("高驰 OSS STS 失败：\(String(String(data: stsData, encoding: .utf8)?.prefix(150) ?? ""))")
         }
         let dataObj = stsJson["data"] as? [String: Any]
         guard let enc = dataObj?["credentials"] as? String ?? dataObj?["credential"] as? String ?? stsJson["credentials"] as? String else {

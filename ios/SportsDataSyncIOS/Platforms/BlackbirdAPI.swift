@@ -73,7 +73,7 @@ struct BlackbirdAPI: PlatformAPI {
                 throw PlatformError.authFailed("黑鸟登录已过期，请重新登录")
             }
             guard http.statusCode == 200 else {
-                throw PlatformError.network("黑鸟 HTTP \(http.statusCode)：\(String(data: data, encoding: .utf8)?.prefix(200) ?? "")")
+                throw PlatformError.network("黑鸟 HTTP \(http.statusCode)：\(String(String(data: data, encoding: .utf8)?.prefix(200) ?? ""))")
             }
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 throw PlatformError.parse("黑鸟列表解析失败")
@@ -270,10 +270,12 @@ struct BlackbirdAPI: PlatformAPI {
                     "date", "time", "startTimestamp", "start_timestamp"]
         var value: Int64 = 0
         for key in keys {
-            if let string = content[key] as? String, !string.isEmpty,
-               let num = Int64(string) ?? Int64(Double(string) ?? 0), num > 0 {
-                value = num
-                break
+            if let string = content[key] as? String, !string.isEmpty {
+                let num = Int64(string) ?? Int64(Double(string) ?? 0)
+                if num > 0 {
+                    value = num
+                    break
+                }
             }
         }
         if value == 0 {

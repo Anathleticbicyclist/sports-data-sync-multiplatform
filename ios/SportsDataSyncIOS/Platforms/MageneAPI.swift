@@ -69,7 +69,14 @@ struct MageneAPI: PlatformAPI {
         }
         let code = json["code"] as? Int ?? -1
         guard code == 200 else {
-            let message = (json["error"] as? String) ?? String(data: data, encoding: .utf8)?.prefix(100) ?? ""
+            let message: String
+            if let err = json["error"] as? String {
+                message = err
+            } else if let body = String(data: data, encoding: .utf8) {
+                message = String(body.prefix(100))
+            } else {
+                message = ""
+            }
             throw PlatformError.authFailed("迈金登录失败：\(message)")
         }
         guard let array = json["data"] as? [[String: Any]] else {
@@ -129,7 +136,14 @@ struct MageneAPI: PlatformAPI {
                 throw PlatformError.authFailed("迈金登录已过期，请重新登录")
             }
             guard code == 200 else {
-                let message = (json["error"] as? String) ?? String(data: data, encoding: .utf8)?.prefix(100) ?? ""
+                let message: String
+                if let err = json["error"] as? String {
+                    message = err
+                } else if let body = String(data: data, encoding: .utf8) {
+                    message = String(body.prefix(100))
+                } else {
+                    message = ""
+                }
                 throw PlatformError.network("迈金列表错误：\(message)")
             }
             guard let dataObj = json["data"] as? [String: Any],
@@ -187,7 +201,7 @@ struct MageneAPI: PlatformAPI {
         }
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               (json["code"] as? Int) == 200 else {
-            throw PlatformError.network("迈金详情错误：\(String(data: data, encoding: .utf8)?.prefix(100) ?? "")")
+            throw PlatformError.network("迈金详情错误：\(String(String(data: data, encoding: .utf8)?.prefix(100) ?? ""))")
         }
         let riding = ((json["data"] as? [String: Any])?["ridingRecord"] as? [String: Any]) ?? [:]
         let durl = (riding["durl"] as? String) ?? ""
