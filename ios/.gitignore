@@ -1,0 +1,6 @@
+# Xcode / iOS 构建产物
+build/
+DerivedData/
+*.xcuserdata/
+*.xcuserstate
+*.xcodeproj/xcuserdata/
