@@ -541,8 +541,12 @@ public enum FitParser {
 
     /// 把 FIT 里所有 timestamp（field 253）减去指定秒数，另含 file_id.time_created（field 4）、
     /// session/lap.start_time（field 2）。移植自 FitTimeFixer.fixXingzheFitTime。
-    /// 注意安卓原版故意不重算 CRC（行者文件 data_size 本来就不对，重算会盖掉末尾消息），
-    /// 这里同样不重算 CRC；调用方只对“行者→iGPSPORT”这类场景用。
+    /// 与安卓原版不同：这里改完重算文件尾 CRC，让文件自洽（只写最后 2 字节 CRC 位，不动
+    /// data_size 与任何消息；行者文件 data_size 本来就不准，这里不信任它、也不改它——
+    /// 安卓不重算是怕按声明的 data_size 定位 CRC 会盖掉末尾消息，这里按文件实际末尾定位，
+    /// 与本文件 parse()、convertGcj02ToWgs84InFit 把“尾 2 字节当 CRC”的口径一致）。
+    /// 压缩时间戳消息缺定义时不直接结束：逐字节扫描到下一个能解析的定义消息再继续，
+    /// 避免后面所有时间戳漏改（扫描期间不写任何字节；文件本身已不规范时这是启发式恢复）。
     /// 值为 0 的时间字段不改（无效的 time_created 之类）。
     public static func shiftTimestamps(_ data: Data, bySeconds seconds: Int64) -> Data {
         guard data.count >= 14, isFit(data) else { return data }
@@ -558,7 +562,34 @@ public enum FitParser {
                 // 压缩时间戳消息不含完整时间戳，跳过（其时间由基准 + 5 位偏移算出，基准改了它跟着走）。
                 // 跳过长度 = 1 + (totalSize - tsSize)，tsSize 取定义里 253 号字段的 size。
                 let localType = Int((header >> 5) & 0x03)
-                guard let def = defs[localType] else { break }
+                guard let def = defs[localType] else {
+                    // 缺定义：本条消息长度未知，无法按固定步长跳过；逐字节扫描下一个定义消息，
+                    // 登记后继续，避免直接 break 丢掉后面所有时间戳。扫描期间不改任何字节，
+                    // 只认“保留字节为 0、字段数与总长合理”的定义头，降低 payload 字节撞上定义头的概率。
+                    var resumed: Int? = nil
+                    var scan = pos
+                    while scan < dataEnd {
+                        let h = bytes[scan]
+                        if h & 0xC0 == 0x40, scan + 1 < bytes.count, bytes[scan + 1] == 0,
+                           let (cand, next) = parseDefinition(data: bytes, at: scan, header: h),
+                           next > scan, next <= dataEnd, !cand.fields.isEmpty, cand.totalSize > 0 {
+                            let lt = Int(h & 0x0F)
+                            var timeIdx: [Int] = []
+                            let extra = timeFieldsByMessage[cand.globalNumber] ?? []
+                            for (i, f) in cand.fields.enumerated() where f.size == 4 && (f.number == 253 || extra.contains(f.number)) {
+                                timeIdx.append(i)
+                            }
+                            defs[lt] = (cand.globalNumber, cand.bigEndian,
+                                        cand.fields.map { ($0.number, $0.size, $0.offset) }, timeIdx)
+                            resumed = next
+                            break
+                        }
+                        scan += 1
+                    }
+                    guard let next = resumed else { break }
+                    pos = next
+                    continue
+                }
                 let total = def.fields.reduce(0) { $0 + $1.size }
                 let tsSize = def.fields.first { $0.num == 253 }?.size ?? 0
                 pos += 1 + (total - tsSize)
@@ -598,6 +629,14 @@ public enum FitParser {
                 }
             }
             pos += msgSize
+        }
+        // 时间戳改完重算文件尾 CRC，让文件自洽（与 convertGcj02ToWgs84InFit 同款做法）。
+        // 只写最后 2 字节（CRC 位），不动 data_size 与任何消息；若文件尾 2 字节本来就不是 CRC
+        //（无 CRC 的截断文件），本函数与 parse() 同样按“尾 2 字节是 CRC”处理，需真机用行者真文件验证。
+        if bytes.count >= 2 {
+            let crc = FitCRC.crc16(bytes, range: 0..<(bytes.count - 2))
+            bytes[bytes.count - 2] = UInt8(crc & 0xFF)
+            bytes[bytes.count - 1] = UInt8((crc >> 8) & 0xFF)
         }
         return bytes
     }

@@ -270,40 +270,70 @@ private struct CredentialsSheet: View {
 @Environment(\.dismiss) private var dismiss
 @State private var savedMessage: String?
 
+// 编辑用副本：输入框只改副本，点“保存”才写回 AppConfig、点“取消”直接丢弃。
+// 以前输入框双向绑定 AppConfig，改了字段即使不点保存，内存里的值也被改掉，
+// 重启前消费侧会用未保存的值。
+@State private var wahooClientId: String
+@State private var wahooClientSecret: String
+@State private var stravaClientId: String
+@State private var stravaClientSecret: String
+@State private var garminConsumerKey: String
+@State private var garminSecret: String
+@State private var suuntoClientId: String
+@State private var suuntoClientSecret: String
+@State private var suuntoSubscriptionKey: String
+@State private var brytonMobileApiKey: String
+@State private var trialLicenseSalt: String
+
+init() {
+let config = AppConfig.shared
+_wahooClientId = State(initialValue: config.wahooClientId)
+_wahooClientSecret = State(initialValue: config.wahooClientSecret)
+_stravaClientId = State(initialValue: config.stravaClientId)
+_stravaClientSecret = State(initialValue: config.stravaClientSecret)
+_garminConsumerKey = State(initialValue: config.garminConsumerKey)
+_garminSecret = State(initialValue: config.garminSecret)
+_suuntoClientId = State(initialValue: config.suuntoClientId)
+_suuntoClientSecret = State(initialValue: config.suuntoClientSecret)
+_suuntoSubscriptionKey = State(initialValue: config.suuntoSubscriptionKey)
+_brytonMobileApiKey = State(initialValue: config.brytonMobileApiKey)
+_trialLicenseSalt = State(initialValue: config.trialLicenseSalt)
+}
+
 var body: some View {
 NavigationStack {
 Form {
 Section("Wahoo") {
-TextField("Client ID（可空）", text: $config.wahooClientId)
+TextField("Client ID（可空）", text: $wahooClientId)
 .textInputAutocapitalization(.never)
 .autocorrectionDisabled()
-SecureField("Client Secret（可空）", text: $config.wahooClientSecret)
+SecureField("Client Secret（可空）", text: $wahooClientSecret)
 }
 Section("Strava") {
-TextField("Client ID（可空）", text: $config.stravaClientId)
+TextField("Client ID（可空）", text: $stravaClientId)
 .textInputAutocapitalization(.never)
 .autocorrectionDisabled()
-SecureField("Client Secret（可空）", text: $config.stravaClientSecret)
+SecureField("Client Secret（可空）", text: $stravaClientSecret)
 }
 Section("佳明（OAuth1 开发者凭证）") {
-TextField("Consumer Key（可空）", text: $config.garminConsumerKey)
+TextField("Consumer Key（可空）", text: $garminConsumerKey)
 .textInputAutocapitalization(.never)
 .autocorrectionDisabled()
-SecureField("Consumer Secret（可空）", text: $config.garminSecret)
+SecureField("Consumer Secret（可空）", text: $garminSecret)
 }
 Section("松拓 Suunto（Cloud API）") {
-TextField("Client ID（可空）", text: $config.suuntoClientId)
+TextField("Client ID（可空）", text: $suuntoClientId)
 .textInputAutocapitalization(.never)
 .autocorrectionDisabled()
-SecureField("Client Secret（可空）", text: $config.suuntoClientSecret)
-SecureField("Subscription Key（可空）", text: $config.suuntoSubscriptionKey)
+SecureField("Client Secret（可空）", text: $suuntoClientSecret)
+SecureField("Subscription Key（可空）", text: $suuntoSubscriptionKey)
 }
 Section("百锐腾") {
-SecureField("Mobile API Key（可空）", text: $config.brytonMobileApiKey)
+SecureField("Mobile API Key（可空）", text: $brytonMobileApiKey)
 }
 Section("体验码门禁盐值") {
-SecureField("盐值（默认占位符，填入真实盐值后才能发码）", text: $config.trialLicenseSalt)
-Text(config.trialLicenseSalt == "GATE_SALT_PLACEHOLDER"
+SecureField("盐值（默认占位符，填入真实盐值后才能发码）", text: $trialLicenseSalt)
+Text(trialLicenseSalt == "GATE_SALT_PLACEHOLDER" || trialLicenseSalt.isEmpty
 ? "当前是占位符：体验码校验不会通过，需填入真实盐值。"
 : "已填写真实盐值。")
 .font(.caption).foregroundStyle(.secondary)
@@ -324,6 +354,17 @@ Button("取消") { dismiss()}
 }
 ToolbarItem(placement: .confirmationAction) {
 Button("保存") {
+config.wahooClientId = wahooClientId
+config.wahooClientSecret = wahooClientSecret
+config.stravaClientId = stravaClientId
+config.stravaClientSecret = stravaClientSecret
+config.garminConsumerKey = garminConsumerKey
+config.garminSecret = garminSecret
+config.suuntoClientId = suuntoClientId
+config.suuntoClientSecret = suuntoClientSecret
+config.suuntoSubscriptionKey = suuntoSubscriptionKey
+config.brytonMobileApiKey = brytonMobileApiKey
+config.trialLicenseSalt = trialLicenseSalt
 config.save()
 savedMessage = "已保存到本机钥匙串。"
 }

@@ -41,6 +41,10 @@ struct KeepAPI: PlatformAPI {
     private static let geoKey = "56fe59;82g:d873c"
     private static let geoIV = "2346892432920300"
 
+    /// 上一次下载里 geoPoints 解密是否失败过（只记“失败过”这一位，不记密钥、IV 或解密中间值）。
+    /// downloadActivity 开始时清零，解密失败时置位；同步引擎下载后读它，在同步日志里给用户一条可见提示。
+    static var lastGeoDecryptFailed = false
+
     private let session = KeepSession()
 
     // MARK: - PlatformAPI
@@ -141,6 +145,7 @@ struct KeepAPI: PlatformAPI {
 
     /// 下载一条活动的 GPX 字节（安卓 KeepApi.downloadGpx 原样）。
     func downloadActivity(_ activity: ActivityRecord) async throws -> Data {
+        Self.lastGeoDecryptFailed = false // 本次下载重新记解密成败，避免上一条活动的旧标志误报
         let token = try requireToken()
         var runId = activity.remoteId.isEmpty ? activity.id : activity.remoteId
         var typeHint = ""
@@ -302,14 +307,20 @@ struct KeepAPI: PlatformAPI {
     // MARK: - 轨迹解码
 
     /// geoPoints：base64 → AES-128-CBC 解密 → gzip 解压（失败回退 zlib raw）→ 轨迹点数组。
+    /// 解密/解压失败返回空数组（调用方走 rawDataURL / region 单点兜底），同时置位
+    /// lastGeoDecryptFailed，引擎会在同步日志里提示用户（只记成败，不记密钥、IV 或解密中间值）。
     private func decodeGeoPoints(_ text: String) -> [KeepPoint] {
         guard let keyData = Self.geoKey.data(using: .utf8), keyData.count == 16,
               let ivData = Self.geoIV.data(using: .utf8), ivData.count == 16,
               let raw = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines), options: .ignoreUnknownCharacters),
-              let plain = aes128CBCDecrypt(raw, key: keyData, iv: ivData) else { return [] }
+              let plain = aes128CBCDecrypt(raw, key: keyData, iv: ivData) else {
+            Self.lastGeoDecryptFailed = true
+            return []
+        }
         // 安卓：先按 gzip 解压（实测多为 gzip 魔数 1f8b），失败回退 zlib raw。
         if let unzipped = gunzip(plain) { return parsePoints(String(data: unzipped, encoding: .utf8) ?? "") }
         if let inflated = rawInflate(plain) { return parsePoints(String(data: inflated, encoding: .utf8) ?? "") }
+        Self.lastGeoDecryptFailed = true
         return []
     }
 

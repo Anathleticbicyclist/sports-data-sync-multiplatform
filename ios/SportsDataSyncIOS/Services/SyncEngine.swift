@@ -166,12 +166,23 @@ final class SyncEngine: ObservableObject {
     @Published private(set) var totalSkip = 0
     @Published private(set) var totalFail = 0
     /// Keep 半自动导出待分享的 FIT 文件：引擎生成后追加到这里，SyncView 接这个数组弹分享；
-    /// 分享完调 consumeKeepExport(_:) 去掉。没分享前不算同步成功。
+    /// 分享完调 consumeKeepExport(_:) 去掉并记已同步。没分享前不算同步成功。
     @Published var keepExportURLs: [URL] = []
 
-    /// 分享完成（或用户放弃）后，把该文件从待分享列表里去掉。
+    /// 每份待分享 Keep 文件对应的增量记忆键（"来源_活动id->keep"）：导出时与 URL 一起记，
+    /// 分享确认后 consumeKeepExport 按这个键记已同步，下次增量不再重复导出同一条。
+    /// "已分享"是用户自述，引擎无法核实文件是否真的进了 Keep App，按"用户确认即记"的口径做。
+    private var keepExportSyncKeys: [URL: String] = [:]
+
+    /// 分享完成（或用户取消分享后点了"已分享"）后：把该文件从待分享列表里去掉，
+    /// 并按导出时记的键把这条活动记为"已同步到 Keep"，下次增量同步不再重复导出。
     func consumeKeepExport(_ url: URL) {
         keepExportURLs.removeAll { $0 == url }
+        if let key = keepExportSyncKeys.removeValue(forKey: url) {
+            var keys = syncedKeys
+            keys.insert(key)
+            syncedKeys = keys
+        }
     }
 
     private var runTask: Task<Void, Never>?
@@ -293,8 +304,9 @@ final class SyncEngine: ObservableObject {
         opts.coordinateConvert = coordinateConvert
         opts.codoonCoordinateConvert = codoonCoordinateConvert
         opts.zeppCoordinateConvert = zeppCoordinateConvert
+        // 临时任务的开关只放内存，不写持久化 taskOptions：以前每次快速同步都
+        // saveTaskOptions()，临时 UUID 的记录越积越多；跑完由 execute 的 defer 清掉。
         taskOptions[task.id.uuidString] = opts
-        saveTaskOptions()
         run(task: task)
     }
 
@@ -329,6 +341,12 @@ final class SyncEngine: ObservableObject {
                 self.isRunning = false
                 self.runningTaskName = nil
                 self.progressText = ""
+                // 临时任务（不在任务列表里的快速同步）跑完清掉它的内存开关记录，
+                // 不留持久化残留；正常任务的开关不动。
+                if !TaskStore.tasks.contains(where: { $0.id == task.id }) {
+                    self.taskOptions.removeValue(forKey: task.id.uuidString)
+                    self.saveTaskOptions()
+                }
             }
         }
         let opts = options(for: task)
@@ -374,6 +392,13 @@ final class SyncEngine: ObservableObject {
                 }
                 do {
                     let data = try await sourcePlatform.downloadActivity(record)
+                    // Keep 轨迹解密失败时给用户可见提示（否则只会静默滑向单点兜底）：
+                    // KeepAPI 只置位、不记密钥/IV；fallback 链路本身不受影响。
+                    if task.source == .keep && KeepAPI.lastGeoDecryptFailed {
+                        await MainActor.run {
+                            self.log("⚠️ Keep 轨迹解密失败，已用备用方式：「\(record.title)」的轨迹可能只有一个点（里程与时长不受影响）", level: .info)
+                        }
+                    }
                     let savedURL: URL? = await MainActor.run { self.saveLocally(record: record, data: data) }
                     for target in targets {
                         if stopped || Task.isCancelled { break }
@@ -384,7 +409,10 @@ final class SyncEngine: ObservableObject {
                         // 没分享前不记成功、不记已同步、不计上传数。
                         if target.isSemiAutoUpload {
                             if let exportURL = keepExportFileURL(record: record, data: data, savedURL: savedURL) {
-                                await MainActor.run { self.keepExportURLs.append(exportURL) }
+                                await MainActor.run {
+                                    self.keepExportURLs.append(exportURL)
+                                    self.keepExportSyncKeys[exportURL] = self.syncKey(record: record, target: target)
+                                }
                                 await MainActor.run {
                                     self.log("📲 Keep 半自动导入：已生成 FIT 文件，请分享后在 Keep App 内手动导入「\(record.title)」", level: .info)
                                 }
@@ -501,15 +529,27 @@ final class SyncEngine: ObservableObject {
                 log("❌ \(target.displayName) 待接入", level: .fail)
                 continue
             }
-            do {
-                try await platform.uploadActivity(data: data, fileName: activity.fileName, activity: record)
+            // 失败重试一次，与主同步 execute() 里 `for _ in 0..<2` 同口径。
+            // 只记一行结果日志（成功/失败各一条），记录中心按"本次新增日志里提到该目标的那一条"取结果，行数不能变多。
+            var uploaded = false
+            var lastError: Error?
+            for _ in 0..<2 {
+                do {
+                    try await platform.uploadActivity(data: data, fileName: activity.fileName, activity: record)
+                    uploaded = true
+                    break
+                } catch {
+                    lastError = error
+                }
+            }
+            if uploaded {
                 var keys = syncedKeys
                 keys.insert("\(activity.platformRawValue)_\(activity.id)->\(target.rawValue)")
                 syncedKeys = keys
                 log("✅ 已重新上传到\(target.displayName)：\(activity.title)", level: .success)
                 recordUpload(platformRawValue: target.rawValue)
-            } catch {
-                log("❌ 重新上传到\(target.displayName)失败：\(error.localizedDescription)", level: .fail)
+            } else {
+                log("❌ 重新上传到\(target.displayName)失败：\(lastError?.localizedDescription ?? "未知错误")", level: .fail)
             }
         }
     }
@@ -545,15 +585,17 @@ final class SyncEngine: ObservableObject {
     /// 临时码表录完的文件进记录中心（E 组调）：把外部文件拷进 Activities 目录、按现有格式命名、
     /// 生成一条 DownloadedActivity 记进索引，记录中心能正常显示、删除、重新上传。
     /// 失败只记日志，不抛错（码表页不因入库失败而丢掉刚录的文件）。
+    /// 每次导出都调：同一录制先导 GPX 后导 FIT 时，activityId 相同就更新同一条索引
+    /// （换成新文件、删掉旧文件），不另建一条；不传 activityId 时仍按新建处理（兼容旧调用）。
     func importLocalActivity(fileURL: URL, title: String, sportType: String, startDate: Date,
                              distanceMeters: Double, durationSeconds: Double,
-                             elevationGainMeters: Double) {
+                             elevationGainMeters: Double, activityId: String? = nil) {
         guard let data = try? Data(contentsOf: fileURL), !data.isEmpty else {
             log("码表记录入库失败：读不到文件「\(title)」", level: .fail)
             return
         }
         let ext = FitParser.isFit(data) ? "fit" : "gpx"
-        let id = UUID().uuidString
+        let id = activityId ?? UUID().uuidString
         let fileName = "bikeComputer_\(id).\(ext)"
         let destURL = activitiesDirectory.appendingPathComponent(fileName)
         do {
@@ -573,6 +615,21 @@ final class SyncEngine: ObservableObject {
             fileName: fileName,
             elevationGainM: elevationGainMeters > 0 ? elevationGainMeters : nil,
             avgSpeedKmh: avgSpeed)
+        if let existingIndex = downloadedActivities.firstIndex(where: {
+            $0.id == id && $0.platformRawValue == "bikeComputer"
+        }) {
+            // 同一次录制的第二次导出：更新同一条索引，不重复建两条；
+            // 旧格式文件删掉，免得 Activities 目录留孤儿文件。
+            let oldFileName = downloadedActivities[existingIndex].fileName
+            if oldFileName != fileName {
+                try? FileManager.default.removeItem(at: activitiesDirectory.appendingPathComponent(oldFileName))
+            }
+            downloadedActivities[existingIndex] = entry
+            downloadedActivities.sort { $0.startTimeMs > $1.startTimeMs }
+            saveDownloadedIndex()
+            log("码表记录已更新进记录中心「\(entry.title)」")
+            return
+        }
         downloadedActivities.insert(entry, at: 0)
         downloadedActivities.sort { $0.startTimeMs > $1.startTimeMs }
         saveDownloadedIndex()
@@ -652,6 +709,12 @@ final class SyncEngine: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: Self.taskOptionsKey),
            let decoded = try? JSONDecoder().decode([String: TaskOptions].self, from: data) {
             taskOptions = decoded
+            // 顺带清掉旧版本快速同步积存的临时任务开关：任务列表里没有的 id 一律丢掉，
+            // 只留正常任务的持久化开关。
+            taskOptions = taskOptions.filter { entry in
+                TaskStore.tasks.contains { $0.id.uuidString == entry.key }
+            }
+            saveTaskOptions()
         }
         let indexURL = activitiesDirectory.appendingPathComponent(Self.indexFileName)
         if let data = try? Data(contentsOf: indexURL),

@@ -6,6 +6,8 @@
 //   localStorage 里 Meteor.loginToken / Meteor.userId（见 BrytonWebApi / BrytonWebUploader）。
 //   本文件 login(username:password:) 因此抛 unsupported；
 //   App 层在 WebView 登录后调 setCookie(_:) 或 setMeteorSession(loginToken:userId:) 注入登录态。
+//   iOS 登录页已接上：Views/LoginView.swift 的 WebLoginWebView 取到 Meteor 会话后调
+//   setMeteorSession 写钥匙串，取到 Cookie 后调 setCookie 写钥匙串（登录页与实验室共用）。
 // 列表（REST，BrytonApi.kt）：GET https://active.brytonsport.com/api/activity/list?page=N&limit=20
 //       头：Cookie + UA（Chrome 131）+ Referer https://active.brytonsport.com/ + Accept application/json
 //       → data[] / activities[] / data.list[]：id / name / startTime / distance（米）/ duration。

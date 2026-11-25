@@ -233,27 +233,66 @@ struct SuuntoAPI: PlatformAPI {
     /// PKCE：clientSecret 为空时自动启用（Suunto OAuth2 官方支持），
     /// verifier 暂存钥匙串（suunto_code_verifier），handleAuthorizationCode 时消费
     /// （安卓 authorizeUrl / newPkce 原样）。
+    /// 竞态修复：这个方法是幂等的——钥匙串里已有 verifier 就复用它算 challenge，
+    /// 没有才生成一次；登录页 body 里反复调用也不会改写钥匙串，URL 里的 challenge
+    /// 与换 token 时用的 verifier 始终一致。真正开始一次新授权要调
+    /// freshAuthorizationURL（OAuthLoginHelper.start 在用户点按钮时调），
+    /// 只有那里才生成全新的 verifier。
     /// - Parameter clientId: 开发者应用的 client_id（空时用 AppConfig 里的值）。
     public static func authorizationURL(clientId: String) -> String {
+        if liveClientSecret().isEmpty {
+            let verifier = ensureCodeVerifier()
+            return authorizationURLString(clientId: clientId, challenge: pkceChallenge(for: verifier))
+        }
+        KeychainStore.delete(codeVerifierKey)
+        return authorizationURLString(clientId: clientId, challenge: nil)
+    }
+
+    /// 真正开始一次新授权时调这个：生成全新的 PKCE 校验码并覆盖钥匙串，
+    /// 返回带新 challenge 的授权 URL。只能由 OAuthLoginHelper.start 在用户点
+    /// “浏览器授权登录”时调；不要在 body / 按钮显隐判断里调（那里调
+    /// authorizationURL，它是幂等的，不会改写校验码）。
+    public static func freshAuthorizationURL(clientId: String) -> String {
+        if liveClientSecret().isEmpty {
+            let (verifier, challenge) = newPKCE()
+            KeychainStore.set(verifier, for: codeVerifierKey)
+            return authorizationURLString(clientId: clientId, challenge: challenge)
+        }
+        KeychainStore.delete(codeVerifierKey)
+        return authorizationURLString(clientId: clientId, challenge: nil)
+    }
+
+    /// 拼授权 URL（不碰钥匙串、不生成校验码）：challenge 由调用方给，
+    /// 没 PKCE（clientSecret 非空）时传 nil。
+    private static func authorizationURLString(clientId: String, challenge: String?) -> String {
         let cid = clientId.isEmpty ? liveClientId() : clientId
         var url = "\(authBase)/authorize?response_type=code&client_id=\(formEncode(cid))"
         url += "&redirect_uri=\(formEncode(redirectURI))"
         url += "&state=jichiOB"
-        if liveClientSecret().isEmpty {
-            let (verifier, challenge) = newPKCE()
-            KeychainStore.set(verifier, for: "suunto_code_verifier")
+        if let challenge {
             url += "&code_challenge=\(challenge)&code_challenge_method=S256"
-        } else {
-            KeychainStore.delete("suunto_code_verifier")
         }
         return url
     }
 
+    /// 钥匙串里已有校验码就复用，没有才生成一次并存好。反复调用返回同一个值，
+    /// 所以登录页 body 里调 authorizationURL 再多次也不会改写它。
+    private static func ensureCodeVerifier() -> String {
+        if let stored = KeychainStore.get(codeVerifierKey), !stored.isEmpty { return stored }
+        let (verifier, _) = newPKCE()
+        KeychainStore.set(verifier, for: codeVerifierKey)
+        return verifier
+    }
+
+    /// PKCE 校验码在钥匙串里的 key（全文件共用这一个常量，别手写字符串）。
+    private static let codeVerifierKey = "suunto_code_verifier"
+
     /// 旧的实例方法（兼容保留）：与静态 authorizationURL 同一个地址，
     /// 并把 PKCE verifier 同步到本实例的 session，供 exchangeCode 消费。
+    /// authorizationURL 现在是幂等的，这里读到的就是授权页里 challenge 对应的那份。
     func authorizeURL(clientId: String) -> String {
         let url = Self.authorizationURL(clientId: clientId)
-        session.codeVerifier = KeychainStore.get("suunto_code_verifier")
+        session.codeVerifier = KeychainStore.get(Self.codeVerifierKey)
         return url
     }
 
@@ -263,7 +302,7 @@ struct SuuntoAPI: PlatformAPI {
     /// 失败抛 PlatformError.authFailed（不要静默返回 false，调用方要给用户报错）。
     func handleAuthorizationCode(_ code: String) async throws {
         if session.codeVerifier == nil {
-            session.codeVerifier = KeychainStore.get("suunto_code_verifier")
+            session.codeVerifier = KeychainStore.get(Self.codeVerifierKey)
         }
         try await exchangeCode(
             code: code,
@@ -311,13 +350,16 @@ struct SuuntoAPI: PlatformAPI {
         session.refreshToken = json["refresh_token"] as? String ?? ""
         let expiresIn = doubleField(json, "expires_in")
         session.expiresAt = Date().timeIntervalSince1970 + (expiresIn > 0 ? expiresIn : 86400)
-        KeychainStore.delete("suunto_code_verifier")
+        KeychainStore.delete(Self.codeVerifierKey)
         persistSession()
     }
 
     /// 用 refresh_token 换新 token（secret 为空时用 client_id 参数代替 Basic）。
     /// 凭证每次调用时读 AppConfig（关于页填了就生效）；成功后存钥匙串。
+    /// 开头先 restoreSession()：新建实例单独调 refreshToken() 时内存还是空的，
+    /// 不先恢复就会误判“没有 refresh_token、登录已过期”，即使钥匙串里明明有。
     func refreshToken() async throws {
+        restoreSession()
         guard let rt = session.refreshToken, !rt.isEmpty else {
             throw PlatformError.authFailed("松拓登录已过期，请重新授权")
         }
@@ -443,8 +485,14 @@ struct SuuntoAPI: PlatformAPI {
         var bytes = [UInt8](repeating: 0, count: 64)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         let verifier = base64URL(Data(bytes))
+        return (verifier, pkceChallenge(for: verifier))
+    }
+
+    /// 由 verifier 算 S256 challenge（与 newPKCE 里同一算法；复用已有 verifier
+    /// 拼授权 URL 时也走这里，保证 challenge 与钥匙串里的 verifier 配对）。
+    private static func pkceChallenge(for verifier: String) -> String {
         let digest = SHA256.hash(data: Data(verifier.utf8))
-        return (verifier, base64URL(Data(digest)))
+        return base64URL(Data(digest))
     }
 
     private static func base64URL(_ data: Data) -> String {

@@ -68,6 +68,12 @@ final class BackgroundSync {
     // MARK: 登记（App 启动时调一次）
     /// 在 App 入口（App 结构体 init 或 scenePhase 首次 active）调用。
     /// 两个任务标识必须已写进 Info.plist 的 BGTaskSchedulerPermittedIdentifiers。
+    /// 已知限制（架构问题，暂不硬改）：传进来的这台引擎只供后台唤醒时用，前台
+    /// 同步页是 ContentView 自己建的另一台引擎；两台共用同一份 TaskStore /
+    /// UserDefaults / 本地文件，所以后台跑完的下载文件、增量记忆、上次运行时间
+    /// 都会落盘，前台重开 App 就能看到，但前台当时正开着的那台引擎内存里的
+    /// 日志和“上次运行”不会被后台这次运行刷新；要彻底合为一台需改 ContentView
+    /// 的引擎归属，不在本轮改动范围。
     func registerAll(engine: SyncEngine) {
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Self.refreshTaskId, using: nil) { task in

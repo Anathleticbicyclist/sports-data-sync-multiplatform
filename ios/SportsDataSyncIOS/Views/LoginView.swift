@@ -10,11 +10,14 @@
 //   .apiKey（Intervals.icu）走原生表单，用户名固定 "API_KEY"，密码就是 Key；
 //   .oauth2（松拓）与 Strava 走 ASWebAuthenticationSession，回调拿到 code 后调平台的
 //   handleAuthorizationCode 换 token（clientId 为空时提示先去关于页开发者凭证里填）。
-// - 网页登录取凭证（iGPSPORT/行者/黑鸟/高驰/Outbase）：登录完成后从 WKWebView 的
+// - 网页登录取凭证（iGPSPORT/行者/黑鸟/高驰/Outbase/百锐腾）：登录完成后从 WKWebView 的
 //   Cookie / localStorage 里取对应平台的 token/sessionid/cookie，按各平台文件头注释
 //   的名字取，存进 LoginStore.saveToken(_:for:)，再关弹窗、刷新卡片；取不到不静默关弹窗，
 //   页内提示用户点“重新检测”，再取不到给明确文案。平台侧从 LoginStore 读凭证（高驰已是，
 //   其余平台由平台组接；本页只负责存进 LoginStore、不往随手新建的平台实例上写）。
+//   百锐腾例外：Cookie 串由本页存进 LoginStore，Meteor 会话（Meteor.loginToken /
+//   Meteor.userId）由取凭证时调 BrytonAPI.setMeteorSession 写钥匙串（移动端 FIT 下载
+//   的 X-User-Id / X-Auth-Token 就从这里读），Cookie 存时也走 BrytonAPI.setCookie。
 // - PlatformAPI 协议里没有 logout()：退出登录用骨架组 Core/Storage.swift 的
 //   LoginStore.clearToken / clearCredentials（清钥匙串里的凭证）。
 // - 一键检测：网页登录类平台以钥匙串登录态为准（平台实例是内存态，刚存的凭证它还不知道），
@@ -43,16 +46,33 @@ enum WebLoginURL {
         case .garminCN: string = GarminCNAPI.loginURL
         case .corosCN: string = CorosCNAPI.loginURL
         case .corosIntl: string = CorosIntlAPI.loginURL
+        case .bryton: string = BrytonAPI.loginURL // 百锐腾：https://active.brytonsport.com，网页登录。
         default: string = nil // 该平台文件没有公开网页登录地址，待平台组提供。
         }
         guard let string else { return nil }
         return URL(string: string)
     }
 
+    /// 网页登录真能取到凭证的平台（Coordinator.extractCredential 有对应分支）。
+    /// 迈金 / 捷安特 / 佳明（中/国际）/ Intervals.icu 不在这里：取凭证对它们走
+    /// 默认返回空，网页登完也拿不到任何东西；四者都有表单登录可走，所以卡片上
+    /// 不摆“网页登录”按钮，别让用户点开一个登不上的网页。
+    /// iGPSPORT / 行者 / 黑鸟 / 高驰 / Outbase / 百锐腾的网页登录不受影响。
+    static func supportsWebLogin(_ source: DataSource) -> Bool {
+        switch source {
+        case .igpsport, .igpsportIntl, .xingzhe, .blackbird, .corosCN, .corosIntl, .outbase, .bryton:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// OAuth 授权地址（松拓 / Strava，走 ASWebAuthenticationSession，回调 jichiob）。
     /// 约定：SuuntoAPI / StravaAPI 的 authorizationURL(clientId:) 拼出的 redirect_uri
     /// 必须用 jichiob:// 回调（Info.plist 注册该 Scheme），否则授权完跳不回 App。
     /// clientId 为空时返回 nil——卡片上提示用户先去关于页开发者凭证里填，不打开空白授权页。
+    /// 注意：这个方法是幂等的，只用来判断按钮显隐——松拓反复调它不会改写钥匙串里的
+    /// PKCE 校验码，返回的 URL 与校验码始终配对。真正开始授权用 freshOAuthURL(for:)。
     static func oauthURL(for source: DataSource) -> URL? {
         let string: String
         switch source {
@@ -60,6 +80,28 @@ enum WebLoginURL {
             let clientId = AppConfig.shared.suuntoClientId
             guard !clientId.isEmpty else { return nil }
             string = SuuntoAPI.authorizationURL(clientId: clientId)
+        case .strava:
+            let clientId = AppConfig.shared.stravaClientId
+            guard !clientId.isEmpty else { return nil }
+            string = StravaAPI.authorizationURL(clientId: clientId)
+        default:
+            return nil
+        }
+        return URL(string: string)
+    }
+
+    /// 真正开始一次新授权用的地址（OAuthLoginHelper.start 在用户点按钮时调）。
+    /// 松拓：每次生成全新的 PKCE 校验码并写钥匙串，授权页里的 challenge 与它配对；
+    /// Strava：授权地址是纯拼接、无状态，与 oauthURL(for:) 行为一致。
+    /// 不要在 body 里调这个判断按钮显隐——界面每次重渲染都会生成新校验码，
+    /// 授权中途一刷新就会与已打开的授权页失配（PKCE 竞态）。
+    static func freshOAuthURL(for source: DataSource) -> URL? {
+        let string: String
+        switch source {
+        case .suunto:
+            let clientId = AppConfig.shared.suuntoClientId
+            guard !clientId.isEmpty else { return nil }
+            string = SuuntoAPI.freshAuthorizationURL(clientId: clientId)
         case .strava:
             let clientId = AppConfig.shared.stravaClientId
             guard !clientId.isEmpty else { return nil }
@@ -102,7 +144,9 @@ final class OAuthLoginHelper: NSObject, ASWebAuthenticationPresentationContextPr
     }
 
     func start(for ds: DataSource, store: LoginPageStore) {
-        guard let url = WebLoginURL.oauthURL(for: ds) else {
+        // 开始新授权：调 freshOAuthURL，松拓在这里生成全新的 PKCE 校验码；
+        // body 里判断按钮显隐调的是幂等的 oauthURL，不会中途改写校验码。
+        guard let url = WebLoginURL.freshOAuthURL(for: ds) else {
             store.oauthMessage = WebLoginURL.oauthUnavailableReason(for: ds)
                 ?? "\(ds.displayName) 的授权地址暂不可用，请稍后再试。"
             return
@@ -171,7 +215,7 @@ final class LoginPageStore: ObservableObject {
     /// 网页登录类平台：凭证只放钥匙串（LoginStore），平台实例是内存态，刚存的凭证它
     /// 还不知道，所以检测时钥匙串有凭证就算已登录，不只看实例的 isLoggedIn()。
     private static let webCredentialPlatforms: Set<DataSource> = [
-        .igpsport, .igpsportIntl, .xingzhe, .blackbird, .corosCN, .corosIntl, .outbase,
+        .igpsport, .igpsportIntl, .xingzhe, .blackbird, .corosCN, .corosIntl, .outbase, .bryton,
     ]
 
     /// 一键检测全部平台登录态。
@@ -383,9 +427,15 @@ struct LoginView: View {
     }
 
     /// 退出登录：清掉钥匙串里的凭证（骨架组 Storage.swift 的 LoginStore）。
+    /// 百锐腾多清 Meteor 会话（bryton_meteorLoginToken / bryton_meteorUserId，
+    /// 与 BrytonAPI.logout() 同款），否则退出后移动端下载还能拿旧会话继续跑。
     private func logout(_ ds: DataSource) {
         LoginStore.clearToken(for: ds)
         LoginStore.clearCredentials(for: ds)
+        if ds == .bryton {
+            KeychainStore.delete("bryton_meteorLoginToken")
+            KeychainStore.delete("bryton_meteorUserId")
+        }
         store.loggedIn[ds.rawValue] = false
     }
 }
@@ -444,9 +494,17 @@ private struct PlatformLoginCard: View {
                 } else {
                     switch platform.loginMethod {
                     case .account:
-                        Button("账号密码登录", action: onFormLogin)
-                        if WebLoginURL.url(for: platform) != nil {
+                        // 百锐腾没有账号密码直登接口（BrytonAPI.login 直接抛错），
+                        // 只给网页登录一个按钮，不摆一个点进去就报错的表单入口。
+                        if platform == .bryton {
                             Button("网页登录", action: onWebLogin)
+                        } else {
+                            Button("账号密码登录", action: onFormLogin)
+                            // 只给真能取到凭证的平台摆“网页登录”按钮（见 WebLoginURL.supportsWebLogin）：
+                            // 迈金/捷安特/佳明/Intervals.icu 取凭证走默认返回空，点了也登不上。
+                            if WebLoginURL.supportsWebLogin(platform) {
+                                Button("网页登录", action: onWebLogin)
+                            }
                         }
                     case .web:
                         // 目前只有 Strava 是网页登录方式：走浏览器授权，不走 WKWebView。
@@ -458,7 +516,6 @@ private struct PlatformLoginCard: View {
                         }
                     case .oauth2:
                         oauthButton
-                        Button("网页登录", action: onWebLogin)
                     case .smsCode:
                         Button("手机号验证码登录", action: onWebLogin)
                     case .apiKey:
@@ -492,7 +549,8 @@ private struct PlatformLoginCard: View {
 
     private func loginAction() {
         switch platform.loginMethod {
-        case .account, .apiKey: onFormLogin()
+        case .account: platform == .bryton ? onWebLogin() : onFormLogin()
+        case .apiKey: onFormLogin()
         case .oauth2: onOAuthLogin()
         case .web: platform == .strava ? onOAuthLogin() : onWebLogin()
         case .smsCode: onWebLogin()
@@ -566,6 +624,8 @@ struct WebLoginSheet: View {
             return "在网页里登录高驰账号后，App 会自动从网页取 CPL-coros-token 并关闭本页；如果登录后本页没有自动关闭，请点下方“重新检测”。"
         case .outbase:
             return "在网页里输入手机号、收短信验证码登录后，App 会自动取 Sessionid 并关闭本页；如果登录后本页没有自动关闭，请点下方“重新检测”。"
+        case .bryton:
+            return "在网页里登录百锐腾账号后，App 会自动取 Meteor 会话和 Cookie 并关闭本页；如果登录后本页没有自动关闭，请点下方“重新检测”。"
         default:
             return "在网页里登录成功后，App 会自动检测并关闭本页；如果登录后本页没有自动关闭，请点下方“重新检测”。"
         }
@@ -581,6 +641,11 @@ struct WebLoginSheet: View {
 /// - 高驰：Cookie CPL-coros-token / CPL-coros-region，存成 "token;regionId;cookie" 串
 ///   （CorosAPI 的 CorosCredential 就是这个格式）；
 /// - Outbase：Cookie / localStorage / sessionStorage 里的 Sessionid。
+/// - 百锐腾：localStorage 的 Meteor.loginToken / Meteor.userId（登录的真凭据，
+///   正式版 BrytonWebApi / BrytonWebUploader 同款）+ brytonsport.com 的完整 Cookie。
+///   Meteor 会话取到就调 BrytonAPI.setMeteorSession 写钥匙串，Cookie 串返回给 checkNow
+///   走 BrytonAPI.setCookie 存；两个缺一个都不算登上（只有 Cookie 可能是未登录的
+///   匿名 Cookie，只有 Meteor 会话则 REST 列表/下载没有 Cookie 头可用）。
 /// 取不到不静默关弹窗：只在用户点“重新检测”时才给明确提示，初次打开登录页时不报错。
 private struct WebLoginWebView: UIViewRepresentable {
     let url: URL
@@ -625,7 +690,13 @@ private struct WebLoginWebView: UIViewRepresentable {
         func checkNow(reportFailure: Bool) async {
             guard let webView else { return }
             if let value = await extractCredential(from: webView), !value.isEmpty {
-                LoginStore.saveToken(value, for: parent.platform)
+                // 百锐腾的 Cookie 走 BrytonAPI.setCookie 写钥匙串（里面就是
+                // LoginStore.saveToken，外加一份内存态会话）；其余平台直接存 LoginStore。
+                if parent.platform == .bryton {
+                    BrytonAPI().setCookie(value)
+                } else {
+                    LoginStore.saveToken(value, for: parent.platform)
+                }
                 await MainActor.run {
                     parent.store.loggedIn[parent.platform.rawValue] = true
                     parent.onSuccess()
@@ -671,9 +742,32 @@ private struct WebLoginWebView: UIViewRepresentable {
                 if let sessionId = await extractSessionId(from: webView) { return sessionId }
                 let cookies = await cookies(suffix: "outbase.cn", from: webView)
                 return cookies.first(where: { $0.name.lowercased() == "sessionid" })?.value
+            case .bryton:
+                return await brytonCredential(from: webView)
             default:
                 return nil
             }
+        }
+
+        /// 百锐腾取凭证：localStorage 的 Meteor.loginToken / Meteor.userId 是登录的真凭据
+        ///（正式版 BrytonWebApi.kt：列表靠注入这两项保持登录态；BrytonWebUploader.kt：
+        /// 登录态就在 localStorage 的这两项里），brytonsport.com 的完整 Cookie 是
+        /// REST 列表/下载要带的 Cookie 头（正式版 BrytonApi.kt 全程只带 Cookie 头）。
+        /// 两个都要有才返回 Cookie 串：只有 Cookie 可能是未登录的匿名 Cookie，
+        /// 只有 Meteor 会话则 REST 列表/下载没有 Cookie 头可用。
+        /// Meteor 会话取到就立即调 BrytonAPI.setMeteorSession 写钥匙串
+        ///（bryton_meteorLoginToken / bryton_meteorUserId，移动端 FIT 下载的
+        /// X-User-Id / X-Auth-Token 就从这里读）；Cookie 串由调用方走 setCookie 存。
+        private func brytonCredential(from webView: WKWebView) async -> String? {
+            let loginToken = (try? await webView.evaluateJavaScript(
+                "localStorage.getItem('Meteor.loginToken') || ''")) as? String ?? ""
+            let userId = (try? await webView.evaluateJavaScript(
+                "localStorage.getItem('Meteor.userId') || ''")) as? String ?? ""
+            guard !loginToken.isEmpty, !userId.isEmpty else { return nil }
+            BrytonAPI().setMeteorSession(loginToken: loginToken, userId: userId)
+            let cookies = await cookies(suffix: "brytonsport.com", from: webView)
+            guard !cookies.isEmpty else { return nil }
+            return cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
         }
 
         /// 本 WebView 自己的 Cookie 仓里取指定域名的 Cookie。

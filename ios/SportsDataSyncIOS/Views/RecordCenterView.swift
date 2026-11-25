@@ -250,6 +250,9 @@ private struct ActivityDetailSheet: View {
 /// 重新上传：目标只列能上传且注册表能返回实例的平台；多目标先验体验码
 /// （和同步页一个口径）；上传前逐个验登录态；上传完逐条显示成功/失败，
 /// 不再静默关弹窗。
+/// Keep 不列在这里（半自动导入、没有上传接口，选了必败）：详情页已有导出/分享入口，
+/// Keep 手动导入走那条路。
+/// 验码提示挂在本 sheet 自身的 alert 上，不走根 TabView 的体验码 sheet（见 startReupload）。
 private struct ReuploadSheet: View {
     let activity: DownloadedActivity
     @ObservedObject var engine: SyncEngine
@@ -259,6 +262,13 @@ private struct ReuploadSheet: View {
     @State private var busy = false
     @State private var results: [ReuploadResult] = []
     @State private var finished = false
+    // 体验码本地验码（多目标重传用）：不走根 TabView 的体验码 sheet。
+    // pendingTargets 是等验码通过后要接着传的目标；trialError 是上次输码失败的提示，
+    // 存在时显示在 alert 文案里。
+    @State private var showTrialAlert = false
+    @State private var trialCode = ""
+    @State private var trialError: String?
+    @State private var pendingTargets: [DataSource] = []
 
     private struct ReuploadResult: Identifiable {
         let id = UUID()
@@ -271,10 +281,12 @@ private struct ReuploadSheet: View {
     /// 只下载的（MyWhoosh、Zwift、咕咚、Zepp、百锐腾，supportsUpload 为 false）
     /// 和未接入的（注册表返回 nil，如 Strava、Wahoo、松拓）都不列出来；
     /// 也不列活动本身的来源平台（“重新上传到其他平台”）。
+    /// Keep 也不列：Keep 是半自动导入、uploadActivity 直接抛 unsupported，
+    /// 列出来点上去必败；详情页已有导出/分享入口，Keep 手动导入走那条路。
     private var uploadableTargets: [DataSource] {
         let source = DataSource(rawValue: activity.platformRawValue)
         return DataSource.allCases.filter { ds in
-            ds != source && ds.supportsUpload && PlatformRegistry.platform(for: ds) != nil
+            ds != source && ds.supportsUpload && !ds.isSemiAutoUpload && PlatformRegistry.platform(for: ds) != nil
         }
     }
 
@@ -282,7 +294,7 @@ private struct ReuploadSheet: View {
         NavigationStack {
             Form {
                 Section("重新上传「\(activity.title)」") {
-                    Text("忽略增量记忆，强制再传一次。只列出能上传且已接入的平台。")
+                    Text("忽略增量记忆，强制再传一次。只列出能上传且已接入的平台；Keep 是半自动导入，不在这里重传，请回详情页用导出 / 分享手动导入。")
                         .font(.caption).foregroundStyle(.secondary)
                     if uploadableTargets.isEmpty {
                         Text("没有能上传的目标平台。")
@@ -332,20 +344,59 @@ private struct ReuploadSheet: View {
                     }
                 }
             }
+            // 体验码提示挂在本 sheet 自身的 alert 上（UIAlertController 层，能盖在 sheet 之上），
+            // 不走根 TabView 的体验码 sheet：重传本身已是 sheet（详情页 sheet 里再弹本 sheet，
+            // 双层 sheet 之上再挂第三层 sheet 可能弹不出）。alert 里直接输码验证，
+            // 通过后自动继续上传；一对一不走这里。
+            .alert("多目标重新上传需要体验码", isPresented: $showTrialAlert) {
+                TextField("P008-XXXXXX 或 LIFE-XXXXXX", text: $trialCode)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                Button("验证并继续") {
+                    if license.verifyKey(trialCode) {
+                        let pending = pendingTargets
+                        pendingTargets = []
+                        trialCode = ""
+                        trialError = nil
+                        Task { await performReupload(targets: pending) }
+                    } else {
+                        trialError = "体验码错误或已过期，请核对后重试"
+                        // 点按钮后 alert 会先关掉，下一轮把它重新弹回来，用户才能看到错误再输一次。
+                        DispatchQueue.main.async { showTrialAlert = true }
+                    }
+                }
+                Button("暂不使用", role: .cancel) {
+                    pendingTargets = []
+                    trialCode = ""
+                    trialError = nil
+                }
+            } message: {
+                if let trialError {
+                    Text("\(trialError)\n设备ID：\(license.deviceId)，复制设备ID到抖音群获取体验码。")
+                } else {
+                    Text("设备ID：\(license.deviceId)\n复制设备ID，到抖音「多吃两口」主页抖音群获取体验码，验证通过后自动继续上传。")
+                }
+            }
         }
     }
 
-    /// 点“上传”：多目标（目标数 > 1）先验体验码，和同步页一个口径；
-    /// 没码弹体验码框，验证成功后自动继续上传；一对一不验，直接跑。
+    /// 点"上传"：多目标（目标数 > 1）先验体验码，和同步页一个口径；
+    /// 一对一不验，直接跑。
+    /// 不调 license.checkTrialAndRun：它会把体验码弹窗挂到根 TabView 的 sheet 上，
+    /// 重传本身已是双层 sheet，第三层 sheet 可能弹不出，没码点上传会无任何反应。
+    /// 这里先同步判断 license.isAllowed：有码直接跑；没码弹本 sheet 自身的 alert 输码，
+    /// 验证通过后自动继续上传。
     private func startReupload() {
         let targets = uploadableTargets.filter { selectedTargets.contains($0.rawValue) }
         guard !targets.isEmpty else { return }
-        let run = { _ = Task { await performReupload(targets: targets) } }
-        if targets.count > 1 {
-            license.checkTrialAndRun(run)
-        } else {
-            run()
+        if targets.count <= 1 || license.isAllowed {
+            Task { await performReupload(targets: targets) }
+            return
         }
+        pendingTargets = targets
+        trialCode = ""
+        trialError = nil
+        showTrialAlert = true
     }
 
     /// 逐个目标重新上传：先验登录态，没登录的先提示去登录、不发请求；

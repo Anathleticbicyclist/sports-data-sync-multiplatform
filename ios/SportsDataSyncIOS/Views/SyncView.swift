@@ -18,7 +18,8 @@
 // - 任务卡片有编辑入口：改目标、数量、自动同步等开关，复用新建任务表单的字段。
 // - Keep 半自动导入：引擎把 FIT 文件导出后放 keepExportURLs，本页弹出系统分享让用户
 //   发出去、再去 Keep App 里手动导入；分享完成（或取消后点了“已分享”）才调
-//   consumeKeepExport 去掉，没分享前界面上不写“已成功”。
+//   consumeKeepExport 去掉并记已同步（下次增量不再重复导出同一条），
+//   没分享前界面上不写“已成功”。
 // 注意：Models.swift 的口径与安卓有两处不一致（已在 Models.swift 里注明，
 // 等汇总人确认）：捷安特/Intervals.icu 在安卓是只上传，骨架按双向；
 // Komoot/松拓在安卓是双向，骨架按仅下载。这里先按骨架口径写。
@@ -142,6 +143,10 @@ struct SyncView: View {
                     let selected = selectedSource == ds
                     Button {
                         selectedSource = ds
+                        // 换来源后，把旧目标里与新来源相同的剔除：目标网格本来就不含
+                        // 当前来源，留着它只会让 startQuickSync 少传一个目标（引擎虽有兜底，
+                        // 但界面上要先清干净）。
+                        selectedTargets.remove(ds.rawValue)
                     } label: {
                         VStack(spacing: 2) {
                             Text(ds.displayName).font(.subheadline)
@@ -407,7 +412,10 @@ struct SyncView: View {
                         if value {
                             BackgroundSync.shared.autoTaskIds = engine.tasks
                                 .filter { engine.isAutoSync($0) }.map { $0.id.uuidString }
+                            // 两个都排：只排轻量刷新，耗时处理任务要等下次启动 registerAll 才补排，
+                            // 开关打开后到下次启动前这段时间大批量同步排不上。
                             BackgroundSync.shared.scheduleRefresh()
+                            BackgroundSync.shared.scheduleProcessing()
                         } else {
                             BackgroundSync.shared.cancelAll()
                         }
@@ -602,6 +610,10 @@ private struct TaskFormSheet: View {
                     }
                     .disabled(source == nil || targets.isEmpty)
                 }
+            }
+            // 换来源后，把旧目标里与新来源相同的剔除（保存时另有兜底过滤，这里先在界面上清干净）。
+            .onChange(of: source) { _, newSource in
+                if let newSource { targets.remove(newSource.rawValue) }
             }
         }
     }

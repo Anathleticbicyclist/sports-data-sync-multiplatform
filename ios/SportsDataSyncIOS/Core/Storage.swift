@@ -212,25 +212,45 @@ public final class AppConfig: ObservableObject {
     }
 
     /// 钥匙串里有用户自己填的非空值就用它，否则用内置值。
+    /// 但“用户明确清空保存过”不算“从没填过”：保存空值时 save() 会记一个
+    /// “已清空”标记（见 clearedMarkerKey），有标记时返回空，不再回落内置值——
+    /// 否则 Wahoo 栏清空保存后，下次启动又会被 CI 包的内置值顶回来，等于清不掉。
     private func storedOrBuiltin(key: String, builtin: String) -> String {
+        if KeychainStore.get(Self.clearedMarkerKey(for: key)) != nil {
+            return ""
+        }
         if let stored = KeychainStore.get(key), !stored.isEmpty {
             return stored
         }
         return builtin
     }
 
-    /// 把当前填好的凭证存进钥匙串。空字符串也存（等于清空）。
+    /// “已清空”标记的钥匙串键：只记“用户保存过空值”这一件事，值本身无意义。
+    private static func clearedMarkerKey(for key: String) -> String { key + "_userCleared" }
+
+    /// 存一个带内置回落的凭证字段：空值也存，并记“已清空”标记；非空值则清掉标记。
+    private func saveField(_ value: String, for key: String) {
+        KeychainStore.set(value, for: key)
+        if value.isEmpty {
+            KeychainStore.set("1", for: Self.clearedMarkerKey(for: key))
+        } else {
+            KeychainStore.delete(Self.clearedMarkerKey(for: key))
+        }
+    }
+
+    /// 把当前填好的凭证存进钥匙串。空字符串也存（等于清空），并记“已清空”标记，
+    /// 下次启动不再回落内置值；Strava 两栏没有内置值，走普通存取，不用标记。
     public func save() {
-        KeychainStore.set(wahooClientId, for: "config_wahooClientId")
-        KeychainStore.set(wahooClientSecret, for: "config_wahooClientSecret")
-        KeychainStore.set(garminConsumerKey, for: "config_garminConsumerKey")
-        KeychainStore.set(garminSecret, for: "config_garminSecret")
-        KeychainStore.set(suuntoClientId, for: "config_suuntoClientId")
-        KeychainStore.set(suuntoClientSecret, for: "config_suuntoClientSecret")
-        KeychainStore.set(suuntoSubscriptionKey, for: "config_suuntoSubscriptionKey")
-        KeychainStore.set(brytonMobileApiKey, for: "config_brytonMobileApiKey")
+        saveField(wahooClientId, for: "config_wahooClientId")
+        saveField(wahooClientSecret, for: "config_wahooClientSecret")
+        saveField(garminConsumerKey, for: "config_garminConsumerKey")
+        saveField(garminSecret, for: "config_garminSecret")
+        saveField(suuntoClientId, for: "config_suuntoClientId")
+        saveField(suuntoClientSecret, for: "config_suuntoClientSecret")
+        saveField(suuntoSubscriptionKey, for: "config_suuntoSubscriptionKey")
+        saveField(brytonMobileApiKey, for: "config_brytonMobileApiKey")
         KeychainStore.set(stravaClientId, for: "config_stravaClientId")
         KeychainStore.set(stravaClientSecret, for: "config_stravaClientSecret")
-        KeychainStore.set(trialLicenseSalt, for: "config_trialLicenseSalt")
+        saveField(trialLicenseSalt, for: "config_trialLicenseSalt")
     }
 }

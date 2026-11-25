@@ -156,7 +156,11 @@ struct XingzheAPI: PlatformAPI {
             fitData = data
             fitFileName = fileName
         } else {
-            fitData = try GpxParser.gpxToFit(data)
+            do {
+                fitData = try GpxParser.gpxToFit(data)
+            } catch {
+                throw PlatformError.unsupported("行者只接收 FIT 文件，GPX 转 FIT 失败：\(error.localizedDescription)")
+            }
             fitFileName = fileName.lowercased().hasSuffix(".gpx")
                 ? String(fileName.dropLast(4)) + ".fit" : fileName
         }

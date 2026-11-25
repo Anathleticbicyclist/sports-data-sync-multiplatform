@@ -4,7 +4,10 @@
 // 对应安卓 ui/LabLoginFragment.kt。
 //
 // - 松拓走 OAuth2（ASWebAuthenticationSession，回调 jichiob，见登录页的 OAuthLoginHelper），
-//   clientId 为空时提示先去关于页开发者凭证里填；百锐腾同样待接入；Zepp 已接入，账号密码登录。
+//   clientId 为空时提示先去关于页开发者凭证里填；百锐腾走网页登录（登录页同一套
+//   WebLoginSheet：localStorage 的 Meteor.loginToken / Meteor.userId + 完整 Cookie，
+//   前者调 BrytonAPI.setMeteorSession、后者调 BrytonAPI.setCookie 写钥匙串）；
+//   Zepp 已接入，账号密码登录。
 // - 安卓实验室还有两步路 / Strava / Polar / Fitbit / Withings / TrainingPeaks 六个动态平台，
 //   iOS 没有这些平台（Strava 已在登录页主列表里），本页只列上面三个。
 // - 登录复用登录页同一套 WebLoginSheet / NativeLoginSheet，不另写登录逻辑。
@@ -37,7 +40,7 @@ struct LabLoginView: View {
                 )
             }
             Section {
-                Text("实验室里的平台是实验性接入：松拓、百锐腾正在接入中。各平台一直显示在登录页和同步目标里，不按登录状态隐藏；登上后才能同步对应平台的数据。")
+                Text("实验室里的平台是实验性接入：松拓正在接入中；百锐腾已可网页登录。各平台一直显示在登录页和同步目标里，不按登录状态隐藏；登上后才能同步对应平台的数据。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -73,9 +76,14 @@ struct LabLoginView: View {
     }
 
     /// 退出登录：清掉钥匙串里的凭证（同登录页）。
+    /// 百锐腾多清 Meteor 会话（与 BrytonAPI.logout() 同款），否则退出后移动端下载还能拿旧会话继续跑。
     private func logout(_ ds: DataSource) {
         LoginStore.clearToken(for: ds)
         LoginStore.clearCredentials(for: ds)
+        if ds == .bryton {
+            KeychainStore.delete("bryton_meteorLoginToken")
+            KeychainStore.delete("bryton_meteorUserId")
+        }
         store.loggedIn[ds.rawValue] = false
     }
 }
@@ -123,9 +131,16 @@ private struct LabPlatformCard: View {
                 HStack(spacing: 8) {
                     switch platform.loginMethod {
                     case .account, .apiKey:
-                        Button("登录\(platform.displayName)", action: onFormLogin)
-                        if WebLoginURL.url(for: platform) != nil {
+                        // 百锐腾没有账号密码直登接口（BrytonAPI.login 直接抛错），
+                        // 只给网页登录一个按钮，不摆一个点进去就报错的表单入口。
+                        if platform == .bryton {
                             Button("网页登录", action: onWebLogin)
+                        } else {
+                            Button("登录\(platform.displayName)", action: onFormLogin)
+                            // 与登录页同一口径：只给真能取到凭证的平台摆“网页登录”按钮。
+                            if WebLoginURL.supportsWebLogin(platform) {
+                                Button("网页登录", action: onWebLogin)
+                            }
                         }
                     case .web:
                         Button("网页登录", action: onWebLogin)
@@ -139,7 +154,6 @@ private struct LabPlatformCard: View {
                             Text("OAuth 授权地址待接入")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
-                        Button("网页登录", action: onWebLogin)
                     case .smsCode:
                         Button("手机号验证码登录", action: onWebLogin)
                     }
@@ -153,7 +167,7 @@ private struct LabPlatformCard: View {
 
     private func loginAction() {
         switch platform.loginMethod {
-        case .account, .apiKey: onFormLogin()
+        case .account, .apiKey: platform == .bryton ? onWebLogin() : onFormLogin()
         case .oauth2: onOAuthLogin()
         default: onWebLogin()
         }

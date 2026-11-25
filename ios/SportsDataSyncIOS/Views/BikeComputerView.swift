@@ -18,7 +18,9 @@
 //   Info.plist 的 UIBackgroundModes 由 D 组加），锁屏 / 切后台继续记录；
 // - 导出加 FIT：复用已有的 GPX→FIT 转换器 GpxParser.gpxToFit；
 // - 海拔：GPS 海拔实时显示，爬升按 8 米基准法累计（安卓 TrackMerger 同款去噪）；
-// - 录完导出后调 SyncEngine.importLocalActivity 写进记录中心，不分享也能在记录中心找到。
+// - 录完导出后每次都调 SyncEngine.importLocalActivity 写进记录中心，同一录制
+//   先导 GPX 后导 FIT 时更新同一条索引（不重复建两条），不分享也能在记录中心找到；
+//   运动类型开始前在页内选（骑行/跑步/徒步），导出 FIT 与记录中心都跟所选类型走。
 //
 // 蓝牙（安卓 BleSensors.kt 同款口径，只做任务点名的心率 + 功率）：
 // - 标准心率服务 0x180D / 特征 0x2A37：flags bit0 为 0 取 1 字节心率，否则 2 字节小端；
@@ -40,7 +42,6 @@ struct BikeComputerView: View {
     @State private var exportGPXURL: URL?
     @State private var exportFITURL: URL?
     @State private var importedNote: String?
-    @State private var didImportToRecordCenter = false
     @State private var showBlePicker = false
 
     var body: some View {
@@ -197,6 +198,15 @@ struct BikeComputerView: View {
     // MARK: 开始 / 停止 / 导出
     private var controls: some View {
         VStack(spacing: 10) {
+            // 运动类型：开始记录前选，录制中不让改（中途改会让同一条记录前后类型不一致）。
+            // 默认骑行；跑步/徒步录完在记录中心和导出的 FIT 里也不再显示成骑行。
+            Picker("运动类型", selection: $recorder.sport) {
+                Text("骑行").tag(FitSport.cycling)
+                Text("跑步").tag(FitSport.running)
+                Text("徒步").tag(FitSport.hiking)
+            }
+            .pickerStyle(.segmented)
+            .disabled(recorder.isRecording)
             if recorder.isRecording {
                 Button("停止记录") { stopRecording() }
                     .font(.headline)
@@ -236,7 +246,6 @@ struct BikeComputerView: View {
             exportGPXURL = nil
             exportFITURL = nil
             importedNote = nil
-            didImportToRecordCenter = false
         } catch {
             alertMessage = "开始记录失败：\(error.localizedDescription)，请检查定位权限后重试"
         }
@@ -246,8 +255,9 @@ struct BikeComputerView: View {
         recorder.stop()
     }
 
-    /// 导出并写进记录中心：第一次导出（GPX 或 FIT 任一）就调 importLocalActivity，
-    /// 之后再导另一格式不再重复写记录中心；不分享也能在记录中心找到。
+    /// 导出并写进记录中心：每次导出都调 importLocalActivity，同一录制
+    /// （同一个 recordingId）先导 GPX 后导 FIT 时更新同一条索引，不重复建两条；
+    /// 不分享也能在记录中心找到。运动类型跟本次录制选的类型走，不写死骑行。
     private func exportRecording(asFit: Bool) {
         do {
             let url = try asFit ? recorder.exportFIT() : recorder.exportGPX()
@@ -257,19 +267,17 @@ struct BikeComputerView: View {
                 exportGPXURL = url
             }
             alertMessage = nil
-            if !didImportToRecordCenter {
-                engine.importLocalActivity(
-                    fileURL: url,
-                    title: "临时码表记录",
-                    sportType: "cycling",
-                    startDate: recorder.recordedStartDate ?? Date(),
-                    distanceMeters: recorder.distanceKm * 1000,
-                    durationSeconds: Double(recorder.elapsedSeconds),
-                    elevationGainMeters: recorder.elevationGainMeters)
-                didImportToRecordCenter = true
-                importedNote = "已写入记录中心，不分享也能在记录中心找到。"
-                engine.log("临时码表记录已写入记录中心（\(url.lastPathComponent)）", level: .success)
-            }
+            engine.importLocalActivity(
+                fileURL: url,
+                title: "临时码表记录",
+                sportType: recorder.sport.recordCenterName,
+                startDate: recorder.recordedStartDate ?? Date(),
+                distanceMeters: recorder.distanceKm * 1000,
+                durationSeconds: Double(recorder.elapsedSeconds),
+                elevationGainMeters: recorder.elevationGainMeters,
+                activityId: recorder.recordingId)
+            importedNote = "已写入记录中心，不分享也能在记录中心找到。"
+            engine.log("临时码表记录已写入记录中心（\(url.lastPathComponent)）", level: .success)
         } catch {
             alertMessage = "导出失败：\(error.localizedDescription)，记录还在，可再试一次"
         }
@@ -277,6 +285,18 @@ struct BikeComputerView: View {
 }
 
 // MARK: - 蓝牙设备选择（心率带 / 功率计）
+
+/// 码表页运动类型 → 记录中心 sportType 字符串（与各平台同步来的值同一套英文名，
+/// 记录中心、轨迹合并的 FitSport.detect(fromName:) 都认这三个）。
+extension FitSport {
+    var recordCenterName: String {
+        switch self {
+        case .running: return "running"
+        case .hiking: return "hiking"
+        default: return "cycling"
+        }
+    }
+}
 
 private struct BleDevicePickerView: View {
     @ObservedObject var manager: BleSensorManager
@@ -355,6 +375,13 @@ final class BikeRecorder: NSObject, ObservableObject, CLLocationManagerDelegate 
     @Published private(set) var elevationGainMeters: Double = 0
     @Published var errorMessage: String?
 
+    /// 本次录制的运动类型（开始前在码表页选，默认骑行）：导出 FIT 和写记录中心
+    /// 都跟这个走，不写死骑行；跑步/徒步录完在记录中心也不再显示成骑行。
+    @Published var sport: FitSport = .cycling
+    /// 本次录制的稳定 id：开始记录时生成一次，导出 GPX/FIT 两次入库时共用，
+    /// 引擎按它去重更新同一条记录中心索引。
+    private(set) var recordingId = UUID().uuidString
+
     /// 蓝牙实时值（由界面从 BleSensorManager 同步过来），记到每个轨迹点上，导出 FIT 时带上。
     var latestHeartRate: Int = 0
     var latestPower: Int = 0
@@ -425,6 +452,7 @@ final class BikeRecorder: NSObject, ObservableObject, CLLocationManagerDelegate 
         elevationGainMeters = 0
         altitudeBase = nil
         lastLocation = nil
+        recordingId = UUID().uuidString
         startDate = Date()
         isRecording = true
         locationManager.startUpdatingLocation()
@@ -542,9 +570,10 @@ final class BikeRecorder: NSObject, ObservableObject, CLLocationManagerDelegate 
     }
 
     /// 导出 FIT：复用已有的 GPX→FIT 转换器 GpxParser.gpxToFit（有心率/功率就写进去，没有也不报错）。
+    /// 运动类型跟本次录制选的类型走，不写死骑行。
     func exportFIT() throws -> URL {
         let gpxData = try buildGPXData()
-        let fitData = try GpxParser.gpxToFit(gpxData, sport: .cycling)
+        let fitData = try GpxParser.gpxToFit(gpxData, sport: sport)
         let url = try activitiesDirectory()
             .appendingPathComponent("bikecomputer_\(Int(Date().timeIntervalSince1970)).fit")
         try fitData.write(to: url)

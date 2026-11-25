@@ -123,11 +123,12 @@ public enum GpxParser {
         fixGpxTime(data, offsetHours: 8) // UTC+8 减 8 小时
     }
 
-    /// 修正 GPX 中所有 <time> 元素的时间（安卓 fixGpxTime 同款）。
+    /// 修正 GPX 中所有 <time> 元素的时间（安卓 fixGpxTime 同款，另保留毫秒）。
     /// - Parameters:
     ///   - offsetHours: 需要减去的小时数（正数=减，负数=加）。
-    /// 带毫秒的时间按 .SSS 解析、按不带毫秒回写（安卓同款，毫秒会丢掉）；单个时间点解析失败
-    /// 保持原样；一个都没修正时返回原数据。
+    /// 带毫秒的时间按 .SSS 解析、回写时也带毫秒（与安卓不同：安卓按不带毫秒回写，毫秒会丢掉；
+    /// 这里原样保留毫秒，轨迹点时间更精确）。小数秒超过 3 位时用 ISO8601 解析兜底，回写仍为 3 位毫秒。
+    /// 单个时间点解析失败保持原样；一个都没修正时返回原数据。
     public static func fixGpxTime(_ data: Data, offsetHours: Int) -> Data {
         guard let text = String(data: data, encoding: .utf8),
               text.range(of: "<time>", options: .caseInsensitive) != nil else { return data }
@@ -135,6 +136,8 @@ public enum GpxParser {
             pattern: "<time>([^<]+)</time>", options: [.caseInsensitive]) else { return data }
         let plain = gpxTimeFormatter(withMilliseconds: false)
         let withMs = gpxTimeFormatter(withMilliseconds: true)
+        let isoMs = ISO8601DateFormatter()
+        isoMs.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let nsText = text as NSString
         let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length))
         guard !matches.isEmpty else { return data }
@@ -146,11 +149,19 @@ public enum GpxParser {
                   let timeRange = Range(match.range(at: 1), in: text),
                   let fullRange = Range(match.range, in: text) else { continue }
             let timeStr = String(text[timeRange]).trimmingCharacters(in: .whitespacesAndNewlines)
-            let formatter = timeStr.contains(".") ? withMs : plain
-            if let date = formatter.date(from: timeStr) {
+            // 原时间带小数秒 → 回写也带毫秒；不带 → 回写也不带。
+            let hadMs = timeStr.contains(".")
+            let date: Date?
+            if hadMs {
+                date = withMs.date(from: timeStr) ?? isoMs.date(from: timeStr)
+            } else {
+                date = plain.date(from: timeStr)
+            }
+            if let date = date {
                 let shifted = date.addingTimeInterval(TimeInterval(-offsetHours * 3600))
+                let outFormatter = hadMs ? withMs : plain
                 result += text[cursor..<fullRange.lowerBound]
-                result += "<time>\(plain.string(from: shifted))</time>"
+                result += "<time>\(outFormatter.string(from: shifted))</time>"
                 cursor = fullRange.upperBound
                 fixedCount += 1
             }
