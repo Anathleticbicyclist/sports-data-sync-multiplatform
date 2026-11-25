@@ -344,7 +344,7 @@ public enum FitBuilder {
         return out
     }
 
-    static func lapStat(points pts: [TrackPoint], range: Range<Int>,
+    private static func lapStat(points pts: [TrackPoint], range: Range<Int>,
                         ascentOverride: Double?, descentOverride: Double?, sport: FitSport) -> LapStat {
         let from = range.lowerBound, to = range.upperBound
         let startTs = pts[from].timestamp, endTs = pts[to - 1].timestamp
