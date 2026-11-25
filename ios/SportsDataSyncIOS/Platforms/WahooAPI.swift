@@ -290,7 +290,7 @@ private final class WahooEngine {
     }
 
     /// 刷新 token（grant_type=refresh_token）。
-    func refreshToken(refresh: String, clientId: String, clientSecret: String) async -> WahooTokenPair? {
+    func refreshAccessToken(refresh: String, clientId: String, clientSecret: String) async -> WahooTokenPair? {
         guard let url = URL(string: Self.tokenURL) else { return nil }
         let fields: [(String, String)] = [
             ("grant_type", "refresh_token"),
@@ -332,7 +332,7 @@ private final class WahooEngine {
             return currentToken
         }
         if await verifyToken(currentToken) { return currentToken }
-        if let fresh = await refreshToken(refresh: refresh, clientId: clientId, clientSecret: clientSecret),
+        if let fresh = await refreshAccessToken(refresh: refresh, clientId: clientId, clientSecret: clientSecret),
            await verifyToken(fresh.accessToken) {
             saveTokens(fresh)
             return fresh.accessToken
@@ -356,7 +356,7 @@ private final class WahooEngine {
     }
 
     private func refreshAndVerify(refresh: String, clientId: String, clientSecret: String) async -> WahooTokenPair? {
-        guard let fresh = await refreshToken(refresh: refresh, clientId: clientId, clientSecret: clientSecret) else { return nil }
+        guard let fresh = await refreshAccessToken(refresh: refresh, clientId: clientId, clientSecret: clientSecret) else { return nil }
         return await verifyToken(fresh.accessToken) ? fresh : nil
     }
 

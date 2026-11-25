@@ -158,7 +158,8 @@ struct ZeppAPI: PlatformAPI {
                   let dataObj = json["data"] as? [String: Any] else { break }
             if let summary = dataObj["summary"] as? [[String: Any]] {
                 for item in summary {
-                    guard let trackId = stringField(item, "trackid"), !trackId.isEmpty else { continue }
+                    let trackId = stringField(item, "trackid")
+                    guard !trackId.isEmpty else { continue }
                     let type = intField(item, "type", default: 16)
                     let distKm = doubleField(item, "dis")
                     let dur = doubleField(item, "run_time")

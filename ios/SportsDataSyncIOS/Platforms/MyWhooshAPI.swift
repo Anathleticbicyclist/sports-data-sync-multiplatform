@@ -142,7 +142,7 @@ private final class MyWhooshEngine {
         guard resp.statusCode == 200,
               let json = myWhooshJSONDict(data),
               json["Success"] as? Bool == true else {
-            let message = (try? myWhooshJSONDict(data))?["Message"] as? String ?? ""
+            let message = myWhooshJSONDict(data)?["Message"] as? String ?? ""
             throw PlatformError.authFailed(message.isEmpty ? "MyWhoosh 登录失败，请检查账号密码" : "MyWhoosh 登录失败：\(message)")
         }
         let token = json["AccessToken"] as? String ?? ""
