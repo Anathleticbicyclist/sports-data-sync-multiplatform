@@ -1,7 +1,8 @@
 // 待真机验证
-// 关于页：版本 9.6.9、检查更新、记录中心 / 轨迹合并 / 热力图 / 临时码表入口、
-// 本次更新、开源免费与赞赏、Wahoo 等凭证填写入口、体验许可证入口。
-// 对应安卓 ui/AboutFragment.kt。
+// 关于页：版本 9.6.9、检查更新、记录中心 / 轨迹合并 / 热力图 / 临时码表 / 实验室入口、
+// 本次更新（v9.6.9/9.6.8/9.6.7）、开发者俱乐部链接、鸣谢、开源免费与赞赏、
+// Wahoo 等凭证填写入口、体验许可证入口。
+// 对应安卓 ui/AboutFragment.kt + fragment_about.xml，文案按安卓原文。
 //
 // 体验码门禁：
 // - 轨迹合并、热力图、临时码表入口走同一套 checkTrialAndRun（有码进、没码弹框，
@@ -31,6 +32,8 @@ struct AboutView: View {
 
 private static let projectURL = URL(string: "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform")!
 private static let releaseURL = URL(string: "https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/tag/v9.6.9")!
+// 开发者俱乐部：安卓 AboutFragment.kt 原文链接（Outbase 俱乐部页）。
+private static let clubURL = URL(string: "https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f")!
 
 var body: some View {
 List {
@@ -38,7 +41,9 @@ logoSection
 toolsSection
 licenseSection
 updateSection
+linksSection
 credentialsSection
+thanksSection
 aboutTextSection
 }
 .navigationTitle("关于")
@@ -62,6 +67,7 @@ Image(systemName: "bicycle.circle.fill")
 .font(.system(size: 64))
 .foregroundStyle(Color.brandBlue)
 Text("鸡翅幸哲迈进Ob").font(.title2.bold())
+Text("让运动数据自由流动").font(.subheadline).foregroundStyle(.secondary)
 Text("版本 9.6.9（iOS 版）").font(.subheadline).foregroundStyle(.secondary)
 Text("21 个平台运动数据互传 · 免费开源")
 .font(.caption).foregroundStyle(.secondary)
@@ -85,6 +91,8 @@ license.checkTrialAndRun { navigateToHeatmap = true}
 Button("临时码表") {
 license.checkTrialAndRun { navigateToBikeComputer = true}
 }
+// 实验室：松拓 / Zepp / 百锐腾实验性平台登录（安卓 AboutFragment 原文，不验体验码）。
+NavigationLink("实验室") { LabLoginView()}
 HStack {
 Text("本地活动")
 Spacer()
@@ -131,12 +139,48 @@ Button("本次更新") { showChangelog = true}
 }
 }
 
+// MARK: 链接（安卓 fragment_about.xml 原文：“开发者俱乐部”蓝色可点开 Outbase 俱乐部页；
+// “Github项目”蓝色可点开 GitHub 项目主页）
+private var linksSection: some View {
+Section("链接") {
+VStack(spacing: 6) {
+HStack(spacing: 0) {
+Text("鸡翅幸哲迈进OB同步工具:")
+Link("开发者俱乐部", destination: Self.clubURL)
+.foregroundStyle(Color.brandBlue)
+}
+HStack(spacing: 0) {
+Text("➠更新地址鸡翅幸哲迈进OB（开发体验版） 开发版:")
+Link("Github项目", destination: Self.projectURL)
+.foregroundStyle(Color.brandBlue)
+}
+}
+.frame(maxWidth: .infinity)
+.multilineTextAlignment(.center)
+}
+}
+
 // MARK: 凭证
 private var credentialsSection: some View {
 Section("开发者凭证（自己填）") {
 Button("Wahoo / 佳明 / 松拓 / 百锐腾 / 体验码盐值") { showCredentials = true}
 Text("凭证本来就不在仓库里，空着也能用其他平台。填了只存在本机钥匙串里，不上传、不进仓库。")
 .font(.caption).foregroundStyle(.secondary)
+}
+}
+
+// MARK: 鸣谢（安卓 fragment_about.xml 原文，一字不改）
+private var thanksSection: some View {
+Section {
+VStack(spacing: 4) {
+Text("🙏 鸣谢").font(.headline).foregroundStyle(Color.brandBlue)
+Text("感谢iGPSPORT、迈金、黑鸟单车、百锐腾、行者、捷安特、高驰、佳明、Wahoo、Outbase、Keep、咕咚、Zepp、Komoot、Suunto为运动用户提供的数据记录与存储服务")
+Text("感谢以下人员(均为骑行爱称)为软件测试提供的帮助：素甲粉、青岛AUV阿哲、清茶、萧、洪斌大哥、鸽子王腰果、rockozhao、胶州一哥大沽河河长赵铁柱、海参、兰兰大王、。、初夏飞雪bab、心急吃不了热豆付、青山依旧张指导、阿泽阿、泽、无名氏、我有一个朋友、N1d、ongoing33、七诗君、赵烨龙、狂踹瘸子那条好腿👊、小果冻儿、今晚打老虎、仗义多、凤倾")
+Text("鸣谢青岛AUV俱乐部")
+Text("如有问题，欢迎加入Outbase俱乐部跟主理人反馈。开发者:多吃两口")
+}
+.font(.caption).foregroundStyle(.secondary)
+.multilineTextAlignment(.center)
 }
 }
 
@@ -197,12 +241,10 @@ private struct ChangelogSheet: View {
 var body: some View {
 NavigationStack {
 List {
-Section("v9.6.9（iOS 版，全新 Swift 原生重写）") {
-Text("• 21 个平台运动数据互传，国内区与国际区互传")
-Text("• 同步任务：单来源 × 多目标，增量自动跳过已同步")
-Text("• 记录中心、轨迹合并、热力图（线宽 1–5 可调）、临时码表")
-Text("• 体验码门禁按安卓原样保留（功能级入口验码，未做 App 级开屏门禁）")
-Text("• iOS 后台自动同步由系统调度，不如安卓自由，时间不保证")
+Section("本次更新 (v9.6.9)") {
+Text("📦 v9.6.9 多日轨迹合并重做：里程/计时/爬升/卡路里取各段码表原值、按天自动分圈；新增临时运动码表页（定位/速度/海拔与蓝牙传感器可导出FIT、GPX）；优化记录中心热力图；优化上传佳明伪装")
+Text("📦 v9.6.8 修复严重自动登录闪退 Bug（平台失效、无网、连不通平台会循环闪退导致无法启动）")
+Text("📦 v9.6.7 新增 Strava 同步；迈金坐标转换支持骑行台；优化自动重登；高驰上传去除 20KB 限制")
 }
 Section("已知待验证") {
 Text("• 各平台登录与上传需真机逐个验证")

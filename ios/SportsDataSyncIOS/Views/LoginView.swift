@@ -366,8 +366,8 @@ private struct PlatformLoginCard: View {
 }
 
 // MARK: - WebView 登录（登录成功自动保存登录态）
-
-private struct WebLoginSheet: View {
+// 内部可见：实验室页（LabLoginView）复用同一套登录弹窗，不另写登录逻辑。
+struct WebLoginSheet: View {
     let platform: DataSource
     @ObservedObject var store: LoginPageStore
     @Environment(\.dismiss) private var dismiss
@@ -473,8 +473,8 @@ private struct WebLoginWebView: UIViewRepresentable {
 }
 
 // MARK: - 原生账号密码表单（WebView 兜底；API Key 平台用户名固定 "API_KEY"）
-
-private struct NativeLoginSheet: View {
+// 内部可见：实验室页（LabLoginView）复用同一套登录弹窗，不另写登录逻辑。
+struct NativeLoginSheet: View {
     let platform: DataSource
     @ObservedObject var store: LoginPageStore
     @Environment(\.dismiss) private var dismiss
