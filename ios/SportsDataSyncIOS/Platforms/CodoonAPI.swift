@@ -23,9 +23,11 @@
 //   POST：timestamp=当前秒，authorization="Bearer {token}"，body=json.dumps(payload)。
 //   签名 body 必须与 Python json.dumps 逐字一致（键序 + 冒号后空格 + 逗号后空格），否则服务端校验失败。
 // 坐标：咕咚云端存原始 WGS-84（安卓注释），安卓默认不转换；
-//   iOS 任务开关 codoonCoordinateConvert（TaskOptions，默认开）由引擎在下载前写进
+//   iOS 任务开关 codoonCoordinateConvert（TaskOptions，默认关，与安卓一致）由引擎在下载前写进
 //   coordinateConvertEnabled（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，
-//   关了就不转，只转一次。真机拿已知路线验证后若发现轨迹偏移，再把默认值改回关。
+//   关了就不转，只转一次。依据：安卓 PrefsManager.isCodoonGcjConvertEnabled 默认 false
+//   （PrefsManager.kt:260），CodoonApi.gcjConvertEnabled 默认 false（CodoonApi.kt:65），
+//   下载时只在开关开时转（CodoonApi.kt:337）。
 // 密钥：client_id / Basic 凭证 / 签名密钥 / did 已按安卓公开源码 CodoonApi.kt 填好
 //   （社区公开值，running_page codoon_sync.py 同款；未填时登录签名算不出，登录、列表、
 //   下载全都不可用）。登录 token 以 JSON 串存钥匙串（LoginStore），本文件不含任何真实用户凭证。
@@ -53,10 +55,10 @@ struct CodoonAPI: PlatformAPI, CoordinateConvertible {
     private static let typeTitles: [Int: String] = [0: "徒步", 1: "跑步", 2: "骑行"]
 
     /// 轨迹坐标转换开关（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，关了就不转。
-    /// 引擎在下载前按任务开关 codoonCoordinateConvert（TaskOptions，默认开）设置本属性。
-    /// 注意：安卓 CodoonApi.gcjConvertEnabled 默认是关（云端存原始 WGS-84）；这里默认开是按
-    /// 任务要求与 TaskOptions 对齐，真机验证后若轨迹偏移就把两边默认值一起改回关。
-    var coordinateConvertEnabled = true
+    /// 引擎在下载前按任务开关 codoonCoordinateConvert（TaskOptions，默认关）设置本属性。
+    /// 默认关与安卓一致：CodoonApi.gcjConvertEnabled 默认 false（CodoonApi.kt:65），
+    /// 云端存原始 WGS-84。
+    var coordinateConvertEnabled = false
 
     private let session = CodoonSession()
 

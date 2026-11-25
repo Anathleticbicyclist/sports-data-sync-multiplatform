@@ -62,12 +62,18 @@ enum PlatformRegistry {
 struct TaskOptions: Codable {
     /// 增量：跳过已同步过的（来源活动 + 目标）组合。默认开。
     var incremental: Bool = true
-    /// 迈金坐标转换（GCJ-02 → WGS-84）。默认开。
-    var coordinateConvert: Bool = true
-    /// 咕咚坐标转换（GCJ-02 → WGS-84）。默认开。
-    var codoonCoordinateConvert: Bool = true
-    /// Zepp 坐标转换（GCJ-02 → WGS-84）。默认开。
-    var zeppCoordinateConvert: Bool = true
+    /// 迈金坐标转换（GCJ-02 → WGS-84）。默认关，与安卓一致。
+    /// 安卓 PrefsManager.isGcj02Convert 默认 false（PrefsManager.kt:516），
+    /// MainActivity:1266 只在开关开时才转。
+    var coordinateConvert: Bool = false
+    /// 咕咚坐标转换（GCJ-02 → WGS-84）。默认关，与安卓一致。
+    /// 安卓 PrefsManager.isCodoonGcjConvertEnabled 默认 false（PrefsManager.kt:260），
+    /// CodoonApi.gcjConvertEnabled 默认 false（CodoonApi.kt:65），下载时只在开关开时转（:337）。
+    var codoonCoordinateConvert: Bool = false
+    /// Zepp 坐标转换（GCJ-02 → WGS-84）。默认关，与安卓一致。
+    /// 安卓 PrefsManager.isZeppGcjConvertEnabled 默认 false（PrefsManager.kt:272），
+    /// ZeppApi.gcjConvertEnabled 默认 false（ZeppApi.kt:73），下载时只在开关开时转（:402）。
+    var zeppCoordinateConvert: Bool = false
     /// 自动同步（后台跑本任务）。默认关。
     var autoSync: Bool = false
 }
@@ -277,8 +283,8 @@ final class SyncEngine: ObservableObject {
     /// 一对一快速同步（不建任务）：来源单选、目标多选，数量与跳过数由调用方传入。
     /// 只建一个临时 SyncTask 跑 execute，不调 addTask、不进任务列表。
     func runQuick(source: DataSource, targets: [DataSource], count: Int, skip: Int,
-                  coordinateConvert: Bool, codoonCoordinateConvert: Bool = true,
-                  zeppCoordinateConvert: Bool = true) {
+                  coordinateConvert: Bool, codoonCoordinateConvert: Bool = false,
+                  zeppCoordinateConvert: Bool = false) {
         let task = SyncTask(
             name: "\(source.displayName)→\(targets.map(\.displayName).joined(separator: "、"))",
             source: source, targets: targets,
@@ -299,6 +305,21 @@ final class SyncEngine: ObservableObject {
         runningTaskName = nil
         progressText = ""
         log("已停止同步", level: .skip)
+    }
+
+    // MARK: GPX 时区适配
+
+    /// 行者 GPX 上传到 iGPSPORT 前的时区补偿（对照安卓 UploadEngine.kt:113-124 两步法）：
+    /// 行者 GPX 下载时已归一化为 UTC（GpxParser.fixXingzheGpx 减 8 小时）；但 iGPSPORT
+    /// 按北京时间显示 GPX 时间（安卓实测：B 类国产直传 GPX 平台 UTC+8），上传前要加 8 小时回去。
+    /// 只针对行者来源的 GPX、目标为 iGPSPORT 国内/国际（国际与国内共用同一后端域名，同一套解析）；
+    /// FIT 不受影响（FIT 时间戳是标准 UTC）；迈金不用补偿（上传前 GPX 已转 FIT）。
+    /// 注意：只在主同步循环用（数据是刚下载的、已归一化）；记录中心“重新上传”不用——
+    /// 本地存的文件可能是修正前下载的（仍是北京时间标 Z），加 8 会错上加错，保持原样。
+    private func adaptGpxForTarget(_ data: Data, source: DataSource, target: DataSource) -> Data {
+        guard source == .xingzhe, (target == .igpsport || target == .igpsportIntl),
+              !FitParser.isFit(data) else { return data }
+        return GpxParser.fixGpxTime(data, offsetHours: -8)
     }
 
     // MARK: 执行
@@ -388,10 +409,12 @@ final class SyncEngine: ObservableObject {
                         // 失败重试一次。
                         var uploaded = false
                         var lastError: Error?
+                        // 行者 GPX → iGPSPORT 时区补偿（见 adaptGpxForTarget）：重试共用同一份已适配的数据。
+                        let uploadData = adaptGpxForTarget(data, source: task.source, target: target)
                         for _ in 0..<2 {
                             do {
                                 try await targetPlatform.uploadActivity(
-                                    data: data, fileName: record.fileName, activity: record)
+                                    data: uploadData, fileName: record.fileName, activity: record)
                                 uploaded = true
                                 break
                             } catch {

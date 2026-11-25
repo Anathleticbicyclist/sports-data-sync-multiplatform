@@ -42,9 +42,9 @@ struct SyncView: View {
     @State private var keepShareURL: URL?
     @State private var keepShareCancelledURL: URL?
 
-    // 三开关：按安卓 PrefsManager 原样保留（键名与安卓一致）。
-    // 迈金 FIT 坐标为 GCJ-02（高德系），默认开，转为 WGS-84 后上传国际平台。
-    @AppStorage("gcj02_convert") private var mageneConvert = true
+    // 三开关：按安卓 PrefsManager 原样保留（键名与安卓一致，默认值也与安卓一致：三个默认都是关）。
+    // 迈金 FIT 坐标为 GCJ-02（高德系），默认关；开后转为 WGS-84 再上传国际平台。
+    @AppStorage("gcj02_convert") private var mageneConvert = false
     // 咕咚默认关 = WGS-84；若实测偏移可开启 GCJ-02→WGS-84。
     @AppStorage("codoon_gcj_convert") private var codoonConvert = false
     // Zepp 原始坐标即 WGS-84，默认不转换；若实测偏移可开启。
@@ -278,7 +278,8 @@ struct SyncView: View {
         let targets = DataSource.allCases.filter { selectedTargets.contains($0.rawValue) }
         let run = {
             engine.runQuick(source: source, targets: targets, count: count,
-                            skip: skip, coordinateConvert: mageneConvert)
+                            skip: skip, coordinateConvert: mageneConvert,
+                            codoonCoordinateConvert: codoonConvert, zeppCoordinateConvert: zeppConvert)
         }
         if targets.count > 1 {
             license.checkTrialAndRun(run)
@@ -501,9 +502,9 @@ private struct TaskFormSheet: View {
     @State private var count = 10
     @State private var skip = 0
     @State private var incremental = true
-    @State private var coordinateConvert = true
-    @State private var codoonCoordinateConvert = true
-    @State private var zeppCoordinateConvert = true
+    @State private var coordinateConvert = false
+    @State private var codoonCoordinateConvert = false
+    @State private var zeppCoordinateConvert = false
     @State private var autoSync = false
 
     init(existingTask: SyncTask?, initialOptions: TaskOptions, title: String,

@@ -116,6 +116,10 @@ struct XingzheAPI: PlatformAPI {
     /// 行者 FIT 的时间戳是北京时间（UTC+8），不是标准 UTC：FIT 下回来先减 8 小时
     /// （FitParser.shiftTimestamps，移植自 FitTimeFixer.fixXingzheFitTime），
     /// 再保存/上传，记录中心和目标平台显示的时间才跟行者 App 里一致。
+    /// 行者 GPX 的 <time> 同样是北京时间标 Z：下回来先减 8 小时
+    /// （GpxParser.fixXingzheGpx，移植自安卓 GpxTimeFixer.fixXingzheGpx），再保存/上传；
+    /// 上传到 iGPSPORT 前引擎会再加 8 小时回去（安卓 UploadEngine 两步法），
+    /// 因为 iGPSPORT 按北京时间显示 GPX 时间。FIT 那条路不动。
     func downloadActivity(_ activity: ActivityRecord) async throws -> Data {
         try await downloadActivity(activity, preferGpx: false)
     }
@@ -125,7 +129,8 @@ struct XingzheAPI: PlatformAPI {
         let sessionId = try requireSessionId()
         if preferGpx {
             if let gpx = try? await downloadGpx(sessionId: sessionId, workoutId: activity.id) {
-                return gpx
+                // GPX 的 <time> 是北京时间标 Z：减 8 小时归一化为 UTC 再返回。
+                return GpxParser.fixXingzheGpx(gpx)
             }
             // GPX 不可用，回退 FIT（安卓同款）
         }
@@ -135,7 +140,8 @@ struct XingzheAPI: PlatformAPI {
         }
         // 方式 2：GPX（回退）——注意必须带尾斜杠，否则 Django 返回 401；可能丢失功率等扩展数据
         if let gpx = try? await downloadGpx(sessionId: sessionId, workoutId: activity.id) {
-            return gpx
+            // GPX 的 <time> 是北京时间标 Z：减 8 小时归一化为 UTC 再返回。
+            return GpxParser.fixXingzheGpx(gpx)
         }
         throw PlatformError.network("GPX/FIT 均下载失败 (id=\(activity.id))")
     }

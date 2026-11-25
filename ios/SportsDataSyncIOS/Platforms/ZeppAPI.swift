@@ -28,9 +28,11 @@
 // 运动类型：1=running 6=walking 8=treadmill_running 9=cycling
 //           10=indoor_cycling 16=other 23=indoor_rowing 92=badminton
 // 坐标：华米 / Zepp 设备 GPS 原始坐标 = WGS-84，安卓默认不转换；
-//   iOS 任务开关 zeppCoordinateConvert（TaskOptions，默认开）由引擎在下载前写进
+//   iOS 任务开关 zeppCoordinateConvert（TaskOptions，默认关，与安卓一致）由引擎在下载前写进
 //   coordinateConvertEnabled（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，
-//   关了就不转，只转一次。真机拿已知路线验证后若发现轨迹偏移，再把默认值改回关。
+//   关了就不转，只转一次。依据：安卓 PrefsManager.isZeppGcjConvertEnabled 默认 false
+//   （PrefsManager.kt:272），ZeppApi.gcjConvertEnabled 默认 false（ZeppApi.kt:73），
+//   下载时只在开关开时转（ZeppApi.kt:402）。
 // 手机号登录必须带 +86 国家码（华米服务端校验，否则 401）。
 // 密钥：无固定密钥，token 全部运行时注入，本文件不含任何真实凭证。
 
@@ -56,10 +58,10 @@ struct ZeppAPI: PlatformAPI, CoordinateConvertible {
     ]
 
     /// 轨迹坐标转换开关（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，关了就不转。
-    /// 引擎在下载前按任务开关 zeppCoordinateConvert（TaskOptions，默认开）设置本属性。
-    /// 注意：安卓 ZeppApi.gcjConvertEnabled 默认是关（原始坐标就是 WGS-84）；这里默认开是按
-    /// 任务要求与 TaskOptions 对齐，真机验证后若轨迹偏移就把两边默认值一起改回关。
-    var coordinateConvertEnabled = true
+    /// 引擎在下载前按任务开关 zeppCoordinateConvert（TaskOptions，默认关）设置本属性。
+    /// 默认关与安卓一致：ZeppApi.gcjConvertEnabled 默认 false（ZeppApi.kt:73），
+    /// 原始坐标就是 WGS-84。
+    var coordinateConvertEnabled = false
 
     private let session = ZeppSession()
     /// 第 ① 步专用：不跟随 302（需从 Location 取 access code 兜底；安卓 loginClient 同款）。

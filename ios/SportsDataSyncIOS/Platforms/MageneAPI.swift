@@ -22,7 +22,7 @@
 //   gpx2fit.js 只生成 file_id+record，缺 session/lap/activity，迈金异步入库时丢弃）。
 //   iOS 用已有的 GpxParser.gpxToFit 先转再传。
 // 坐标：fit_content 来源的 FIT 为 GCJ-02，按 coordinateConvertEnabled（CoordinateConvertible，
-//   引擎按任务开关设置，默认开）转 WGS-84（参考安卓 FitGcj02Fixer.kt；七牛直链来源为
+//   引擎按任务开关设置，默认关，与安卓一致）转 WGS-84（参考安卓 FitGcj02Fixer.kt；七牛直链来源为
 //   WGS84，不转换）。开关关了就不转，且只转一次。
 // 密钥：无固定密钥，token 全部运行时注入，本文件不含任何真实凭证。
 // 登录态：token + refresh_token 以 JSON 串存钥匙串（LoginStore，key 为 token_magene），
@@ -41,8 +41,10 @@ struct MageneAPI: PlatformAPI, CoordinateConvertible {
     private static let perPage = 20
 
     /// 坐标转换开关（CoordinateConvertible）：fit_content 来源的 FIT 为 GCJ-02 时转不转 WGS-84。
-    /// 引擎在下载前按任务开关（coordinateConvert，默认开）设置；关了就不转，只转一次。
-    var coordinateConvertEnabled = true
+    /// 引擎在下载前按任务开关（coordinateConvert，默认关）设置；关了就不转，只转一次。
+    /// 默认关与安卓一致：安卓 PrefsManager.isGcj02Convert 默认 false（PrefsManager.kt:516），
+    /// MainActivity:1266 只在开关开时才转。
+    var coordinateConvertEnabled = false
 
     /// 当前 access token（登录后由 login 写入钥匙串；App 层也可直接注入已保存的 token）。
     func setToken(_ token: String, refreshToken: String? = nil) {
@@ -245,7 +247,7 @@ struct MageneAPI: PlatformAPI, CoordinateConvertible {
             throw PlatformError.network("FIT 获取失败（fit_content HTTP \(fcCode)，size=\(fcBytes.count)）")
         }
         // GCJ-02 → WGS-84（Core FitParser 内建转换；失败时原样返回原数据，不丢记录）。
-        // 只在开关开时转（引擎按任务开关设置，默认开）；七牛直链已是 WGS-84，不走这里。
+        // 只在开关开时转（引擎按任务开关设置，默认关，与安卓一致）；七牛直链已是 WGS-84，不走这里。
         if coordinateConvertEnabled {
             return FitParser.convertGcj02ToWgs84InFit(fcBytes) ?? fcBytes
         }
@@ -256,21 +258,21 @@ struct MageneAPI: PlatformAPI, CoordinateConvertible {
         let token = try requireToken()
         // 迈金只收 FIT；GPX 先用已有的 GpxParser.gpxToFit 转 FIT 再传（安卓自研 GpxToFitConverter 同款路子）。
         let fitData: Data
-        let fitFileName: String
+        let uploadFileName: String
         if isFit(data) {
             fitData = data
-            fitFileName = fileName
+            uploadFileName = fileName
         } else {
             do {
                 fitData = try GpxParser.gpxToFit(data)
             } catch {
                 throw PlatformError.unsupported("迈金只接收 FIT 文件，GPX 转 FIT 失败：\(error.localizedDescription)")
             }
-            fitFileName = fitFileName(from: fileName)
+            uploadFileName = fitFileName(from: fileName)
         }
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
-        body.appendMultipartFile(field: "jilu0", fileName: fitFileName, mimeType: "application/octet-stream", fileData: fitData, boundary: boundary)
+        body.appendMultipartFile(field: "jilu0", fileName: uploadFileName, mimeType: "application/octet-stream", fileData: fitData, boundary: boundary)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         var request = URLRequest(url: URL(string: "\(Self.base)/api/otm/ride_record/upload/fit")!)

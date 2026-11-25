@@ -114,6 +114,60 @@ public enum GpxParser {
         try FitParser.parse(data)
     }
 
+    // MARK: - GPX 时间修正（移植自安卓 GpxTimeFixer.kt v6.3.3）
+
+    /// 修正行者 GPX 时间：本地时间标 Z → 正确 UTC（减 8 小时）。
+    /// 行者 GPX 里的 <time> 是北京时间却标了 Z，直接上传到 Outbase 会被双重时区转换
+    /// 导致时间偏移。只改 <time> 元素的时间值；没有 <time> 或解析失败时原样返回，不丢记录。
+    public static func fixXingzheGpx(_ data: Data) -> Data {
+        fixGpxTime(data, offsetHours: 8) // UTC+8 减 8 小时
+    }
+
+    /// 修正 GPX 中所有 <time> 元素的时间（安卓 fixGpxTime 同款）。
+    /// - Parameters:
+    ///   - offsetHours: 需要减去的小时数（正数=减，负数=加）。
+    /// 带毫秒的时间按 .SSS 解析、按不带毫秒回写（安卓同款，毫秒会丢掉）；单个时间点解析失败
+    /// 保持原样；一个都没修正时返回原数据。
+    public static func fixGpxTime(_ data: Data, offsetHours: Int) -> Data {
+        guard let text = String(data: data, encoding: .utf8),
+              text.range(of: "<time>", options: .caseInsensitive) != nil else { return data }
+        guard let regex = try? NSRegularExpression(
+            pattern: "<time>([^<]+)</time>", options: [.caseInsensitive]) else { return data }
+        let plain = gpxTimeFormatter(withMilliseconds: false)
+        let withMs = gpxTimeFormatter(withMilliseconds: true)
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length))
+        guard !matches.isEmpty else { return data }
+        var result = ""
+        var cursor = text.startIndex
+        var fixedCount = 0
+        for match in matches {
+            guard match.numberOfRanges == 2,
+                  let timeRange = Range(match.range(at: 1), in: text),
+                  let fullRange = Range(match.range, in: text) else { continue }
+            let timeStr = String(text[timeRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let formatter = timeStr.contains(".") ? withMs : plain
+            if let date = formatter.date(from: timeStr) {
+                let shifted = date.addingTimeInterval(TimeInterval(-offsetHours * 3600))
+                result += text[cursor..<fullRange.lowerBound]
+                result += "<time>\(plain.string(from: shifted))</time>"
+                cursor = fullRange.upperBound
+                fixedCount += 1
+            }
+        }
+        guard fixedCount > 0 else { return data }
+        result += text[cursor...]
+        return result.data(using: .utf8) ?? data
+    }
+
+    private static func gpxTimeFormatter(withMilliseconds: Bool) -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 0)
+        f.dateFormat = withMilliseconds ? "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" : "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        return f
+    }
+
     // MARK: - XML 解析器
 
     private final class ParserDelegate: NSObject, XMLParserDelegate {

@@ -12,16 +12,22 @@
 //       注意：BrytonWebApi.kt 注释说 /api/activity/list 返回的是 SPA HTML、
 //       列表实际走 WebView 读 Meteor collection userActivities——两处说法矛盾，
 //       REST 先行，返回 HTML 时再走 WebView 兜底（见 TODO）。
-// 下载 FIT：GET https://active.brytonsport.com/api/activity/{id}/fit（同款头，FIT 须 ≥14 字节）。
-// 下载 GPX（回退）：GET https://active.brytonsport.com/api/activity/{id}/gpx（200 且 >100 字节才算成功）。
+// 下载 FIT（优先移动端）：GET https://m3.brytonactive.com/api/activity?id={id}，
+//   头 X-User-Id + X-Auth-Token（Meteor 会话）+ x-api-key；200-299 且 FIT 魔数校验通过才算拿到。
+//   移动端不可用时回退网页端：GET https://active.brytonsport.com/api/activity/{id}/fit
+//   （同款头，FIT 须 ≥14 字节且过魔数校验，SPA HTML 会被拦下）；
+// 下载 GPX（最后回退）：GET https://active.brytonsport.com/api/activity/{id}/gpx（200 且 >100 字节才算成功）。
 // 上传：安卓 BrytonApi.kt 有 POST https://active.brytonsport.com/api/activity/upload（multipart file 字段），
 //       但 UploadSupport 里 BRYTON 是“开发中”、不可上传；
 //       真正验证过的上传是 WebView 方式（BrytonWebUploader：/activities 页右上角 + → 文件选择 →
 //       轮询 userActivities collection 确认落库）。本组只做下载，uploadActivity 抛 unsupported。
-// MOBILE_API_KEY：下方留空占位，绝不写真实值。
-//   注意：安卓 Kotlin 参考树（app/src/main/java）里搜不到 MOBILE_API_KEY 的任何引用，
-//   它的用途未经证实——可能是正式版 / 哇哇叫另一路的密钥。先占位，待真机验证再定用不用。
-// 本文件不含任何真实凭证。
+// MOBILE_API_KEY：用途已核实（正式版仓库 sync-igpsport-magene-onelap-xingzhe-data-to-outbase
+//   的 BrytonApi.kt:32 定义，:179-205 的 downloadFitMobile 使用）：
+//   移动端 REST（m3.brytonactive.com/api/activity?id=…）的 x-api-key 请求头，
+//   配合 Meteor 登录态（X-User-Id / X-Auth-Token）下载原始 FIT。
+//   开发版仓库里没有这个 key 的引用，上一轮“搜不到”是搜错了仓库。
+//   值不写进代码：从 AppConfig.shared.brytonMobileApiKey 实时读（关于页填了就生效），
+//   为空时回落到 BuiltinSecrets 的占位值，绝不写真实值。本文件不含任何真实凭证。
 
 import Foundation
 
@@ -31,15 +37,14 @@ struct BrytonAPI: PlatformAPI {
 
     static let loginURL = "https://active.brytonsport.com"
     private static let base = "https://active.brytonsport.com/api"
+    private static let mobileBase = "https://m3.brytonactive.com"
     private static let perPage = 20
     private static let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
     // MOBILE_API_KEY：每次调用时读 AppConfig.shared（用户在关于页填了就生效）；
     // AppConfig 为空时回落到 BuiltinSecrets 的占位值，绝不写真实值。
-    // 注意：安卓 Kotlin 参考树（app/src/main/java）里搜不到 MOBILE_API_KEY 的任何引用，
-    // 它的用途未经证实——可能是正式版 / 哇哇叫另一路的密钥；安卓 BrytonApi.kt 的
-    // 列表/下载/上传请求头里也没有这个 key，所以这里不编造一个请求头硬塞进去，
-    // 只保证取值是实时读的，等真机验证确认用途后再接线。
+    // 用途已核实：正式版 BrytonApi.kt:179-205，移动端 FIT 下载的 x-api-key 请求头，
+    // 只用在 downloadFitMobile 里；网页端列表/下载请求头里没有这个 key，不往那边加。
     static var mobileAPIKey: String {
         let v = AppConfig.shared.brytonMobileApiKey
         return v.isEmpty ? BuiltinSecrets.brytonMobileApiKey : v
@@ -145,14 +150,22 @@ struct BrytonAPI: PlatformAPI {
         return result
     }
 
-    /// 下载一条活动的 FIT 字节；FIT 失败时回退 GPX（安卓 downloadFit / downloadGpx 同款）。
+    /// 下载一条活动的 FIT 字节（正式版 BrytonApi.kt 顺序：移动端优先，网页端兜底）：
+    /// 1) 移动端 REST（m3.brytonactive.com）：Meteor 会话 + x-api-key，有就直接拿原始 FIT；
+    /// 2) 网页端 FIT（active.brytonsport.com/api/…/fit）：200 且 ≥14 字节且过 FIT 魔数校验
+    ///    （SPA HTML 会被拦下，之前没校验可能把 HTML 存成 FIT）；
+    /// 3) 网页端 GPX 回退（200 且 >100 字节）。
     func downloadActivity(_ activity: ActivityRecord) async throws -> Data {
         let cookie = try requireCookie()
         let activityId = activity.remoteId.isEmpty ? activity.id : activity.remoteId
-        // 1) FIT（须 ≥14 字节）。
+        // 1) 移动端 FIT（Meteor 会话 + x-api-key 齐全时才试；缺任何一项直接跳过，不发注定 401 的请求）。
+        if let mobile = await downloadFitMobile(activityId: activityId) {
+            return mobile
+        }
+        // 2) 网页端 FIT（须 ≥14 字节且过 FIT 魔数校验）。
         let fitURL = URL(string: "\(Self.base)/activity/\(activityId)/fit")!
         let (fitData, fitHttp) = try await request(url: fitURL, headers: authHeaders(cookie: cookie), timeout: 120)
-        if fitHttp.statusCode == 200, fitData.count >= 14 {
+        if fitHttp.statusCode == 200, fitData.count >= 14, isFit(fitData) {
             return fitData
         }
         if (401...403).contains(fitHttp.statusCode) {
@@ -165,6 +178,38 @@ struct BrytonAPI: PlatformAPI {
             return gpxData
         }
         throw PlatformError.network("百锐腾下载失败（FIT HTTP \(fitHttp.statusCode)，GPX HTTP \(gpxHttp.statusCode)）")
+    }
+
+    /// 移动端 FIT 下载（移植自正式版 BrytonApi.kt:179-205 downloadFitMobile）：
+    /// GET https://m3.brytonactive.com/api/activity?id={id}，
+    /// 头 X-User-Id / X-Auth-Token（Meteor 会话，钥匙串）+ x-api-key（关于页填的值）。
+    /// 200-299 且 FIT 魔数校验通过才返回；缺凭证、非 2xx、非 FIT、异常都返回 nil，
+    /// 由调用方走网页端兜底。
+    /// 注意：MOBILE_API_KEY 的值绝不写进代码，只读 mobileAPIKey（AppConfig 实时值或占位）。
+    private func downloadFitMobile(activityId: String) async -> Data? {
+        guard let userId = KeychainStore.get("bryton_meteorUserId"), !userId.isEmpty,
+              let authToken = KeychainStore.get("bryton_meteorLoginToken"), !authToken.isEmpty,
+              !Self.mobileAPIKey.isEmpty else { return nil }
+        let url = URL(string: "\(Self.mobileBase)/api/activity?id=\(activityId)")!
+        let headers = [
+            "X-User-Id": userId,
+            "X-Auth-Token": authToken,
+            "x-api-key": Self.mobileAPIKey,
+            "User-Agent": "okhttp/4.12.0",
+            "Accept-Encoding": "gzip",
+        ]
+        do {
+            let (data, http) = try await request(url: url, headers: headers, timeout: 120)
+            guard (200...299).contains(http.statusCode), isFit(data) else { return nil }
+            return data
+        } catch {
+            return nil
+        }
+    }
+
+    /// FIT 魔数校验：offset 8-9 处为 ".F"（安卓 isFitMagic 同款；防 SPA HTML 误入库）。
+    private func isFit(_ data: Data) -> Bool {
+        data.count >= 14 && data[8] == UInt8(ascii: ".") && data[9] == UInt8(ascii: "F")
     }
 
     /// 本组只做下载方向，上传暂不接。
