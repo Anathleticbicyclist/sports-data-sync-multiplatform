@@ -1,12 +1,12 @@
 // 待真机验证
 // SuuntoAPI.swift — Suunto（松拓）（对照安卓 SuuntoApi.kt v9.6.9 原样移植）
 //
-// 仅下载（本组方向；安卓 SuuntoApi 另有三步上传，见文件底说明，暂不接）。
+//  双向：下载源 + 上传目标（三步上传已接，待真机验证）。
 // 登录：OAuth2 Authorization Code（账号密码直登不存在，login(username:password:) 因此抛 unsupported）。
 //   需在 apizone.suunto.com 免费注册开发者应用，取 client_id / client_secret / subscription_key 三凭证
 //   （安卓注释：个人申请约 3-4 周审批）。凭证在本文件留空占位，用户自己填。
 //   授权页：https://cloudapi-oauth.suunto.com/oauth/authorize
-//     ?response_type=code&client_id=..&redirect_uri=https://localhost:8080/suunto-callback&state=jichiOB
+//     ?response_type=code&client_id=..&redirect_uri=jichiob://suunto&state=jichiOB
 //     （+ PKCE：clientSecret 为空时自动启用 code_challenge=S256，见 authorizeURL）
 //   换 token：POST https://cloudapi-oauth.suunto.com/oauth/token
 //     （Basic clientId:clientSecret，grant_type=authorization_code / refresh_token）
@@ -32,33 +32,54 @@ struct SuuntoAPI: PlatformAPI {
 
     static let apiBase = "https://cloudapi.suunto.com"
     static let authBase = "https://cloudapi-oauth.suunto.com/oauth"
-    static let redirectURI = "https://localhost:8080/suunto-callback"
+    static let redirectURI = "jichiob://suunto"
     private static let userAgent = "jichi-ob/7.9.6 (Android)"
 
     /// 内置开发者凭证——默认取 BuiltinSecrets（仓库里是空占位；CI 配了 Secrets 的话，
     /// 编译机上重写过 BuiltinSecrets，取到的就是真实值）。用户在登录页填入后调
     /// setCredentials 注入的优先。
     /// 安卓 SuuntoApi.BUILTIN_CLIENT_ID / BUILTIN_CLIENT_SECRET / BUILTIN_SUBSCRIPTION_KEY 同款占位。
+    /// 注意：下面三个 builtin 值只是回落；每次调用真正用的是 AppConfig.shared 里的值
+    /// （用户在关于页填了就生效，见 liveClientId/liveClientSecret/liveSubscriptionKey），
+    /// 不要直接读 builtin。
     static var builtinClientId = BuiltinSecrets.suuntoClientId
     static var builtinClientSecret = BuiltinSecrets.suuntoClientSecret
     static var builtinSubscriptionKey = BuiltinSecrets.suuntoSubscriptionKey
+
+    /// 每次调用时读 AppConfig（关于页填的值实时生效）；AppConfig 为空才回落到 builtin 占位。
+    private static func liveClientId() -> String {
+        let v = AppConfig.shared.suuntoClientId
+        return v.isEmpty ? builtinClientId : v
+    }
+
+    private static func liveClientSecret() -> String {
+        let v = AppConfig.shared.suuntoClientSecret
+        return v.isEmpty ? builtinClientSecret : v
+    }
+
+    private static func liveSubscriptionKey() -> String {
+        let v = AppConfig.shared.suuntoSubscriptionKey
+        return v.isEmpty ? builtinSubscriptionKey : v
+    }
 
     private let session = SuuntoSession()
 
     // MARK: - PlatformAPI
 
+    /// 只看钥匙串里有没有登录态，不发网络请求（协议口径）。
+    /// 登录态以 JSON 存在 LoginStore（key 是 token_suunto），见 persistSession/restoreSession。
     func isLoggedIn() async -> Bool {
-        guard let token = session.accessToken, !token.isEmpty,
-              let key = session.subscriptionKey, !key.isEmpty else { return false }
-        do {
-            let (_, http) = try await request(
-                url: URL(string: "\(Self.apiBase)/v3/workouts/?filter-by-modification-time=false&limit=1&offset=0")!,
-                headers: apiHeaders(token: token, subscriptionKey: key)
-            )
-            return http.statusCode == 200
-        } catch {
-            return false
-        }
+        restoreSession()
+        return LoginStore.isLoggedIn(.suunto)
+    }
+
+    /// 退出登录：清掉钥匙串里的登录态（内存里的会话一并清掉）。
+    func logout() {
+        LoginStore.clearToken(for: .suunto)
+        session.accessToken = nil
+        session.refreshToken = nil
+        session.expiresAt = 0
+        session.codeVerifier = nil
     }
 
     /// Suunto 没有账号密码登录：必须走 OAuth2 授权码流程。
@@ -143,43 +164,121 @@ struct SuuntoAPI: PlatformAPI {
         return data
     }
 
-    /// 本组只做下载方向，上传暂不接。
-    /// 安卓 SuuntoApi.upload 是存在的（三步：POST /v2/upload → {uploadId, uploadUrl} →
-    /// PUT uploadUrl（body=文件字节）→ GET /v2/upload/{uploadId} 轮询至 PROCESSED；
-    /// 仅接受 FIT 文件，GPX 需上层先转 FIT），
-    /// 但 Models.swift 已把松拓改为双向（与安卓 README 一致），本文件上传接口尚未接（见上），
-    /// 等汇总人跟用户确认后再决定接不接——现在不要假装能传。
+    /// 上传到松拓（三步，安卓 SuuntoApi.upload 原样移植）：
+    /// ① POST /v2/upload → {uploadId, uploadUrl}
+    /// ② PUT uploadUrl（body=文件字节，Content-Type: application/vnd.garmin.fit）
+    /// ③ GET /v2/upload/{uploadId} 轮询至 PROCESSED（最多 15 次 × 2 秒）。
+    /// 仅接受 FIT 文件：GPX 先用 GpxParser.gpxToFit 转 FIT 再传（安卓：GPX 由上层预转）。
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
-        throw PlatformError.unsupported("松拓在 iOS 版只作下载数据源，暂不支持上传（等确认后再接）")
+        let token = try await usableToken()
+        let key = try requireSubscriptionKey()
+        let fitData = FitParser.isFit(data) ? data : try GpxParser.gpxToFit(data)
+        _ = fileName // 上传文件名由服务端按 FIT 内容定，不用传文件名
+
+        // ① 初始化上传
+        let initBody: [String: Any] = [
+            "description": activity.title,
+            "comment": "jichiOB sync",
+            "notifyUser": false,
+            "privacy": "DEFAULT",
+        ]
+        guard let initData = try? JSONSerialization.data(withJSONObject: initBody) else {
+            throw PlatformError.network("松拓上传失败：请求构造失败")
+        }
+        let (respData, resp) = try await request(
+            url: URL(string: "\(Self.apiBase)/v2/upload")!, method: "POST",
+            headers: apiHeaders(token: token, subscriptionKey: key),
+            body: initData, contentType: "application/json")
+        if resp.statusCode == 401 { throw PlatformError.authFailed("松拓登录失效（401），请重新授权") }
+        guard resp.statusCode == 200 || resp.statusCode == 201 else {
+            throw PlatformError.network("松拓上传失败：初始化 HTTP \(resp.statusCode)")
+        }
+        guard let initJson = jsonObject(respData),
+              let uploadUrl = initJson["uploadUrl"] as? String, !uploadUrl.isEmpty,
+              let uploadId = initJson["uploadId"] as? String, !uploadId.isEmpty else {
+            throw PlatformError.network("松拓上传失败：响应里没有 uploadUrl/uploadId")
+        }
+
+        // ② PUT 文件字节到预签名地址（不带业务头，只带 Content-Type）
+        guard let putURL = URL(string: uploadUrl) else {
+            throw PlatformError.network("松拓上传失败：uploadUrl 无效")
+        }
+        let (_, putResp) = try await request(
+            url: putURL, method: "PUT", headers: [:],
+            body: fitData, contentType: "application/vnd.garmin.fit", timeout: 300)
+        guard putResp.statusCode == 200 || putResp.statusCode == 201 else {
+            throw PlatformError.network("松拓上传失败：文件上传 HTTP \(putResp.statusCode)")
+        }
+
+        // ③ 轮询状态（最多 15 次 × 2 秒 = 30 秒）
+        for _ in 0..<15 {
+            let (pollData, pollResp) = try await request(
+                url: URL(string: "\(Self.apiBase)/v2/upload/\(formEncode(uploadId))")!,
+                headers: apiHeaders(token: token, subscriptionKey: key))
+            if pollResp.statusCode == 200, let pollJson = jsonObject(pollData) {
+                let status = ((pollJson["status"] as? String) ?? "").uppercased()
+                if status == "PROCESSED" || status == "COMPLETED" { return }
+                if status == "FAILED" || status == "REJECTED" {
+                    throw PlatformError.network("松拓上传失败：平台拒绝（\(status)）")
+                }
+            }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+        throw PlatformError.network("松拓上传超时（30 秒未处理完成），请在松拓 App 里确认是否已入库")
     }
 
     // MARK: - OAuth2（授权码 + PKCE）
 
     /// 构造授权 URL（打开网页让用户登录，redirect 捕获 code 后换 token）。
     /// PKCE：clientSecret 为空时自动启用（Suunto OAuth2 官方支持），
-    /// verifier 暂存，exchangeCode 时消费（安卓 authorizeUrl / newPkce 原样）。
-    /// - Parameter clientId: 开发者应用的 client_id（空时用 builtinClientId 占位值）。
-    func authorizeURL(clientId: String) -> String {
-        let cid = clientId.isEmpty ? Self.builtinClientId : clientId
-        var url = "\(Self.authBase)/authorize?response_type=code&client_id=\(formEncode(cid))"
-        url += "&redirect_uri=\(formEncode(Self.redirectURI))"
+    /// verifier 暂存钥匙串（suunto_code_verifier），handleAuthorizationCode 时消费
+    /// （安卓 authorizeUrl / newPkce 原样）。
+    /// - Parameter clientId: 开发者应用的 client_id（空时用 AppConfig 里的值）。
+    public static func authorizationURL(clientId: String) -> String {
+        let cid = clientId.isEmpty ? liveClientId() : clientId
+        var url = "\(authBase)/authorize?response_type=code&client_id=\(formEncode(cid))"
+        url += "&redirect_uri=\(formEncode(redirectURI))"
         url += "&state=jichiOB"
-        if Self.builtinClientSecret.isEmpty {
+        if liveClientSecret().isEmpty {
             let (verifier, challenge) = newPKCE()
-            session.codeVerifier = verifier
+            KeychainStore.set(verifier, for: "suunto_code_verifier")
             url += "&code_challenge=\(challenge)&code_challenge_method=S256"
         } else {
-            session.codeVerifier = nil
+            KeychainStore.delete("suunto_code_verifier")
         }
         return url
     }
 
+    /// 旧的实例方法（兼容保留）：与静态 authorizationURL 同一个地址，
+    /// 并把 PKCE verifier 同步到本实例的 session，供 exchangeCode 消费。
+    func authorizeURL(clientId: String) -> String {
+        let url = Self.authorizationURL(clientId: clientId)
+        session.codeVerifier = KeychainStore.get("suunto_code_verifier")
+        return url
+    }
+
+    /// OAuth 回调拿到 code 后调这个换 token、存钥匙串（C 组登录页调用）。
+    /// clientId/secret/subscriptionKey 每次调用时读 AppConfig.shared（关于页填了就生效）；
+    /// 为空时回落到内置值（见 exchangeCode）。
+    /// 失败抛 PlatformError.authFailed（不要静默返回 false，调用方要给用户报错）。
+    func handleAuthorizationCode(_ code: String) async throws {
+        if session.codeVerifier == nil {
+            session.codeVerifier = KeychainStore.get("suunto_code_verifier")
+        }
+        try await exchangeCode(
+            code: code,
+            clientId: AppConfig.shared.suuntoClientId,
+            clientSecret: AppConfig.shared.suuntoClientSecret,
+            subscriptionKey: AppConfig.shared.suuntoSubscriptionKey)
+    }
+
     /// 用授权码换 token（有 verifier 走 PKCE 免 secret，否则 Basic clientId:clientSecret）。
-    /// 凭证留空时默认用 builtin 占位值；App 层也可直接传用户填的值。
+    /// 凭证留空时默认用 AppConfig 里的值（每次调用时读，关于页填了就生效）；
+    /// App 层也可直接传用户填的值。成功后 token 与凭证存钥匙串。
     func exchangeCode(code: String, clientId: String = "", clientSecret: String = "", subscriptionKey: String = "") async throws {
-        let cid = clientId.isEmpty ? Self.builtinClientId : clientId
-        let secret = clientSecret.isEmpty ? Self.builtinClientSecret : clientSecret
-        let key = subscriptionKey.isEmpty ? Self.builtinSubscriptionKey : subscriptionKey
+        let cid = clientId.isEmpty ? Self.liveClientId() : clientId
+        let secret = clientSecret.isEmpty ? Self.liveClientSecret() : clientSecret
+        let key = subscriptionKey.isEmpty ? Self.liveSubscriptionKey() : subscriptionKey
         session.clientId = cid
         session.clientSecret = secret
         session.subscriptionKey = key
@@ -212,16 +311,19 @@ struct SuuntoAPI: PlatformAPI {
         session.refreshToken = json["refresh_token"] as? String ?? ""
         let expiresIn = doubleField(json, "expires_in")
         session.expiresAt = Date().timeIntervalSince1970 + (expiresIn > 0 ? expiresIn : 86400)
+        KeychainStore.delete("suunto_code_verifier")
+        persistSession()
     }
 
     /// 用 refresh_token 换新 token（secret 为空时用 client_id 参数代替 Basic）。
+    /// 凭证每次调用时读 AppConfig（关于页填了就生效）；成功后存钥匙串。
     func refreshToken() async throws {
         guard let rt = session.refreshToken, !rt.isEmpty else {
             throw PlatformError.authFailed("松拓登录已过期，请重新授权")
         }
-        let cid = session.clientId ?? Self.builtinClientId
-        let secret = session.clientSecret ?? Self.builtinClientSecret
-        let key = session.subscriptionKey ?? Self.builtinSubscriptionKey
+        let cid = Self.liveClientId()
+        let secret = Self.liveClientSecret()
+        let key = Self.liveSubscriptionKey()
         var fields: [(String, String)] = [
             ("grant_type", "refresh_token"),
             ("refresh_token", rt),
@@ -248,9 +350,11 @@ struct SuuntoAPI: PlatformAPI {
         session.clientId = cid
         session.clientSecret = secret
         session.subscriptionKey = key
+        persistSession()
     }
 
     /// App 层直接注入已有的 token 与凭证（比如从 Keychain 恢复后），不用重新走授权页。
+    /// 注入后立即存钥匙串。
     func setCredentials(accessToken: String, refreshToken: String, expiresAt: TimeInterval,
                         clientId: String, clientSecret: String, subscriptionKey: String) {
         session.accessToken = accessToken
@@ -259,13 +363,51 @@ struct SuuntoAPI: PlatformAPI {
         session.clientId = clientId
         session.clientSecret = clientSecret
         session.subscriptionKey = subscriptionKey
+        persistSession()
+    }
+
+    // MARK: - 登录态落钥匙串
+
+    /// 把当前会话（token + 刷新 token + 过期时间 + 三个开发者凭证）以 JSON 存进
+    /// LoginStore（key 是 token_suunto），新建实例也能读到。
+    private func persistSession() {
+        guard let access = session.accessToken, !access.isEmpty else { return }
+        let obj: [String: Any] = [
+            "access_token": access,
+            "refresh_token": session.refreshToken ?? "",
+            "expires_at": session.expiresAt,
+            "client_id": session.clientId ?? "",
+            "client_secret": session.clientSecret ?? "",
+            "subscription_key": session.subscriptionKey ?? "",
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: obj),
+           let json = String(data: data, encoding: .utf8) {
+            LoginStore.saveToken(json, for: .suunto)
+        }
+    }
+
+    /// 从钥匙串恢复会话（本实例内存还是空时才恢复；已有内存会话不动）。
+    private func restoreSession() {
+        guard session.accessToken == nil || session.accessToken?.isEmpty == true,
+              let stored = LoginStore.token(for: .suunto),
+              let data = stored.data(using: .utf8),
+              let obj = jsonObject(data) else { return }
+        let access = obj["access_token"] as? String ?? ""
+        guard !access.isEmpty else { return }
+        session.accessToken = access
+        session.refreshToken = (obj["refresh_token"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        session.expiresAt = (obj["expires_at"] as? NSNumber)?.doubleValue ?? 0
+        session.clientId = (obj["client_id"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        session.clientSecret = (obj["client_secret"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        session.subscriptionKey = (obj["subscription_key"] as? String).flatMap { $0.isEmpty ? nil : $0 }
     }
 
     // MARK: - 登录态
 
     /// 校验 access_token 是否可用：未过期直接用；过期且可刷新则自动刷新；否则抛错。
-    /// 安卓 getUsableTokenOrNull 原样。
+    /// 安卓 getUsableTokenOrNull 原样。先从钥匙串恢复会话（新建实例也能用）。
     private func usableToken() async throws -> String {
+        restoreSession()
         guard let access = session.accessToken, !access.isEmpty else { throw PlatformError.notLoggedIn }
         if Date().timeIntervalSince1970 < session.expiresAt { return access }
         if let rt = session.refreshToken, !rt.isEmpty {
@@ -276,10 +418,14 @@ struct SuuntoAPI: PlatformAPI {
     }
 
     private func requireSubscriptionKey() throws -> String {
-        guard let key = session.subscriptionKey, !key.isEmpty else {
+        if let key = session.subscriptionKey, !key.isEmpty { return key }
+        // 会话里没有：每次调用时读 AppConfig（关于页填了就生效），再记回会话。
+        let live = Self.liveSubscriptionKey()
+        guard !live.isEmpty else {
             throw PlatformError.authFailed("松拓缺少 subscription_key，请先填入开发者凭证")
         }
-        return key
+        session.subscriptionKey = live
+        return live
     }
 
     private func apiHeaders(token: String, subscriptionKey: String) -> [String: String] {
@@ -292,7 +438,8 @@ struct SuuntoAPI: PlatformAPI {
     }
 
     /// 生成 PKCE verifier（43–128 位 url-safe）与 S256 challenge（安卓 newPkce 原样）。
-    private func newPKCE() -> (verifier: String, challenge: String) {
+    /// 静态方法：静态 authorizationURL 也要用（实例 session 拿不到）。
+    private static func newPKCE() -> (verifier: String, challenge: String) {
         var bytes = [UInt8](repeating: 0, count: 64)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         let verifier = base64URL(Data(bytes))
@@ -300,7 +447,7 @@ struct SuuntoAPI: PlatformAPI {
         return (verifier, base64URL(Data(digest)))
     }
 
-    private func base64URL(_ data: Data) -> String {
+    private static func base64URL(_ data: Data) -> String {
         data.base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")

@@ -10,7 +10,7 @@
 // - “体验许可证”行：查看许可证类型/有效期、输入或更新体验码（安卓 showLicenseInfoDialog 对应功能）。
 // - 本页本身不验码，App 能点进来，原 UI 不动。
 //
-// 凭证填写入口：Wahoo / 佳明 / 松拓 / 百锐腾开发者凭证 + 体验码门禁盐值，
+// 凭证填写入口：Wahoo / Strava / 佳明 / 松拓 / 百锐腾开发者凭证 + 体验码门禁盐值，
 // 空占位、让用户自己填；用骨架组 Core/Storage.swift 的 AppConfig 单例存取，
 // 只存本机钥匙串，不进仓库、不展示明文。
 // 凭证本来就不在仓库里：CI 编出来的包默认不带 Wahoo 口令，普通用户登不上 Wahoo
@@ -163,7 +163,7 @@ Link("Github项目", destination: Self.projectURL)
 // MARK: 凭证
 private var credentialsSection: some View {
 Section("开发者凭证（自己填）") {
-Button("Wahoo / 佳明 / 松拓 / 百锐腾 / 体验码盐值") { showCredentials = true}
+Button("Wahoo / Strava / 佳明 / 松拓 / 百锐腾 / 体验码盐值") { showCredentials = true}
 Text("凭证本来就不在仓库里，空着也能用其他平台。填了只存在本机钥匙串里，不上传、不进仓库。")
 .font(.caption).foregroundStyle(.secondary)
 }
@@ -249,7 +249,7 @@ Text("📦 v9.6.7 新增 Strava 同步；迈金坐标转换支持骑行台；优
 Section("已知待验证") {
 Text("• 各平台登录与上传需真机逐个验证")
 Text("• iOS 设备 ID 与体验码发码是否对得上")
-Text("• Strava、Wahoo、MyWhoosh、Zwift、松拓、百锐腾、CyCity 平台文件尚未落盘")
+Text("• Strava、Wahoo、MyWhoosh、Zwift、松拓、百锐腾、CyCity 平台文件已落盘、注册表已接入，登录与同步待真机逐个验证")
 }
 }
 .navigationTitle("本次更新")
@@ -278,6 +278,12 @@ TextField("Client ID（可空）", text: $config.wahooClientId)
 .textInputAutocapitalization(.never)
 .autocorrectionDisabled()
 SecureField("Client Secret（可空）", text: $config.wahooClientSecret)
+}
+Section("Strava") {
+TextField("Client ID（可空）", text: $config.stravaClientId)
+.textInputAutocapitalization(.never)
+.autocorrectionDisabled()
+SecureField("Client Secret（可空）", text: $config.stravaClientSecret)
 }
 Section("佳明（OAuth1 开发者凭证）") {
 TextField("Consumer Key（可空）", text: $config.garminConsumerKey)

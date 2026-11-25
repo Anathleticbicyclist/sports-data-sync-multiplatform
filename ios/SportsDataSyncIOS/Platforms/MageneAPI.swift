@@ -20,16 +20,19 @@
 //   jilu0 新接口可直传，本文件走新接口，不走 WebView。
 //   迈金只收 FIT：GPX 必须先转 FIT（安卓用自研 GpxToFitConverter 完整消息流；官方
 //   gpx2fit.js 只生成 file_id+record，缺 session/lap/activity，迈金异步入库时丢弃）。
-//   iOS 转换器尚未接入，本文件遇到非 FIT 直接抛错，见 uploadActivity。
-// 坐标：fit_content 来源的 FIT 为 GCJ-02，用 Core FitParser.convertGcj02ToWgs84InFit
-//   转 WGS-84（参考安卓 FitGcj02Fixer.kt；七牛直链来源为 WGS84，不转换）。
+//   iOS 用已有的 GpxParser.gpxToFit 先转再传。
+// 坐标：fit_content 来源的 FIT 为 GCJ-02，按 coordinateConvertEnabled（CoordinateConvertible，
+//   引擎按任务开关设置，默认开）转 WGS-84（参考安卓 FitGcj02Fixer.kt；七牛直链来源为
+//   WGS84，不转换）。开关关了就不转，且只转一次。
 // 密钥：无固定密钥，token 全部运行时注入，本文件不含任何真实凭证。
+// 登录态：token + refresh_token 以 JSON 串存钥匙串（LoginStore，key 为 token_magene），
+//   账号密码也存钥匙串供重登；实例无状态，每次从钥匙串读。
 // 网络：状态敏感调用走 HTTPClient.shared.requestRaw（非 2xx 不抛错，返回原始响应供调用方按状态码处理）。
 
 import CryptoKit
 import Foundation
 
-struct MageneAPI: PlatformAPI {
+struct MageneAPI: PlatformAPI, CoordinateConvertible {
     let source: DataSource = .magene
 
     static let loginURL = "https://otm.onelap.cn/login"
@@ -37,22 +40,29 @@ struct MageneAPI: PlatformAPI {
     private static let base = "https://otm.onelap.cn"
     private static let perPage = 20
 
-    private let credentialStore = MageneCredentialStore()
+    /// 坐标转换开关（CoordinateConvertible）：fit_content 来源的 FIT 为 GCJ-02 时转不转 WGS-84。
+    /// 引擎在下载前按任务开关（coordinateConvert，默认开）设置；关了就不转，只转一次。
+    var coordinateConvertEnabled = true
 
-    /// 当前 access token（登录后由 login 写入；App 层也可直接注入已保存的 token）。
+    /// 当前 access token（登录后由 login 写入钥匙串；App 层也可直接注入已保存的 token）。
     func setToken(_ token: String, refreshToken: String? = nil) {
-        credentialStore.token = token
-        if let refreshToken { credentialStore.refreshToken = refreshToken }
+        let (_, oldRefresh) = Self.parseBlob(LoginStore.token(for: source) ?? "")
+        LoginStore.saveToken(Self.tokenBlob(token: token, refreshToken: refreshToken ?? oldRefresh), for: source)
     }
 
-    /// 只看本地有没有 token，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 token，不发网络请求（协议口径）。
     /// 安卓曾校验 JWT exp 并用列表接口实测，如需实测校验由 App 层另调 fetchActivities(limit: 1)。
     func isLoggedIn() async -> Bool {
-        guard let token = credentialStore.token, !token.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(source)
     }
 
-    /// 账号密码登录：密码取 MD5（安卓同款）。成功返回时 token 已写入本实例。
+    /// 退出登录：清掉钥匙串里的 token 与账号密码。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
+    }
+
+    /// 账号密码登录：密码取 MD5（安卓同款）。成功返回时 token 已写入钥匙串。
     func login(username: String, password: String) async throws {
         let body: [String: Any] = ["account": username, "password": md5Hex(password)]
         var request = URLRequest(url: URL(string: "\(Self.base)/api/login")!)
@@ -92,8 +102,8 @@ struct MageneAPI: PlatformAPI {
         guard !token.isEmpty else {
             throw PlatformError.parse("迈金登录失败：登录响应无 token")
         }
-        credentialStore.token = token
-        credentialStore.refreshToken = refresh
+        LoginStore.saveToken(Self.tokenBlob(token: token, refreshToken: refresh), for: source)
+        LoginStore.saveCredentials(username: username, password: password, for: source)
     }
 
     /// POST /api/token {"token":refresh_token,"from":"web","to":"web"}，换不到返回 nil。
@@ -111,6 +121,8 @@ struct MageneAPI: PlatformAPI {
               !token.isEmpty else {
             return nil
         }
+        // 刷新出的新 token 写回钥匙串（refresh_token 不变，继续用旧的）。
+        LoginStore.saveToken(Self.tokenBlob(token: token, refreshToken: refreshToken), for: source)
         return token
     }
 
@@ -232,21 +244,33 @@ struct MageneAPI: PlatformAPI {
         guard fcCode == 200, isFit(fcBytes) else {
             throw PlatformError.network("FIT 获取失败（fit_content HTTP \(fcCode)，size=\(fcBytes.count)）")
         }
-        // GCJ-02 → WGS-84（Core FitParser 内建转换；失败时原样返回原数据，不丢记录）
-        return FitParser.convertGcj02ToWgs84InFit(fcBytes) ?? fcBytes
+        // GCJ-02 → WGS-84（Core FitParser 内建转换；失败时原样返回原数据，不丢记录）。
+        // 只在开关开时转（引擎按任务开关设置，默认开）；七牛直链已是 WGS-84，不走这里。
+        if coordinateConvertEnabled {
+            return FitParser.convertGcj02ToWgs84InFit(fcBytes) ?? fcBytes
+        }
+        return fcBytes
     }
 
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
         let token = try requireToken()
-        // 迈金只收 FIT；GPX 必须先转 FIT（安卓自研 GpxToFitConverter 完整消息流）。
-        // TODO: 待接入 GPX→FIT 转换器（官方 gpx2fit.js 不可用：只生成 file_id+record，
-        //   缺 session/lap/activity，迈金异步入库时丢弃）。
-        guard isFit(data) else {
-            throw PlatformError.unsupported("迈金只接收 FIT 文件，GPX 需先转 FIT；iOS 转换器待接入")
+        // 迈金只收 FIT；GPX 先用已有的 GpxParser.gpxToFit 转 FIT 再传（安卓自研 GpxToFitConverter 同款路子）。
+        let fitData: Data
+        let fitFileName: String
+        if isFit(data) {
+            fitData = data
+            fitFileName = fileName
+        } else {
+            do {
+                fitData = try GpxParser.gpxToFit(data)
+            } catch {
+                throw PlatformError.unsupported("迈金只接收 FIT 文件，GPX 转 FIT 失败：\(error.localizedDescription)")
+            }
+            fitFileName = fitFileName(from: fileName)
         }
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
-        body.appendMultipartFile(field: "jilu0", fileName: fileName, mimeType: "application/octet-stream", fileData: data, boundary: boundary)
+        body.appendMultipartFile(field: "jilu0", fileName: fitFileName, mimeType: "application/octet-stream", fileData: fitData, boundary: boundary)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         var request = URLRequest(url: URL(string: "\(Self.base)/api/otm/ride_record/upload/fit")!)
@@ -273,8 +297,39 @@ struct MageneAPI: PlatformAPI {
 
     // MARK: - 内部
 
+    /// token + refresh_token 的钥匙串存法：一个 JSON 串（Garmin 同款做法），只存本机。
+    private static func tokenBlob(token: String, refreshToken: String) -> String {
+        let obj: [String: String] = ["token": token, "refresh_token": refreshToken]
+        if let data = try? JSONSerialization.data(withJSONObject: obj),
+           let json = String(data: data, encoding: .utf8) {
+            return json
+        }
+        return token
+    }
+
+    /// 解析钥匙串里的 token 串：JSON 串取 token/refresh_token，否则整串就是 token（兼容旧值）。
+    private static func parseBlob(_ stored: String) -> (token: String, refreshToken: String) {
+        if let data = stored.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return ((json["token"] as? String) ?? "", (json["refresh_token"] as? String) ?? "")
+        }
+        return (stored, "")
+    }
+
+    /// GPX 转 FIT 后文件名改成 .fit 后缀。
+    private func fitFileName(from fileName: String) -> String {
+        let lower = fileName.lowercased()
+        if lower.hasSuffix(".gpx") { return String(fileName.dropLast(4)) + ".fit" }
+        if lower.hasSuffix(".fit") { return fileName }
+        return fileName + ".fit"
+    }
+
     private func requireToken() throws -> String {
-        guard let token = credentialStore.token, !token.isEmpty else {
+        guard let stored = LoginStore.token(for: source), !stored.isEmpty else {
+            throw PlatformError.notLoggedIn
+        }
+        let (token, _) = Self.parseBlob(stored)
+        guard !token.isEmpty else {
             throw PlatformError.notLoggedIn
         }
         return token
@@ -313,10 +368,4 @@ struct MageneAPI: PlatformAPI {
     private func md5Hex(_ string: String) -> String {
         Insecure.MD5.hash(data: Data(string.utf8)).map { String(format: "%02x", $0) }.joined()
     }
-}
-
-/// 迈金 token / refresh_token 只放内存；Keychain 落盘与恢复由 App 层负责。
-final class MageneCredentialStore {
-    var token: String?
-    var refreshToken: String?
 }

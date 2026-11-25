@@ -36,21 +36,26 @@ struct IntervalsIcuAPI: PlatformAPI {
     private static let base = "https://intervals.icu/api/v1"
     private static let apiKeyUser = "API_KEY"
 
-    private let keyStore = IntervalsIcuKeyStore()
+    /// 当前 API Key（登录后由 login 写入钥匙串；App 层也可直接注入已保存的 Key）。
+    func setApiKey(_ apiKey: String) { LoginStore.saveToken(apiKey, for: source) }
 
-    /// 当前 API Key（登录后由 login 写入；App 层也可直接注入已保存的 Key）。
-    func setApiKey(_ apiKey: String) { keyStore.apiKey = apiKey }
-
-    /// 只看本地有没有 API Key，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 API Key，不发网络请求（协议口径）。
     /// 如需实测校验 Key，另调 validateKey(_:)。
     func isLoggedIn() async -> Bool {
-        guard let apiKey = keyStore.apiKey, !apiKey.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(source)
     }
 
+    /// 退出登录：清掉钥匙串里的 API Key。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
+    }
+
+    /// 账号密码表单入口：Intervals.icu 没有账号密码登录，只有 API Key 登录。
+    /// 以前这里直接抛错（自检第 11 条）；现在改成把 password 当 API Key 调 login(apiKey:)，
+    /// 登录页填了正确的 Key 就能登上。
     func login(username: String, password: String) async throws {
-        // 协议口径：API Key 登录不在这个方法里，请调 login(apiKey:)（password 即 API Key 也可走那里）。
-        throw PlatformError.unsupported("Intervals.icu 用个人 API Key 登录（设置页底部复制），请调 login(apiKey:)")
+        try await login(apiKey: password)
     }
 
     /// API Key 登录：password 即 API Key（Basic auth 用户名固定为字面 "API_KEY"）。
@@ -63,7 +68,7 @@ struct IntervalsIcuAPI: PlatformAPI {
         guard await validateKey(key) else {
             throw PlatformError.authFailed("Intervals.icu API Key 无效或已失效，请重新登录")
         }
-        keyStore.apiKey = key
+        LoginStore.saveToken(key, for: source)
     }
 
     /// 校验 API Key：拉取当日活动列表，200=有效。
@@ -183,7 +188,7 @@ struct IntervalsIcuAPI: PlatformAPI {
     // MARK: - 内部
 
     private func requireApiKey() throws -> String {
-        guard let apiKey = keyStore.apiKey, !apiKey.isEmpty else {
+        guard let apiKey = LoginStore.token(for: source), !apiKey.isEmpty else {
             throw PlatformError.notLoggedIn
         }
         return apiKey
@@ -218,9 +223,4 @@ struct IntervalsIcuAPI: PlatformAPI {
         }
         return 0
     }
-}
-
-/// Intervals.icu API Key 只放内存；Keychain 落盘与恢复由 App 层负责。
-final class IntervalsIcuKeyStore {
-    var apiKey: String?
 }

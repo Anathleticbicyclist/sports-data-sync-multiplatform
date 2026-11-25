@@ -10,11 +10,15 @@
 //   没验过弹框并返回，验证成功后自动重跑（TrialLicense.checkTrialAndRun）。
 // - 一对一同步、查看任务、看日志都不验码。
 //
-// 目标可选规则（按骨架组 Models.swift 的 DataSource 能力字段）：
-// - 来源：supportsDownload 为 true 的平台（Outbase、Strava 只上传，不能当来源）；
-// - 目标：supportsUpload 为 true 的平台；Keep 是半自动导入（isSemiAutoUpload），
+// 目标可选规则（按骨架组 Models.swift 的 DataSource 能力字段 + 平台注册表）：
+// - 来源：supportsDownload 为 true 且注册表能返回实例的平台；
+// - 目标：supportsUpload 为 true 且注册表能返回实例的平台；Keep 是半自动导入（isSemiAutoUpload），
 //   始终可选，文件导出后请在 Keep App 内手动导入，无需 Keep 登录态；
-// - 目标不能与来源相同；未接入的平台显示“待接入”，不可选。
+// - 目标不能与来源相同；注册表返回 nil 的平台（待接入）不列出、不可选。
+// - 任务卡片有编辑入口：改目标、数量、自动同步等开关，复用新建任务表单的字段。
+// - Keep 半自动导入：引擎把 FIT 文件导出后放 keepExportURLs，本页弹出系统分享让用户
+//   发出去、再去 Keep App 里手动导入；分享完成（或取消后点了“已分享”）才调
+//   consumeKeepExport 去掉，没分享前界面上不写“已成功”。
 // 注意：Models.swift 的口径与安卓有两处不一致（已在 Models.swift 里注明，
 // 等汇总人确认）：捷安特/Intervals.icu 在安卓是只上传，骨架按双向；
 // Komoot/松拓在安卓是双向，骨架按仅下载。这里先按骨架口径写。
@@ -30,8 +34,13 @@ struct SyncView: View {
     @State private var count = 10
     @State private var skip = 0
     @State private var showNewTask = false
+    @State private var editTask: SyncTask?
     @State private var showFullLog = false
     @State private var showBackgroundInfo = false
+    // Keep 半自动分享：引擎导出 FIT 后放 keepExportURLs，这里弹出系统分享；
+    // keepShareCancelledURL 是用户取消分享后待确认“已分享”的那一份。
+    @State private var keepShareURL: URL?
+    @State private var keepShareCancelledURL: URL?
 
     // 三开关：按安卓 PrefsManager 原样保留（键名与安卓一致）。
     // 迈金 FIT 坐标为 GCJ-02（高德系），默认开，转为 WGS-84 后上传国际平台。
@@ -49,6 +58,7 @@ struct SyncView: View {
                 countSkipSliders
                 coordinateSection
                 quickSyncButtons
+                keepShareBanner
                 statsCards
                 taskCards
                 logSection
@@ -58,13 +68,68 @@ struct SyncView: View {
         }
         .navigationTitle("同步")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: engine.keepExportURLs) { _, urls in
+            // 引擎刚导出 Keep 的 FIT 文件：自动弹出系统分享（没分享前不写“已成功”）。
+            if keepShareURL == nil, let first = urls.first {
+                keepShareURL = first
+            }
+        }
         .sheet(isPresented: $showNewTask) {
-            NewTaskSheet { task, options in
+            TaskFormSheet(existingTask: nil, initialOptions: TaskOptions(), title: "新建同步任务") { task, options in
                 engine.addTask(task, options: options)
             }
         }
+        .sheet(item: $editTask) { task in
+            TaskFormSheet(existingTask: task, initialOptions: engine.options(for: task), title: "编辑同步任务") { updated, options in
+                engine.updateTask(updated)
+                engine.setOptions(options, for: updated)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { keepShareURL != nil },
+            set: { if !$0 { keepShareURL = nil } }
+        )) {
+            if let url = keepShareURL {
+                ActivityShareSheet(url: url) { completed in
+                    keepShareURL = nil
+                    if completed {
+                        // 分享完成：这份才从待分享列表去掉。
+                        engine.consumeKeepExport(url)
+                    } else {
+                        // 用户取消了分享：问一句是不是已经发出去了，点了“已分享”才去掉。
+                        keepShareCancelledURL = url
+                    }
+                }
+            }
+        }
+        .alert("分享已取消", isPresented: Binding(
+            get: { keepShareCancelledURL != nil },
+            set: { if !$0 { keepShareCancelledURL = nil } }
+        )) {
+            Button("已分享") {
+                if let url = keepShareCancelledURL {
+                    engine.consumeKeepExport(url)
+                }
+                keepShareCancelledURL = nil
+            }
+            Button("稍后再说", role: .cancel) { keepShareCancelledURL = nil }
+        } message: {
+            Text("如果已经把 FIT 文件发出去了，点“已分享”；还没分享的话，稍后可以在同步页重新分享，再去 Keep App 里手动导入。")
+        }
         .sheet(isPresented: $showFullLog) {
             FullLogSheet(engine: engine)
+        }
+    }
+
+    /// 可选来源：能下载且注册表已接入的平台（待接入的不列出）。
+    private var availableSources: [DataSource] {
+        DataSource.allCases.filter { $0.supportsDownload && PlatformRegistry.platform(for: $0) != nil }
+    }
+
+    /// 可选目标：能上传且注册表已接入的平台（待接入的不列出），不含当前来源。
+    private var availableTargets: [DataSource] {
+        DataSource.allCases.filter {
+            $0.supportsUpload && PlatformRegistry.platform(for: $0) != nil && $0 != selectedSource
         }
     }
 
@@ -73,26 +138,20 @@ struct SyncView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("数据来源（单选）").font(.headline)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 96))], spacing: 8) {
-                ForEach(DataSource.allCases) { ds in
-                    let downloadable = ds.supportsDownload
+                ForEach(availableSources) { ds in
                     let selected = selectedSource == ds
                     Button {
                         selectedSource = ds
                     } label: {
                         VStack(spacing: 2) {
                             Text(ds.displayName).font(.subheadline)
-                            if !downloadable {
-                                Text("仅上传").font(.caption2).foregroundStyle(.secondary)
-                            }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .background(selected ? Color.brandBlue : Color(.secondarySystemBackground))
                         .foregroundStyle(selected ? .white : .primary)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .opacity(downloadable ? 1 : 0.45)
                     }
-                    .disabled(!downloadable)
                 }
             }
         }
@@ -103,11 +162,9 @@ struct SyncView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("同步目标（多选）").font(.headline)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 96))], spacing: 8) {
-                ForEach(DataSource.allCases) { ds in
-                    let isTarget = ds.supportsUpload
+                ForEach(availableTargets) { ds in
                     let isKeep = ds.isSemiAutoUpload
                     let selected = selectedTargets.contains(ds.rawValue)
-                    let disabled = !isTarget || ds == selectedSource
                     Button {
                         if selected {
                             selectedTargets.remove(ds.rawValue)
@@ -119,8 +176,6 @@ struct SyncView: View {
                             Text(ds.displayName).font(.subheadline)
                             if isKeep {
                                 Text("半自动导入").font(.caption2).foregroundStyle(.orange)
-                            } else if !isTarget {
-                                Text("仅下载").font(.caption2).foregroundStyle(.secondary)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -129,9 +184,7 @@ struct SyncView: View {
                                     : Color(.secondarySystemBackground))
                         .foregroundStyle(selected ? .white : .primary)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .opacity(disabled ? 0.45 : 1)
                     }
-                    .disabled(disabled)
                 }
             }
             Text("Keep 为半自动导入目标：文件导出后请在 Keep App 内手动导入，无需 Keep 登录态。目标不能与来源相同。")
@@ -234,6 +287,30 @@ struct SyncView: View {
         }
     }
 
+    // MARK: Keep 待分享（半自动导入）
+    /// 引擎导出了 Keep 的 FIT 文件、还没分享出去时显示；没分享前不写“已成功”。
+    private var keepShareBanner: some View {
+        Group {
+            if let first = engine.keepExportURLs.first {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("待分享到 Keep（\(engine.keepExportURLs.count) 个文件）").font(.headline)
+                    Text("FIT 文件已生成，还没分享出去。请点分享发到微信 / 文件 App，再去 Keep App 里手动导入。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("分享 FIT 文件") { keepShareURL = first }
+                        .font(.subheadline.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.brandBlue)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+        }
+    }
+
     // MARK: 统计卡片
     private var statsCards: some View {
         HStack(spacing: 10) {
@@ -273,7 +350,8 @@ struct SyncView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             ForEach(engine.tasks) { task in
-                SyncTaskCard(task: task, engine: engine, license: license)
+                SyncTaskCard(task: task, engine: engine, license: license,
+                             onEdit: { editTask = task })
             }
         }
     }
@@ -348,6 +426,7 @@ private struct SyncTaskCard: View {
     let task: SyncTask
     @ObservedObject var engine: SyncEngine
     @ObservedObject var license: TrialLicense
+    let onEdit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -376,6 +455,7 @@ private struct SyncTaskCard: View {
             HStack(spacing: 8) {
                 Button(engine.isRunning ? "运行中…" : "运行") { runTask() }
                     .disabled(engine.isRunning || !task.enabled)
+                Button("编辑", action: onEdit)
                 Button("复制") { _ = engine.duplicateTask(task) }
                 Button("测试") {
                     Task {
@@ -406,9 +486,14 @@ private struct SyncTaskCard: View {
     }
 }
 
-// MARK: - 新建任务表单
+// MARK: - 新建 / 编辑任务表单（同一套字段；编辑时带入原任务与原开关，保存时保留原 id）
 
-private struct NewTaskSheet: View {
+private struct TaskFormSheet: View {
+    let existingTask: SyncTask?
+    let initialOptions: TaskOptions
+    let title: String
+    let onSave: (SyncTask, TaskOptions) -> Void
+
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var source: DataSource?
@@ -417,8 +502,39 @@ private struct NewTaskSheet: View {
     @State private var skip = 0
     @State private var incremental = true
     @State private var coordinateConvert = true
+    @State private var codoonCoordinateConvert = true
+    @State private var zeppCoordinateConvert = true
     @State private var autoSync = false
-    let onSave: (SyncTask, TaskOptions) -> Void
+
+    init(existingTask: SyncTask?, initialOptions: TaskOptions, title: String,
+         onSave: @escaping (SyncTask, TaskOptions) -> Void) {
+        self.existingTask = existingTask
+        self.initialOptions = initialOptions
+        self.title = title
+        self.onSave = onSave
+        _name = State(initialValue: existingTask?.name ?? "")
+        _source = State(initialValue: existingTask?.source)
+        _targets = State(initialValue: Set((existingTask?.targets ?? []).map(\.rawValue)))
+        _count = State(initialValue: existingTask?.syncCount ?? 10)
+        _skip = State(initialValue: existingTask?.skipCount ?? 0)
+        _incremental = State(initialValue: initialOptions.incremental)
+        _coordinateConvert = State(initialValue: initialOptions.coordinateConvert)
+        _codoonCoordinateConvert = State(initialValue: initialOptions.codoonCoordinateConvert)
+        _zeppCoordinateConvert = State(initialValue: initialOptions.zeppCoordinateConvert)
+        _autoSync = State(initialValue: initialOptions.autoSync)
+    }
+
+    /// 来源：能下载且注册表已接入的平台（待接入的不列出）。
+    private var availableSources: [DataSource] {
+        DataSource.allCases.filter { $0.supportsDownload && PlatformRegistry.platform(for: $0) != nil }
+    }
+
+    /// 目标：能上传且注册表已接入的平台（待接入的不列出），不含当前来源。
+    private var availableTargets: [DataSource] {
+        DataSource.allCases.filter {
+            $0.supportsUpload && PlatformRegistry.platform(for: $0) != nil && $0 != source
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -429,13 +545,13 @@ private struct NewTaskSheet: View {
                 Section("数据来源（单选）") {
                     Picker("来源", selection: $source) {
                         Text("请选择").tag(nil as DataSource?)
-                        ForEach(DataSource.allCases.filter(\.supportsDownload)) { ds in
+                        ForEach(availableSources) { ds in
                             Text(ds.displayName).tag(ds as DataSource?)
                         }
                     }
                 }
                 Section("同步目标（多选）") {
-                    ForEach(DataSource.allCases.filter(\.supportsUpload)) { ds in
+                    ForEach(availableTargets) { ds in
                         Toggle(ds.displayName + (ds.isSemiAutoUpload ? "（半自动导入）" : ""),
                                isOn: Binding(
                                 get: { targets.contains(ds.rawValue) },
@@ -447,10 +563,12 @@ private struct NewTaskSheet: View {
                     Stepper("跳过条数：\(skip) 条", value: $skip, in: 0...50)
                     Toggle("增量同步（自动跳过已同步过的活动）", isOn: $incremental)
                     Toggle("迈金坐标转换（GCJ-02 → WGS-84）", isOn: $coordinateConvert)
+                    Toggle("咕咚坐标转换（GCJ-02 → WGS-84）", isOn: $codoonCoordinateConvert)
+                    Toggle("Zepp 坐标转换（GCJ-02 → WGS-84）", isOn: $zeppCoordinateConvert)
                     Toggle("自动同步（后台，iOS 系统调度，不保证准时）", isOn: $autoSync)
                 }
             }
-            .navigationTitle("新建同步任务")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -459,14 +577,24 @@ private struct NewTaskSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         guard let source else { return }
+                        // 目标去掉来源本身（换来源后旧目标里可能含新来源）。
+                        let targetList = DataSource.allCases.filter {
+                            targets.contains($0.rawValue) && $0 != source
+                        }
+                        guard !targetList.isEmpty else { return }
                         let task = SyncTask(
-                            name: name.isEmpty ? "\(source.displayName)→\(targets.count) 个目标" : name,
+                            id: existingTask?.id ?? UUID(),
+                            name: name.isEmpty ? "\(source.displayName)→\(targetList.count) 个目标" : name,
                             source: source,
-                            targets: DataSource.allCases.filter { targets.contains($0.rawValue) },
-                            syncCount: count, skipCount: skip, enabled: true)
+                            targets: targetList,
+                            syncCount: count, skipCount: skip,
+                            enabled: existingTask?.enabled ?? true,
+                            lastRun: existingTask?.lastRun)
                         var options = TaskOptions()
                         options.incremental = incremental
                         options.coordinateConvert = coordinateConvert
+                        options.codoonCoordinateConvert = codoonCoordinateConvert
+                        options.zeppCoordinateConvert = zeppCoordinateConvert
                         options.autoSync = autoSync
                         onSave(task, options)
                         dismiss()
@@ -476,6 +604,24 @@ private struct NewTaskSheet: View {
             }
         }
     }
+}
+
+// MARK: - 系统分享（Keep 半自动导入：把 FIT 文件交到用户手里）
+
+/// UIActivityViewController 包装：分享完成返回 true，用户取消返回 false。
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let url: URL
+    let onDone: (Bool) -> Void
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, completed, _, _ in
+            onDone(completed)
+        }
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - 完整日志（暂停滚动 / 清空 / 复制）

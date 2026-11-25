@@ -14,9 +14,8 @@
 //       下载返回 GPX 字节（带逐点心率/步频、详情元数据扩展），供上传端转 FIT。
 // 上传：Keep 无官方上传 API，uploadActivity 抛 unsupported，
 //       引导用户在 Keep App 内手动导入（运动 → 数据同步 → 运动数据文件去导入）。
-// 密钥：geoPoints AES 密钥/IV 在下方留空占位（值见安卓 KeepApi.kt / 开源项目 running_page，
-//       未填时 cycling/hiking 的 geoPoints 解不开，会自动改走 rawDataURL 或单点兜底）。
-//       本文件不含任何真实凭证。
+// 密钥：geoPoints AES 密钥/IV 已按安卓公开源码 KeepApi.kt 填好（公开开源项目 running_page 同款值，
+//       见下方 geoKey/geoIV）。登录 token 存钥匙串（LoginStore），本文件不含任何真实凭证。
 
 import Foundation
 import CommonCrypto
@@ -35,29 +34,28 @@ struct KeepAPI: PlatformAPI {
     private static let formMedia = "application/x-www-form-urlencoded;charset=utf-8"
     private static let keepTypes = ["running", "cycling", "hiking"]
 
-    // TODO: 待真机验证 — geoPoints AES-128-CBC 密钥/IV（占位，未填）。
-    // 安卓 KeepApi.kt 注明来自公开开源项目 running_page：
-    // key = base64("NTZmZTU5OzgyZzpkODczYw==")，iv = base64("MjM0Njg5MjQzMjkyMDMwMA==")。
-    // 未填时 geoPoints 解密失败，走 rawDataURL / 单点兜底。
-    private static let geoKey = ""
-    private static let geoIV = ""
+    // geoPoints AES-128-CBC 密钥/IV（来自安卓公开源码 KeepApi.kt，注明来自公开开源项目 running_page：
+    // key = base64("NTZmZTU5OzgyZzpkODczYw==") = "56fe59;82g:d873c"，
+    // iv = base64("MjM0Njg5MjQzMjkyMDMwMA==") = "2346892432920300"，各 16 字节）。
+    // 填上后 cycling/hiking 的 geoPoints 能本地解开，不再只剩 rawDataURL / 单点兜底。
+    private static let geoKey = "56fe59;82g:d873c"
+    private static let geoIV = "2346892432920300"
 
     private let session = KeepSession()
 
     // MARK: - PlatformAPI
 
     func isLoggedIn() async -> Bool {
-        guard let token = session.token, !token.isEmpty else { return false }
-        do {
-            let url = URL(string: "\(Self.listAPI)?dateUnit=all&type=cycling&lastDate=0")!
-            let (_, http) = try await request(url: url, headers: authHeaders(token: token))
-            return http.statusCode == 200
-        } catch {
-            return false
-        }
+        LoginStore.isLoggedIn(source)
     }
 
-    /// 手机号 + 密码登录（安卓 KeepApi.login 原样）。成功存 token，失败抛 authFailed。
+    /// 退出登录：清掉钥匙串里的 token 与账号密码。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
+    }
+
+    /// 手机号 + 密码登录（安卓 KeepApi.login 原样）。成功存 token 到钥匙串，失败抛 authFailed。
     func login(username: String, password: String) async throws {
         session.mobile = username
         session.password = password
@@ -80,6 +78,8 @@ struct KeepAPI: PlatformAPI {
             throw PlatformError.authFailed("Keep 登录失败：\(text.isEmpty ? "账号或密码错误" : text)")
         }
         session.token = token
+        LoginStore.saveToken(token, for: source)
+        LoginStore.saveCredentials(username: username, password: password, for: source)
     }
 
     func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -249,12 +249,16 @@ struct KeepAPI: PlatformAPI {
     // MARK: - 登录态
 
     private func requireToken() throws -> String {
-        guard let token = session.token, !token.isEmpty else { throw PlatformError.notLoggedIn }
+        guard let token = LoginStore.token(for: source) ?? session.token, !token.isEmpty else {
+            throw PlatformError.notLoggedIn
+        }
         return token
     }
 
     private func relogin() async throws {
-        guard let mobile = session.mobile, let password = session.password else {
+        let mobile = LoginStore.username(for: source) ?? session.mobile
+        let password = LoginStore.password(for: source) ?? session.password
+        guard let mobile, let password else {
             throw PlatformError.authFailed("Keep 登录已过期，请重新登录")
         }
         try await login(username: mobile, password: password)
@@ -504,7 +508,7 @@ struct KeepAPI: PlatformAPI {
     }
 }
 
-// MARK: - 登录态（只放内存；落盘由 App 层负责）
+// MARK: - 登录态（token 存钥匙串 LoginStore；session 只留本实例内的账号密码缓存，供重登兜底）
 
 private final class KeepSession {
     var token: String?

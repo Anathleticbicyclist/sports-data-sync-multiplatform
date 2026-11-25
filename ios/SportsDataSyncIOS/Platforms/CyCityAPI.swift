@@ -32,6 +32,7 @@
 // JSON 体就是第 ① 步返回的 data 对象原样序列化，Content-Type application/json，头 Bearer + UA
 // → code==200 即成功（"CyCity upload success"）。
 // 密钥：无固定密钥，token 全部运行时注入，本文件不含任何真实凭证。
+// 登录态：token 与账号密码存钥匙串（LoginStore，key 为 token_cycity），实例无状态，每次从钥匙串读。
 
 import Foundation
 
@@ -53,18 +54,13 @@ private let session = CyCitySession()
 // MARK: - PlatformAPI
 
 func isLoggedIn() async -> Bool {
-guard let token = session.token, !token.isEmpty else { return false}
-do {
-// 安卓 getUsername：列表接口 pageNum=1&pageSize=1，code==200 即有效。
-let url = URL(string: "\(Self.listURL)?pageNum=1&pageSize=1")!
-let (data, http) = try await request(url: url, headers: authHeaders(token: token))
-guard http.statusCode == 200,
-let json = jsonObject(data),
-(json["code"] as? Int) == 200 else { return false}
-return true
-} catch {
-return false
+LoginStore.isLoggedIn(source)
 }
+
+/// 退出登录：清掉钥匙串里的 token 与账号密码。
+func logout() {
+LoginStore.clearToken(for: source)
+LoginStore.clearCredentials(for: source)
 }
 
 /// 手机号 + 密码登录（smali login 原样）。
@@ -93,6 +89,8 @@ throw PlatformError.authFailed("CyCity 登录失败：账号或密码错误")
 }
 session.token = token
 session.userId = dataObj["userId"] as? String ?? ""
+LoginStore.saveToken(token, for: source)
+LoginStore.saveCredentials(username: username, password: password, for: source)
 }
 
 func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -194,8 +192,8 @@ throw PlatformError.network("CyCity 上传失败（确认步骤）：\(msg.isEmp
 // MARK: - 登录态
 
 private func requireToken() throws -> String {
-guard let token = session.token, !token.isEmpty else { throw PlatformError.notLoggedIn}
-return token
+if let token = LoginStore.token(for: source) ?? session.token, !token.isEmpty { return token }
+throw PlatformError.notLoggedIn
 }
 
 private func authHeaders(token: String) -> [String: String] {
@@ -265,7 +263,7 @@ return Date(timeIntervalSince1970: 0)
 }
 }
 
-// MARK: - 登录态（只放内存；落盘由 App 层负责）
+// MARK: - 登录态（token 与账号密码存钥匙串 LoginStore；session 只留本实例内的缓存）
 
 private final class CyCitySession {
 var token: String?

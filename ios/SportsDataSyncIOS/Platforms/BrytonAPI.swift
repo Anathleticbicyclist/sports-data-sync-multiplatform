@@ -34,25 +34,37 @@ struct BrytonAPI: PlatformAPI {
     private static let perPage = 20
     private static let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
-    // TODO: 待真机验证 — MOBILE_API_KEY 默认取 BuiltinSecrets（仓库里是空占位；CI 配了
-    // Secrets 的话，编译机上重写过 BuiltinSecrets，取到的就是真实值）。
-    static var mobileAPIKey = BuiltinSecrets.brytonMobileApiKey
+    // MOBILE_API_KEY：每次调用时读 AppConfig.shared（用户在关于页填了就生效）；
+    // AppConfig 为空时回落到 BuiltinSecrets 的占位值，绝不写真实值。
+    // 注意：安卓 Kotlin 参考树（app/src/main/java）里搜不到 MOBILE_API_KEY 的任何引用，
+    // 它的用途未经证实——可能是正式版 / 哇哇叫另一路的密钥；安卓 BrytonApi.kt 的
+    // 列表/下载/上传请求头里也没有这个 key，所以这里不编造一个请求头硬塞进去，
+    // 只保证取值是实时读的，等真机验证确认用途后再接线。
+    static var mobileAPIKey: String {
+        let v = AppConfig.shared.brytonMobileApiKey
+        return v.isEmpty ? BuiltinSecrets.brytonMobileApiKey : v
+    }
 
     private let session = BrytonSession()
 
     // MARK: - PlatformAPI
 
+    /// 只看钥匙串里有没有 Cookie，不发网络请求（协议口径）。
+    /// 安卓 getUsername：先从 cookie 里解析 uid/email/username，解析到即算登录；
+    /// 解析不到再调 /api/users/me（200 即有效）。
+    /// 注意：isLoggedIn() 是本地判断；cookie 解析不到时不发网络请求（协议口径只看本地），
+    /// 如需实测校验另调 getUsername 思路的接口。
     func isLoggedIn() async -> Bool {
-        guard let cookie = session.cookie, !cookie.isEmpty else { return false }
-        // 安卓 getUsername：先从 cookie 里解析 uid/email/username，解析到即算登录；
-        // 解析不到再调 /api/users/me（200 即有效）。
-        if cookieUserId(cookie) != nil { return true }
-        do {
-            let (_, http) = try await request(url: URL(string: "\(Self.base)/users/me")!, headers: authHeaders(cookie: cookie))
-            return http.statusCode == 200
-        } catch {
-            return false
-        }
+        LoginStore.isLoggedIn(.bryton)
+    }
+
+    /// 退出登录：清掉钥匙串里的 Cookie 与 Meteor 会话。
+    func logout() {
+        LoginStore.clearToken(for: .bryton)
+        KeychainStore.delete("bryton_meteorLoginToken")
+        KeychainStore.delete("bryton_meteorUserId")
+        session.meteorLoginToken = nil
+        session.meteorUserId = nil
     }
 
     /// 百锐腾没有账号密码直登接口：登录在 WebView 里完成（见文件头），
@@ -64,16 +76,22 @@ struct BrytonAPI: PlatformAPI {
         )
     }
 
-    /// WebView 登录后把完整 cookie 交给本实例（Keychain 落盘由 App 层负责）。
+    /// WebView 登录后把完整 cookie 交给本实例（直接存钥匙串，见 LoginStore）。
     /// 安卓登录态就是这串 cookie（BrytonApi 全程只带 Cookie 头）。
-    func setCookie(_ cookie: String) { session.cookie = cookie }
+    func setCookie(_ cookie: String) {
+        LoginStore.saveToken(cookie, for: .bryton)
+        session.cookie = cookie
+    }
 
     /// WebView 登录后把 Meteor 会话交给本实例（localStorage 的 Meteor.loginToken / Meteor.userId）。
     /// REST 接口目前用不到这两个值，先存着：列表 REST 返回 HTML 时，
     /// 兜底的 WebView 通道（BrytonWebApi.kt）要用它们注入 localStorage 再读 userActivities。
+    /// 存钥匙串（bryton_meteorLoginToken / bryton_meteorUserId），新建实例也能读到。
     func setMeteorSession(loginToken: String, userId: String) {
         session.meteorLoginToken = loginToken
         session.meteorUserId = userId
+        KeychainStore.set(loginToken, for: "bryton_meteorLoginToken")
+        KeychainStore.set(userId, for: "bryton_meteorUserId")
     }
 
     func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -161,6 +179,10 @@ struct BrytonAPI: PlatformAPI {
     // MARK: - 登录态
 
     private func requireCookie() throws -> String {
+        if let cookie = LoginStore.token(for: .bryton), !cookie.isEmpty {
+            session.cookie = cookie
+            return cookie
+        }
         guard let cookie = session.cookie, !cookie.isEmpty else { throw PlatformError.notLoggedIn }
         return cookie
     }

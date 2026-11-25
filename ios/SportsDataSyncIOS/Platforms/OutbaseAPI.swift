@@ -40,18 +40,19 @@ struct OutbaseAPI: PlatformAPI {
     private static let browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     private static let uagent = browserUA + " PCAgent/1.0.0"
 
-    private let sessionStore = OutbaseSessionStore()
+    /// WebView 登录后把 Sessionid 交给本实例（直接存钥匙串，见 LoginStore；
+    /// 登录页取到 Sessionid 后调这里，和登录页直接写 LoginStore 用的是同一个 key）。
+    func setSessionId(_ sessionId: String) { LoginStore.saveToken(sessionId, for: .outbase) }
 
-    /// WebView 登录后把 Sessionid 交给本实例（Keychain 落盘由 App 层负责）。
-    func setSessionId(_ sessionId: String) { sessionStore.sessionId = sessionId }
-
-    /// 只看本地有没有 Sessionid，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 Sessionid，不发网络请求（协议口径）。
     /// 如需实测校验会话，另调 warmUp(_:)；安卓曾先试 user/info 拿昵称再回退 warmUp，
     /// 网络异常时保守判定有效，避免误清凭证。
     func isLoggedIn() async -> Bool {
-        guard let sessionId = sessionStore.sessionId, !sessionId.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(.outbase)
     }
+
+    /// 退出登录：清掉钥匙串里的 Sessionid。
+    func logout() { LoginStore.clearToken(for: .outbase) }
 
     /// 会话校验：POST upload/list {"index":0,"count":20}，ec==0 即有效。
     func warmUp(_ sessionId: String) async -> Bool {
@@ -95,7 +96,7 @@ struct OutbaseAPI: PlatformAPI {
     /// TODO: 待真机验证 — 安卓 CDN 直连失败时有 WebView 内 fetch 回退通道；iOS 如需同款回退，
     ///   须 App 层用 WKWebView 打开 Outbase 页面再发请求，本文件暂只实现直连通道。
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
-        guard let sessionId = sessionStore.sessionId, !sessionId.isEmpty else {
+        guard let sessionId = LoginStore.token(for: .outbase), !sessionId.isEmpty else {
             throw PlatformError.notLoggedIn
         }
         let fitGuid = UUID().uuidString
@@ -201,7 +202,4 @@ struct OutbaseAPI: PlatformAPI {
     }
 }
 
-/// Outbase Sessionid 只放内存；Keychain 落盘与恢复由 App 层负责。
-final class OutbaseSessionStore {
-    var sessionId: String?
-}
+/// Outbase Sessionid 不再单独放内存：setSessionId/isLoggedIn/uploadActivity 一律走 LoginStore（钥匙串）。

@@ -11,14 +11,20 @@
 // 注意：Models.swift 的 SyncTask 没有 incremental / coordinateConvert / autoSync 字段，
 // 这三个任务级开关由本引擎自己用 TaskOptions（按任务 id 存 UserDefaults）补，不改共享类型。
 // 平台实现由平台组在 Platforms/*.swift 提供；PlatformRegistry 按 DataSource 取实例，
-// 未落盘的平台（Strava、Wahoo、MyWhoosh、Zwift、松拓、百锐腾、CyCity）返回 nil，
-// 界面显示“待接入”，不编造登录/上传逻辑。
+// 21 个平台全部已接线（Strava、Wahoo、MyWhoosh、Zwift、松拓、百锐腾、CyCity 均为已落盘文件）。
 // 不要用安卓 WorkManager：iOS 后台同步见 Services/BackgroundSync.swift。
 
 import Combine
 import Foundation
 
-// MARK: - 平台注册表（已落盘的平台取实例，未落盘的返回 nil）
+// MARK: - 平台注册表（21 个平台全部已接线；实例无状态，登录态在钥匙串里）
+
+/// 坐标转换开关：下载的轨迹是 GCJ-02 时按此开关决定转不转 WGS-84。
+/// 遵从它的平台：迈金、咕咚、Zepp（Keep 无开关，始终转换，不接这个协议）。
+/// 引擎在下载前按任务开关设置该属性；平台内部只读这一个属性，绝不重复转换。
+protocol CoordinateConvertible: PlatformAPI {
+    var coordinateConvertEnabled: Bool { get set }
+}
 
 enum PlatformRegistry {
     /// 按平台取实现。实例是无状态 struct，每次取新的即可；登录态存在钥匙串里，不在实例里。
@@ -40,8 +46,13 @@ enum PlatformRegistry {
         case .zepp: return ZeppAPI()
         case .komoot: return KomootAPI()
         case .keep: return KeepAPI()
-        case .strava, .wahoo, .myWhoosh, .zwift, .suunto, .bryton, .cycity:
-            return nil // 平台文件尚未落盘，待接入。
+        case .strava: return StravaAPI()
+        case .wahoo: return WahooAPI()
+        case .myWhoosh: return MyWhooshAPI()
+        case .zwift: return ZwiftAPI()
+        case .suunto: return SuuntoAPI()
+        case .bryton: return BrytonAPI()
+        case .cycity: return CyCityAPI()
         }
     }
 }
@@ -53,6 +64,10 @@ struct TaskOptions: Codable {
     var incremental: Bool = true
     /// 迈金坐标转换（GCJ-02 → WGS-84）。默认开。
     var coordinateConvert: Bool = true
+    /// 咕咚坐标转换（GCJ-02 → WGS-84）。默认开。
+    var codoonCoordinateConvert: Bool = true
+    /// Zepp 坐标转换（GCJ-02 → WGS-84）。默认开。
+    var zeppCoordinateConvert: Bool = true
     /// 自动同步（后台跑本任务）。默认关。
     var autoSync: Bool = false
 }
@@ -144,6 +159,14 @@ final class SyncEngine: ObservableObject {
     @Published private(set) var totalOk = 0
     @Published private(set) var totalSkip = 0
     @Published private(set) var totalFail = 0
+    /// Keep 半自动导出待分享的 FIT 文件：引擎生成后追加到这里，SyncView 接这个数组弹分享；
+    /// 分享完调 consumeKeepExport(_:) 去掉。没分享前不算同步成功。
+    @Published var keepExportURLs: [URL] = []
+
+    /// 分享完成（或用户放弃）后，把该文件从待分享列表里去掉。
+    func consumeKeepExport(_ url: URL) {
+        keepExportURLs.removeAll { $0 == url }
+    }
 
     private var runTask: Task<Void, Never>?
     private var stopped = false
@@ -252,15 +275,20 @@ final class SyncEngine: ObservableObject {
     }
 
     /// 一对一快速同步（不建任务）：来源单选、目标多选，数量与跳过数由调用方传入。
+    /// 只建一个临时 SyncTask 跑 execute，不调 addTask、不进任务列表。
     func runQuick(source: DataSource, targets: [DataSource], count: Int, skip: Int,
-                  coordinateConvert: Bool) {
+                  coordinateConvert: Bool, codoonCoordinateConvert: Bool = true,
+                  zeppCoordinateConvert: Bool = true) {
         let task = SyncTask(
             name: "\(source.displayName)→\(targets.map(\.displayName).joined(separator: "、"))",
             source: source, targets: targets,
             syncCount: count, skipCount: skip, enabled: true)
         var opts = TaskOptions()
         opts.coordinateConvert = coordinateConvert
-        addTask(task, options: opts)
+        opts.codoonCoordinateConvert = codoonCoordinateConvert
+        opts.zeppCoordinateConvert = zeppCoordinateConvert
+        taskOptions[task.id.uuidString] = opts
+        saveTaskOptions()
         run(task: task)
     }
 
@@ -288,9 +316,20 @@ final class SyncEngine: ObservableObject {
             log("任务「\(task.name)」没有同步目标", level: .fail)
             return
         }
-        guard let sourcePlatform = platformProvider(task.source) else {
+        guard var sourcePlatform = platformProvider(task.source) else {
             log("\(task.source.displayName) 待接入，无法同步", level: .fail)
             return
+        }
+        // 坐标转换开关真正生效：下载前按来源和任务开关设置平台属性（只设一次，不重复转换）。
+        // Keep 无开关，始终转换，不走这里。
+        if var convertible = sourcePlatform as? any CoordinateConvertible {
+            switch task.source {
+            case .magene: convertible.coordinateConvertEnabled = opts.coordinateConvert
+            case .codoon: convertible.coordinateConvertEnabled = opts.codoonCoordinateConvert
+            case .zepp: convertible.coordinateConvertEnabled = opts.zeppCoordinateConvert
+            default: break
+            }
+            sourcePlatform = convertible
         }
         do {
             guard await sourcePlatform.isLoggedIn() else {
@@ -314,17 +353,25 @@ final class SyncEngine: ObservableObject {
                 }
                 do {
                     let data = try await sourcePlatform.downloadActivity(record)
-                    await MainActor.run { self.saveLocally(record: record, data: data) }
+                    let savedURL: URL? = await MainActor.run { self.saveLocally(record: record, data: data) }
                     for target in targets {
                         if stopped || Task.isCancelled { break }
                         if opts.incremental, isSynced(record: record, target: target) { continue }
-                        // Keep 是半自动导入：不调上传接口，导出文件请用户在 Keep App 内手动导入。
+                        // Keep 是半自动导入：不调上传接口。真的把 FIT 文件落到本地 Activities 目录
+                        //（已是 FIT 就用刚保存的文件；GPX 先转 FIT 再落盘），文件 URL 追加进
+                        // keepExportURLs，等用户在 SyncView 分享后去 Keep App 内手动导入。
+                        // 没分享前不记成功、不记已同步、不计上传数。
                         if target.isSemiAutoUpload {
-                            markSynced(record: record, target: target)
-                            ok += 1
-                            await MainActor.run {
-                                self.log("📲 Keep 半自动导入：已导出「\(record.title)」文件，请在 Keep App 内手动导入", level: .success)
-                                self.recordUpload(platformRawValue: target.rawValue)
+                            if let exportURL = keepExportFileURL(record: record, data: data, savedURL: savedURL) {
+                                await MainActor.run { self.keepExportURLs.append(exportURL) }
+                                await MainActor.run {
+                                    self.log("📲 Keep 半自动导入：已生成 FIT 文件，请分享后在 Keep App 内手动导入「\(record.title)」", level: .info)
+                                }
+                            } else {
+                                failed += 1
+                                await MainActor.run {
+                                    self.log("❌ Keep 导出失败：没能生成 FIT 文件「\(record.title)」", level: .fail)
+                                }
                             }
                             continue
                         }
@@ -457,7 +504,60 @@ final class SyncEngine: ObservableObject {
         return "gpx"
     }
 
-    private func saveLocally(record: ActivityRecord, data: Data) {
+    /// Keep 半自动导出要交到用户手里的 FIT 文件 URL：已是 FIT 就用刚保存的本地文件；
+    /// GPX 先转 FIT 再落盘（文件名与 saveLocally 同格式）。转不出或落不了盘返回 nil。
+    private func keepExportFileURL(record: ActivityRecord, data: Data, savedURL: URL?) -> URL? {
+        if FitParser.isFit(data) { return savedURL }
+        do {
+            let fit = try GpxParser.gpxToFit(data)
+            let fitName = "\(record.source.rawValue)_\(record.id).fit"
+            let fitURL = activitiesDirectory.appendingPathComponent(fitName)
+            try fit.write(to: fitURL)
+            return fitURL
+        } catch {
+            return nil
+        }
+    }
+
+    /// 临时码表录完的文件进记录中心（E 组调）：把外部文件拷进 Activities 目录、按现有格式命名、
+    /// 生成一条 DownloadedActivity 记进索引，记录中心能正常显示、删除、重新上传。
+    /// 失败只记日志，不抛错（码表页不因入库失败而丢掉刚录的文件）。
+    func importLocalActivity(fileURL: URL, title: String, sportType: String, startDate: Date,
+                             distanceMeters: Double, durationSeconds: Double,
+                             elevationGainMeters: Double) {
+        guard let data = try? Data(contentsOf: fileURL), !data.isEmpty else {
+            log("码表记录入库失败：读不到文件「\(title)」", level: .fail)
+            return
+        }
+        let ext = FitParser.isFit(data) ? "fit" : "gpx"
+        let id = UUID().uuidString
+        let fileName = "bikeComputer_\(id).\(ext)"
+        let destURL = activitiesDirectory.appendingPathComponent(fileName)
+        do {
+            try data.write(to: destURL)
+        } catch {
+            log("码表记录入库失败：写文件失败「\(title)」", level: .fail)
+            return
+        }
+        let distanceKm = distanceMeters / 1000
+        let avgSpeed: Double? = durationSeconds > 0 ? distanceKm / (durationSeconds / 3600) : nil
+        let entry = DownloadedActivity(
+            id: id, platformRawValue: "bikeComputer",
+            title: title.isEmpty ? "码表记录" : title,
+            sportType: sportType,
+            startTimeMs: Int64(startDate.timeIntervalSince1970 * 1000),
+            distanceKm: distanceKm, durationSec: Int(durationSeconds),
+            fileName: fileName,
+            elevationGainM: elevationGainMeters > 0 ? elevationGainMeters : nil,
+            avgSpeedKmh: avgSpeed)
+        downloadedActivities.insert(entry, at: 0)
+        downloadedActivities.sort { $0.startTimeMs > $1.startTimeMs }
+        saveDownloadedIndex()
+        log("码表记录已进记录中心「\(entry.title)」")
+    }
+
+    @discardableResult
+    private func saveLocally(record: ActivityRecord, data: Data) -> URL? {
         let ext = fileExtension(for: data)
         let fileName = "\(record.source.rawValue)_\(record.id).\(ext)"
         let url = activitiesDirectory.appendingPathComponent(fileName)
@@ -465,10 +565,10 @@ final class SyncEngine: ObservableObject {
             try data.write(to: url)
         } catch {
             log("本地保存失败：\(record.title)（\(error.localizedDescription)）", level: .fail)
-            return
+            return nil
         }
         if downloadedActivities.contains(where: { $0.id == record.id && $0.platformRawValue == record.source.rawValue }) {
-            return
+            return url
         }
         let distanceKm = record.distanceMeters / 1000
         let avgSpeed: Double? = record.durationSeconds > 0
@@ -489,6 +589,7 @@ final class SyncEngine: ObservableObject {
         stats.downloaded += 1
         statsByPlatform[record.source.rawValue] = stats
         saveStats()
+        return url
     }
 
     func localFileData(for activity: DownloadedActivity) -> Data? {

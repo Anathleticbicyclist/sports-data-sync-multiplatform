@@ -12,6 +12,7 @@
 //   没有下载 FIT 的接口；fit_list 只用来校验 token，从未解析成活动列表。
 //   因此本文件 fetchActivities 与 downloadActivity 抛 unsupported（安卓同样不支持）。
 // 密钥：无固定密钥，user_token 全部运行时注入，本文件不含任何真实凭证。
+// 登录态：user_token 存钥匙串（LoginStore，key 为 token_giant），实例无状态，每次从钥匙串读。
 // 网络：状态敏感调用走 HTTPClient.shared.requestRaw（非 2xx 不抛错，返回原始响应供调用方按状态码处理）。
 
 import Foundation
@@ -25,19 +26,22 @@ struct GiantAPI: PlatformAPI {
     private static let device = "bike_computer"
     private static let brand = "giant"
 
-    private let tokenStore = GiantTokenStore()
+    /// 当前 user_token（登录后由 login 写入钥匙串；App 层也可直接注入已保存的 token）。
+    func setToken(_ token: String) { LoginStore.saveToken(token, for: source) }
 
-    /// 当前 user_token（登录后由 login 写入；App 层也可直接注入已保存的 token）。
-    func setToken(_ token: String) { tokenStore.token = token }
-
-    /// 只看本地有没有 user_token，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 user_token，不发网络请求（协议口径）。
     /// 如需实测校验 token，另调 validateToken(_:)。
     func isLoggedIn() async -> Bool {
-        guard let token = tokenStore.token, !token.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(source)
     }
 
-    /// 账号密码登录（form 表单，明文）。成功时 token 已写入本实例。
+    /// 退出登录：清掉钥匙串里的 token 与账号密码。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
+    }
+
+    /// 账号密码登录（form 表单，明文）。成功时 token 已写入钥匙串。
     func login(username: String, password: String) async throws {
         var request = URLRequest(url: URL(string: "\(Self.base)/login")!)
         request.httpMethod = "POST"
@@ -58,7 +62,8 @@ struct GiantAPI: PlatformAPI {
         guard let token = json["user_token"] as? String, !token.isEmpty else {
             throw PlatformError.parse("捷安特登录失败：响应无 user_token")
         }
-        tokenStore.token = token
+        LoginStore.saveToken(token, for: source)
+        LoginStore.saveCredentials(username: username, password: password, for: source)
     }
 
     /// 校验 token：POST /index.php/api/fit_list，form 字段 token，status==1 即有效。
@@ -93,20 +98,34 @@ struct GiantAPI: PlatformAPI {
     }
 
     /// 上传 FIT 到捷安特。multipart：token / device=bike_computer / brand=giant / files[]。
-    /// TODO: 待真机验证 — 安卓只传过 FIT；GPX 是否被接受未知，非 FIT 暂直接抛错。
+    /// GPX 先用已有的 GpxParser.gpxToFit 转 FIT 再传（安卓只传过 FIT；GPX 是否被服务端直接
+    /// 接受未知，所以一律先转，不赌服务端）。
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
-        guard let token = tokenStore.token, !token.isEmpty else {
+        guard let token = LoginStore.token(for: source), !token.isEmpty else {
             throw PlatformError.notLoggedIn
         }
-        guard isFit(data) else {
-            throw PlatformError.unsupported("捷安特上传只验证过 FIT 文件，GPX 是否接受待真机验证")
+        let fitData: Data
+        let fitFileName: String
+        if isFit(data) {
+            fitData = data
+            fitFileName = fileName
+        } else {
+            do {
+                fitData = try GpxParser.gpxToFit(data)
+            } catch {
+                throw PlatformError.unsupported("捷安特只接收 FIT 文件，GPX 转 FIT 失败：\(error.localizedDescription)")
+            }
+            let lower = fileName.lowercased()
+            if lower.hasSuffix(".gpx") { fitFileName = String(fileName.dropLast(4)) + ".fit" }
+            else if lower.hasSuffix(".fit") { fitFileName = fileName }
+            else { fitFileName = fileName + ".fit" }
         }
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
         body.appendMultipartField(name: "token", value: token, boundary: boundary)
         body.appendMultipartField(name: "device", value: Self.device, boundary: boundary)
         body.appendMultipartField(name: "brand", value: Self.brand, boundary: boundary)
-        body.appendMultipartFile(field: "files[]", fileName: fileName, mimeType: "application/octet-stream", fileData: data, boundary: boundary)
+        body.appendMultipartFile(field: "files[]", fileName: fitFileName, mimeType: "application/octet-stream", fileData: fitData, boundary: boundary)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         var request = URLRequest(url: URL(string: "\(Self.base)/upload_fit")!)
@@ -152,9 +171,4 @@ struct GiantAPI: PlatformAPI {
         }.joined(separator: "&")
         return Data(encoded.utf8)
     }
-}
-
-/// 捷安特 user_token 只放内存；Keychain 落盘与恢复由 App 层负责。
-final class GiantTokenStore {
-    var token: String?
 }

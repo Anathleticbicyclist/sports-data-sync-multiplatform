@@ -9,15 +9,14 @@
 // 登录：OAuth2 网页授权（实验室平台：用户自己申请开发者凭证后自填）。
 //   1) 打开授权页（登录页组在 WebView 里开）：
 //      https://www.strava.com/oauth/authorize?client_id={自填}&response_type=code
-//      &redirect_uri=http://localhost:8080/callback&scope=activity:read_all,activity:write
+//      &redirect_uri=jichiob://strava&scope=activity:read_all,activity:write
 //      &approval_prompt=auto
-//   2) 用户在 Strava 网页上同意后回调 http://localhost:8080/callback?code=xxx，
+//   2) 用户在 Strava 网页上同意后回调 jichiob://strava?code=xxx，
 //      登录页组拿到 code 调本文件的 exchangeCode(_:) 换 token，存钥匙串。
 //   Strava 没有账号密码直登接口，所以 login(username:password:) 抛 unsupported。
 //   凭证（client id / secret）存在钥匙串，key 是 config_stravaClientId /
-//   config_stravaClientSecret（与 AppConfig 的 config_* 命名一致）；
-//   注意：骨架的 AppConfig 里目前没有 Strava 字段，关于页组接填入口时需用这两个 key，
-//   或在 AppConfig 里补字段后改这里——不要把真实值写进代码。
+//   config_stravaClientSecret（与 AppConfig 的 stravaClientId / stravaClientSecret
+//   字段一致，关于页填入口用这两个字段）；注意：不要把真实值写进代码。
 // 上传：POST https://www.strava.com/api/v3/uploads，multipart 表单：
 //   data_type=fit/gpx/tcx（按文件扩展名）、name=文件名（去扩展名）、file=文件内容
 //   （application/octet-stream），头 Authorization: Bearer {token}。
@@ -39,9 +38,15 @@ private func stravaFormEncode(_ s: String) -> String {
 private struct StravaTokenPair {
     var accessToken: String
     var refreshToken: String
+    /// access_token 过期时间（Unix 秒；0 表示未知，按需刷新）。
+    var expiresAt: Int64 = 0
+
+    var isExpired: Bool {
+        expiresAt > 0 && Int64(Date().timeIntervalSince1970) >= expiresAt - 60
+    }
 
     func toJSON() -> String {
-        let obj: [String: Any] = ["access_token": accessToken, "refresh_token": refreshToken]
+        let obj: [String: Any] = ["access_token": accessToken, "refresh_token": refreshToken, "expires_at": expiresAt]
         guard let data = try? JSONSerialization.data(withJSONObject: obj),
               let s = String(data: data, encoding: .utf8) else { return "" }
         return s
@@ -51,7 +56,8 @@ private struct StravaTokenPair {
         guard let data = s.data(using: .utf8), let obj = stravaJSONDict(data) else { return nil }
         let access = obj["access_token"] as? String ?? ""
         guard !access.isEmpty else { return nil }
-        return StravaTokenPair(accessToken: access, refreshToken: obj["refresh_token"] as? String ?? "")
+        return StravaTokenPair(accessToken: access, refreshToken: obj["refresh_token"] as? String ?? "",
+                               expiresAt: (obj["expires_at"] as? NSNumber)?.int64Value ?? 0)
     }
 }
 
@@ -61,16 +67,17 @@ private final class StravaEngine {
     static let authURL = "https://www.strava.com/oauth/authorize"
     static let tokenURL = "https://www.strava.com/oauth/token"
     static let uploadURL = "https://www.strava.com/api/v3/uploads"
-    static let redirectURI = "http://localhost:8080/callback"
+    static let redirectURI = "jichiob://strava"
     static let scope = "activity:read_all,activity:write"
     static let ua = "OBA-Sync/8.2.9"
 
-    // 开发者凭证 key（钥匙串，与 AppConfig 的 config_* 命名一致；AppConfig 目前没有 Strava 字段）
+    // 开发者凭证 key（钥匙串，与 AppConfig 的 config_* 命名一致；AppConfig 已有 Strava 字段）。
     private static let clientIdKey = "config_stravaClientId"
     private static let clientSecretKey = "config_stravaClientSecret"
 
+    /// 开发者凭证：每次调用时读 AppConfig.shared（关于页填了就生效，只存本机钥匙串）。
     static func clientCredentials() -> (clientId: String, clientSecret: String) {
-        (KeychainStore.get(clientIdKey) ?? "", KeychainStore.get(clientSecretKey) ?? "")
+        (AppConfig.shared.stravaClientId, AppConfig.shared.stravaClientSecret)
     }
 
     static func saveClientCredentials(clientId: String, clientSecret: String) {
@@ -121,19 +128,80 @@ private final class StravaEngine {
             let access = json["access_token"] as? String ?? ""
             let refresh = json["refresh_token"] as? String ?? ""
             guard !access.isEmpty else { return false }
-            saveTokens(StravaTokenPair(accessToken: access, refreshToken: refresh))
+            let expiresIn = (json["expires_in"] as? NSNumber)?.int64Value ?? 0
+            let expiresAt = expiresIn > 0 ? Int64(Date().timeIntervalSince1970) + expiresIn : 0
+            saveTokens(StravaTokenPair(accessToken: access, refreshToken: refresh, expiresAt: expiresAt))
             return true
         } catch {
             return false
         }
     }
 
-    /// 上传文件（DevOAuth2Api.uploadFile 的 Strava 分支）。
-    /// 2xx 即已接收；失败抛 PlatformError（带状态码与响应体）。
+    /// 用 refresh_token 换新 token（POST /oauth/token，grant_type=refresh_token）。
+    /// 成功存钥匙串并返回 true；没有 refresh_token 或刷新失败返回 false（调用方让用户重授权）。
+    func refreshAccessToken() async -> Bool {
+        guard let tokens = loadTokens(), !tokens.refreshToken.isEmpty else { return false }
+        let (clientId, clientSecret) = Self.clientCredentials()
+        guard !clientId.isEmpty, !clientSecret.isEmpty,
+              let url = URL(string: Self.tokenURL) else { return false }
+        let fields: [(String, String)] = [
+            ("client_id", clientId),
+            ("client_secret", clientSecret),
+            ("refresh_token", tokens.refreshToken),
+            ("grant_type", "refresh_token"),
+        ]
+        let bodyString = fields.map { "\(stravaFormEncode($0.0))=\(stravaFormEncode($0.1))" }.joined(separator: "&")
+        do {
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.timeoutInterval = 30
+            req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            req.setValue(Self.ua, forHTTPHeaderField: "User-Agent")
+            req.httpBody = Data(bodyString.utf8)
+            let (data, resp) = try await HTTPClient.shared.requestRaw(req)
+            guard (200...299).contains(resp.statusCode),
+                  let json = stravaJSONDict(data) else { return false }
+            let access = json["access_token"] as? String ?? ""
+            guard !access.isEmpty else { return false }
+            let refresh = json["refresh_token"] as? String ?? tokens.refreshToken
+            let expiresIn = (json["expires_in"] as? NSNumber)?.int64Value ?? 0
+            let expiresAt = expiresIn > 0 ? Int64(Date().timeIntervalSince1970) + expiresIn : 0
+            saveTokens(StravaTokenPair(accessToken: access, refreshToken: refresh, expiresAt: expiresAt))
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// 上传前确保 token 有效：已知过期就先刷新；上传返回 401 时刷新一次再重试。
+    /// 刷新失败抛错，让用户重新走网页授权。
     func uploadFile(data: Data, fileName: String) async throws {
-        guard let tokens = loadTokens(), !tokens.accessToken.isEmpty else {
+        guard var tokens = loadTokens(), !tokens.accessToken.isEmpty else {
             throw PlatformError.notLoggedIn
         }
+        if tokens.isExpired {
+            if await refreshAccessToken(), let fresh = loadTokens() {
+                tokens = fresh
+            } else {
+                throw PlatformError.authFailed("Strava 登录已过期，刷新失败，请重新授权 Strava")
+            }
+        }
+        do {
+            try await uploadFileOnce(data: data, fileName: fileName, accessToken: tokens.accessToken)
+        } catch let e as PlatformError {
+            // 401 可能是 token 刚好过期：刷新一次再重试，仍失败就原错抛出。
+            if case .network(let message) = e, message.contains("HTTP 401"),
+               await refreshAccessToken(), let fresh = loadTokens() {
+                try await uploadFileOnce(data: data, fileName: fileName, accessToken: fresh.accessToken)
+                return
+            }
+            throw e
+        }
+    }
+
+    /// 单次上传（DevOAuth2Api.uploadFile 的 Strava 分支）。
+    /// 2xx 即已接收；失败抛 PlatformError（带状态码与响应体）。
+    private func uploadFileOnce(data: Data, fileName: String, accessToken: String) async throws {
         guard let url = URL(string: Self.uploadURL) else {
             throw PlatformError.network("Strava 上传地址无效")
         }
@@ -163,7 +231,7 @@ private final class StravaEngine {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.timeoutInterval = 120
-        req.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         req.setValue(Self.ua, forHTTPHeaderField: "User-Agent")
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
@@ -219,10 +287,19 @@ public struct StravaAPI: PlatformAPI {
         StravaEngine.saveClientCredentials(clientId: clientId, clientSecret: clientSecret)
     }
 
-    /// WebView 拿到授权码（回调 http://localhost:8080/callback?code=xxx）后，调这个换 token。
+    /// WebView 拿到授权码（回调 jichiob://strava?code=xxx）后，调这个换 token。
     /// 成功返回 true，token 已存钥匙串。
     public func exchangeCode(_ code: String) async -> Bool {
         await engine.exchangeCode(code)
+    }
+
+    /// OAuth 回调拿到 code 后调这个换 token、存钥匙串（C 组登录页调用）。
+    /// 失败抛 PlatformError.authFailed（不要静默返回 false，调用方要给用户报错）。
+    /// clientId/secret 每次调用时读 AppConfig.shared（关于页填了就生效）。
+    public func handleAuthorizationCode(_ code: String) async throws {
+        guard await engine.exchangeCode(code) else {
+            throw PlatformError.authFailed("Strava 换 token 失败：请检查关于页里填的 Strava 开发者凭证是否正确，再重新授权")
+        }
     }
 
     /// 退出登录：清掉本平台凭证。
@@ -233,8 +310,7 @@ public struct StravaAPI: PlatformAPI {
 // 1. 上传接口本身（POST /api/v3/uploads，multipart 字段名与 data_type 取值）是按
 //    DevOAuth2Api.kt 移植的，Strava 侧是异步处理，2xx 只代表已接收，不代表已入库；
 //    上传后是否入库、重名/重复文件如何处理，需真机验证。
-// 2. token 刷新：安卓 DevOAuth2Api.kt 里没有实现 Strava 刷新（只存了 refresh_token），
-//    本文件同样没实现；token 过期后上传会失败，需重新走网页授权。标准刷新接口是
-//    同一 /oauth/token（grant_type=refresh_token），待真机验证后再补，不要直接猜。
-// 3. AppConfig 里目前没有 Strava 字段，本文件用的钥匙串 key 是
-//    config_stravaClientId / config_stravaClientSecret；关于页组接填入口时注意对齐。
+// 2. token 刷新已实现（POST /oauth/token，grant_type=refresh_token；上传前已知过期
+//    先刷新，上传遇 401 刷新一次再重试；刷新失败才抛错让用户重授权），待真机验证。
+// 3. AppConfig 已有 Strava 字段（stravaClientId / stravaClientSecret，钥匙串 key 是
+//    config_stravaClientId / config_stravaClientSecret）；关于页组接填入口时用这两个字段。

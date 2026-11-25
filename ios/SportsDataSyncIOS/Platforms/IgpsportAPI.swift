@@ -37,10 +37,13 @@ struct IgpsportAPI: PlatformAPI {
     init() { self.impl = IgpsportCore(source: .igpsport) }
     init(shared impl: IgpsportCore) { self.impl = impl }
 
-    /// WebView 登录后把 Bearer token 交给本实例（Keychain 落盘由 App 层负责）。
+    /// WebView 登录后把 Bearer token 交给本实例（直接存钥匙串，见 LoginStore）。
     func setToken(_ token: String) { impl.setToken(token) }
 
     func isLoggedIn() async -> Bool { await impl.isLoggedIn() }
+
+    /// 退出登录：清掉钥匙串里的 token。
+    func logout() { LoginStore.clearToken(for: source) }
 
     func login(username: String, password: String) async throws {
         // 安卓无账号密码直登接口；iGPSPORT 只能在登录页（见 loginURL）登录后取 token。
@@ -71,10 +74,13 @@ struct IgpsportIntlAPI: PlatformAPI {
     init() { self.impl = IgpsportCore(source: .igpsportIntl) }
     init(shared impl: IgpsportCore) { self.impl = impl }
 
-    /// WebView 登录后把 Bearer token 交给本实例（Keychain 落盘由 App 层负责）。
+    /// WebView 登录后把 Bearer token 交给本实例（直接存钥匙串，见 LoginStore）。
     func setToken(_ token: String) { impl.setToken(token) }
 
     func isLoggedIn() async -> Bool { await impl.isLoggedIn() }
+
+    /// 退出登录：清掉钥匙串里的 token。
+    func logout() { LoginStore.clearToken(for: source) }
 
     func login(username: String, password: String) async throws {
         // TODO: 待真机验证 — 国际账号是否可用同一登录页、同一套接口；如走单独域名，需在此改 BASE。
@@ -107,16 +113,17 @@ final class IgpsportCore {
     private static let uploadByOssURL = base + "/web-gateway/web-analyze/activity/uploadByOss"
     private static let perPage = 20
 
-    private let tokenStore = IgpsportTokenStore()
     /// 列表里拿到的直链下载地址（ActivityRecord 没有 extra 字段，暂存这里供下载用）。
     private var downloadUrlCache: [String: String] = [:]
 
     init(source: DataSource) { self.source = source }
 
-    func setToken(_ token: String) { tokenStore.token = token }
+    /// WebView 登录后注入的 token 直接存钥匙串（LoginStore，key 是 token_<平台英文名>），
+    /// 新建实例也能读到，不再只放内存。
+    func setToken(_ token: String) { LoginStore.saveToken(token, for: source) }
 
     private func requireToken() throws -> String {
-        guard let token = tokenStore.token, !token.isEmpty else {
+        guard let token = LoginStore.token(for: source), !token.isEmpty else {
             throw PlatformError.notLoggedIn
         }
         return token
@@ -142,11 +149,10 @@ final class IgpsportCore {
         return (data, http)
     }
 
-    /// 只看本地有没有 token，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 token，不发网络请求（协议口径）。
     /// 安卓曾用 queryMyActivity 实测校验 token，如需实测校验由 App 层另调 fetchActivities(limit: 1)。
     func isLoggedIn() async -> Bool {
-        guard let token = tokenStore.token, !token.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(source)
     }
 
     func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -418,7 +424,4 @@ final class IgpsportCore {
     }
 }
 
-/// iGPSPORT token 只放内存；Keychain 落盘与恢复由 App 层负责（登录页注入时一并保存）。
-final class IgpsportTokenStore {
-    var token: String?
-}
+/// iGPSPORT token 不再单独放内存：setToken/isLoggedIn/requireToken 一律走 LoginStore（钥匙串）。

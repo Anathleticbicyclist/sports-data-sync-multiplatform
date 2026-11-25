@@ -5,6 +5,11 @@
 // - 手动检查（force=true）：无新版也提示“已是最新”；失败提示网络原因。
 // - 静默检查（force=false）：仅发现新版才弹窗，且 24 小时内同版本不重复打扰。
 // - 版本号比较：支持 "7.7.10" > "7.7.9"，tag 前的 "v" 会去掉再比。
+// - iOS 误弹修正：版本和安卓共用一个号，安卓单独发版时版本号也会涨，但附件里
+//   没有新 IPA。检查更新时除了比版本号，还要看对应 Release 的 assets 里有
+//   没有 .ipa 文件（SportsDataSyncIOS-unsigned.ipa）；只有真有新 IPA 才弹
+//   “发现新版本”。拿不到附件信息（断网、接口失败、assets 为空）时宁可不弹，
+//   不要误弹；手动检查时给一句明确说明，不弹假的更新提示。
 // - 当前版本读 App 自身的 CFBundleShortVersionString（Info.plist 里是 9.6.9），没读到才 fallback 到 "9.6.9"。
 // - 弹窗由 ContentView 统一弹（.alert(item:)），AboutView 的按钮和 App 启动时的静默检查都调同一个 store。
 
@@ -68,6 +73,7 @@ final class UpdateCheckerStore: ObservableObject {
         var latestVer = ""
         var latestBody = ""
         var failed = false
+        var hasNewIPA = false
 
         do {
             var request = URLRequest(url: Self.releasesLatestURL)
@@ -78,18 +84,33 @@ final class UpdateCheckerStore: ObservableObject {
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
             latestVer = release.tagName.trimmingCharacters(in: .whitespaces)
             latestBody = release.body ?? ""
+            // 附件里有没有 iOS 安装包：只要有一个 .ipa 文件就算有新 IPA
+            // （正常是 SportsDataSyncIOS-unsigned.ipa）。assets 缺失或为空
+            // 时当作“拿不到附件信息”，下面按宁可不弹处理。
+            hasNewIPA = (release.assets ?? []).contains {
+                $0.name.lowercased().hasSuffix(".ipa")
+            }
         } catch {
             failed = true
         }
 
-        let found = !latestVer.isEmpty && Self.compareVersions(latestVer, current) > 0
+        let versionNewer = !latestVer.isEmpty && Self.compareVersions(latestVer, current) > 0
+        // 只有“版本号更新 + 附件里真有新 IPA”才算发现新版本；版本号涨了但
+        // 没新 IPA（安卓单独发版）不算，拿不到附件信息也不算。
+        let found = versionNewer && hasNewIPA
 
         // 手动模式：联网失败也要明确提示。
         if force && !found && failed {
             prompt = .message("检查更新失败：无法连接更新服务器，请检查网络")
             return
         }
+        // 手动模式：版本号涨了、但该版本没有 iOS 安装包——明确说明，不弹假更新。
+        if force && versionNewer && !hasNewIPA {
+            prompt = .message("最新版本为 \(latestVer)，但该版本没有发布 iOS 安装包（IPA），应为安卓单独发版。\n你的当前版本为 v\(current)\n\n当前 iOS 版已是最新，无需更新。")
+            return
+        }
         // 静默模式：没发现新版，或 24 小时内已提示过同版本，就不打扰。
+        // （版本号涨了但没新 IPA、拿不到附件信息时也到这里，直接不弹。）
         if !force && (!found || !shouldSilentNotify(version: latestVer)) {
             return
         }
@@ -119,13 +140,20 @@ final class UpdateCheckerStore: ObservableObject {
     }
 }
 
-/// GitHub Release API 返回的最简结构（只取用到的字段）。
+/// GitHub Release API 返回的最简结构（只取用到的字段：tag、说明、附件名）。
 private struct GitHubRelease: Decodable {
     let tagName: String
     let body: String?
+    let assets: [GitHubReleaseAsset]?
 
     private enum CodingKeys: String, CodingKey {
         case tagName = "tag_name"
         case body
+        case assets
     }
+}
+
+/// Release 的一个附件：检查更新只看名字里有没有 .ipa，不下载附件本身。
+private struct GitHubReleaseAsset: Decodable {
+    let name: String
 }

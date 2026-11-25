@@ -190,6 +190,23 @@ private struct ActivityDetailSheet: View {
                     detailRow("爬升", activity.elevationGainM.map { String(format: "%.0f 米", $0) } ?? "—")
                     detailRow("均速", activity.avgSpeedKmh.map { String(format: "%.1f 公里/小时", $0) } ?? "—")
                 }
+                Section("导出 / 分享") {
+                    // 复用合并页 / 码表页的系统分享写法：把本地 FIT/GPX 文件
+                    // 分享出去，或存到文件 App（需 Info.plist 开文件共享才能
+                    // 在文件 App 里直接找到 Documents/Activities）。
+                    if FileManager.default.fileExists(atPath: engine.localFileURL(for: activity).path) {
+                        ShareLink(item: engine.localFileURL(for: activity),
+                                  preview: SharePreview(activity.fileName, image: Image(systemName: "map"))) {
+                            Label("分享 / 保存本地文件（\(activity.fileName))", systemImage: "square.and.arrow.up")
+                        }
+                        .font(.subheadline)
+                        Text("可发送给别人，或存到文件 App 里再导入其他 App。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("本地文件已丢失，无法分享。")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                }
                 Section {
                     Button("重新上传到其他平台") { showReupload = true }
                     Button("删除本地活动", role: .destructive) {
@@ -230,23 +247,73 @@ private struct ActivityDetailSheet: View {
 
 // MARK: - 重新上传
 
+/// 重新上传：目标只列能上传且注册表能返回实例的平台；多目标先验体验码
+/// （和同步页一个口径）；上传前逐个验登录态；上传完逐条显示成功/失败，
+/// 不再静默关弹窗。
 private struct ReuploadSheet: View {
     let activity: DownloadedActivity
     @ObservedObject var engine: SyncEngine
+    @EnvironmentObject private var license: TrialLicense
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTargets: Set<String> = []
     @State private var busy = false
+    @State private var results: [ReuploadResult] = []
+    @State private var finished = false
+
+    private struct ReuploadResult: Identifiable {
+        let id = UUID()
+        let name: String
+        let ok: Bool
+        let message: String
+    }
+
+    /// 能重新上传的目标：能上传（supportsUpload）且注册表能返回实例。
+    /// 只下载的（MyWhoosh、Zwift、咕咚、Zepp、百锐腾，supportsUpload 为 false）
+    /// 和未接入的（注册表返回 nil，如 Strava、Wahoo、松拓）都不列出来；
+    /// 也不列活动本身的来源平台（“重新上传到其他平台”）。
+    private var uploadableTargets: [DataSource] {
+        let source = DataSource(rawValue: activity.platformRawValue)
+        return DataSource.allCases.filter { ds in
+            ds != source && ds.supportsUpload && PlatformRegistry.platform(for: ds) != nil
+        }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("重新上传「\(activity.title)」") {
-                    Text("忽略增量记忆，强制再传一次。")
+                    Text("忽略增量记忆，强制再传一次。只列出能上传且已接入的平台。")
                         .font(.caption).foregroundStyle(.secondary)
-                    ForEach(DataSource.allCases, id: \.rawValue) { ds in
-                        Toggle(ds.displayName, isOn: Binding(
+                    if uploadableTargets.isEmpty {
+                        Text("没有能上传的目标平台。")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    ForEach(uploadableTargets, id: \.rawValue) { ds in
+                        Toggle(ds.displayName + (ds.isSemiAutoUpload ? "（半自动导入）" : ""), isOn: Binding(
                             get: { selectedTargets.contains(ds.rawValue) },
                             set: { if $0 { selectedTargets.insert(ds.rawValue) } else { selectedTargets.remove(ds.rawValue) } }))
+                    }
+                }
+                if finished {
+                    Section("上传结果") {
+                        ForEach(results) { result in
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(result.ok ? "✅" : "❌")
+                                    Text(result.name).font(.subheadline.bold())
+                                    Spacer()
+                                    Text(result.ok ? "成功" : "失败")
+                                        .font(.caption)
+                                        .foregroundStyle(result.ok ? .green : .red)
+                                }
+                                Text(result.message)
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if results.isEmpty {
+                            Text("没有上传任何目标。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -257,17 +324,74 @@ private struct ReuploadSheet: View {
                     Button("取消") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(busy ? "上传中…" : "上传") {
-                        busy = true
-                        let targets = DataSource.allCases.filter { selectedTargets.contains($0.rawValue) }
-                        Task {
-                            await engine.reupload(activity: activity, to: targets)
-                            await MainActor.run { dismiss() }
-                        }
+                    if finished {
+                        Button("完成") { dismiss() }
+                    } else {
+                        Button(busy ? "上传中…" : "上传") { startReupload() }
+                            .disabled(selectedTargets.isEmpty || busy)
                     }
-                    .disabled(selectedTargets.isEmpty || busy)
                 }
             }
+        }
+    }
+
+    /// 点“上传”：多目标（目标数 > 1）先验体验码，和同步页一个口径；
+    /// 没码弹体验码框，验证成功后自动继续上传；一对一不验，直接跑。
+    private func startReupload() {
+        let targets = uploadableTargets.filter { selectedTargets.contains($0.rawValue) }
+        guard !targets.isEmpty else { return }
+        let run = { Task { await performReupload(targets: targets) } }
+        if targets.count > 1 {
+            license.checkTrialAndRun(run)
+        } else {
+            run()
+        }
+    }
+
+    /// 逐个目标重新上传：先验登录态，没登录的先提示去登录、不发请求；
+    /// 每传完一个就按引擎刚记的日志逐条记结果（成功/失败 + 原因），
+    /// 最后统一显示，不静默关弹窗。
+    private func performReupload(targets: [DataSource]) async {
+        await MainActor.run { busy = true; results = []; finished = false }
+        guard engine.localFileData(for: activity) != nil else {
+            await MainActor.run {
+                results = [ReuploadResult(name: "本地文件", ok: false,
+                                          message: "本地文件已丢失，无法重新上传「\(activity.title)」")]
+                busy = false
+                finished = true
+            }
+            return
+        }
+        var out: [ReuploadResult] = []
+        for target in targets {
+            guard let platform = PlatformRegistry.platform(for: target) else {
+                out.append(ReuploadResult(name: target.displayName, ok: false,
+                                          message: "\(target.displayName)待接入，无法上传"))
+                continue
+            }
+            guard await platform.isLoggedIn() else {
+                out.append(ReuploadResult(name: target.displayName, ok: false,
+                                          message: "未登录，请先去登录页登录\(target.displayName)，再回来重新上传"))
+                continue
+            }
+            // 引擎的 reupload 不返回值，只记日志：取本次调用新增的日志里
+            // 提到该目标的那一条当结果（成功“✅ 已重新上传到…”/失败“❌ …”）。
+            let beforeCount = engine.logs.count
+            await engine.reupload(activity: activity, to: [target])
+            let newLogs = Array(engine.logs.dropFirst(beforeCount))
+            if let line = newLogs.last(where: { $0.message.contains(target.displayName) }) {
+                out.append(ReuploadResult(name: target.displayName,
+                                          ok: line.level == .success,
+                                          message: line.message))
+            } else {
+                out.append(ReuploadResult(name: target.displayName, ok: false,
+                                          message: "上传结束，但没有收到明确结果，请去同步页查看运行日志"))
+            }
+        }
+        await MainActor.run {
+            results = out
+            busy = false
+            finished = true
         }
     }
 }

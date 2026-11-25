@@ -179,6 +179,12 @@ public final class AppConfig: ObservableObject {
     // MARK: 百锐腾（移动端 API Key）
     @Published public var brytonMobileApiKey: String = ""
 
+    // MARK: Strava（OAuth2 开发者凭证，用户在关于页自己填，存钥匙串）
+    // 注意：BuiltinSecrets 里没有 Strava 字段，这里只读钥匙串 config_stravaClientId /
+    // config_stravaClientSecret（与 StravaAPI 的 key 一致），没填就是空字符串。
+    @Published public var stravaClientId: String = ""
+    @Published public var stravaClientSecret: String = ""
+
     // MARK: 体验码门禁盐值（TrialLicense 组负责用）
     // 占位符 GATE_SALT_PLACEHOLDER，绝不写真实盐值。
     // 用户在关于页自己填真实盐值后才能发码；占位盐值下校验不会通过，这是正常的。
@@ -200,6 +206,8 @@ public final class AppConfig: ObservableObject {
         suuntoClientSecret = storedOrBuiltin(key: "config_suuntoClientSecret", builtin: BuiltinSecrets.suuntoClientSecret)
         suuntoSubscriptionKey = storedOrBuiltin(key: "config_suuntoSubscriptionKey", builtin: BuiltinSecrets.suuntoSubscriptionKey)
         brytonMobileApiKey = storedOrBuiltin(key: "config_brytonMobileApiKey", builtin: BuiltinSecrets.brytonMobileApiKey)
+        stravaClientId = KeychainStore.get("config_stravaClientId") ?? ""
+        stravaClientSecret = KeychainStore.get("config_stravaClientSecret") ?? ""
         trialLicenseSalt = storedOrBuiltin(key: "config_trialLicenseSalt", builtin: BuiltinSecrets.trialLicenseSalt)
     }
 
@@ -221,6 +229,8 @@ public final class AppConfig: ObservableObject {
         KeychainStore.set(suuntoClientSecret, for: "config_suuntoClientSecret")
         KeychainStore.set(suuntoSubscriptionKey, for: "config_suuntoSubscriptionKey")
         KeychainStore.set(brytonMobileApiKey, for: "config_brytonMobileApiKey")
+        KeychainStore.set(stravaClientId, for: "config_stravaClientId")
+        KeychainStore.set(stravaClientSecret, for: "config_stravaClientSecret")
         KeychainStore.set(trialLicenseSalt, for: "config_trialLicenseSalt")
     }
 }

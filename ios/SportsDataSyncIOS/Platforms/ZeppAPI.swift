@@ -27,14 +27,17 @@
 //       绝对坐标 = 累加（相对值）；点时间 = trackid（epoch 秒）+ 累加（time）。
 // 运动类型：1=running 6=walking 8=treadmill_running 9=cycling
 //           10=indoor_cycling 16=other 23=indoor_rowing 92=badminton
-// 坐标：华米 / Zepp 设备 GPS 原始坐标 = WGS-84，默认不转换；若实测偏移，把 gcjConvertEnabled 置 true。
+// 坐标：华米 / Zepp 设备 GPS 原始坐标 = WGS-84，安卓默认不转换；
+//   iOS 任务开关 zeppCoordinateConvert（TaskOptions，默认开）由引擎在下载前写进
+//   coordinateConvertEnabled（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，
+//   关了就不转，只转一次。真机拿已知路线验证后若发现轨迹偏移，再把默认值改回关。
 // 手机号登录必须带 +86 国家码（华米服务端校验，否则 401）。
 // 密钥：无固定密钥，token 全部运行时注入，本文件不含任何真实凭证。
 
 import Foundation
 
 /// Zepp：仅下载。上传抛 unsupported（官方无上传 API，安卓 UploadSupport 也是“仅下载”）。
-struct ZeppAPI: PlatformAPI {
+struct ZeppAPI: PlatformAPI, CoordinateConvertible {
     let source: DataSource = .zepp
 
     private static let appName = "com.xiaomi.hm.health"
@@ -52,9 +55,11 @@ struct ZeppAPI: PlatformAPI {
         10: "室内骑行", 16: "其他", 23: "划船机", 92: "羽毛球",
     ]
 
-    /// 轨迹坐标转换开关（默认关 = WGS-84；若实测偏移由 App 层打开，走 GCJ-02→WGS-84）。
-    /// 安卓同款开关（ZeppApi.gcjConvertEnabled，默认 false）。
-    var gcjConvertEnabled = false
+    /// 轨迹坐标转换开关（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，关了就不转。
+    /// 引擎在下载前按任务开关 zeppCoordinateConvert（TaskOptions，默认开）设置本属性。
+    /// 注意：安卓 ZeppApi.gcjConvertEnabled 默认是关（原始坐标就是 WGS-84）；这里默认开是按
+    /// 任务要求与 TaskOptions 对齐，真机验证后若轨迹偏移就把两边默认值一起改回关。
+    var coordinateConvertEnabled = true
 
     private let session = ZeppSession()
     /// 第 ① 步专用：不跟随 302（需从 Location 取 access code 兜底；安卓 loginClient 同款）。
@@ -69,13 +74,13 @@ struct ZeppAPI: PlatformAPI {
     // MARK: - PlatformAPI
 
     func isLoggedIn() async -> Bool {
-        guard let token = session.appToken, !token.isEmpty else { return false }
-        do {
-            let (_, http) = try await apiGet(pathQuery: "/v1/sport/run/history.json?source=run.mifit.huami.com", token: token)
-            return http.statusCode == 200
-        } catch {
-            return false
-        }
+        LoginStore.isLoggedIn(source)
+    }
+
+    /// 退出登录：清掉钥匙串里的 token 与账号密码。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
     }
 
     /// 邮箱 / 手机号 + 密码登录（三步流程，见文件头）。
@@ -137,6 +142,8 @@ struct ZeppAPI: PlatformAPI {
         }
         session.appToken = appToken
         session.userId = userId
+        LoginStore.saveToken(appToken, for: source)
+        LoginStore.saveCredentials(username: username, password: password, for: source)
     }
 
     func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -236,7 +243,7 @@ struct ZeppAPI: PlatformAPI {
             } else { alt = .nan }
             points.append(ZeppPoint(lat: lat, lon: lon, timestampMs: Double(epochMs), altitude: alt))
         }
-        if !points.isEmpty && gcjConvertEnabled {
+        if !points.isEmpty && coordinateConvertEnabled {
             points = points.map { p in
                 let c = GeoUtils.gcj02ToWgs84(lat: p.lat, lon: p.lon)
                 return ZeppPoint(lat: c.lat, lon: c.lon, timestampMs: p.timestampMs, altitude: p.altitude)
@@ -335,12 +342,16 @@ struct ZeppAPI: PlatformAPI {
     // MARK: - 登录态
 
     private func requireToken() throws -> String {
-        guard let token = session.appToken, !token.isEmpty else { throw PlatformError.notLoggedIn }
-        return token
+        if let token = LoginStore.token(for: source) ?? session.appToken, !token.isEmpty {
+            return token
+        }
+        throw PlatformError.notLoggedIn
     }
 
     private func relogin() async throws {
-        guard let account = session.account, let password = session.password else {
+        let account = LoginStore.username(for: source) ?? session.account
+        let password = LoginStore.password(for: source) ?? session.password
+        guard let account, let password else {
             throw PlatformError.authFailed("Zepp 登录已过期，请重新登录")
         }
         try await login(username: account, password: password)
@@ -388,7 +399,7 @@ struct ZeppAPI: PlatformAPI {
     }
 }
 
-// MARK: - 登录态（只放内存；落盘由 App 层负责）
+// MARK: - 登录态（token 与账号密码存钥匙串 LoginStore；session 只留本实例内的缓存，供重登兜底）
 
 private final class ZeppSession {
     var appToken: String?

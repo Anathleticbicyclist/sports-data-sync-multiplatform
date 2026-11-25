@@ -22,54 +22,54 @@
 //   GET：timestamp=0，authorization="Basic {basic_auth}"，body 为空，query 需 URL-decode 后参与签名；
 //   POST：timestamp=当前秒，authorization="Bearer {token}"，body=json.dumps(payload)。
 //   签名 body 必须与 Python json.dumps 逐字一致（键序 + 冒号后空格 + 逗号后空格），否则服务端校验失败。
-// 坐标：咕咚云端存原始 WGS-84（安卓注释），默认不转换；若实测偏移，把 gcjConvertEnabled 置 true。
-// 密钥：client_id / Basic 凭证 / 签名密钥 / did 在下方留空占位（值见安卓 CodoonApi.kt，
-//       未填时登录签名算不出，登录、列表、下载全都不可用）。
-//       本文件不含任何真实凭证。
+// 坐标：咕咚云端存原始 WGS-84（安卓注释），安卓默认不转换；
+//   iOS 任务开关 codoonCoordinateConvert（TaskOptions，默认开）由引擎在下载前写进
+//   coordinateConvertEnabled（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，
+//   关了就不转，只转一次。真机拿已知路线验证后若发现轨迹偏移，再把默认值改回关。
+// 密钥：client_id / Basic 凭证 / 签名密钥 / did 已按安卓公开源码 CodoonApi.kt 填好
+//   （社区公开值，running_page codoon_sync.py 同款；未填时登录签名算不出，登录、列表、
+//   下载全都不可用）。登录 token 以 JSON 串存钥匙串（LoginStore），本文件不含任何真实用户凭证。
 
 import Foundation
 import CryptoKit
 
 /// 咕咚：仅下载。上传抛 unsupported（官方无上传 API，安卓 UploadSupport 也是“仅下载”）。
-struct CodoonAPI: PlatformAPI {
+struct CodoonAPI: PlatformAPI, CoordinateConvertible {
     let source: DataSource = .codoon
 
     private static let baseURL = "https://api.codoon.com"
     private static let userAgent = "CodoonSport(8.9.0 1170;Android 7;Sony XZ1)"
     private static let davinci = "0"
 
-    // TODO: 待真机验证 — 以下四个值留空占位（值见安卓 CodoonApi.kt / running_page codoon_sync.py）。
+    // 四个值照抄安卓公开源码 CodoonApi.kt（社区公开值，running_page codoon_sync.py 同款）。
     // 注意：did 参与 HMAC 签名且服务端校验设备合法性，安卓注释强调必须用社区验证可用的合法 did，
     // 否则登录返回 HTTP 400。
-    private static let clientId = ""
-    private static let basicAuth = ""
-    private static let signKey = ""
-    private static let did = ""
+    private static let clientId = "099cce28c05f6c39ad5e04e51ed60704"
+    private static let basicAuth = "MDk5Y2NlMjhjMDVmNmMzOWFkNWUwNGU1MWVkNjA3MDQ6YzM5ZDNmYmVhMWU4NWJlY2VlNDFjMTk5N2FjZjBlMzY="
+    private static let signKey = "ecc140ad6e1e12f7d972af04add2c7ee"
+    private static let did = "24-ffffffff-faac-3052-0033-c5870033c587"
 
     private static let typeNames: [Int: String] = [0: "Hike", 1: "Run", 2: "Ride"]
     private static let typeTitles: [Int: String] = [0: "徒步", 1: "跑步", 2: "骑行"]
 
-    /// 轨迹坐标转换开关（默认关 = WGS-84；若实测偏移由 App 层打开，走 GCJ-02→WGS-84）。
-    /// 安卓同款开关（CodoonApi.gcjConvertEnabled，默认 false）。
-    var gcjConvertEnabled = false
+    /// 轨迹坐标转换开关（CoordinateConvertible）：开着就按 GCJ-02→WGS-84 转一遍，关了就不转。
+    /// 引擎在下载前按任务开关 codoonCoordinateConvert（TaskOptions，默认开）设置本属性。
+    /// 注意：安卓 CodoonApi.gcjConvertEnabled 默认是关（云端存原始 WGS-84）；这里默认开是按
+    /// 任务要求与 TaskOptions 对齐，真机验证后若轨迹偏移就把两边默认值一起改回关。
+    var coordinateConvertEnabled = true
 
     private let session = CodoonSession()
 
     // MARK: - PlatformAPI
 
     func isLoggedIn() async -> Bool {
-        guard let token = session.token, !token.isEmpty else { return false }
-        do {
-            // 安卓 validateToken：用真实 userId 拉一次列表（limit=1），200 即有效。
-            // 绝不能用 "0"（服务端返回 200 + 空列表，造成假阳性“有效”）。
-            let uid = session.userId
-            guard !uid.isEmpty, uid != "0" else { return false }
-            let (_, http) = try await postJson(token: token, path: "/api/get_old_route_log",
-                                                fields: [("limit", 1), ("page", 1), ("user_id", uid)])
-            return http.statusCode == 200
-        } catch {
-            return false
-        }
+        LoginStore.isLoggedIn(source)
+    }
+
+    /// 退出登录：清掉钥匙串里的 token 与账号密码。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
     }
 
     /// 手机号 + 密码登录（GET /token，Basic + timestamp=0 + signature）。
@@ -96,6 +96,12 @@ struct CodoonAPI: PlatformAPI {
         session.token = access
         session.refreshToken = json["refresh_token"] as? String ?? ""
         session.userId = json["user_id"] as? String ?? ""
+        // token + refresh_token + user_id 以 JSON 串存钥匙串（user_id 列表校验要用）；账号密码也存，供重登。
+        LoginStore.saveToken(Self.tokenBlob(
+            token: access,
+            refreshToken: session.refreshToken,
+            userId: session.userId), for: source)
+        LoginStore.saveCredentials(username: username, password: password, for: source)
     }
 
     func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -144,7 +150,7 @@ struct CodoonAPI: PlatformAPI {
                 points.append(CodoonPoint(lat: latV, lon: lonV, timestampMs: ts, altitude: alt))
             }
         }
-        if !points.isEmpty && gcjConvertEnabled {
+        if !points.isEmpty && coordinateConvertEnabled {
             points = points.map { p in
                 let c = GeoUtils.gcj02ToWgs84(lat: p.lat, lon: p.lon)
                 return CodoonPoint(lat: c.lat, lon: c.lon, timestampMs: p.timestampMs, altitude: p.altitude)
@@ -282,20 +288,51 @@ struct CodoonAPI: PlatformAPI {
 
     // MARK: - 登录态
 
-    private func requireToken() throws -> String {
-        guard let token = session.token, !token.isEmpty else { throw PlatformError.notLoggedIn }
+    /// token + refresh_token + user_id 的钥匙串存法：一个 JSON 串（Garmin 同款做法），只存本机。
+    private static func tokenBlob(token: String, refreshToken: String, userId: String) -> String {
+        let obj: [String: String] = ["access_token": token, "refresh_token": refreshToken, "user_id": userId]
+        if let data = try? JSONSerialization.data(withJSONObject: obj),
+           let json = String(data: data, encoding: .utf8) {
+            return json
+        }
         return token
+    }
+
+    /// 解析钥匙串里的 token 串：JSON 串取三个字段，否则整串就是 token（兼容旧值）。
+    private static func parseBlob(_ stored: String) -> (token: String, refreshToken: String, userId: String) {
+        if let data = stored.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return ((json["access_token"] as? String) ?? "",
+                    (json["refresh_token"] as? String) ?? "",
+                    (json["user_id"] as? String) ?? "")
+        }
+        return (stored, "", "")
+    }
+
+    private func requireToken() throws -> String {
+        if let stored = LoginStore.token(for: source) ?? session.token, !stored.isEmpty {
+            let (token, _, _) = Self.parseBlob(stored)
+            if !token.isEmpty { return token }
+        }
+        throw PlatformError.notLoggedIn
     }
 
     private func requireUserId() throws -> String {
         // 脏 userId（空 / "0"）用最近登录的真实 uid 兜底（"0" 会让服务端返回 200 + 空列表）。
-        let uid = session.userId
+        let uid: String
+        if let stored = LoginStore.token(for: source), !stored.isEmpty {
+            uid = Self.parseBlob(stored).userId
+        } else {
+            uid = session.userId
+        }
         guard !uid.isEmpty, uid != "0" else { throw PlatformError.notLoggedIn }
         return uid
     }
 
     private func relogin() async throws {
-        guard let mobile = session.mobile, let password = session.password else {
+        let mobile = LoginStore.username(for: source) ?? session.mobile
+        let password = LoginStore.password(for: source) ?? session.password
+        guard let mobile, let password else {
             throw PlatformError.authFailed("咕咚登录已过期，请重新登录")
         }
         try await login(username: mobile, password: password)
@@ -359,7 +396,7 @@ struct CodoonAPI: PlatformAPI {
     }
 }
 
-// MARK: - 登录态（只放内存；落盘由 App 层负责）
+// MARK: - 登录态（token 与账号密码存钥匙串 LoginStore；session 只留本实例内的缓存，供重登兜底）
 
 private final class CodoonSession {
     var token: String?

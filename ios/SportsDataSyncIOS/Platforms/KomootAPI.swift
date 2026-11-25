@@ -1,7 +1,8 @@
 // 待真机验证
 // KomootAPI.swift — Komoot（对照安卓 KomootApi.kt v9.6.9 原样移植）
 //
-// 仅下载（本组方向；安卓 KomootApi 另有上传接口，见文件底说明，暂不接）。
+// 双向：下载源 + 上传目标（上传按安卓 KomootApi.upload 移植：POST /v007/tours/?data_type=fit|gpx，
+//   Basic email:token，body=文件字节，201 新建 / 202 重复已存在算成功；GPX 需显式指定 sport）。
 // 登录：邮箱 + 密码，官方内部 API 纯 HTTP（Kompy 社区方案，无需 OAuth / 开发者合同，个人账号即可用）
 //   GET https://api.komoot.de/v006/account/email/{email}/
 //   头：Authorization: Basic(email:password)
@@ -18,7 +19,7 @@
 
 import Foundation
 
-/// Komoot：仅下载。上传抛 unsupported（见文件底说明）。
+/// Komoot：双向（下载 + 上传，安卓 KomootApi 原样移植；上传待真机验证）。
 struct KomootAPI: PlatformAPI {
     let source: DataSource = .komoot
 
@@ -26,22 +27,22 @@ struct KomootAPI: PlatformAPI {
     private static let loginURL = api + "/v006/account/email"
     private static let listTours = api + "/v007/users"
     private static let tourURL = api + "/v007/tours"
+    private static let uploadURL = api + "/v007/tours"
     private static let userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
+    private static let appUserAgent = "jichiOb/7.9.6 (鸡翅幸哲迈进OB)"
 
     private let session = KomootSession()
 
     // MARK: - PlatformAPI
 
     func isLoggedIn() async -> Bool {
-        guard let email = session.email, let token = session.token,
-              !email.isEmpty, !token.isEmpty else { return false }
-        do {
-            let url = URL(string: "\(Self.listTours)/\(formEncode(email))/tours/?limit=1&page=0")!
-            let (_, http) = try await request(url: url, headers: authHeaders(email: email, token: token))
-            return http.statusCode == 200
-        } catch {
-            return false
-        }
+        LoginStore.isLoggedIn(source)
+    }
+
+    /// 退出登录：清掉钥匙串里的 token 与账号密码。
+    func logout() {
+        LoginStore.clearToken(for: source)
+        LoginStore.clearCredentials(for: source)
     }
 
     /// 邮箱 + 密码登录。成功返回 token（响应 JSON 的 password 字段）与 username，失败抛 authFailed。
@@ -66,6 +67,8 @@ struct KomootAPI: PlatformAPI {
         }
         session.token = token
         session.username = (json["username"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? username
+        LoginStore.saveToken(token, for: source)
+        LoginStore.saveCredentials(username: username, password: password, for: source)
     }
 
     func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -136,29 +139,74 @@ struct KomootAPI: PlatformAPI {
         return data
     }
 
-    /// 本组只做下载方向，上传暂不接。
-    /// 安卓 KomootApi.upload 是存在的（POST https://api.komoot.de/v007/tours/?data_type=fit|gpx&sport=&name=，
-    /// Basic email:token，body=文件字节，201 新建 / 202 重复已存在），
-    /// 但 Models.swift 已把 Komoot 改为双向（与安卓 README 一致），本文件上传接口尚未接（见上），
-    /// 等汇总人跟用户确认后再决定接不接——现在不要假装能传。
+    /// 上传活动到 Komoot（安卓 KomootApi.upload 原样移植：GPX 或 FIT 都能传）。
+    /// - GPX：data_type=gpx&sport={sport}&name={name}（GPX 需显式指定 sport）；
+    /// - FIT：data_type=fit&name={name}（FIT 内嵌运动类型）。
+    /// 201=新建，202=重复已存在（都算成功）；400=文件格式不被接受；401/403=登录失效。
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
-        throw PlatformError.unsupported("Komoot 在 iOS 版只作下载数据源，暂不支持上传（等确认后再接）")
+        let email = try requireEmail()
+        let token = try requireToken()
+        let isFit = FitParser.isFit(data)
+        let name = activity.title.isEmpty ? "jichiOB sync" : activity.title
+        let urlString: String
+        if isFit {
+            urlString = "\(Self.uploadURL)/?data_type=fit&name=\(formEncode(name))"
+        } else {
+            urlString = "\(Self.uploadURL)/?data_type=gpx&sport=\(formEncode(mapToKomootSport(activity)))&name=\(formEncode(name))"
+        }
+        let url = URL(string: urlString)!
+        let (respData, http) = try await request(
+            url: url, method: "POST",
+            headers: [
+                "Authorization": basicAuth(user: email, pass: token),
+                "User-Agent": Self.appUserAgent,
+            ],
+            body: data
+        )
+        switch http.statusCode {
+        case 201, 202:
+            return
+        case 400:
+            throw PlatformError.network("Komoot 上传失败：文件格式不被接受（400）")
+        case 401, 403:
+            throw PlatformError.authFailed("Komoot 登录失效（HTTP \(http.statusCode)），请重新登录")
+        default:
+            let body = String(data: respData, encoding: .utf8) ?? ""
+            throw PlatformError.network("Komoot 上传失败：HTTP \(http.statusCode)\(body.isEmpty ? "" : " \(body.prefix(100))")")
+        }
+    }
+
+    /// 上传时把通用运动类型映射为 Komoot sport 枚举（安卓 mapToKomootSport 原样，按标题判断）。
+    private func mapToKomootSport(_ record: ActivityRecord) -> String {
+        if record.title.contains("骑") { return "racebike" }
+        if record.title.contains("跑") { return "jogging" }
+        if record.title.contains("徒步") { return "hike" }
+        if record.title.contains("越野") { return "mtb_easy" }
+        if record.title.contains("游泳") { return "other" }
+        if record.title.contains("健走") || record.title.contains("快走") { return "nordicwalking" }
+        return "other"
     }
 
     // MARK: - 登录态
 
     private func requireEmail() throws -> String {
-        guard let email = session.email, !email.isEmpty else { throw PlatformError.notLoggedIn }
-        return email
+        if let email = LoginStore.username(for: source) ?? session.email, !email.isEmpty {
+            return email
+        }
+        throw PlatformError.notLoggedIn
     }
 
     private func requireToken() throws -> String {
-        guard let token = session.token, !token.isEmpty else { throw PlatformError.notLoggedIn }
-        return token
+        if let token = LoginStore.token(for: source) ?? session.token, !token.isEmpty {
+            return token
+        }
+        throw PlatformError.notLoggedIn
     }
 
     private func relogin() async throws {
-        guard let email = session.email, let password = session.password else {
+        let email = LoginStore.username(for: source) ?? session.email
+        let password = LoginStore.password(for: source) ?? session.password
+        guard let email, let password else {
             throw PlatformError.authFailed("Komoot 登录失效，请重新登录")
         }
         try await login(username: email, password: password)
@@ -237,7 +285,7 @@ struct KomootAPI: PlatformAPI {
     }
 }
 
-// MARK: - 登录态（只放内存；落盘由 App 层负责）
+// MARK: - 登录态（token 与账号密码存钥匙串 LoginStore；session 只留本实例内的缓存，供重登兜底）
 
 private final class KomootSession {
     var email: String?

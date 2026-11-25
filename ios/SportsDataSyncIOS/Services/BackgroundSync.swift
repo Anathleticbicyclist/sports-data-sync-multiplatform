@@ -52,6 +52,9 @@ final class BackgroundSync {
     }
 
     /// 记下要后台跑的任务 id（任务级 autoSync 开启的任务）。重启后按这份名单恢复。
+    /// 注意：这份快照只是兼容旧版同步页开关写入的记录，不再作为“跑哪些任务”的依据——
+    /// 后台触发时以 TaskStore.tasks 的当前列表为准（见 runAutoTasks），之后新建的
+    /// 自动任务不用等开关重开就能跑。
     var autoTaskIds: [String] {
         get { UserDefaults.standard.stringArray(forKey: Self.autoTaskIdsKey) ?? [] }
         set { UserDefaults.standard.set(newValue, forKey: Self.autoTaskIdsKey) }
@@ -74,8 +77,9 @@ final class BackgroundSync {
             forTaskWithIdentifier: Self.processingTaskId, using: nil) { task in
             self.handleProcessing(task: task as! BGProcessingTask, engine: engine)
         }
-        // 跨重启恢复：按 UserDefaults 里的名单重新排期。
-        if isEnabled, !autoTaskIds.isEmpty {
+        // 跨重启恢复：按当前任务列表（动态读 TaskStore.tasks）判断有没有自动任务，
+        // 有才重新排期；不要只看打开开关那一刻的快照。
+        if isEnabled, TaskStore.tasks.contains(where: { engine.isAutoSync($0) }) {
             scheduleRefresh()
             scheduleProcessing()
         }
@@ -138,10 +142,12 @@ final class BackgroundSync {
         }
     }
 
-    /// 跑一遍所有开启了自动同步的任务（只跑名单里的，跑完即停，不过夜挂起）。
+    /// 跑一遍所有开启了自动同步的任务（只跑当前列表里开了自动同步且启用的任务，
+    /// 跑完即停，不过夜挂起）。
+    /// 任务名单在后台触发这一刻动态读 TaskStore.tasks，不读打开开关那一刻的快照，
+    /// 所以之后新建的自动任务也能跑。
     private func runAutoTasks(engine: SyncEngine, completion: @escaping () -> Void) {
-        let ids = Set(autoTaskIds)
-        let autoTasks = engine.tasks.filter { engine.isAutoSync($0) && ids.contains($0.id.uuidString) }
+        let autoTasks = TaskStore.tasks.filter { engine.isAutoSync($0) }
         guard !autoTasks.isEmpty else {
             completion()
             return
@@ -150,6 +156,13 @@ final class BackgroundSync {
         engine.log("🌙 后台自动同步开始（\(autoTasks.count) 个任务）")
         Task {
             for task in autoTasks {
+                // 多目标任务先验体验码（和同步页“运行一对多任务前”同一个口径）：
+                // 后台弹不了框，只做静默判断——TrialLicense.isAllowed 是现成的
+                // “是否有效”判断，没码就不跑并记一条日志；一对一不验。
+                if task.targets.count > 1, !TrialLicense().isAllowed {
+                    engine.log("🌙 后台自动同步跳过「\(task.name)」：多目标任务需体验码，请在 App 内验证体验码后再开自动同步", level: .skip)
+                    continue
+                }
                 // 后台时间有限：一次只跑一个任务，跑完下一个；中途被系统收回就停。
                 await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
                     engine.run(task: task)

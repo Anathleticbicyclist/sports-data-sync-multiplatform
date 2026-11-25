@@ -1,9 +1,10 @@
 // 待真机验证
-// 实验室登录页：独立页面，可返回；松拓 / Zepp / 百锐腾三个实验平台在此登录/注销，
-// 登录后登录页和同步目标里才出现对应平台（未登录隐藏）。对应安卓 ui/LabLoginFragment.kt。
+// 实验室登录页：独立页面，可返回；松拓 / Zepp / 百锐腾三个实验平台在此登录/注销。
+// 各平台一直显示在登录页和同步目标里，不按登录状态隐藏；登上后才能同步对应平台的数据。
+// 对应安卓 ui/LabLoginFragment.kt。
 //
-// - 松拓走 OAuth2，授权地址待 SuuntoAPI 落盘后在 WebLoginURL.oauthURL 里填，
-//   现在平台文件尚未落盘，显示“待接入”；百锐腾同样待接入；Zepp 已接入，账号密码登录。
+// - 松拓走 OAuth2（ASWebAuthenticationSession，回调 jichiob，见登录页的 OAuthLoginHelper），
+//   clientId 为空时提示先去关于页开发者凭证里填；百锐腾同样待接入；Zepp 已接入，账号密码登录。
 // - 安卓实验室还有两步路 / Strava / Polar / Fitbit / Withings / TrainingPeaks 六个动态平台，
 //   iOS 没有这些平台（Strava 已在登录页主列表里），本页只列上面三个。
 // - 登录复用登录页同一套 WebLoginSheet / NativeLoginSheet，不另写登录逻辑。
@@ -16,6 +17,8 @@ struct LabLoginView: View {
     @StateObject private var store = LoginPageStore()
     @State private var webLoginPlatform: DataSource?
     @State private var formLoginPlatform: DataSource?
+    // 松拓 OAuth 共用流程（登录页的 OAuthLoginHelper）。
+    @State private var oauthHelper = OAuthLoginHelper()
 
     /// 实验室三个固定平台（安卓 LabLoginFragment 静态卡片）。
     private let labPlatforms: [DataSource] = [.suunto, .zepp, .bryton]
@@ -29,11 +32,12 @@ struct LabLoginView: View {
                     hasImplementation: store.platform(for: ds) != nil,
                     onWebLogin: { webLoginPlatform = ds },
                     onFormLogin: { formLoginPlatform = ds },
+                    onOAuthLogin: { oauthHelper.start(for: ds, store: store) },
                     onLogout: { logout(ds) }
                 )
             }
             Section {
-                Text("实验室里的平台是实验性接入：登录后才会在登录页和同步目标里出现。松拓、百锐腾正在接入中。")
+                Text("实验室里的平台是实验性接入：松拓、百锐腾正在接入中。各平台一直显示在登录页和同步目标里，不按登录状态隐藏；登上后才能同步对应平台的数据。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -41,6 +45,14 @@ struct LabLoginView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await store.checkAll()
+        }
+        .alert("登录提示", isPresented: Binding(
+            get: { store.oauthMessage != nil },
+            set: { if !$0 { store.oauthMessage = nil } }
+        )) {
+            Button("知道了") { store.oauthMessage = nil }
+        } message: {
+            Text(store.oauthMessage ?? "")
         }
         .sheet(isPresented: Binding(
             get: { webLoginPlatform != nil },
@@ -77,7 +89,12 @@ private struct LabPlatformCard: View {
     let hasImplementation: Bool
     let onWebLogin: () -> Void
     let onFormLogin: () -> Void
+    let onOAuthLogin: () -> Void
     let onLogout: () -> Void
+
+    /// 松拓的 OAuth 不走注册表（授权流程直接建平台实例换 token），
+    /// 所以即使注册表还没接进来，卡片上也有浏览器授权入口。
+    private var canLogin: Bool { hasImplementation || platform == .suunto }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -87,7 +104,7 @@ private struct LabPlatformCard: View {
                 if isLoggedIn {
                     Button("注销", action: onLogout)
                         .font(.caption).foregroundStyle(.secondary)
-                } else if !hasImplementation {
+                } else if !canLogin {
                     Text("待接入").font(.caption).foregroundStyle(.orange)
                 }
             }
@@ -97,7 +114,7 @@ private struct LabPlatformCard: View {
                     .font(.subheadline)
                     .buttonStyle(.bordered)
                     .tint(.brandBlue)
-            } else if !hasImplementation {
+            } else if !canLogin {
                 Text("未登录").font(.caption).foregroundStyle(.secondary)
                 Text("该平台正在接入中，登录入口稍后开放。")
                     .font(.caption).foregroundStyle(.secondary)
@@ -115,7 +132,9 @@ private struct LabPlatformCard: View {
                         Button("账号密码", action: onFormLogin)
                     case .oauth2:
                         if WebLoginURL.oauthURL(for: platform) != nil {
-                            Button("浏览器授权登录", action: onWebLogin)
+                            Button("浏览器授权登录", action: onOAuthLogin)
+                        } else if let reason = WebLoginURL.oauthUnavailableReason(for: platform) {
+                            Text(reason).font(.caption).foregroundStyle(.secondary)
                         } else {
                             Text("OAuth 授权地址待接入")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -135,6 +154,7 @@ private struct LabPlatformCard: View {
     private func loginAction() {
         switch platform.loginMethod {
         case .account, .apiKey: onFormLogin()
+        case .oauth2: onOAuthLogin()
         default: onWebLogin()
         }
     }

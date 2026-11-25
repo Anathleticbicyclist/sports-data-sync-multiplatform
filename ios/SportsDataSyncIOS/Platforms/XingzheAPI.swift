@@ -15,8 +15,8 @@
 //   multipart 字段 fit_file + md5（文件 MD5）；头 Cookie: sessionid=xxx（+ csrftoken 如有）、
 //   Referer https://www.imxingzhe.com/upload/fit、X-CSRFToken（如有）。
 //   返回 code==0 且 data.workout_id>0 才算入库成功；code 9006 /“文件已上传”为重复跳过。
-//   行者只收 FIT：GPX 必须先转 FIT 再传，否则服务器 HTTP 500（安卓用官方 gpx2fit.js / 自研
-//   GpxToFitConverter 转换；iOS 转换器尚未接入，本文件遇到非 FIT 直接抛错，见 uploadActivity）。
+//   行者只收 FIT：GPX 先用 Core 的 GpxParser.gpxToFit 转 FIT 再传（安卓用官方 gpx2fit.js /
+//   自研 GpxToFitConverter 转换；iOS 转换器已接线，见 uploadActivity）。
 //
 // 注意（README 原文）：行者手机 App 记录导出的 FIT 格式不标准（data_size、CRC、时间戳等存在
 //   非标准写法），上传到解析严格的平台（如迈金/顽鹿 OTM）可能入库失败——上传成功但列表无数据
@@ -37,17 +37,23 @@ struct XingzheAPI: PlatformAPI {
 
     private let sessionStore = XingzheSessionStore()
 
-    /// WebView 登录后把 sessionid 交给本实例（Keychain 落盘由 App 层负责）。
-    func setSessionId(_ sessionId: String) { sessionStore.sessionId = sessionId }
+    /// WebView 登录后把 sessionid 交给本实例（直接存钥匙串，见 LoginStore）。
+    func setSessionId(_ sessionId: String) { LoginStore.saveToken(sessionId, for: .xingzhe) }
 
     /// 可选：登录页同时拿到 csrftoken 时一并注入，上传时随 Cookie 与 X-CSRFToken 附带。
+    /// csrf 只放内存（随登录会话失效），不进钥匙串。
     func setCsrfToken(_ csrf: String) { sessionStore.csrf = csrf }
 
-    /// 只看本地有没有 sessionid，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 sessionid，不发网络请求（协议口径）。
     /// 安卓曾用 user_info 实测校验，如需实测校验由 App 层另调 fetchActivities(limit: 1)。
     func isLoggedIn() async -> Bool {
-        guard let sessionId = sessionStore.sessionId, !sessionId.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(.xingzhe)
+    }
+
+    /// 退出登录：清掉钥匙串里的 sessionid（内存里的 csrf 一并清掉）。
+    func logout() {
+        LoginStore.clearToken(for: .xingzhe)
+        sessionStore.csrf = nil
     }
 
     func login(username: String, password: String) async throws {
@@ -107,6 +113,9 @@ struct XingzheAPI: PlatformAPI {
     /// 默认 FIT 优先、失败回退 GPX（安卓默认策略）。
     /// 返回的 Data 可能是 FIT 或 GPX：调用方按文件头判断（FIT 在 offset 8-9 处为 ".F"，
     /// GPX 以 "<?xml" / "<gpx" 开头）。
+    /// 行者 FIT 的时间戳是北京时间（UTC+8），不是标准 UTC：FIT 下回来先减 8 小时
+    /// （FitParser.shiftTimestamps，移植自 FitTimeFixer.fixXingzheFitTime），
+    /// 再保存/上传，记录中心和目标平台显示的时间才跟行者 App 里一致。
     func downloadActivity(_ activity: ActivityRecord) async throws -> Data {
         try await downloadActivity(activity, preferGpx: false)
     }
@@ -122,7 +131,7 @@ struct XingzheAPI: PlatformAPI {
         }
         // 方式 1：FIT（优先）——原生支持功率/心率/踏频等扩展数据
         if let fit = try? await downloadFit(sessionId: sessionId, workoutId: activity.id) {
-            return fit
+            return FitParser.shiftTimestamps(fit, bySeconds: -8 * 3600)
         }
         // 方式 2：GPX（回退）——注意必须带尾斜杠，否则 Django 返回 401；可能丢失功率等扩展数据
         if let gpx = try? await downloadGpx(sessionId: sessionId, workoutId: activity.id) {
@@ -133,15 +142,22 @@ struct XingzheAPI: PlatformAPI {
 
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
         let sessionId = try requireSessionId()
-        // 行者只收 FIT：GPX 必须先转 FIT，否则服务器 HTTP 500。
-        // TODO: 待接入 GPX→FIT 转换器（安卓用官方 gpx2fit.js，WebBridge 兜底自研 GpxToFitConverter）。
-        guard isFit(data) else {
-            throw PlatformError.unsupported("行者只接收 FIT 文件，GPX 需先转 FIT；iOS 转换器待接入")
+        // 行者只收 FIT：GPX 先用已有的转换器转 FIT 再传（GpxParser.gpxToFit），
+        // 不再抛“转换器待接入”。
+        let fitData: Data
+        let fitFileName: String
+        if isFit(data) {
+            fitData = data
+            fitFileName = fileName
+        } else {
+            fitData = try GpxParser.gpxToFit(data)
+            fitFileName = fileName.lowercased().hasSuffix(".gpx")
+                ? String(fileName.dropLast(4)) + ".fit" : fileName
         }
-        let md5 = md5Hex(data)
+        let md5 = md5Hex(fitData)
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
-        body.appendMultipartFile(field: "fit_file", fileName: fileName, mimeType: "application/octet-stream", fileData: data, boundary: boundary)
+        body.appendMultipartFile(field: "fit_file", fileName: fitFileName, mimeType: "application/octet-stream", fileData: fitData, boundary: boundary)
         body.appendMultipartField(name: "md5", value: md5, boundary: boundary)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
@@ -197,7 +213,7 @@ struct XingzheAPI: PlatformAPI {
     // MARK: - 内部
 
     private func requireSessionId() throws -> String {
-        guard let sessionId = sessionStore.sessionId, !sessionId.isEmpty else {
+        guard let sessionId = LoginStore.token(for: .xingzhe), !sessionId.isEmpty else {
             throw PlatformError.notLoggedIn
         }
         return sessionId
@@ -262,9 +278,8 @@ struct XingzheAPI: PlatformAPI {
     }
 }
 
-/// 行者 sessionid / csrftoken 只放内存；Keychain 落盘与恢复由 App 层负责。
+/// 行者 sessionid 不再放内存（走 LoginStore 钥匙串）；csrf 仍只放内存，随会话失效。
 final class XingzheSessionStore {
-    var sessionId: String?
     var csrf: String?
 }
 

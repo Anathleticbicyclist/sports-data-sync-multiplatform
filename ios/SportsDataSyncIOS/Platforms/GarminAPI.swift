@@ -314,8 +314,14 @@ private final class GarminEngine {
     ]
 
     // OAuth1（GarminApi.kt，v8.1.9 起）：KEY 是 garminglobal6，SECRET 是空串，原样照搬。
-    private static let oauth1ConsumerKey = "garminglobal6"
-    private static let oauth1ConsumerSecret = ""
+    // 每次调用时读 AppConfig.shared（用户在关于页填了就生效）；填了空就回落到原来的公开值。
+    private static var oauth1ConsumerKey: String {
+        let v = AppConfig.shared.garminConsumerKey
+        return v.isEmpty ? "garminglobal6" : v
+    }
+    private static var oauth1ConsumerSecret: String {
+        AppConfig.shared.garminSecret
+    }
 
     private static let iosLoginUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
     private static let nativeApiUA = "GCM-Android-5.23"

@@ -45,16 +45,16 @@ struct BlackbirdAPI: PlatformAPI {
     private static let base = "https://www.blackbirdsport.com/api"
     private static let perPage = 100
 
-    private let cookieStore = BlackbirdCookieStore()
+    /// WebView 登录后把完整 Cookie 交给本实例（直接存钥匙串，见 LoginStore）。
+    func setCookie(_ cookie: String) { LoginStore.saveToken(cookie, for: .blackbird) }
 
-    /// WebView 登录后把完整 Cookie 交给本实例（Keychain 落盘由 App 层负责）。
-    func setCookie(_ cookie: String) { cookieStore.cookie = cookie }
-
-    /// 只看本地有没有 Cookie，不发网络请求（协议口径）。
+    /// 只看钥匙串里有没有 Cookie，不发网络请求（协议口径）。
     func isLoggedIn() async -> Bool {
-        guard let cookie = cookieStore.cookie, !cookie.isEmpty else { return false }
-        return true
+        LoginStore.isLoggedIn(.blackbird)
     }
+
+    /// 退出登录：清掉钥匙串里的 Cookie。
+    func logout() { LoginStore.clearToken(for: .blackbird) }
 
     func login(username: String, password: String) async throws {
         // 安卓无账号密码直登接口；黑鸟只能在登录页（见 loginURL）登录后取完整 Cookie。
@@ -184,14 +184,23 @@ struct BlackbirdAPI: PlatformAPI {
 
     func uploadActivity(data: Data, fileName: String, activity: ActivityRecord) async throws {
         let cookie = try requireCookie()
-        // 黑鸟只接受 FIT（安卓 v6.3.5：GPX 源须先转 FIT；自研转换器生成的 FIT 黑鸟无法解析，
-        // 须用 Outbase 官方 gpx2fit 转换——iOS 转换器待接入，本文件遇到非 FIT 直接抛错）。
-        guard FitParser.isFit(data) else {
-            throw PlatformError.unsupported("黑鸟只接收 FIT 文件，GPX 需先转 FIT；iOS 转换器待接入")
+        // 黑鸟只接受 FIT（安卓 v6.3.5：GPX 源须先转 FIT）：GPX 先用已有的转换器
+        // 转 FIT 再传（GpxParser.gpxToFit），不再抛“转换器待接入”。
+        // 注意：黑鸟解析器较旧，自研转换器生成的 FIT 可能被拒（见文件头），
+        // 真机上如遇 FIT_FILE_ERROR，仍以服务端返回为准。
+        let fitData: Data
+        let fitFileName: String
+        if FitParser.isFit(data) {
+            fitData = data
+            fitFileName = fileName
+        } else {
+            fitData = try GpxParser.gpxToFit(data)
+            fitFileName = fileName.lowercased().hasSuffix(".gpx")
+                ? String(fileName.dropLast(4)) + ".fit" : fileName
         }
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
-        body.appendMultipartFile(field: "file", fileName: fileName, mimeType: "application/octet-stream", fileData: data, boundary: boundary)
+        body.appendMultipartFile(field: "file", fileName: fitFileName, mimeType: "application/octet-stream", fileData: fitData, boundary: boundary)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         var request = URLRequest(url: URL(string: "\(Self.base)/records/upload")!)
@@ -223,7 +232,7 @@ struct BlackbirdAPI: PlatformAPI {
     // MARK: - 请求小工具
 
     private func requireCookie() throws -> String {
-        guard let cookie = cookieStore.cookie, !cookie.isEmpty else {
+        guard let cookie = LoginStore.token(for: .blackbird), !cookie.isEmpty else {
             throw PlatformError.notLoggedIn
         }
         return cookie
@@ -487,7 +496,4 @@ struct BlackbirdAPI: PlatformAPI {
     }
 }
 
-/// 黑鸟 Cookie 只放内存；Keychain 落盘与恢复由 App 层负责。
-final class BlackbirdCookieStore {
-    var cookie: String?
-}
+/// 黑鸟 Cookie 不再单独放内存：setCookie/isLoggedIn/requireCookie 一律走 LoginStore（钥匙串）。
