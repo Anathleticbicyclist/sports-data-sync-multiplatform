@@ -34,6 +34,8 @@ enum PlatformRegistry {
         case .intervalsIcu: return IntervalsIcuAPI()
         case .garminIntl: return GarminIntlAPI()
         case .garminCN: return GarminCNAPI()
+        case .corosCN: return CorosCNAPI()
+        case .corosIntl: return CorosIntlAPI()
         case .codoon: return CodoonAPI()
         case .zepp: return ZeppAPI()
         case .komoot: return KomootAPI()

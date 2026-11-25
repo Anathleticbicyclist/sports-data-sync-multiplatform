@@ -146,7 +146,7 @@ struct RecordCenterView: View {
                     .font(.caption2)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Color.brandBlue.opacity(0.12))
-                    .foregroundStyle(.brandBlue)
+                    .foregroundStyle(Color.brandBlue)
                     .clipShape(Capsule())
             }
             Text("\(activity.startDate, style: .date) \(activity.startDate, style: .time) · \(activity.sportType)")
@@ -179,7 +179,7 @@ private struct ActivityDetailSheet: View {
                 Section("基本信息") {
                     detailRow("标题", activity.title)
                     detailRow("平台", activity.platformDisplayName)
-                    detailRow("开始时间", "\(activity.startDate, style: .date) \(activity.startDate, style: .time)")
+                    detailRow("开始时间", activity.startDate.formatted(date: .abbreviated, time: .short))
                     detailRow("运动类型", activity.sportType)
                     detailRow("本地文件", activity.fileName)
                 }

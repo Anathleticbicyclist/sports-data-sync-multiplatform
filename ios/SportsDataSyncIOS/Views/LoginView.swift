@@ -140,7 +140,7 @@ struct LoginView: View {
         VStack(spacing: 6) {
             Image(systemName: "bicycle.circle.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(.brandBlue)
+                .foregroundStyle(Color.brandBlue)
             Text("鸡翅幸哲迈进Ob")
                 .font(.title2.bold())
             Text("21 个平台运动数据互传 · 免费开源")
@@ -205,7 +205,7 @@ struct LoginView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background(Color.brandBlue.opacity(0.12))
-            .foregroundStyle(.brandBlue)
+            .foregroundStyle(Color.brandBlue)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             if showOutbase {
                 Button("打开 Outbase 登录页") {

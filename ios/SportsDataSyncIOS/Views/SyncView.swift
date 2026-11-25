@@ -358,7 +358,7 @@ private struct SyncTaskCard: View {
                     Text("自动").font(.caption2)
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.brandBlue.opacity(0.12))
-                        .foregroundStyle(.brandBlue)
+                        .foregroundStyle(Color.brandBlue)
                         .clipShape(Capsule())
                 }
             }

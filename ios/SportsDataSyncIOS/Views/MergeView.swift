@@ -42,7 +42,7 @@ struct MergeView: View {
                     HStack {
                         Image(systemName: selectedIds.contains(activity.id)
                               ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(selectedIds.contains(activity.id) ? .brandBlue : .gray)
+                            .foregroundStyle(selectedIds.contains(activity.id) ? Color.brandBlue : Color.gray)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(activity.title).font(.headline).lineLimit(1)
                             Text("\(activity.platformDisplayName) · \(activity.startDate, style: .date) · \(String(format: "%.2f", activity.distanceKm)) 公里 · \(activity.fileName.hasSuffix(".fit") ? "FIT" : "GPX")")

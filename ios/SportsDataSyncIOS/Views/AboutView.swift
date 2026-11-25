@@ -68,7 +68,7 @@ private var logoSection: some View {
 VStack(spacing: 8) {
 Image(systemName: "bicycle.circle.fill")
 .font(.system(size: 64))
-.foregroundStyle(.brandBlue)
+.foregroundStyle(Color.brandBlue)
 Text("鸡翅幸哲迈进Ob").font(.title2.bold())
 Text("版本 9.6.9（iOS 版）").font(.subheadline).foregroundStyle(.secondary)
 Text("21 个平台运动数据互传 · 免费开源")
