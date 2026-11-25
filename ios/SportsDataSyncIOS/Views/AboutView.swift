@@ -49,17 +49,17 @@ aboutTextSection
 .sheet(isPresented: $showChangelog) { ChangelogSheet()}
 .sheet(isPresented: $showCredentials) { CredentialsSheet()}
 .alert("声明", isPresented: $showDisclaimer) {
-Button("知道了", role:.cancel) {}
+Button("知道了", role: .cancel) {}
 } message: {
 Text(disclaimerText)
 }
 .alert("检查更新", isPresented: Binding(
-get: { updateMessage!= nil},
-set: { if!$0 { updateMessage = nil}}
+get: { updateMessage != nil},
+set: { if !$0 { updateMessage = nil}}
 )) {
-Button("知道了", role:.cancel) {}
+Button("知道了", role: .cancel) {}
 } message: {
-Text(updateMessage?? "")
+Text(updateMessage ?? "")
 }
 }
 
@@ -74,7 +74,7 @@ Text("版本 9.6.9（iOS 版）").font(.subheadline).foregroundStyle(.secondary)
 Text("21 个平台运动数据互传 · 免费开源")
 .font(.caption).foregroundStyle(.secondary)
 }
-.frame(maxWidth:.infinity)
+.frame(maxWidth: .infinity)
 .padding(.vertical, 8)
 .listRowBackground(Color.clear)
 }
@@ -197,7 +197,7 @@ Text("• Strava、Wahoo、MyWhoosh、Zwift、松拓、百锐腾、CyCity 平台
 .navigationTitle("本次更新")
 .navigationBarTitleDisplayMode(.inline)
 .toolbar {
-ToolbarItem(placement:.cancellationAction) {
+ToolbarItem(placement: .cancellationAction) {
 Button("关闭") { dismiss()}
 }
 }
@@ -255,10 +255,10 @@ Text("不填也能用：没配 Wahoo 凭证时 Wahoo 登录不可用，其余平
 .navigationTitle("开发者凭证")
 .navigationBarTitleDisplayMode(.inline)
 .toolbar {
-ToolbarItem(placement:.cancellationAction) {
+ToolbarItem(placement: .cancellationAction) {
 Button("取消") { dismiss()}
 }
-ToolbarItem(placement:.confirmationAction) {
+ToolbarItem(placement: .confirmationAction) {
 Button("保存") {
 config.save()
 savedMessage = "已保存到本机钥匙串。"

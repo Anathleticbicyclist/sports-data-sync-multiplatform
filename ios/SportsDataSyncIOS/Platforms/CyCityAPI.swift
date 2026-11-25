@@ -37,7 +37,7 @@ import Foundation
 
 /// CyCity：双向（下载 + 上传），手机号 + 密码纯 API 登录。
 struct CyCityAPI: PlatformAPI {
-let source: DataSource =.cycity
+let source: DataSource = .cycity
 
 private static let base = "https://cycity.cc/api"
 private static let loginURL = base + "/auth/mobile/login"
@@ -53,7 +53,7 @@ private let session = CyCitySession()
 // MARK: - PlatformAPI
 
 func isLoggedIn() async -> Bool {
-guard let token = session.token,!token.isEmpty else { return false}
+guard let token = session.token, !token.isEmpty else { return false}
 do {
 // 安卓 getUsername：列表接口 pageNum=1&pageSize=1，code==200 即有效。
 let url = URL(string: "\(Self.listURL)?pageNum=1&pageSize=1")!
@@ -88,11 +88,11 @@ throw PlatformError.authFailed("CyCity 登录失败（HTTP \(http.statusCode)）
 guard let json = jsonObject(data),
 (json["code"] as? Int) == 200,
 let dataObj = json["data"] as? [String: Any],
-let token = dataObj["access_token"] as? String,!token.isEmpty else {
+let token = dataObj["access_token"] as? String, !token.isEmpty else {
 throw PlatformError.authFailed("CyCity 登录失败：账号或密码错误")
 }
 session.token = token
-session.userId = dataObj["userId"] as? String?? ""
+session.userId = dataObj["userId"] as? String ?? ""
 }
 
 func fetchActivities(limit: Int, skip: Int) async throws -> [ActivityRecord] {
@@ -112,11 +112,11 @@ throw PlatformError.parse("CyCity 列表解析失败")
 }
 var out: [ActivityRecord] = []
 for row in rows {
-guard let id = row["id"] as? String,!id.isEmpty else { continue}
-let startRaw = (row["startTime"] as? String)?? ""
+guard let id = row["id"] as? String, !id.isEmpty else { continue}
+let startRaw = (row["startTime"] as? String) ?? ""
 out.append(ActivityRecord(
 id: id,
-source:.cycity,
+source: .cycity,
 title: "CyCity骑行",
 startDate: parseStartDate(startRaw),
 // TODO: 待真机验证 — movingDistance 的单位。
@@ -140,7 +140,7 @@ return Array(out.dropFirst(skipInPage).prefix(limit))
 /// 下载一条活动的 FIT 字节（POST 空 body 到 exportFitFile，smali downloadFit 原样）。
 func downloadActivity(_ activity: ActivityRecord) async throws -> Data {
 let token = try requireToken()
-let rideId = activity.remoteId.isEmpty? activity.id: activity.remoteId
+let rideId = activity.remoteId.isEmpty ? activity.id : activity.remoteId
 let url = URL(string: "\(Self.exportFitURL)?rideId=\(formEncode(rideId))")!
 // 安卓：POST 空字节 body（不是 GET）。
 let (data, http) = try await request(url: url, method: "POST", headers: authHeaders(token: token),
@@ -167,8 +167,8 @@ headers: authHeaders(token: token)
 )
 guard let importJson = jsonObject(importData),
 (importJson["code"] as? Int) == 200 else {
-let msg = (jsonObject(importData)?["msg"] as? String)?? ""
-throw PlatformError.network("CyCity 上传失败（import 步骤）：\(msg.isEmpty? "HTTP 响应异常": msg)")
+let msg = (jsonObject(importData)?["msg"] as? String) ?? ""
+throw PlatformError.network("CyCity 上传失败（import 步骤）：\(msg.isEmpty ? "HTTP 响应异常" : msg)")
 }
 guard let importPayload = importJson["data"] as? [String: Any] else {
 throw PlatformError.parse("CyCity 上传失败：import 响应里没有 data")
@@ -185,8 +185,8 @@ throw PlatformError.network("CyCity 上传失败（确认步骤 HTTP \(confirmHt
 }
 guard let confirmJson = jsonObject(confirmData),
 (confirmJson["code"] as? Int) == 200 else {
-let msg = (jsonObject(confirmData)?["msg"] as? String)?? ""
-throw PlatformError.network("CyCity 上传失败（确认步骤）：\(msg.isEmpty? "服务端未确认入库": msg)")
+let msg = (jsonObject(confirmData)?["msg"] as? String) ?? ""
+throw PlatformError.network("CyCity 上传失败（确认步骤）：\(msg.isEmpty ? "服务端未确认入库" : msg)")
 }
 // code==200 即成功（smali："CyCity upload success"）。
 }
@@ -194,7 +194,7 @@ throw PlatformError.network("CyCity 上传失败（确认步骤）：\(msg.isEmp
 // MARK: - 登录态
 
 private func requireToken() throws -> String {
-guard let token = session.token,!token.isEmpty else { throw PlatformError.notLoggedIn}
+guard let token = session.token, !token.isEmpty else { throw PlatformError.notLoggedIn}
 return token
 }
 
@@ -230,11 +230,11 @@ contentType: String, headers: [String: String]
 ) async throws -> Data {
 let boundary = "Boundary-\(UUID().uuidString)"
 var body = Data()
-body.append("--\(boundary)\r\n".data(using:.utf8)!)
-body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(fileName)\"\r\n".data(using:.utf8)!)
-body.append("Content-Type: \(contentType)\r\n\r\n".data(using:.utf8)!)
+body.append("--\(boundary)\r\n".data(using: .utf8)!)
+body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+body.append("Content-Type: \(contentType)\r\n\r\n".data(using: .utf8)!)
 body.append(data)
-body.append("\r\n--\(boundary)--\r\n".data(using:.utf8)!)
+body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 var allHeaders = headers
 allHeaders["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
 let (result, http) = try await request(url: url, method: "POST", headers: allHeaders, body: body, timeout: 120)
@@ -249,9 +249,9 @@ return result
 /// startTime 字段格式 smali 没写死（原样透传进记录），这里按常见格式尽力解析，失败回 1970。
 /// TODO: 待真机验证 — startTime 到底是什么格式（"yyyy-MM-dd HH:mm:ss"？ISO8601？毫秒时间戳？）。
 private func parseStartDate(_ raw: String) -> Date {
-guard!raw.isEmpty else { return Date(timeIntervalSince1970: 0)}
+guard !raw.isEmpty else { return Date(timeIntervalSince1970: 0)}
 if let ms = Int64(raw), ms > 1_000_000_000 {
-return Date(timeIntervalSince1970: TimeInterval(ms > 1_000_000_000_000? ms: ms * 1000) / 1000)
+return Date(timeIntervalSince1970: TimeInterval(ms > 1_000_000_000_000 ? ms : ms * 1000) / 1000)
 }
 let f = DateFormatter()
 f.locale = Locale(identifier: "en_US_POSIX")
@@ -277,7 +277,7 @@ var password: String?
 // MARK: - 本文件内的小工具（不碰共享类型）
 
 private func formEncode(_ s: String) -> String {
-s.addingPercentEncoding(withAllowedCharacters:.cyCityFormAllowed)?? s
+s.addingPercentEncoding(withAllowedCharacters: .cyCityFormAllowed) ?? s
 }
 
 private extension CharacterSet {
