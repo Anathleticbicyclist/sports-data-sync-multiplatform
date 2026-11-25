@@ -101,7 +101,7 @@ struct CodoonAPI: PlatformAPI, CoordinateConvertible {
         // token + refresh_token + user_id 以 JSON 串存钥匙串（user_id 列表校验要用）；账号密码也存，供重登。
         LoginStore.saveToken(Self.tokenBlob(
             token: access,
-            refreshToken: session.refreshToken,
+            refreshToken: session.refreshToken ?? "",
             userId: session.userId), for: source)
         LoginStore.saveCredentials(username: username, password: password, for: source)
     }
