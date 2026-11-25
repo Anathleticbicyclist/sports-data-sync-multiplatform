@@ -85,10 +85,11 @@ private func corosDeflateRaw(_ data: Data) -> Data? {
     guard !data.isEmpty else { return nil }
     let srcSize = data.count
     var dst = Data(count: srcSize + 64)
+    let dstCount = dst.count
     let encoded = data.withUnsafeBytes { src in
         dst.withUnsafeMutableBytes { d in
             compression_encode_buffer(
-                d.baseAddress!.assumingMemoryBound(to: UInt8.self), dst.count,
+                d.baseAddress!.assumingMemoryBound(to: UInt8.self), dstCount,
                 src.baseAddress!.assumingMemoryBound(to: UInt8.self), srcSize,
                 nil, COMPRESSION_ZLIB
             )
@@ -109,8 +110,14 @@ private func corosZipFitData(_ fitData: Data, fitName: String) -> Data {
     let now = Date()
     let cal = Calendar.current
     let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: now)
-    let dosTime = UInt16(((comps.hour ?? 0) << 11) | ((comps.minute ?? 0) << 5) | ((comps.second ?? 0) / 2))
-    let dosDate = UInt16((((comps.year ?? 1980) - 1980) << 9) | ((comps.month ?? 1) << 5) | (comps.day ?? 1))
+    let hour = comps.hour ?? 0
+    let minute = comps.minute ?? 0
+    let second = comps.second ?? 0
+    let dosTime = UInt16((hour << 11) | (minute << 5) | (second / 2))
+    let year = comps.year ?? 1980
+    let month = comps.month ?? 1
+    let day = comps.day ?? 1
+    let dosDate = UInt16(((year - 1980) << 9) | (month << 5) | day)
     func u16(_ v: UInt16) -> Data { Data([UInt8(v & 0xFF), UInt8((v >> 8) & 0xFF)]) }
     func u32(_ v: UInt32) -> Data {
         Data([UInt8(v & 0xFF), UInt8((v >> 8) & 0xFF), UInt8((v >> 16) & 0xFF), UInt8((v >> 24) & 0xFF)])

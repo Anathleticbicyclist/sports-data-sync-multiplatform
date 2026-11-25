@@ -556,6 +556,7 @@ private func aes128CBCDecrypt(_ data: Data, key: Data, iv: Data) -> Data? {
     guard key.count == 16, iv.count == 16 else { return nil }
     var out = Data(count: data.count + Int(kCCBlockSizeAES128))
     var outLen = 0
+    let outCount = out.count
     let status = out.withUnsafeMutableBytes { outPtr in
         data.withUnsafeBytes { dataPtr in
             key.withUnsafeBytes { keyPtr in
@@ -564,7 +565,7 @@ private func aes128CBCDecrypt(_ data: Data, key: Data, iv: Data) -> Data? {
                         CCOperation(kCCDecrypt), CCAlgorithm(kCCAlgorithmAES128), CCOptions(kCCOptionPKCS7Padding),
                         keyPtr.baseAddress, key.count, ivPtr.baseAddress,
                         dataPtr.baseAddress, data.count,
-                        outPtr.baseAddress, out.count, &outLen
+                        outPtr.baseAddress, outCount, &outLen
                     )
                 }
             }
