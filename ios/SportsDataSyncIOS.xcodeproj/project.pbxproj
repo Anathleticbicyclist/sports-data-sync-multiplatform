@@ -1,0 +1,434 @@
+// !$*UTF8*$!
+// 待真机验证
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7E7AD6F6B5788C056F6456FF /* SportsDataSyncIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA2F304E051187F8CFBCFE9 /* SportsDataSyncIOSApp.swift */; };
+		6CAA9E187F35FACA68B4011C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B8E289DA4775F723C7CBEA /* Models.swift */; };
+		7F577D3388F656B65D8F7AE9 /* HTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C5E358FC49A71DBE9A32533 /* HTTPClient.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* BuiltinSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* BuiltinSecrets.swift */; };
+		6DA9D7A737D636EE45A99A9C /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD88F2A56C18C1814B6538F7 /* Storage.swift */; };
+		09E18B0299C9B5FDFB2D3D3A /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F83776C75C19B47F88196B /* GeoUtils.swift */; };
+		9247605ED20779AC098181E3 /* FitParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0AE21D37181108586468EA /* FitParser.swift */; };
+		270C80D2D1A4CA38BA84E92A /* FitBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625D4A59B43C623DD175E773 /* FitBuilder.swift */; };
+		A08C7EDB79CA54D6C377F804 /* GpxParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B38FB9E0AB945B6F216DCF0 /* GpxParser.swift */; };
+		55021FA066928E17BE107B62 /* GpxBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51216315E16C2AD903CEB2B /* GpxBuilder.swift */; };
+		50619FE25069F93D90D7ABF8 /* IgpsportAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B58326C8B162BF897AC1A64 /* IgpsportAPI.swift */; };
+		6FCEFD595167064CEE427FBF /* XingzheAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373C80746966A43D4FE3B4D9 /* XingzheAPI.swift */; };
+		B3B9E7F6CC66AB526CDAC8FD /* MageneAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4005AE0C332657916CC1EEB /* MageneAPI.swift */; };
+		5C622A77EFEC5EBE227DDE3B /* BlackbirdAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B9F5878028F216B5191238C /* BlackbirdAPI.swift */; };
+		9FC76CCB310A6BD69CF8449C /* GiantAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98918245975055A6BBCCF02A /* GiantAPI.swift */; };
+		6542C0270FDF0AA4052E669D /* OutbaseAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03FCD958127DF630DD2CCED5 /* OutbaseAPI.swift */; };
+		4EB7825124288BF2D3F8C290 /* IntervalsIcuAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6610E4F1A1057D07D8FE0D8D /* IntervalsIcuAPI.swift */; };
+		6F8C85FCBD6B31A432986FFB /* GarminAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26184C23171D2E178808F7DC /* GarminAPI.swift */; };
+		C9749E11F6682DCF477F6245 /* CorosAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C916C03E3E7B80BE35473CA6 /* CorosAPI.swift */; };
+		8982438B66D0C9514C156DCD /* StravaAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1CD0C0C16DB20A8CEE01B8F /* StravaAPI.swift */; };
+		3547CB0902B18B4FDC81CB85 /* WahooAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26189E542F2C7FBB4633C313 /* WahooAPI.swift */; };
+		01284D7FDB336BAEB075AC6A /* MyWhooshAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EDE8FF14021B740CD11CFE2 /* MyWhooshAPI.swift */; };
+		E03E70A6546B572DBD1B2897 /* ZwiftAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FAB175A7955A6A62E20FED /* ZwiftAPI.swift */; };
+		099A209137FED7A6CE87E39B /* KeepAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB91DD1933403DE28E5C681 /* KeepAPI.swift */; };
+		684F4359AC94C0D7756FDFAD /* CodoonAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B08FEAC435299A9076ADAE7 /* CodoonAPI.swift */; };
+		43D92E1B2C5FDDC35440FC07 /* ZeppAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8CBAB6907774A339517E32F /* ZeppAPI.swift */; };
+		1670AB599A39C4CAB4561917 /* KomootAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FDC53FE462BA0188E215EFD /* KomootAPI.swift */; };
+		799BABFA66F6DA192135BF85 /* SuuntoAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AC5F379FF4A73541B6801B /* SuuntoAPI.swift */; };
+		97F87DFD22FE4560EFA9B75B /* BrytonAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1114C585DC7C86427F7D00E7 /* BrytonAPI.swift */; };
+		1F4D30DBB74E9C1DF7DD321C /* CyCityAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F61C21630522A4BE5E818C /* CyCityAPI.swift */; };
+		F2A186CAE45D5A4B1B54E860 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0045444D2DDD54588684C5B /* SyncEngine.swift */; };
+		BF11CE42A653BCABE49CDD95 /* BackgroundSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9217B76021C06E0F018DAB85 /* BackgroundSync.swift */; };
+		1D58B7F6C47C4DBFEC95A552 /* TrialLicense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B66CEC9CA398858BF80722 /* TrialLicense.swift */; };
+		4759D059CC63684590D73077 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B58B413A91573EE3AFAFDA04 /* ContentView.swift */; };
+		F7FBDB88E61BBFD3E04FA804 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C3CEA31D5F2B7927D09577D /* LoginView.swift */; };
+		60AC0E3013DF2F7E6CC4204D /* SyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253391032F78D72D85E9A6C5 /* SyncView.swift */; };
+		99535A74B3620C9C10CE8124 /* RecordCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D02ACAFCF94E6D618C6A1B0 /* RecordCenterView.swift */; };
+		1F148C168DB8DB5A13F12357 /* MergeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10B5A149E8575EDD073E9931 /* MergeView.swift */; };
+		4029255E809838ED2F8042BA /* HeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A57D71405EBC895AA85FF111 /* HeatmapView.swift */; };
+		A9700C48FD6EB05355B7044B /* BikeComputerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C1DFB70F6ACD3D1160C074 /* BikeComputerView.swift */; };
+		124DE22D27B1CFFE07B61573 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27FDC115618E80DC3735D13F /* AboutView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		5FA2F304E051187F8CFBCFE9 /* SportsDataSyncIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportsDataSyncIOSApp.swift; sourceTree = "<group>"; };
+		08B8E289DA4775F723C7CBEA /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		3C5E358FC49A71DBE9A32533 /* HTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPClient.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* BuiltinSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuiltinSecrets.swift; sourceTree = "<group>"; };
+		DD88F2A56C18C1814B6538F7 /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
+		97F83776C75C19B47F88196B /* GeoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoUtils.swift; sourceTree = "<group>"; };
+		0F0AE21D37181108586468EA /* FitParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitParser.swift; sourceTree = "<group>"; };
+		625D4A59B43C623DD175E773 /* FitBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitBuilder.swift; sourceTree = "<group>"; };
+		4B38FB9E0AB945B6F216DCF0 /* GpxParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpxParser.swift; sourceTree = "<group>"; };
+		C51216315E16C2AD903CEB2B /* GpxBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpxBuilder.swift; sourceTree = "<group>"; };
+		8B58326C8B162BF897AC1A64 /* IgpsportAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IgpsportAPI.swift; sourceTree = "<group>"; };
+		373C80746966A43D4FE3B4D9 /* XingzheAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XingzheAPI.swift; sourceTree = "<group>"; };
+		F4005AE0C332657916CC1EEB /* MageneAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MageneAPI.swift; sourceTree = "<group>"; };
+		6B9F5878028F216B5191238C /* BlackbirdAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlackbirdAPI.swift; sourceTree = "<group>"; };
+		98918245975055A6BBCCF02A /* GiantAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiantAPI.swift; sourceTree = "<group>"; };
+		03FCD958127DF630DD2CCED5 /* OutbaseAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutbaseAPI.swift; sourceTree = "<group>"; };
+		6610E4F1A1057D07D8FE0D8D /* IntervalsIcuAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalsIcuAPI.swift; sourceTree = "<group>"; };
+		26184C23171D2E178808F7DC /* GarminAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminAPI.swift; sourceTree = "<group>"; };
+		C916C03E3E7B80BE35473CA6 /* CorosAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorosAPI.swift; sourceTree = "<group>"; };
+		A1CD0C0C16DB20A8CEE01B8F /* StravaAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaAPI.swift; sourceTree = "<group>"; };
+		26189E542F2C7FBB4633C313 /* WahooAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WahooAPI.swift; sourceTree = "<group>"; };
+		6EDE8FF14021B740CD11CFE2 /* MyWhooshAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyWhooshAPI.swift; sourceTree = "<group>"; };
+		C0FAB175A7955A6A62E20FED /* ZwiftAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZwiftAPI.swift; sourceTree = "<group>"; };
+		ABB91DD1933403DE28E5C681 /* KeepAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepAPI.swift; sourceTree = "<group>"; };
+		2B08FEAC435299A9076ADAE7 /* CodoonAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodoonAPI.swift; sourceTree = "<group>"; };
+		C8CBAB6907774A339517E32F /* ZeppAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZeppAPI.swift; sourceTree = "<group>"; };
+		8FDC53FE462BA0188E215EFD /* KomootAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomootAPI.swift; sourceTree = "<group>"; };
+		83AC5F379FF4A73541B6801B /* SuuntoAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuuntoAPI.swift; sourceTree = "<group>"; };
+		1114C585DC7C86427F7D00E7 /* BrytonAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrytonAPI.swift; sourceTree = "<group>"; };
+		72F61C21630522A4BE5E818C /* CyCityAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyCityAPI.swift; sourceTree = "<group>"; };
+		A0045444D2DDD54588684C5B /* SyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncEngine.swift; sourceTree = "<group>"; };
+		9217B76021C06E0F018DAB85 /* BackgroundSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSync.swift; sourceTree = "<group>"; };
+		27B66CEC9CA398858BF80722 /* TrialLicense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialLicense.swift; sourceTree = "<group>"; };
+		B58B413A91573EE3AFAFDA04 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8C3CEA31D5F2B7927D09577D /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		253391032F78D72D85E9A6C5 /* SyncView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncView.swift; sourceTree = "<group>"; };
+		5D02ACAFCF94E6D618C6A1B0 /* RecordCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordCenterView.swift; sourceTree = "<group>"; };
+		10B5A149E8575EDD073E9931 /* MergeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeView.swift; sourceTree = "<group>"; };
+		A57D71405EBC895AA85FF111 /* HeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeatmapView.swift; sourceTree = "<group>"; };
+		B4C1DFB70F6ACD3D1160C074 /* BikeComputerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BikeComputerView.swift; sourceTree = "<group>"; };
+		27FDC115618E80DC3735D13F /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		A7B6A6DEC9C19F6F6354087D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BA7CAEEEA49E7D416DB7AE60 /* SportsDataSyncIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SportsDataSyncIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7DE6EBCE9977A61A227D4F45 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C0BBDBA55F537E5732C99053 = {
+			isa = PBXGroup;
+			children = (
+				B42D4731C372E406E954FF3B /* SportsDataSyncIOS */,
+				1D2D6568D4EA0E10D4ED2CD0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B42D4731C372E406E954FF3B /* SportsDataSyncIOS */ = {
+			isa = PBXGroup;
+			children = (
+				5FA2F304E051187F8CFBCFE9 /* SportsDataSyncIOSApp.swift */,
+				A7B6A6DEC9C19F6F6354087D /* Info.plist */,
+				F1FB403A6C92DA333C191A70 /* Core */,
+				E330D77A9EE161D6F030D614 /* Platforms */,
+				3DB1B6FEE016BF4DF3F3526E /* Services */,
+				85D47F644E6A103C324E2617 /* Views */,
+			);
+			path = SportsDataSyncIOS;
+			sourceTree = "<group>";
+		};
+		F1FB403A6C92DA333C191A70 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				08B8E289DA4775F723C7CBEA /* Models.swift */,
+				3C5E358FC49A71DBE9A32533 /* HTTPClient.swift */,
+				A1B2C3D4E5F60718293A4B5D /* BuiltinSecrets.swift */,
+				DD88F2A56C18C1814B6538F7 /* Storage.swift */,
+				97F83776C75C19B47F88196B /* GeoUtils.swift */,
+				0F0AE21D37181108586468EA /* FitParser.swift */,
+				625D4A59B43C623DD175E773 /* FitBuilder.swift */,
+				4B38FB9E0AB945B6F216DCF0 /* GpxParser.swift */,
+				C51216315E16C2AD903CEB2B /* GpxBuilder.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		E330D77A9EE161D6F030D614 /* Platforms */ = {
+			isa = PBXGroup;
+			children = (
+				8B58326C8B162BF897AC1A64 /* IgpsportAPI.swift */,
+				373C80746966A43D4FE3B4D9 /* XingzheAPI.swift */,
+				F4005AE0C332657916CC1EEB /* MageneAPI.swift */,
+				6B9F5878028F216B5191238C /* BlackbirdAPI.swift */,
+				98918245975055A6BBCCF02A /* GiantAPI.swift */,
+				03FCD958127DF630DD2CCED5 /* OutbaseAPI.swift */,
+				6610E4F1A1057D07D8FE0D8D /* IntervalsIcuAPI.swift */,
+				26184C23171D2E178808F7DC /* GarminAPI.swift */,
+				C916C03E3E7B80BE35473CA6 /* CorosAPI.swift */,
+				A1CD0C0C16DB20A8CEE01B8F /* StravaAPI.swift */,
+				26189E542F2C7FBB4633C313 /* WahooAPI.swift */,
+				6EDE8FF14021B740CD11CFE2 /* MyWhooshAPI.swift */,
+				C0FAB175A7955A6A62E20FED /* ZwiftAPI.swift */,
+				ABB91DD1933403DE28E5C681 /* KeepAPI.swift */,
+				2B08FEAC435299A9076ADAE7 /* CodoonAPI.swift */,
+				C8CBAB6907774A339517E32F /* ZeppAPI.swift */,
+				8FDC53FE462BA0188E215EFD /* KomootAPI.swift */,
+				83AC5F379FF4A73541B6801B /* SuuntoAPI.swift */,
+				1114C585DC7C86427F7D00E7 /* BrytonAPI.swift */,
+				72F61C21630522A4BE5E818C /* CyCityAPI.swift */,
+			);
+			path = Platforms;
+			sourceTree = "<group>";
+		};
+		3DB1B6FEE016BF4DF3F3526E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A0045444D2DDD54588684C5B /* SyncEngine.swift */,
+				9217B76021C06E0F018DAB85 /* BackgroundSync.swift */,
+				27B66CEC9CA398858BF80722 /* TrialLicense.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		85D47F644E6A103C324E2617 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B58B413A91573EE3AFAFDA04 /* ContentView.swift */,
+				8C3CEA31D5F2B7927D09577D /* LoginView.swift */,
+				253391032F78D72D85E9A6C5 /* SyncView.swift */,
+				5D02ACAFCF94E6D618C6A1B0 /* RecordCenterView.swift */,
+				10B5A149E8575EDD073E9931 /* MergeView.swift */,
+				A57D71405EBC895AA85FF111 /* HeatmapView.swift */,
+				B4C1DFB70F6ACD3D1160C074 /* BikeComputerView.swift */,
+				27FDC115618E80DC3735D13F /* AboutView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		1D2D6568D4EA0E10D4ED2CD0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BA7CAEEEA49E7D416DB7AE60 /* SportsDataSyncIOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1E35EF3981470D981F810B0F /* SportsDataSyncIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 254677F54B822D479C1BBC4A /* Build configuration list for PBXNativeTarget "SportsDataSyncIOS" */;
+			buildPhases = (
+				8209C2EDF9FB55AF86C9E2DE /* Sources */,
+				7DE6EBCE9977A61A227D4F45 /* Frameworks */,
+				FC6EBE74BFDB632149CEBAC7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SportsDataSyncIOS;
+			productName = SportsDataSyncIOS;
+			productReference = BA7CAEEEA49E7D416DB7AE60 /* SportsDataSyncIOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7D30322B1E49AF340B5D81A8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					1E35EF3981470D981F810B0F = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 2DD27ED1B78EEF6AB3B02D20 /* Build configuration list for PBXProject "SportsDataSyncIOS" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = zh_CN;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				zh_CN,
+				en,
+				Base,
+			);
+			mainGroup = C0BBDBA55F537E5732C99053;
+			productRefGroup = 1D2D6568D4EA0E10D4ED2CD0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1E35EF3981470D981F810B0F /* SportsDataSyncIOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FC6EBE74BFDB632149CEBAC7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8209C2EDF9FB55AF86C9E2DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E7AD6F6B5788C056F6456FF /* SportsDataSyncIOSApp.swift in Sources */,
+				6CAA9E187F35FACA68B4011C /* Models.swift in Sources */,
+				7F577D3388F656B65D8F7AE9 /* HTTPClient.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* BuiltinSecrets.swift in Sources */,
+				6DA9D7A737D636EE45A99A9C /* Storage.swift in Sources */,
+				09E18B0299C9B5FDFB2D3D3A /* GeoUtils.swift in Sources */,
+				9247605ED20779AC098181E3 /* FitParser.swift in Sources */,
+				270C80D2D1A4CA38BA84E92A /* FitBuilder.swift in Sources */,
+				A08C7EDB79CA54D6C377F804 /* GpxParser.swift in Sources */,
+				55021FA066928E17BE107B62 /* GpxBuilder.swift in Sources */,
+				50619FE25069F93D90D7ABF8 /* IgpsportAPI.swift in Sources */,
+				6FCEFD595167064CEE427FBF /* XingzheAPI.swift in Sources */,
+				B3B9E7F6CC66AB526CDAC8FD /* MageneAPI.swift in Sources */,
+				5C622A77EFEC5EBE227DDE3B /* BlackbirdAPI.swift in Sources */,
+				9FC76CCB310A6BD69CF8449C /* GiantAPI.swift in Sources */,
+				6542C0270FDF0AA4052E669D /* OutbaseAPI.swift in Sources */,
+				4EB7825124288BF2D3F8C290 /* IntervalsIcuAPI.swift in Sources */,
+				6F8C85FCBD6B31A432986FFB /* GarminAPI.swift in Sources */,
+				C9749E11F6682DCF477F6245 /* CorosAPI.swift in Sources */,
+				8982438B66D0C9514C156DCD /* StravaAPI.swift in Sources */,
+				3547CB0902B18B4FDC81CB85 /* WahooAPI.swift in Sources */,
+				01284D7FDB336BAEB075AC6A /* MyWhooshAPI.swift in Sources */,
+				E03E70A6546B572DBD1B2897 /* ZwiftAPI.swift in Sources */,
+				099A209137FED7A6CE87E39B /* KeepAPI.swift in Sources */,
+				684F4359AC94C0D7756FDFAD /* CodoonAPI.swift in Sources */,
+				43D92E1B2C5FDDC35440FC07 /* ZeppAPI.swift in Sources */,
+				1670AB599A39C4CAB4561917 /* KomootAPI.swift in Sources */,
+				799BABFA66F6DA192135BF85 /* SuuntoAPI.swift in Sources */,
+				97F87DFD22FE4560EFA9B75B /* BrytonAPI.swift in Sources */,
+				1F4D30DBB74E9C1DF7DD321C /* CyCityAPI.swift in Sources */,
+				F2A186CAE45D5A4B1B54E860 /* SyncEngine.swift in Sources */,
+				BF11CE42A653BCABE49CDD95 /* BackgroundSync.swift in Sources */,
+				1D58B7F6C47C4DBFEC95A552 /* TrialLicense.swift in Sources */,
+				4759D059CC63684590D73077 /* ContentView.swift in Sources */,
+				F7FBDB88E61BBFD3E04FA804 /* LoginView.swift in Sources */,
+				60AC0E3013DF2F7E6CC4204D /* SyncView.swift in Sources */,
+				99535A74B3620C9C10CE8124 /* RecordCenterView.swift in Sources */,
+				1F148C168DB8DB5A13F12357 /* MergeView.swift in Sources */,
+				4029255E809838ED2F8042BA /* HeatmapView.swift in Sources */,
+				A9700C48FD6EB05355B7044B /* BikeComputerView.swift in Sources */,
+				124DE22D27B1CFFE07B61573 /* AboutView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1312A7AE66FFC219DAC8B17A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 96900;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 9.6.9;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4BADAC847B22E7CA0DAEFBE1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 96900;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 9.6.9;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		76AFD07B578EB6476B02FAA4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 96900;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SportsDataSyncIOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 9.6.9;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jichi.ob.dev;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E9438EB8A8726C676599939D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 96900;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SportsDataSyncIOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 9.6.9;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jichi.ob.dev;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2DD27ED1B78EEF6AB3B02D20 /* Build configuration list for PBXProject "SportsDataSyncIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1312A7AE66FFC219DAC8B17A /* Debug */,
+				4BADAC847B22E7CA0DAEFBE1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		254677F54B822D479C1BBC4A /* Build configuration list for PBXNativeTarget "SportsDataSyncIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				76AFD07B578EB6476B02FAA4 /* Debug */,
+				E9438EB8A8726C676599939D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7D30322B1E49AF340B5D81A8 /* Project object */;
+}
