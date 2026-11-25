@@ -1,0 +1,97 @@
+# 待真机验证
+name: iOS CI
+
+on:
+  push:
+    branches: [main, ios/9.6.9-swift]
+  pull_request:
+    branches: [main, ios/9.6.9-swift]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    # iOS 工程在仓库的 ios/ 子目录里（安卓代码在仓库根目录，两边互不干扰），
+    # run 步骤都在 ios/ 里跑；upload-artifact 的 path 是相对仓库根目录写的。
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - name: 拉代码
+        uses: actions/checkout@v4
+
+      - name: 注入凭证（Secrets，仅编译机）
+        env:
+          WAHOO_CLIENT_ID: ${{ secrets.WAHOO_CLIENT_ID }}
+          WAHOO_CLIENT_SECRET: ${{ secrets.WAHOO_CLIENT_SECRET }}
+          GARMIN_CONSUMER_KEY: ${{ secrets.GARMIN_CONSUMER_KEY }}
+          GARMIN_CONSUMER_SECRET: ${{ secrets.GARMIN_CONSUMER_SECRET }}
+          SUUNTO_CLIENT_ID: ${{ secrets.SUUNTO_CLIENT_ID }}
+          SUUNTO_CLIENT_SECRET: ${{ secrets.SUUNTO_CLIENT_SECRET }}
+          SUUNTO_SUBSCRIPTION_KEY: ${{ secrets.SUUNTO_SUBSCRIPTION_KEY }}
+          BRYTON_MOBILE_API_KEY: ${{ secrets.BRYTON_MOBILE_API_KEY }}
+          TRIAL_LICENSE_SALT: ${{ secrets.TRIAL_LICENSE_SALT }}
+        run: |
+          # 用 Secrets 的值重写 Core/BuiltinSecrets.swift 再编译（只存在编译机上，
+          # 不进仓库、不进日志；日志里只打印注入了哪几项的名字，不打印值）。
+          # 没配的 Secret 留空/占位，App 照常能编、能打开，只是对应平台登不上。
+          python3 - <<'PYEOF'
+          import os
+          def swift_escape(s):
+              return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "").replace("\r", "")
+          values = {
+              "wahooClientId": os.environ.get("WAHOO_CLIENT_ID", ""),
+              "wahooClientSecret": os.environ.get("WAHOO_CLIENT_SECRET", ""),
+              "garminConsumerKey": os.environ.get("GARMIN_CONSUMER_KEY", ""),
+              "garminConsumerSecret": os.environ.get("GARMIN_CONSUMER_SECRET", ""),
+              "suuntoClientId": os.environ.get("SUUNTO_CLIENT_ID", ""),
+              "suuntoClientSecret": os.environ.get("SUUNTO_CLIENT_SECRET", ""),
+              "suuntoSubscriptionKey": os.environ.get("SUUNTO_SUBSCRIPTION_KEY", ""),
+              "brytonMobileApiKey": os.environ.get("BRYTON_MOBILE_API_KEY", ""),
+              "trialLicenseSalt": os.environ.get("TRIAL_LICENSE_SALT", "GATE_SALT_PLACEHOLDER"),
+          }
+          lines = [
+              "// 由 CI 从 GitHub Secrets 生成（仅编译机，不进仓库、不进日志）。",
+              "// 没配的 Secret 在这里是空字符串 / 占位符。",
+              "",
+              "import Foundation",
+              "",
+              "enum BuiltinSecrets {",
+          ]
+          for key, value in values.items():
+              lines.append(f'    static let {key} = "{swift_escape(value)}"')
+          lines.append("}")
+          lines.append("")
+          with open("SportsDataSyncIOS/Core/BuiltinSecrets.swift", "w") as f:
+              f.write("\n".join(lines))
+          injected = [k for k, v in values.items() if v and v != "GATE_SALT_PLACEHOLDER"]
+          print(f"Secrets 已注入 {len(injected)} 项（只打印项名个数，不打印值）: {', '.join(sorted(injected)) if injected else '无'}")
+          PYEOF
+
+      - name: 编译（不签名）
+        run: |
+          xcodebuild -project SportsDataSyncIOS.xcodeproj \
+            -scheme SportsDataSyncIOS \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build/derived \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: 打包成未签名 .ipa
+        run: |
+          APP_PATH=$(find build/derived -name "*.app" -type d | head -n 1)
+          echo "找到 .app：$APP_PATH"
+          mkdir -p build/ipa/Payload
+          cp -r "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          zip -r ../SportsDataSyncIOS-unsigned.ipa Payload
+          cd ../..
+          ls -lh build/*.ipa
+
+      - name: 上传未签名 .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: SportsDataSyncIOS-unsigned-ipa
+          path: ios/build/*.ipa
