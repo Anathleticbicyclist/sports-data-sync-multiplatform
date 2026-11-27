@@ -3357,6 +3357,8 @@
     :goto_19
     check-cast v0, Lcom/jichi/ob/api/UploadEngine$UploadResult;
 
+    # v9.7.0 修复：Outbase 上传完直接返回自己的结果，不再顺序落入 Strava 分支
+    goto :goto_1a
 
     :pswitch_strava
     iget-object v0, v1, Lcom/jichi/ob/api/UploadEngine$upload$2;->this$0:Lcom/jichi/ob/api/UploadEngine;

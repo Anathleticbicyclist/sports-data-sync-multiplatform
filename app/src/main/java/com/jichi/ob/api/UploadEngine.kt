@@ -128,8 +128,12 @@ class UploadEngine(private val context: android.content.Context? = null) {
         // 行者FIT直接上传iGPSPORT，不做任何修改
         val uploadData = finalData
 
+        // v9.7.0 修复：Outbase 分支必须显式 return，上传完直接返回自己的结果。
+        // v9.6.9 出包 dex 里，Outbase 分支执行完 uploadToOutbase 后没有返回，
+        // 顺序落入紧邻的 Strava 分支（uploadToStravaWeb），结果被 Strava 覆盖，
+        // 表现为上传 Outbase 却报「Strava 登录已失效，请重新登录」，与 Strava 凭证无关。
         when (target) {
-            DataSource.OUTBASE -> uploadToOutbase(credential, uploadData, record, extra)
+            DataSource.OUTBASE -> return@withContext uploadToOutbase(credential, uploadData, record, extra)
             DataSource.IGPSPORT -> uploadToIgpsport(credential, uploadData, record, extra)
             DataSource.XINGZHE -> uploadToXingzhe(credential, uploadData, record, extra)
             DataSource.MAGENE -> uploadToMagene(credential, uploadData, record, extra)

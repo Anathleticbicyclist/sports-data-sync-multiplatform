@@ -9,7 +9,7 @@
 [![Android](https://img.shields.io/badge/Platform-Android-green)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v9.6.9-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-v9.7.0-brightgreen)]()
 [![Dev](https://img.shields.io/badge/Type-开发体验版-orange)]()
 
 一款 Android 运动数据迁移工具，支持在 **iGPSPORT（国内/国际）/ 行者 / 迈金 / 黑鸟单车 / 捷安特 / Outbase / Intervals.icu / 佳明国际 / 佳明中国 / 高驰中国 / Strava / Wahoo / MyWhoosh / Zwift / Keep / 咕咚 / Zepp / Komoot / Suunto / 百锐腾 / CyCity** 二十一平台之间同步运动记录（FIT/GPX），支持国内区与国际区互传（百锐腾已支持下载；MyWhoosh、Zwift、咕咚、Zepp 仅作下载数据源；Intervals.icu 支持课表下载+推送到iGPSPORT/百锐腾；Keep 支持下载为数据源 + 上传半自动引导导入；Strava 仅作上传目标）。
@@ -28,18 +28,18 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 |------|------|
 | 应用名称 | 鸡翅幸哲迈进OB(开发体验版) |
 | 包名 | `com.jichi.ob.dev` |
-| 当前版本 | v9.6.9 |
+| 当前版本 | v9.7.0 |
 | 最低系统 | Android 8.0 (API 26) |
 | 目标系统 | Android 16 (API 36) |
 | 开发语言 | Kotlin |
 | 稳定版下载 | [点击下载稳定版](https://github.com/Anathleticbicyclist/sync-igpsport-magene-onelap-xingzhe-data-to-outbase)（日常使用建议稳定版，更加稳定） |
-| 体验版下载 | [v9.6.9 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.6.9/jichi-ob-dev-9.6.9.apk)（APK 仅作为 Release 资产，代码仓内不含安装包） |
+| 体验版下载 | [v9.7.0 APK](https://github.com/Anathleticbicyclist/sports-data-sync-multiplatform/releases/download/v9.7.0/jichi-ob-dev-9.7.0.apk)（APK 仅作为 Release 资产，代码仓内不含安装包） |
 | 用户手册 | [v9.5.5 完整使用手册 (PDF, 81页)](docs/manual-v9.5.5.pdf) |
 | 联系我们 | [加入Outbase俱乐部](https://outbase.cn/zeusfit/zeusfit-mk/sharePage.html?_bid=1005477&type=club&clubId=MTAxMjgz&timestamp=1787569599904&sign=b4604ad9041551e64ce90ea385a0029f)（反馈问题、测试新功能、与主理人交流） |
 
 > 若github无法下载软件可关注抖音【多吃两口】从主页抖音群获取。
 
-> 🧩 源码说明（重要）：`smali_source/` 是 v9.6.9 实际出包源（apktool 回编即得本 Release 的 APK）；`app/src/main/java/` 是 9.6.9 APK 的 Java/Kotlin 反编译参考树，文件已补齐（118 个，含合并、新建任务、体验码、热力图、临时码表），但**不能直接 gradle 编译**——它是反编译产物，且模型层仍是 9.6.8 版本。详见 [源码说明.md](源码说明.md)。
+> 🧩 源码说明（重要）：`smali_source/` 是 v9.7.0 实际出包源（apktool 回编即得本 Release 的 APK）；`app/src/main/java/` 是 9.7.0 APK 的 Java/Kotlin 反编译参考树，文件已补齐（118 个，含合并、新建任务、体验码、热力图、临时码表），但**不能直接 gradle 编译**——它是反编译产物，且模型层仍是 9.6.8 版本。详见 [源码说明.md](源码说明.md)。
 
 ---
 
@@ -64,7 +64,7 @@ An Android workout-data migration tool that syncs workout records (FIT/GPX) acro
 | 登录 | 顶部品牌横幅；一键登录检测（检测按钮 + 自动检查登录态开关）；Outbase 独立专区；已登录平台(8)以卡片展示条数与上/下传统计，可重新登录；底部四 Tab |
 | 数据同步设置 | 数据来源（单选）、同步目标（可多选，Keep 标注半自动导入）；提示已隐藏的来源/目标数量；同步数量与跳过条数滑块；迈金坐标 GCJ-02→WGS-84 三开关（七牛云建议关、fit_content 建议开、文件夹本地转换） |
 | 同步 | 同步任务卡片（多来源×多目标，可运行、增量自动）、新建任务；统计卡片（成功/跳过/失败）；后台自动同步（检测间隔 15 分钟，WorkManager 跨开机恢复）；开始同步，停止/测试/复制/清记忆；运行日志（前台显示最近 3 条，可看完整日志、暂停滚动、清空） |
-| 关于 | 版本信息与检查更新；记录中心、轨迹合并&透明贴纸、热力图、临时码表、实验室入口；本次更新(v9.6.9)；开源免费与赞赏支持 |
+| 关于 | 版本信息与检查更新；记录中心、轨迹合并&透明贴纸、热力图、临时码表、实验室入口；本次更新(v9.7.0)；开源免费与赞赏支持 |
 
 > **v7.7.7 起全面 UI 重塑**：扁平化、清新、前卫的设计风格（参考现代移动端设计语言），主色统一为天蓝 `#2B8CFF`，四个页面风格继承统一；平台品牌色小圆点是设计亮点（设置页选中时圆点点亮为对应品牌色）。
 
@@ -440,6 +440,11 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ---
 
 ## 📋 更新日志
+
+### v9.7.0
+- 修复「上传 Outbase 却报 Strava 登录已失效」：Outbase 分支上传完没有 return，结果被紧邻的 Strava 分支覆盖；现在 Outbase 传完直接返回自己的结果，与 Strava 是否登录无关
+- 本次仅改 Outbase 分发收尾一处（净增 1 条指令），其余 14 个平台分支、Outbase 上传实现、资源与权限零改动
+- 版本号 9.7.0（versionCode 97000），关于页保留最近四条更新日志
 
 ### v9.6.9
 - 多日轨迹合并重做：里程、计时、爬升、卡路里取各段码表原值，按天自动分圈，合并出的 FIT 可直接传回原平台

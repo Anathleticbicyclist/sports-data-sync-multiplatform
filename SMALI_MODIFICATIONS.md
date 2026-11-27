@@ -353,3 +353,35 @@ apksigner sign --ks jichi-ob-dev.keystore --ks-key-alias jichiobdev \
 - r21 devRelease 包 8,319,150 字节，证书 SHA-256 9b61509f72bf9481251bb2feda2ab1cd54c6acb43951aef57052224a6e368ba6，装机冷启动无 FATAL。
 - 六段合并 OBMERGE：timer=117010.0 cal=20397 dist=940202.15625 max=14.920999526977539 map=116272；record 116801、首点 speed 5.361；六 lap 距离/计时与源段一致，合计 117010。
 - 贴纸 3/4 页实测 940.2 km / 28.9 km/h / 32:30:10。
+
+---
+
+## v9.7.0 改动清单（2026-11-28）
+
+> 主题：修复「上传 Outbase 却报 Strava 登录已失效」。本次只动 Outbase 上传的分发收尾，其余 14 个平台分支、Outbase 上传实现本身、Strava 分支一律不改。
+
+### 根因（已在真机日志与 dex 双向确认）
+`UploadEngine$upload$2`（`upload()` 的协程体）的分发表没有问题：`$EnumSwitchMapping$0` 里 OUTBASE→1，`packed-switch` 表 `index1 -> :pswitch_22` 正是 Outbase 分支，Strava 是 `index19 -> :pswitch_strava`，两者槽位互不干扰。
+
+真正的问题在 `:pswitch_22`（Outbase 分支）的**结尾**：`access$uploadToOutbase` 返回后只做了 `check-cast v0, UploadResult`，**没有 return**，直接顺序落入紧随其后的 `:pswitch_strava`，于是同一个目标会被 Strava 分支再上传一次；没有 Strava 登录态时 `uploadToStravaWeb` 返回「Strava 登录已失效，请重新登录」，把 Outbase 的真实结果覆盖掉。真机日志里 2000~3014ms 的失败耗时，正是「Outbase 已传完 + Strava 分支空转」两段之和。全包内该文案只由 `uploadToStravaWeb` 产生，与 Outbase 会话有效性无关。
+
+### 修改文件
+1. `api/UploadEngine$upload$2.smali`：在 `:goto_19` 的 `check-cast v0, UploadResult` 之后补一条 `goto :goto_1a`，Outbase 分支拿到自己的结果就跳到方法末尾 `return-object v0`，不再流入 Strava 分支。净增 1 条指令，未增寄存器、未改 `.locals`、未动分发表。
+2. `BuildConfig.smali`：`VERSION_CODE -> 0x17ae8`（97000），`VERSION_NAME -> "9.7.0"`。
+3. `MainActivity.smali`：`APP_VERSION -> "v9.7.0"`。
+4. `util/UpdateChecker.smali`：当前版本常量与两处「你的当前版本为 v9.6.x」同步改 v9.7.0。
+5. `res/layout/fragment_about.xml`：关于页版本 `开发体验版 v9.7.0`；最近更新日志改为 9.7.0 / 9.6.9 / 9.6.8 / 9.6.7 四条（原有三条原文保留，新增 9.7.0 一条）。
+6. `app/build.gradle`（参考树）：defaultConfig 与 dev flavor 的 `versionCode 97000` / `versionName "9.7.0"`；hw flavor（7.7.3-hw）不动。
+7. `app/src/main/java/com/jichi/ob/api/UploadEngine.kt`（反编译参考树）：Outbase 分支改为 `DataSource.OUTBASE -> return@withContext uploadToOutbase(...)`，与 smali 行为对齐；`when` 其余分支原样保留。
+
+### 未改动（重点核对项）
+- `UploadEngine.smali` 中 `uploadToOutbase`、`uploadToStravaWeb`、`access$uploadToStravaWeb`：0 改动。
+- `OutbaseApi.smali` / `OutbaseApi.kt`：0 改动；Outbase 上传仍走 CDN `h5/upload` + `api/h5/sport/upload/fit` 原链路。
+- `UploadEngine$upload$2$WhenMappings.smali` 与 `packed-switch` 表：0 改动（Strava 分支保留，真实 Strava 目标仍走它的 `index19` 槽）。
+- 其余平台分支（iGPSPORT/行者/迈金/黑鸟/百锐腾/捷安特/佳明×2/高驰×2/Wahoo/Intervals.icu/Komoot/松拓）：0 改动。
+
+### 验证
+- 指令级比对：base 与成品各 83,668 个方法，无新增/缺失；指令序列仅 5 个方法有差异——本方法（净 +1 条 `goto`）、`MainActivity.<clinit>`、`UpdateChecker` 三处版本文案。
+- 文件级比对：回编后反编译与干净基准只差 apktool.yml、清单、关于页布局、本 smali、`BuildConfig`、`MainActivity`、`UpdateChecker` 七项；资源表、权限、组件零变化。
+- 结构复核：成品反编译后 `:pswitch_22` 结尾为 `check-cast` + `goto :goto_1a`，`:pswitch_strava` 仅能从分发表 `index19` 进入。
+- 真机验证：探针包确认旧包确实进的是 `uploadToStravaWeb`（报错带 `A|` 前缀）；本版出包后再跑 iGPSPORT→Outbase 手动同步，日志应为「📤 上传到 Outbase ...」→ 成功或「Outbase上传失败: ...」，不再出现 Strava 文案。
